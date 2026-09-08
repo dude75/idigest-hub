@@ -374,7 +374,7 @@ export function InstancePage() {
         <>
           <div className="card stack">
             <label>{t('common.name')}<input value={sname} onChange={(e) => setSname(e.target.value)} /></label>
-            <label>{t('skills.body')}<textarea className="summary-editor" value={sbody} onChange={(e) => setSbody(e.target.value)} /></label>
+            <label>{t('skills.body')}<textarea className="skill-editor" value={sbody} onChange={(e) => setSbody(e.target.value)} /></label>
             <button className="primary" type="button" onClick={() => void api('/skills/base', { method: 'POST', body: JSON.stringify({ name: sname, body: sbody }) }).then(() => { setSname(''); setSbody(''); return load() })}>
               {t('common.create')}
             </button>

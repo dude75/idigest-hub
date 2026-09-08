@@ -213,6 +213,7 @@ th { color: var(--muted); font-weight: 550; }
 .speaker { font-weight: 600; margin-right: 0.35rem; }
 .summary-body { background: #fafbfc; border: 1px solid var(--line); border-radius: 6px; padding: 0.75rem; overflow-x: auto; }
 .summary-editor { min-height: 22rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.skill-editor { min-height: 11rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .summary-md h1, .summary-md h2, .summary-md h3 { margin: 0.9rem 0 0.4rem; }
 .summary-md h1 { font-size: 1.15rem; }
 .summary-md h2 { font-size: 1.05rem; }

@@ -65,7 +65,7 @@ export function SkillsPage() {
         </label>
         <label>
           {t('skills.body')}
-          <textarea className="summary-editor" value={body} onChange={(e) => setBody(e.target.value)} />
+          <textarea className="skill-editor" value={body} onChange={(e) => setBody(e.target.value)} />
         </label>
         <div className="row">
           <button className="primary" type="button" onClick={() => void create('self')}>{t('skills.newSelf')}</button>

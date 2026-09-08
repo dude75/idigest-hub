@@ -117,7 +117,7 @@ export function SkillPage() {
                 <input value={name} onChange={(e) => setName(e.target.value)} />
               </label>
               <textarea
-                className="summary-editor"
+                className="skill-editor"
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
               />
