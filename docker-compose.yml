@@ -1,4 +1,15 @@
 services:
+  postgres:
+    profiles: ["pg"]
+    restart: always
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hub}
+      POSTGRES_DB: ${POSTGRES_DB:-hub}
+    volumes:
+      - ./data/pg:/var/lib/postgresql/data
+
   idigest-hub:
     restart: always
     image: idigest-hub:latest
@@ -13,7 +24,7 @@ services:
     environment:
       HOST: "0.0.0.0"
       DATA_DIR: /data
-      SQLITE_PATH: /data/hub.db
+      DATABASE_URL: ${DATABASE_URL:-sqlite:////data/hub.db}
       LOG_DIR: /data/logs
       COOKIE_SECURE: "false"
     volumes:

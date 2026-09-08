@@ -14,7 +14,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     HOST=0.0.0.0 \
     PORT=8080 \
     DATA_DIR=/data \
-    SQLITE_PATH=/data/hub.db \
+    DATABASE_URL=sqlite:////data/hub.db \
     LOG_DIR=/data/logs
 
 RUN python3 -m venv /opt/venv \

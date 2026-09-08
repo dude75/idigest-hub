@@ -26,7 +26,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("HUB_SECRET", "test-secret")
     monkeypatch.setenv("INSTANCE_BOOTSTRAP_TOKEN", "boot")
     monkeypatch.setenv("SESSION_SECRET", "sess")
-    monkeypatch.setenv("SQLITE_PATH", str(tmp_path / "hub.db"))
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'hub.db'}")
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     monkeypatch.setenv("LOG_DIR", str(tmp_path / "logs"))
     monkeypatch.setenv("LOG_ENABLED", "false")

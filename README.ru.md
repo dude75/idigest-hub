@@ -6,19 +6,19 @@
 
 ## Что это
 
-- Signup по умолчанию **открыт**. Из коробки — SQLite (`./data/hub.db`).
+- Signup по умолчанию **открыт**. Из коробки — SQLite (`DATABASE_URL=sqlite:///./data/hub.db`). PostgreSQL — через ту же переменную.
 - Один `instance_admin` создаётся при первом запуске (`/setup`). Остальные живут в организации (`org_admin` / `org_member`).
 - Пользователи не видят URL и API-токены воркеров. Instance admin подключает воркеры в UI (базовый URL + bearer-токен).
 - FastAPI отдаёт собранную SPA с того же origin (`web/dist`). Session cookie — HttpOnly + `SameSite=Lax`, без CORS.
 - HTTP-порт по умолчанию **8080**, чтобы не пересечься с воркерами на `8000`.
-- Compose поднимает **только хаб** и volume `./data`. Воркеров в этот стек не класть.
+- Compose поднимает **только хаб** и volume `./data` (PostgreSQL опционально, profile `pg`). Воркеров в этот стек не класть.
 
 ## Требования
 
 - Python **3.12**
 - Виртуальное окружение `.venv` (только `./.venv/bin/python` и `./.venv/bin/pip`)
 - **Node.js** (22+) для сборки SPA в `web/`
-- Диск под `./data` для SQLite, логов и загрузок аудио (в git не коммитится)
+- Диск под `./data`: файл SQLite, логи, загрузки аудио; для PostgreSQL в Compose — `./data/pg` (в git не коммитится)
 
 ## Установка и запуск
 
@@ -84,17 +84,18 @@ curl -sS -X POST http://127.0.0.1:8080/api/v1/setup \
 | `SESSION_SECRET`             | Перец для хешей сессий и API-токенов. Смена инвалидирует уже выданные cookie и токены.                                                                           |
 | `HOST`                       | Интерфейс (`127.0.0.1` локально; в Docker — `0.0.0.0`).                                                                                                          |
 | `PORT`                       | HTTP-порт (по умолчанию `8080`).                                                                                                                                 |
-| `DATA_DIR`                   | Корень персистентных данных (по умолчанию `./data`): SQLite, логи, загрузки `{DATA_DIR}/uploads/{audio_id}/`.                                                    |
-| `SQLITE_PATH`                | БД хаба (по умолчанию `./data/hub.db`). Токены воркеров, транскрипты и саммари на диске зашифрованы (см. ниже).                                                   |
+| `DATA_DIR`                   | Корень персистентных данных (по умолчанию `./data`): логи, загрузки `{DATA_DIR}/uploads/{audio_id}/`. Файл SQLite — в этом дереве при URL по умолчанию. |
+| `DATABASE_URL`               | SQLAlchemy URL (по умолчанию `sqlite:///./data/hub.db`). Для PostgreSQL: `postgresql+psycopg://user:pass@host:5432/db`. **Смена URL — другая БД с другими данными**, автоматической миграции SQLite ↔ PostgreSQL нет. |
+| `SQLITE_PATH`                | Legacy fallback, если `DATABASE_URL` пуст (по умолчанию `./data/hub.db`). Лучше задавать `DATABASE_URL`. |
 | `LOG_DIR`                    | Каталог прикладных логов (по умолчанию `./data/logs`).                                                                                                           |
 | `LOG_ENABLED`                | Прикладной лог-файл + app-logger. По умолчанию `true`. `false` / `0` / `no` — выкл.                                                                              |
 | `LOG_MAX_BYTES`              | Ротация `app.log` при превышении размера в байтах. По умолчанию `5242880` (5 MiB).                                                                               |
 | `LOG_BACKUP_COUNT`           | Сколько архивов хранить (`app.log.1` … `app.log.N`). По умолчанию `5`.                                                                                           |
 | `COOKIE_SECURE`              | Флаг `Secure` у session cookie. По умолчанию `false` (локальный HTTP). За HTTPS ставьте `true`.                                                                  |
 
-Всё, что должно пережить рестарт, лежит в `./data` (`hub.db`, логи **и загрузки** `{DATA_DIR}/uploads/{audio_id}/`). В Docker монтируйте этот каталог. Контейнер Compose пишет в него от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
+Всё, что должно пережить рестарт, лежит в `./data` (SQLite `hub.db` или `./data/pg` для PostgreSQL в Compose, логи **и загрузки** `{DATA_DIR}/uploads/{audio_id}/`). В Docker монтируйте этот каталог. Контейнер Compose пишет в него от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
 
-`api_token` воркеров, JSON транскриптов, тела саммари и SMTP-пароль в SQLite хранятся в Fernet (AES-128-CBC + HMAC). Ключ — `SHA-256(HUB_SECRET)`, не сырой секрет — та же идея, что `API_TOKEN` у воркеров. API по-прежнему отдаёт открытый текст авторизованным клиентам. Аудио на диске в этой версии **не** шифруется. Это защита только от утечки `hub.db` без `.env`.
+`api_token` воркеров, JSON транскриптов, тела саммари и SMTP-пароль в БД хаба хранятся в Fernet (AES-128-CBC + HMAC). Ключ — `SHA-256(HUB_SECRET)`, не сырой секрет — та же идея, что `API_TOKEN` у воркеров. API по-прежнему отдаёт открытый текст авторизованным клиентам. Аудио на диске в этой версии **не** шифруется. Это защита только от утечки БД без `.env`.
 
 **Смена `HUB_SECRET` делает уже зашифрованные строки нечитаемыми** (токены воркеров, транскрипты, саммари, SMTP-пароль). Автоматической перешифровки нет. Задайте секрет один раз и храните запасную копию `.env`. То же предупреждение, что у воркеров про ротацию `API_TOKEN`.
 
@@ -116,6 +117,8 @@ Compose воркеры **не** поднимает. Запустите **itransc
 
 Один образ (`idigest-hub:latest`). Стадия Node собирает `web/dist`; стадия Python отдаёт API + SPA. Процесс идёт от **uid/gid 1001** (не root). Compose монтирует `./data:/data`.
 
+По умолчанию хаб на SQLite (`DATABASE_URL=sqlite:////data/hub.db` в контейнере). PostgreSQL — отдельный сервис под profile **`pg`**, данные в `./data/pg` на хосте.
+
 ### Подготовка
 
 1. Скопируйте `.env.example` → `.env` и заполните `HUB_SECRET` / `INSTANCE_BOOTSTRAP_TOKEN` / `SESSION_SECRET` (см. [`.env`](#env)).
@@ -135,13 +138,40 @@ Compose воркеры **не** поднимает. Запустите **itransc
    Не делайте chmod `777`. `docker compose down` каталог `./data` не удаляет.
 3. Compose ставит `COOKIE_SECURE=false` для локального HTTP. За HTTPS поставьте `COOKIE_SECURE=true` в `docker-compose.yml` (или уберите override и задайте в `.env`).
 
-### Запуск
+### Запуск (SQLite, по умолчанию)
 
 ```bash
 docker compose up --build
 ```
 
 Фон: `-d`, логи: `docker compose logs -f`. Порт: `8080:8080`. Дальше откройте `http://127.0.0.1:8080/setup`.
+
+### Запуск (PostgreSQL)
+
+В `.env`:
+
+```env
+DATABASE_URL=postgresql+psycopg://hub:hub@postgres:5432/hub
+POSTGRES_USER=hub
+POSTGRES_PASSWORD=hub
+POSTGRES_DB=hub
+```
+
+Затем:
+
+```bash
+docker compose --profile pg up --build
+```
+
+PostgreSQL хранит файлы в `./data/pg` (bind mount). Загрузки и логи — по-прежнему `./data/uploads` и `./data/logs`. Это **отдельная** БД от SQLite: при возврате к обычному `docker compose up` пользователи и задачи не переносятся.
+
+Если PostgreSQL не стартует из‑за прав, один раз на хосте:
+
+```bash
+sudo chown -R 999:999 ./data/pg
+```
+
+### Остановка
 
 ```bash
 docker compose down

@@ -6,19 +6,19 @@ On-premise **multi-tenant control plane** over [itranscribe-worker](#attach-work
 
 ## What it does
 
-- Signup is **open** by default. SQLite is the out-of-the-box database (`./data/hub.db`).
+- Signup is **open** by default. SQLite is the out-of-the-box database (`DATABASE_URL=sqlite:///./data/hub.db`). PostgreSQL is optional via the same variable.
 - One `instance_admin` is created at first boot (`/setup`). Everyone else is in an organization (`org_admin` / `org_member`).
 - Users never see worker URLs or API tokens. The instance admin attaches workers in the UI (base URL + bearer token).
 - FastAPI serves the built SPA from the same origin (`web/dist`). Session cookie is HttpOnly + `SameSite=Lax` — no CORS.
 - Default HTTP port is **8080** so it does not clash with workers on `8000`.
-- Compose runs **only the hub** plus `./data`. Do not put workers in this stack.
+- Compose runs **only the hub** plus `./data` (and optionally PostgreSQL with profile `pg`). Do not put workers in this stack.
 
 ## Requirements
 
 - Python **3.12**
 - Virtualenv at `.venv` (use `./.venv/bin/python` and `./.venv/bin/pip` only)
 - **Node.js** (22+) to build the SPA in `web/`
-- Disk under `./data` for SQLite, logs, and audio uploads (not committed)
+- Disk under `./data` for the database file (SQLite), logs, audio uploads, and optionally PostgreSQL data at `./data/pg` (not committed)
 
 ## Install and run
 
@@ -84,17 +84,18 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `SESSION_SECRET`             | Pepper for session and API-token hashes. Changing it invalidates existing cookies and tokens.                                                                    |
 | `HOST`                       | Bind address (`127.0.0.1` locally; Docker uses `0.0.0.0`).                                                                                                       |
 | `PORT`                       | HTTP port (default `8080`).                                                                                                                                      |
-| `DATA_DIR`                   | Persistent root (default `./data`): SQLite, logs, uploads at `{DATA_DIR}/uploads/{audio_id}/`.                                                                   |
-| `SQLITE_PATH`                | Hub database (default `./data/hub.db`). Worker tokens, transcripts, and summaries are encrypted at rest (see below).                                             |
+| `DATA_DIR`                   | Persistent root (default `./data`): logs, uploads at `{DATA_DIR}/uploads/{audio_id}/`. SQLite file lives under this tree when using the default URL. |
+| `DATABASE_URL`               | SQLAlchemy URL (default `sqlite:///./data/hub.db`). Use `postgresql+psycopg://user:pass@host:5432/db` for PostgreSQL. **Switching URL uses a different database with different data** — there is no automatic SQLite ↔ PostgreSQL migration. |
+| `SQLITE_PATH`                | Legacy fallback if `DATABASE_URL` is empty (default `./data/hub.db`). Prefer `DATABASE_URL`. |
 | `LOG_DIR`                    | Application log directory (default `./data/logs`).                                                                                                               |
 | `LOG_ENABLED`                | Application file log + app logger. Default `true`. `false` / `0` / `no` = off.                                                                                   |
 | `LOG_MAX_BYTES`              | Rotate `app.log` when it exceeds this size in bytes. Default `5242880` (5 MiB).                                                                                  |
 | `LOG_BACKUP_COUNT`           | How many rotated files to keep (`app.log.1` … `app.log.N`). Default `5`.                                                                                         |
 | `COOKIE_SECURE`              | Session cookie `Secure` flag. Default `false` (local HTTP). Set `true` behind HTTPS.                                                                             |
 
-Everything that must survive a restart lives under `./data` (`hub.db`, logs, **and uploads** `{DATA_DIR}/uploads/{audio_id}/`). Mount that directory in Docker. The Compose container writes it as uid/gid **1001** (see [Docker Compose](#docker-compose)).
+Everything that must survive a restart lives under `./data` (SQLite `hub.db` or `./data/pg` for Compose PostgreSQL, logs, **and uploads** `{DATA_DIR}/uploads/{audio_id}/`). Mount that directory in Docker. The Compose container writes it as uid/gid **1001** (see [Docker Compose](#docker-compose)).
 
-Worker `api_token`s, transcript JSON, summary bodies, and SMTP passwords in SQLite are Fernet-encrypted (AES-128-CBC + HMAC). The key is `SHA-256(HUB_SECRET)`, not the raw secret — same idea as `API_TOKEN` on the workers. The API still returns plaintext to authorized callers. Audio files on disk are **not** encrypted in this version. This only helps if `hub.db` leaks without `.env`.
+Worker `api_token`s, transcript JSON, summary bodies, and SMTP passwords in the hub database are Fernet-encrypted (AES-128-CBC + HMAC). The key is `SHA-256(HUB_SECRET)`, not the raw secret — same idea as `API_TOKEN` on the workers. The API still returns plaintext to authorized callers. Audio files on disk are **not** encrypted in this version. This only helps if the database leaks without `.env`.
 
 **Changing `HUB_SECRET` makes existing encrypted rows unreadable** (worker tokens, transcripts, summaries, SMTP password). There is no automatic re-encrypt. Set the secret once and keep a backup of `.env`. Same warning the workers give for rotating `API_TOKEN`.
 
@@ -116,6 +117,8 @@ Do **not** proxy worker `GET /metrics` through the hub. Scrape each worker direc
 
 One image (`idigest-hub:latest`). The Node stage builds `web/dist`; the Python stage serves API + SPA. The process runs as **uid/gid 1001** (not root). Compose mounts `./data:/data`.
 
+By default the hub uses SQLite (`DATABASE_URL=sqlite:////data/hub.db` inside the container). Optional PostgreSQL runs as a second service under profile **`pg`**, with data in `./data/pg` on the host.
+
 ### Prepare
 
 1. Copy `.env.example` → `.env` and fill `HUB_SECRET` / `INSTANCE_BOOTSTRAP_TOKEN` / `SESSION_SECRET` (see [`.env`](#env)).
@@ -135,13 +138,40 @@ One image (`idigest-hub:latest`). The Node stage builds `web/dist`; the Python s
    Do not chmod `777`. `docker compose down` does not delete `./data`.
 3. Compose sets `COOKIE_SECURE=false` for local HTTP. Behind HTTPS set `COOKIE_SECURE=true` in `docker-compose.yml` (or drop that override and set it in `.env`).
 
-### Run
+### Run (SQLite, default)
 
 ```bash
 docker compose up --build
 ```
 
 Add `-d` to run in the background (`docker compose logs -f` for logs). Published port: `8080:8080`. Then open `http://127.0.0.1:8080/setup`.
+
+### Run (PostgreSQL)
+
+In `.env`:
+
+```env
+DATABASE_URL=postgresql+psycopg://hub:hub@postgres:5432/hub
+POSTGRES_USER=hub
+POSTGRES_PASSWORD=hub
+POSTGRES_DB=hub
+```
+
+Then:
+
+```bash
+docker compose --profile pg up --build
+```
+
+PostgreSQL stores its files in `./data/pg` (bind mount). Uploads and logs still use `./data/uploads` and `./data/logs`. This is a **separate** database from SQLite — switching back to the default Compose command does not share users or tasks.
+
+If PostgreSQL fails with permission errors on first start, once on the host:
+
+```bash
+sudo chown -R 999:999 ./data/pg
+```
+
+### Stop
 
 ```bash
 docker compose down

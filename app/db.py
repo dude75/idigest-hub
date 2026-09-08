@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from pathlib import Path
+from urllib.parse import unquote
 
 from sqlalchemy import create_engine, event
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.config import get_settings
+from app.config import Settings, get_settings
 
 _engine: Engine | None = None
 SessionLocal: sessionmaker[Session] | None = None
@@ -20,6 +21,37 @@ def sqlite_url(path: str) -> str:
     resolved = Path(path).resolve()
     resolved.parent.mkdir(parents=True, exist_ok=True)
     return f"sqlite:///{resolved}"
+
+
+def resolve_database_url(url: str) -> str:
+    parsed = make_url(url)
+    if parsed.drivername != "sqlite":
+        return url
+
+    database = unquote(parsed.database or "")
+    if not database or database == ":memory:":
+        return url
+
+    resolved = Path(database).expanduser()
+    if not resolved.is_absolute():
+        resolved = resolved.resolve()
+    resolved.parent.mkdir(parents=True, exist_ok=True)
+    return parsed.set(database=str(resolved)).render_as_string(hide_password=False)
+
+
+def database_url(settings: Settings | None = None) -> str:
+    settings = settings or get_settings()
+    if settings.DATABASE_URL:
+        return resolve_database_url(settings.DATABASE_URL)
+    return sqlite_url(settings.SQLITE_PATH)
+
+
+def is_sqlite_url(url: str) -> bool:
+    return make_url(url).drivername == "sqlite"
+
+
+def is_sqlite_engine(engine: Engine) -> bool:
+    return engine.dialect.name == "sqlite"
 
 
 def _table_columns(conn, table: str) -> set[str]:
@@ -35,7 +67,10 @@ def _try_drop_column(conn, table: str, column: str) -> None:
 
 
 def ensure_schema(engine: Engine) -> None:
-    """create_all does not add columns to existing tables."""
+    """SQLite-only patches for upgrades without Alembic; create_all skips new columns."""
+    if not is_sqlite_engine(engine):
+        return
+
     with engine.begin() as conn:
         summary_cols = _table_columns(conn, "summaries")
         if summary_cols and "edited" not in summary_cols:
@@ -91,24 +126,27 @@ def ensure_schema(engine: Engine) -> None:
 def get_engine() -> Engine:
     global _engine, SessionLocal
     if _engine is None:
-        settings = get_settings()
-        _engine = create_engine(
-            sqlite_url(settings.SQLITE_PATH),
-            future=True,
-            connect_args={
-                "check_same_thread": False,
-                "timeout": _SQLITE_BUSY_TIMEOUT_SEC,
-            },
-        )
+        url = database_url()
+        if is_sqlite_url(url):
+            _engine = create_engine(
+                url,
+                future=True,
+                connect_args={
+                    "check_same_thread": False,
+                    "timeout": _SQLITE_BUSY_TIMEOUT_SEC,
+                },
+            )
 
-        @event.listens_for(_engine, "connect")
-        def _sqlite_pragma(dbapi_connection, _connection_record) -> None:  # type: ignore[no-untyped-def]
-            cursor = dbapi_connection.cursor()
-            cursor.execute("PRAGMA foreign_keys=ON")
-            cursor.execute("PRAGMA journal_mode=WAL")
-            cursor.fetchall()
-            cursor.execute(f"PRAGMA busy_timeout={int(_SQLITE_BUSY_TIMEOUT_SEC * 1000)}")
-            cursor.close()
+            @event.listens_for(_engine, "connect")
+            def _sqlite_pragma(dbapi_connection, _connection_record) -> None:  # type: ignore[no-untyped-def]
+                cursor = dbapi_connection.cursor()
+                cursor.execute("PRAGMA foreign_keys=ON")
+                cursor.execute("PRAGMA journal_mode=WAL")
+                cursor.fetchall()
+                cursor.execute(f"PRAGMA busy_timeout={int(_SQLITE_BUSY_TIMEOUT_SEC * 1000)}")
+                cursor.close()
+        else:
+            _engine = create_engine(url, future=True, pool_pre_ping=True)
 
         SessionLocal = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False, future=True)
     return _engine

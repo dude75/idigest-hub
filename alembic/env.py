@@ -6,11 +6,12 @@ from pathlib import Path
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+from sqlalchemy.engine import make_url
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.db import sqlite_url
 from app.config import get_settings
+from app.db import database_url
 from app.models import Base
 
 config = context.config
@@ -18,12 +19,20 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
-config.set_main_option("sqlalchemy.url", sqlite_url(get_settings().SQLITE_PATH))
+_url = database_url(get_settings())
+config.set_main_option("sqlalchemy.url", _url)
+_is_sqlite = make_url(_url).drivername == "sqlite"
 
 
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
-    context.configure(url=url, target_metadata=target_metadata, literal_binds=True, dialect_name="sqlite")
+    context.configure(
+        url=url,
+        target_metadata=target_metadata,
+        literal_binds=True,
+        dialect_opts={"paramstyle": "named"},
+        render_as_batch=_is_sqlite,
+    )
     with context.begin_transaction():
         context.run_migrations()
 
@@ -33,10 +42,14 @@ def run_migrations_online() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        url=sqlite_url(get_settings().SQLITE_PATH),
+        url=_url,
     )
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata, render_as_batch=True)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            render_as_batch=_is_sqlite,
+        )
         with context.begin_transaction():
             context.run_migrations()
 

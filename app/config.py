@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     PORT: int = 8080
 
     DATA_DIR: str = "./data"
+    DATABASE_URL: str = "sqlite:///./data/hub.db"
     SQLITE_PATH: str = "./data/hub.db"
     LOG_DIR: str = "./data/logs"
     LOG_ENABLED: bool = True
