@@ -45,7 +45,7 @@ class InstanceSettings(Base):
     smtp_from: Mapped[str | None] = mapped_column(String(255))
     smtp_tls: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     asr_model: Mapped[str] = mapped_column(String(32), default="whisper", nullable=False)
-    diarization_model: Mapped[str | None] = mapped_column(String(32))
+    diarization_model: Mapped[str | None] = mapped_column(String(32), default="pyannote")
 
 
 class User(Base):

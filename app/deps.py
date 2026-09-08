@@ -209,7 +209,13 @@ def get_instance_settings(db: Session):
 
     row = db.get(InstanceSettings, 1)
     if row is None:
-        row = InstanceSettings(id=1, bootstrap_done=False, allow_new_orgs=True, asr_model="whisper")
+        row = InstanceSettings(
+            id=1,
+            bootstrap_done=False,
+            allow_new_orgs=True,
+            asr_model="whisper",
+            diarization_model="pyannote",
+        )
         db.add(row)
         db.flush()
     return row
