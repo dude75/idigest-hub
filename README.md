@@ -4,6 +4,8 @@ On-premise **multi-tenant control plane** over [itranscribe-worker](#attach-work
 
 **Language:** [English](README.md) · [Русский](README.ru.md)
 
+**Documentation:** [docs/](docs/README.md) (English · Русский)
+
 ## What it does
 
 - Signup is **open** by default. SQLite is the out-of-the-box database (`DATABASE_URL=sqlite:///./data/hub.db`). PostgreSQL is optional via the same variable.

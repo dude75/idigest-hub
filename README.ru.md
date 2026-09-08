@@ -4,6 +4,8 @@
 
 **Язык:** [English](README.md) · [Русский](README.ru.md)
 
+**Документация:** [docs/](docs/README.md) (English · Русский)
+
 ## Что это
 
 - Signup по умолчанию **открыт**. Из коробки — SQLite (`DATABASE_URL=sqlite:///./data/hub.db`). PostgreSQL — через ту же переменную.
