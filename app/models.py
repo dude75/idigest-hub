@@ -75,7 +75,7 @@ class User(Base):
     password_hash: Mapped[str | None] = mapped_column(String(255))
     auth_provider: Mapped[str] = mapped_column(String(32), default="local", nullable=False)
     locale: Mapped[str] = mapped_column(String(8), default="en", nullable=False)
-    default_route: Mapped[str] = mapped_column(String(32), default="library", nullable=False)
+    default_route: Mapped[str] = mapped_column(String(32), default="library/audio", nullable=False)
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

@@ -178,11 +178,19 @@ def test_patch_default_route(client):
     tariff_id = default_tariff_id(client)
     assert signup(client, "routes@example.com", "routespass1", tariff_id).status_code == 200
     payload = me(client)
-    assert payload["user"]["default_route"] == "library"
+    assert payload["user"]["default_route"] == "library/audio"
 
-    patched = client.patch("/api/v1/me", json={"default_route": "tasks"})
+    patched = client.patch("/api/v1/me", json={"default_route": "library/transcripts"})
     assert patched.status_code == 200, patched.text
-    assert patched.json()["user"]["default_route"] == "tasks"
+    assert patched.json()["user"]["default_route"] == "library/transcripts"
+
+    legacy = client.patch("/api/v1/me", json={"default_route": "library"})
+    assert legacy.status_code == 200, legacy.text
+    assert legacy.json()["user"]["default_route"] == "library/audio"
+
+    tasks = client.patch("/api/v1/me", json={"default_route": "tasks"})
+    assert tasks.status_code == 200, tasks.text
+    assert tasks.json()["user"]["default_route"] == "tasks"
 
     blocked = client.patch("/api/v1/me", json={"default_route": "instance"})
     assert blocked.status_code == 400

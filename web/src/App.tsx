@@ -22,7 +22,7 @@ import { SummaryPage } from './pages/SummaryPage'
 import { TaskPage } from './pages/TaskPage'
 import { TasksPage } from './pages/TasksPage'
 import { TranscriptPage } from './pages/TranscriptPage'
-import { resolveHomePath } from './routes'
+import { resolveHomePath, LIBRARY_DEFAULT } from './routes'
 
 function AppHomeRedirect() {
   const { me } = useAuth()
@@ -57,7 +57,7 @@ export default function App() {
         }
       >
         <Route index element={<AppHomeRedirect />} />
-        <Route path="library" element={<Navigate to="library/audio" replace />} />
+        <Route path="library" element={<Navigate to={LIBRARY_DEFAULT} replace />} />
         <Route path="library/:tab" element={<LibraryPage />} />
         <Route path="audio/:id" element={<AudioPage />} />
         <Route path="transcript/:id" element={<TranscriptPage />} />

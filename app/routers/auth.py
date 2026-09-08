@@ -16,6 +16,7 @@ from app.constants import (
     DEFAULT_ROUTE,
     DEFAULT_ROUTES,
     DEFAULT_TARIFF_NAME,
+    LEGACY_DEFAULT_ROUTE,
     MAX_UPLOAD_BYTES_CAP,
     PASSWORD_RESET_TTL_SEC,
     SESSION_TTL_SEC,
@@ -116,7 +117,15 @@ def _locale(value: str) -> str:
 def _allowed_default_routes(ctx: AuthContext) -> set[str]:
     routes = {"tasks"}
     if ctx.org:
-        routes.update({"library", "skills", "org"})
+        routes.update(
+            {
+                "library/audio",
+                "library/transcripts",
+                "library/summaries",
+                "skills",
+                "org",
+            }
+        )
         if ctx.membership and ctx.membership.role == "org_admin":
             routes.add("stats")
     if ctx.user.is_instance_admin and not ctx.impersonating:
@@ -125,6 +134,8 @@ def _allowed_default_routes(ctx: AuthContext) -> set[str]:
 
 
 def _default_route(value: str) -> str:
+    if value == LEGACY_DEFAULT_ROUTE:
+        value = DEFAULT_ROUTE
     return value if value in DEFAULT_ROUTES else DEFAULT_ROUTE
 
 

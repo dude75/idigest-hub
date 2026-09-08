@@ -10,5 +10,15 @@ COOKIE_NAME = "hub_session"
 DEFAULT_TARIFF_NAME = "Default"
 SUPPORTED_LOCALES = ("en", "ru", "es")
 DEFAULT_LOCALE = "en"
-DEFAULT_ROUTES = ("library", "skills", "org", "stats", "tasks", "instance")
-DEFAULT_ROUTE = "library"
+DEFAULT_ROUTES = (
+    "library/audio",
+    "library/transcripts",
+    "library/summaries",
+    "skills",
+    "org",
+    "stats",
+    "tasks",
+    "instance",
+)
+DEFAULT_ROUTE = "library/audio"
+LEGACY_DEFAULT_ROUTE = "library"

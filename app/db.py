@@ -79,7 +79,12 @@ def ensure_schema(engine: Engine) -> None:
         user_cols = _table_columns(conn, "users")
         if user_cols and "default_route" not in user_cols:
             conn.exec_driver_sql(
-                "ALTER TABLE users ADD COLUMN default_route VARCHAR(32) NOT NULL DEFAULT 'library'"
+                "ALTER TABLE users ADD COLUMN default_route VARCHAR(32) NOT NULL DEFAULT 'library/audio'"
+            )
+        user_cols = _table_columns(conn, "users")
+        if user_cols and "default_route" in user_cols:
+            conn.exec_driver_sql(
+                "UPDATE users SET default_route='library/audio' WHERE default_route='library'"
             )
 
         summary_cols = _table_columns(conn, "summaries")

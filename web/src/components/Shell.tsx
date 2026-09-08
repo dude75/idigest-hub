@@ -1,7 +1,8 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
+import { LIBRARY_DEFAULT } from '../routes'
 import { WalletLabel } from '../util'
 import { AppBrand } from './AppBrand'
 import { LanguageSwitcher } from './LanguageSwitcher'
@@ -10,6 +11,8 @@ export function Shell() {
   const { t } = useTranslation()
   const { me, refresh, logout } = useAuth()
   const nav = useNavigate()
+  const loc = useLocation()
+  const libraryActive = loc.pathname.startsWith('/app/library')
   const member = Boolean(me?.org)
   const orgAdmin = isOrgAdmin(me)
   const instance = isInstanceAdmin(me)
@@ -32,7 +35,11 @@ export function Shell() {
       <header className="topbar">
         <AppBrand link />
         <nav className="nav">
-          {member && <NavLink to="/app/library" end={false}>{t('nav.library')}</NavLink>}
+          {member && (
+            <NavLink to={LIBRARY_DEFAULT} className={() => (libraryActive ? 'active' : '')}>
+              {t('nav.library')}
+            </NavLink>
+          )}
           {member && <NavLink to="/app/skills">{t('nav.skills')}</NavLink>}
           {member && <NavLink to="/app/org">{t('nav.org')}</NavLink>}
           {orgAdmin && <NavLink to="/app/stats">{t('nav.stats')}</NavLink>}

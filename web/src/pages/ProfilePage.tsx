@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { allowedDefaultRoutes, isDefaultRoute, type DefaultRoute } from '../routes'
+import { allowedDefaultRoutes, defaultRouteLabel, normalizeDefaultRoute, type DefaultRoute } from '../routes'
 import type { ApiToken } from '../types'
 import { ErrorBox, fmtDate } from '../util'
 
@@ -16,6 +16,12 @@ export function ProfilePage() {
   const [secret, setSecret] = useState<string | null>(null)
   const [err, setErr] = useState<unknown>(null)
   const [ok, setOk] = useState(false)
+  const [routeOk, setRouteOk] = useState(false)
+  const [defaultRoute, setDefaultRouteLocal] = useState<DefaultRoute>(() => {
+    const stored = normalizeDefaultRoute(me?.user.default_route)
+    const allowed = allowedDefaultRoutes(me)
+    return stored && allowed.includes(stored) ? stored : allowed[0]
+  })
 
   async function load() {
     const r = await api<{ items: ApiToken[] }>('/auth/tokens')
@@ -26,10 +32,29 @@ export function ProfilePage() {
     load().catch(setErr)
   }, [])
 
+  useEffect(() => {
+    const stored = normalizeDefaultRoute(me?.user.default_route)
+    const allowed = allowedDefaultRoutes(me)
+    if (stored && allowed.includes(stored)) setDefaultRouteLocal(stored)
+  }, [me])
+
+  async function saveDefaultRoute() {
+    setErr(null)
+    setRouteOk(false)
+    setOk(false)
+    try {
+      await setDefaultRoute(defaultRoute)
+      setRouteOk(true)
+    } catch (e) {
+      setErr(e)
+    }
+  }
+
   async function changePw(e: FormEvent) {
     e.preventDefault()
     setErr(null)
     setOk(false)
+    setRouteOk(false)
     try {
       await api('/auth/password/change', {
         method: 'POST',
@@ -65,28 +90,30 @@ export function ProfilePage() {
     <div>
       <h1>{t('profile.title')}</h1>
       <p className="muted">{me?.user.email}</p>
-      <form className="card stack">
+      <div className="card stack">
         <h2>{t('profile.defaultRoute')}</h2>
         <label>
           {t('profile.defaultRouteHint')}
           <select
-            value={
-              isDefaultRoute(me?.user.default_route) && allowedDefaultRoutes(me).includes(me.user.default_route)
-                ? me.user.default_route
-                : allowedDefaultRoutes(me)[0]
-            }
-            onChange={(e) => void setDefaultRoute(e.target.value as DefaultRoute)}
+            value={defaultRoute}
+            onChange={(e) => {
+              setRouteOk(false)
+              setDefaultRouteLocal(e.target.value as DefaultRoute)
+            }}
           >
             {allowedDefaultRoutes(me).map((route) => (
               <option key={route} value={route}>
-                {t(`nav.${route}`)}
+                {defaultRouteLabel(route, t)}
               </option>
             ))}
           </select>
         </label>
-      </form>
+        <button className="primary" type="button" onClick={() => void saveDefaultRoute()}>
+          {t('common.save')}
+        </button>
+        {routeOk && <p className="ok">{t('common.save')}</p>}
+      </div>
       <ErrorBox err={err} />
-      {ok && <p className="ok">{t('common.save')}</p>}
       <form className="card stack" onSubmit={(e) => void changePw(e)}>
         <h2>{t('auth.changePassword')}</h2>
         <label>
@@ -98,6 +125,7 @@ export function ProfilePage() {
           <input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
         </label>
         <button className="primary" type="submit">{t('common.save')}</button>
+        {ok && <p className="ok">{t('common.save')}</p>}
       </form>
       <h2>{t('profile.tokens')}</h2>
       {!me?.org?.tariff.api_enabled && me?.org && <p className="muted">{t('profile.apiDisabled')}</p>}
