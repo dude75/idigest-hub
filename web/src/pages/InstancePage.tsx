@@ -39,7 +39,10 @@ const emptyTariff = {
   available_on_signup: false,
   price_per_audio_sec: '0',
   price_per_summarize_job: '0',
-  price_per_generated_text: '0',
+  price_per_1k_summary_chars: '0',
+  audio_retention_days: 0,
+  api_enabled: true,
+  signup_credit: '0',
   max_upload_bytes: MAX_UPLOAD,
 }
 
@@ -232,7 +235,13 @@ export function InstancePage() {
             </label>
             <label>{t('instance.priceAudio')}<input value={tform.price_per_audio_sec} onChange={(e) => setTform({ ...tform, price_per_audio_sec: e.target.value })} /></label>
             <label>{t('instance.priceJob')}<input value={tform.price_per_summarize_job} onChange={(e) => setTform({ ...tform, price_per_summarize_job: e.target.value })} /></label>
-            <label>{t('instance.priceText')}<input value={tform.price_per_generated_text} onChange={(e) => setTform({ ...tform, price_per_generated_text: e.target.value })} /></label>
+            <label>{t('instance.priceText')}<input value={tform.price_per_1k_summary_chars} onChange={(e) => setTform({ ...tform, price_per_1k_summary_chars: e.target.value })} /></label>
+            <label>{t('instance.retentionDays')}<input type="number" min={0} value={tform.audio_retention_days} onChange={(e) => setTform({ ...tform, audio_retention_days: Number(e.target.value) })} /></label>
+            <label className="row">
+              <input type="checkbox" checked={tform.api_enabled} onChange={(e) => setTform({ ...tform, api_enabled: e.target.checked })} />
+              {t('instance.apiEnabled')}
+            </label>
+            <label>{t('instance.signupCredit')}<input value={tform.signup_credit} onChange={(e) => setTform({ ...tform, signup_credit: e.target.value })} /></label>
             <label>{t('instance.uploadCap')}<input type="number" max={MAX_UPLOAD} value={tform.max_upload_bytes} onChange={(e) => setTform({ ...tform, max_upload_bytes: Number(e.target.value) })} /></label>
             <button className="primary" type="button" onClick={() => void saveTariff()}>{editT ? t('common.save') : t('common.create')}</button>
           </div>
@@ -251,7 +260,7 @@ export function InstancePage() {
                     {tr.name} {tr.unlimited && <span className="badge">{t('instance.unlimited')}</span>}
                     {tr.available_on_signup && <span className="badge out">{t('instance.signup')}</span>}
                     {tr.archived && <span className="badge warn">{t('instance.archived')}</span>}
-                    <div className="muted">{tr.price_per_audio_sec} / {tr.price_per_summarize_job} / {tr.price_per_generated_text} · {tr.max_upload_bytes}</div>
+                    <div className="muted">{tr.price_per_audio_sec} / {tr.price_per_summarize_job} / {tr.price_per_1k_summary_chars} · {tr.max_upload_bytes}</div>
                   </td>
                   <td>{tr.org_count ?? 0}</td>
                   <td className="row">
@@ -263,7 +272,10 @@ export function InstancePage() {
                         available_on_signup: tr.available_on_signup,
                         price_per_audio_sec: tr.price_per_audio_sec,
                         price_per_summarize_job: tr.price_per_summarize_job,
-                        price_per_generated_text: tr.price_per_generated_text,
+                        price_per_1k_summary_chars: tr.price_per_1k_summary_chars,
+                        audio_retention_days: tr.audio_retention_days,
+                        api_enabled: tr.api_enabled,
+                        signup_credit: tr.signup_credit,
                         max_upload_bytes: tr.max_upload_bytes,
                       })
                     }}>{t('common.edit')}</button>

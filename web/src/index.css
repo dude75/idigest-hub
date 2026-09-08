@@ -238,7 +238,7 @@ audio { width: 100%; }
 .right { margin-left: auto; }
 .landing { min-height: 100vh; }
 .landing-main {
-  max-width: 36rem;
+  max-width: 58rem;
   margin: 0 auto;
   padding: 3.25rem 1.25rem 4rem;
 }
@@ -278,6 +278,38 @@ audio { width: 100%; }
   font-variant-numeric: tabular-nums;
 }
 .landing-cta { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.landing-tariffs { margin-top: 2.75rem; }
+.landing-tariffs h2 { margin: 0 0 0.4rem; font-size: 1.25rem; }
+.tariff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 0.85rem;
+  margin-top: 1rem;
+}
+.tariff-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 1rem 1.05rem 0.9rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: inherit;
+}
+.tariff-card:hover { border-color: var(--text); }
+.tariff-points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.tariff-cta { font-weight: 650; margin-top: auto; }
+
+.stats-filters label { min-width: 10rem; }
 
 @media (max-width: 720px) {
   .topbar { flex-wrap: wrap; }

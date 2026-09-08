@@ -79,6 +79,7 @@ export function ProfilePage() {
         <button className="primary" type="submit">{t('common.save')}</button>
       </form>
       <h2>{t('profile.tokens')}</h2>
+      {!me?.org?.tariff.api_enabled && me?.org && <p className="muted">{t('profile.apiDisabled')}</p>}
       {secret && (
         <div className="card">
           <p>{t('profile.secretOnce')}</p>
@@ -87,7 +88,7 @@ export function ProfilePage() {
       )}
       <div className="row" style={{ margin: '8px 0' }}>
         <input placeholder={t('common.name')} value={tokenName} onChange={(e) => setTokenName(e.target.value)} />
-        <button className="primary" type="button" onClick={() => void createToken()}>{t('profile.newToken')}</button>
+        <button className="primary" type="button" disabled={Boolean(me?.org) && !me?.org?.tariff.api_enabled} onClick={() => void createToken()}>{t('profile.newToken')}</button>
       </div>
       <table>
         <thead>
@@ -101,7 +102,7 @@ export function ProfilePage() {
         <tbody>
           {tokens.map((tok) => (
             <tr key={tok.id}>
-              <td>{tok.name} {tok.revoked && <span className="badge">{t('profile.revoked')}</span>}</td>
+              <td>{tok.name} {tok.revoked && <span className="badge">{t('profile.revoked')}</span>} {tok.blocked_by_tariff && <span className="badge warn">{t('profile.blockedTariff')}</span>}</td>
               <td>{tok.prefix}</td>
               <td>{fmtDate(tok.created_at)}</td>
               <td>

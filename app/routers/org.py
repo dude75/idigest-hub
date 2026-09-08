@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -17,7 +17,7 @@ from app.security import hash_password, random_password
 from app.services.access import guard_last_org_admin
 from app.services.audit import write_audit
 from app.services.offboarding import transfer_user, wipe_user_content
-from app.services.stats import completed_job_stats
+from app.services.stats import org_usage_stats, parse_org_stats_range
 from app.timeutil import utcnow
 
 router = APIRouter()
@@ -70,9 +70,27 @@ def get_org(db: Session = Depends(get_session), ctx: AuthContext = Depends(requi
 
 
 @router.get("/org/stats")
-def org_stats(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
-    org, _ = ctx.require_org()
-    return completed_job_stats(db, org_id=org.id)
+def org_stats(
+    from_day: str | None = Query(None, alias="from"),
+    to_day: str | None = Query(None, alias="to"),
+    user_id: str | None = None,
+    kind: str | None = None,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    org, _ = ctx.require_org_admin()
+    try:
+        start, end = parse_org_stats_range(from_day, to_day)
+    except ValueError:
+        ctx.raise_error(ErrorCode.validation_error)
+    return org_usage_stats(
+        db,
+        org.id,
+        start=start,
+        end=end,
+        user_id=(user_id or "").strip() or None,
+        kind=(kind or "").strip() or None,
+    )
 
 
 @router.patch("/org")

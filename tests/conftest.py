@@ -118,7 +118,10 @@ def create_tariff(client: TestClient, **overrides) -> dict:
         "available_on_signup": True,
         "price_per_audio_sec": "1.000000",
         "price_per_summarize_job": "1.00",
-        "price_per_generated_text": "0",
+        "price_per_1k_summary_chars": "0",
+        "audio_retention_days": 0,
+        "api_enabled": True,
+        "signup_credit": "0",
         "max_upload_bytes": 1024 * 1024,
     }
     body.update(overrides)

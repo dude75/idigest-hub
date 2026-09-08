@@ -34,7 +34,7 @@ def snapshot_fields(tariff: Tariff, asr_model: str | None, diarization_model: st
         "snap_unlimited": tariff.unlimited,
         "snap_price_per_audio_sec": tariff.price_per_audio_sec,
         "snap_price_per_summarize_job": tariff.price_per_summarize_job,
-        "snap_price_per_generated_text": tariff.price_per_generated_text,
+        "snap_price_per_1k_summary_chars": tariff.price_per_1k_summary_chars,
         "snap_max_upload_bytes": upload_limit(tariff),
         "snap_asr_model": asr_model,
         "snap_diarization_model": diarization_model,
@@ -46,8 +46,29 @@ def transcribe_amount(task: Task, audio_duration_sec: float) -> Decimal:
     return floor_to_cents(raw)
 
 
-def summarize_amount(task: Task) -> Decimal:
-    return floor_to_cents(Decimal(task.snap_price_per_summarize_job))
+def summary_char_units(length: int) -> int:
+    if length <= 0:
+        return 0
+    return (length + 999) // 1000
+
+
+def summarize_amount(task: Task, body: str) -> Decimal:
+    job = floor_to_cents(Decimal(task.snap_price_per_summarize_job))
+    units = summary_char_units(len(body))
+    text = floor_to_cents(Decimal(units) * Decimal(task.snap_price_per_1k_summary_chars))
+    return job + text
+
+
+def signup_balance(tariff: Tariff) -> Decimal:
+    if tariff.unlimited:
+        return Decimal("0.00")
+    return floor_to_cents(Decimal(tariff.signup_credit))
+
+
+def org_api_enabled(org: Organization | None) -> bool:
+    if org is None:
+        return True
+    return bool(org.tariff.api_enabled)
 
 
 def apply_success_charge(
@@ -57,6 +78,7 @@ def apply_success_charge(
     *,
     audio_sec: float | None,
     amount: Decimal,
+    summary_chars: int | None = None,
 ) -> None:
     if task.billed:
         return
@@ -72,6 +94,7 @@ def apply_success_charge(
             task_id=task.id,
             kind=task.type,
             audio_sec=audio_sec,
+            summary_chars=summary_chars,
             amount=amount,
             unlimited_skip=skip,
             created_at=utcnow(),

@@ -36,6 +36,7 @@ from app.models import (
     new_id,
 )
 from app.presenters import org_public, tariff_public, token_public, user_public
+from app.services.billing import signup_balance
 from app.security import (
     hash_password,
     hash_secret,
@@ -113,7 +114,10 @@ def seed_default_tariff(db: Session) -> Tariff:
         archived_at=None,
         price_per_audio_sec=Decimal("0"),
         price_per_summarize_job=Decimal("0"),
-        price_per_generated_text=Decimal("0"),
+        price_per_1k_summary_chars=Decimal("0"),
+        audio_retention_days=0,
+        api_enabled=True,
+        signup_credit=Decimal("0.00"),
         max_upload_bytes=MAX_UPLOAD_BYTES_CAP,
         created_at=now,
         updated_at=now,
@@ -260,7 +264,7 @@ def signup(body: SignupBody, request: Request, response: Response, db: Session =
         is_personal=True,
         tariff_id=tariff.id,
         password_ttl_days=0,
-        balance=Decimal("0.00"),
+        balance=signup_balance(tariff),
         created_at=now,
         updated_at=now,
     )
@@ -424,6 +428,10 @@ def create_token(
 ) -> dict:
     if ctx.user.must_change_password:
         ctx.raise_error(ErrorCode.must_change_password)
+    from app.services.billing import org_api_enabled
+
+    if not org_api_enabled(ctx.org):
+        ctx.raise_error(ErrorCode.api_disabled)
     raw = new_api_token()
     now = utcnow()
     row = ApiToken(
@@ -447,7 +455,10 @@ def list_tokens(
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     rows = db.scalars(select(ApiToken).where(ApiToken.user_id == ctx.user.id).order_by(ApiToken.created_at.desc()))
-    return {"items": [token_public(row) for row in rows]}
+    from app.services.billing import org_api_enabled
+
+    blocked = not org_api_enabled(ctx.org)
+    return {"items": [token_public(row, blocked_by_tariff=blocked) for row in rows]}
 
 
 @router.delete("/auth/tokens/{token_id}")

@@ -21,6 +21,7 @@
   "email_taken": "Este correo ya está registrado.",
   "invalid_credentials": "Correo o contraseña no válidos.",
   "tariff_not_available": "Esta tarifa no está disponible.",
+  "api_disabled": "El acceso API no está incluido en este plan.",
   "text_too_long": "La transcripción y el skill son demasiado grandes.",
   "bootstrap_invalid": "Token de bootstrap no válido.",
   "conflict": "Conflicto.",

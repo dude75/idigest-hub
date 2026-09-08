@@ -31,11 +31,11 @@ def test_org_stats_counts_own_completed_jobs_and_audio_time(client, fake_workers
     assert signup(client, "alice-stats@example.com", "alicepass", tariff_id).status_code == 200
     empty = client.get("/api/v1/org/stats")
     assert empty.status_code == 200, empty.text
-    assert empty.json() == {
-        "tasks_transcribe_success": 0,
-        "tasks_summarize_success": 0,
-        "audio_transcribed_sec": 0.0,
-    }
+    assert empty.json()["tasks_transcribe_success"] == 0
+    assert empty.json()["tasks_summarize_success"] == 0
+    assert empty.json()["audio_transcribed_sec"] == 0.0
+    assert empty.json()["summary_chars"] == 0
+    assert empty.json()["days"] == []
 
     audio = upload_audio(client)
     assert audio.status_code == 200, audio.text
@@ -65,11 +65,11 @@ def test_org_stats_counts_own_completed_jobs_and_audio_time(client, fake_workers
 
     alice = client.get("/api/v1/org/stats")
     assert alice.status_code == 200, alice.text
-    assert alice.json() == {
-        "tasks_transcribe_success": 2,
-        "tasks_summarize_success": 1,
-        "audio_transcribed_sec": 35.0,
-    }
+    assert alice.json()["tasks_transcribe_success"] == 2
+    assert alice.json()["tasks_summarize_success"] == 1
+    assert alice.json()["audio_transcribed_sec"] == 35.0
+    assert alice.json()["summary_chars"] == 2
+    assert alice.json()["days"]
 
     logout(client)
     assert signup(client, "bob-stats@example.com", "bobpass12", tariff_id).status_code == 200
@@ -83,17 +83,32 @@ def test_org_stats_counts_own_completed_jobs_and_audio_time(client, fake_workers
 
     bob = client.get("/api/v1/org/stats")
     assert bob.status_code == 200, bob.text
-    assert bob.json() == {
-        "tasks_transcribe_success": 1,
-        "tasks_summarize_success": 0,
-        "audio_transcribed_sec": 8.0,
-    }
+    assert bob.json()["tasks_transcribe_success"] == 1
+    assert bob.json()["tasks_summarize_success"] == 0
+    assert bob.json()["audio_transcribed_sec"] == 8.0
 
     logout(client)
     login(client, "alice-stats@example.com", "alicepass")
     still_alice = client.get("/api/v1/org/stats")
     assert still_alice.json()["tasks_transcribe_success"] == 2
     assert still_alice.json()["audio_transcribed_sec"] == 35.0
+
+
+def test_org_stats_forbidden_for_org_member(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "lead-stats@example.com", "leadpass1", tariff_id).status_code == 200
+    member = client.post(
+        "/api/v1/org/users",
+        json={"email": "mem-stats@example.com", "password": "memberpass", "role": "org_member"},
+    )
+    assert member.status_code == 200, member.text
+    logout(client)
+    login_ready(client, "mem-stats@example.com", "memberpass")
+    response = client.get("/api/v1/org/stats")
+    assert response.status_code == 403
+    assert err_code(response) == "forbidden"
 
 
 def test_org_stats_forbidden_for_instance_admin_without_org(client):

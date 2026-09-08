@@ -31,6 +31,7 @@ class ErrorCode(str, Enum):
     email_taken = "email_taken"
     invalid_credentials = "invalid_credentials"
     tariff_not_available = "tariff_not_available"
+    api_disabled = "api_disabled"
     text_too_long = "text_too_long"
     invalid_file_type = "invalid_file"
     bootstrap_invalid = "bootstrap_invalid"
@@ -60,6 +61,7 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.email_taken: 409,
     ErrorCode.invalid_credentials: 401,
     ErrorCode.tariff_not_available: 400,
+    ErrorCode.api_disabled: 403,
     ErrorCode.text_too_long: 413,
     ErrorCode.bootstrap_invalid: 401,
     ErrorCode.conflict: 409,

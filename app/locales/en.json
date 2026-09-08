@@ -21,6 +21,7 @@
   "email_taken": "This email is already registered.",
   "invalid_credentials": "Invalid email or password.",
   "tariff_not_available": "This tariff is not available.",
+  "api_disabled": "API access is not included in this plan.",
   "text_too_long": "Transcript and skill payload is too large.",
   "bootstrap_invalid": "Invalid bootstrap token.",
   "conflict": "Conflict.",

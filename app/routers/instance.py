@@ -40,7 +40,10 @@ class TariffBody(BaseModel):
     available_on_signup: bool = False
     price_per_audio_sec: str = "0"
     price_per_summarize_job: str = "0"
-    price_per_generated_text: str = "0"
+    price_per_1k_summary_chars: str = "0"
+    audio_retention_days: int = 0
+    api_enabled: bool = True
+    signup_credit: str = "0"
     max_upload_bytes: int = MAX_UPLOAD_BYTES_CAP
 
 
@@ -167,7 +170,12 @@ def _apply_tariff(tariff: Tariff, body: TariffBody, ctx: AuthContext) -> None:
     tariff.available_on_signup = body.available_on_signup and tariff.archived_at is None
     tariff.price_per_audio_sec = Decimal(body.price_per_audio_sec)
     tariff.price_per_summarize_job = parse_money(body.price_per_summarize_job)
-    tariff.price_per_generated_text = Decimal(body.price_per_generated_text)
+    tariff.price_per_1k_summary_chars = Decimal(body.price_per_1k_summary_chars)
+    if body.audio_retention_days < 0:
+        ctx.raise_error(ErrorCode.validation_error)
+    tariff.audio_retention_days = body.audio_retention_days
+    tariff.api_enabled = body.api_enabled
+    tariff.signup_credit = parse_money(body.signup_credit)
     tariff.max_upload_bytes = body.max_upload_bytes
     tariff.updated_at = utcnow()
 

@@ -42,7 +42,10 @@ def tariff_public(tariff: Tariff, org_count: int | None = None) -> dict[str, Any
         "archived": tariff.archived_at is not None,
         "price_per_audio_sec": str(tariff.price_per_audio_sec),
         "price_per_summarize_job": str(tariff.price_per_summarize_job),
-        "price_per_generated_text": str(tariff.price_per_generated_text),
+        "price_per_1k_summary_chars": str(tariff.price_per_1k_summary_chars),
+        "audio_retention_days": tariff.audio_retention_days,
+        "api_enabled": tariff.api_enabled,
+        "signup_credit": money_str(Decimal(tariff.signup_credit)),
         "max_upload_bytes": tariff.max_upload_bytes,
     }
     if org_count is not None:
@@ -174,11 +177,12 @@ def task_public(task: Task, extra: dict[str, Any] | None = None) -> dict[str, An
     return body
 
 
-def token_public(token: ApiToken) -> dict[str, Any]:
+def token_public(token: ApiToken, *, blocked_by_tariff: bool = False) -> dict[str, Any]:
     return {
         "id": token.id,
         "name": token.name,
         "prefix": token.prefix,
         "revoked": token.revoked_at is not None,
+        "blocked_by_tariff": blocked_by_tariff and token.revoked_at is None,
         "created_at": token.created_at.isoformat(),
     }

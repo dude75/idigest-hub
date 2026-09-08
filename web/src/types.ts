@@ -19,7 +19,10 @@ export type Tariff = {
   archived: boolean
   price_per_audio_sec: string
   price_per_summarize_job: string
-  price_per_generated_text: string
+  price_per_1k_summary_chars: string
+  audio_retention_days: number
+  api_enabled: boolean
+  signup_credit: string
   max_upload_bytes: number
   org_count?: number
 }
@@ -132,6 +135,7 @@ export type ApiToken = {
   name: string
   prefix: string
   revoked: boolean
+  blocked_by_tariff?: boolean
   created_at: string
   token?: string
 }
@@ -161,13 +165,28 @@ export type InstanceSettings = {
   diarization_model: string | null
 }
 
-export type OrgStats = {
+export type JobStats = {
   tasks_transcribe_success: number
   tasks_summarize_success: number
   audio_transcribed_sec: number
 }
 
-export type InstanceStats = OrgStats & {
+export type OrgStatsDay = {
+  date: string
+  tasks_transcribe_success: number
+  tasks_summarize_success: number
+  audio_transcribed_sec: number
+  summary_chars: number
+  amount: string
+}
+
+export type OrgStats = JobStats & {
+  summary_chars: number
+  total_amount: string
+  days: OrgStatsDay[]
+}
+
+export type InstanceStats = JobStats & {
   orgs: number
   users: number
   tasks_queued: number

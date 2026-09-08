@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
@@ -11,6 +11,8 @@ export function SignupPage() {
   const { t, i18n } = useTranslation()
   const { ready, bootstrapDone, me, refresh } = useAuth()
   const nav = useNavigate()
+  const [search] = useSearchParams()
+  const wanted = search.get('tariff') || ''
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [tariffId, setTariffId] = useState('')
@@ -22,10 +24,11 @@ export function SignupPage() {
     api<{ items: Tariff[] }>('/auth/signup-tariffs')
       .then((r) => {
         setTariffs(r.items)
-        if (r.items[0]) setTariffId(r.items[0].id)
+        const match = r.items.find((item) => item.id === wanted)
+        setTariffId((match || r.items[0])?.id || '')
       })
       .catch(setErr)
-  }, [])
+  }, [wanted])
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
   if (ready && me) return <Navigate to="/app" replace />

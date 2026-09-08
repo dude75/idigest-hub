@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
-import { isInstanceAdmin, useAuth } from '../auth'
+import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { WalletLabel } from '../util'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
@@ -10,6 +10,7 @@ export function Shell() {
   const { me, refresh, logout } = useAuth()
   const nav = useNavigate()
   const member = Boolean(me?.org)
+  const orgAdmin = isOrgAdmin(me)
   const instance = isInstanceAdmin(me)
 
   async function stopImpersonate() {
@@ -33,7 +34,7 @@ export function Shell() {
           {member && <NavLink to="/app" end>{t('nav.library')}</NavLink>}
           {member && <NavLink to="/app/skills">{t('nav.skills')}</NavLink>}
           {member && <NavLink to="/app/org">{t('nav.org')}</NavLink>}
-          {member && <NavLink to="/app/stats">{t('nav.stats')}</NavLink>}
+          {orgAdmin && <NavLink to="/app/stats">{t('nav.stats')}</NavLink>}
           <NavLink to="/app/tasks">{t('nav.tasks')}</NavLink>
           <NavLink to="/app/profile">{t('nav.profile')}</NavLink>
           {instance && <NavLink to="/app/instance">{t('nav.instance')}</NavLink>}

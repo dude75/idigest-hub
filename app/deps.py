@@ -132,6 +132,10 @@ def resolve_auth(request: Request, db: Session = Depends(get_session)) -> AuthCo
             org, membership = load_org_bundle(db, user)
             if user.must_change_password or _password_expired(user, org):
                 abort(locale, ErrorCode.must_change_password)
+            from app.services.billing import org_api_enabled
+
+            if not org_api_enabled(org):
+                abort(locale, ErrorCode.api_disabled)
             return AuthContext(
                 user=user,
                 actor=user,

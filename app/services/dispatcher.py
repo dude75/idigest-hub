@@ -228,11 +228,13 @@ def _persist_summary(db: Session, task: Task, body: str) -> Summary | None:
     return row
 
 
-def _charge(db: Session, task: Task, audio_sec: float | None, amount: Decimal) -> None:
+def _charge(
+    db: Session, task: Task, audio_sec: float | None, amount: Decimal, *, summary_chars: int | None = None
+) -> None:
     org = db.get(Organization, task.org_id)
     if org is None:
         return
-    apply_success_charge(db, task, org, audio_sec=audio_sec, amount=amount)
+    apply_success_charge(db, task, org, audio_sec=audio_sec, amount=amount, summary_chars=summary_chars)
 
 
 async def _on_transcribe_success(
@@ -264,10 +266,10 @@ async def _on_summarize_success(
 ) -> None:
     summary = body.get("summary")
     text = summary if isinstance(summary, str) else ""
-    amount = summarize_amount(task)
+    amount = summarize_amount(task, text)
     worker_task_id = task.worker_task_id
     _persist_summary(db, task, text)
-    _charge(db, task, None, amount)
+    _charge(db, task, None, amount, summary_chars=len(text))
     task.meta_json = {"stage": "done"}
     task.worker_task_id = None
     task.worker_id = None
@@ -480,6 +482,9 @@ async def dispatcher_loop(stop_event: asyncio.Event) -> None:
         try:
             async with tick_lock():
                 await tick_once(session)
+                from app.services.retention import purge_expired_audio
+
+                purge_expired_audio(session)
             session.commit()
         except Exception:
             session.rollback()

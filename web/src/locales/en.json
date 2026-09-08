@@ -51,7 +51,19 @@
     "lead": "A hub for your organization: upload recordings, run transcription and summarization, keep everything in one library. Workers stay on your side.",
     "step1": "Upload audio",
     "step2": "Get a transcript",
-    "step3": "Summarize with a skill"
+    "step3": "Summarize with a skill",
+    "tariffsTitle": "Plans",
+    "tariffsLead": "Pick a plan to create an organization. You can change it later.",
+    "priceAudio": "{{price}} per audio second",
+    "priceJob": "{{price}} per summarization job",
+    "priceChars": "{{price}} per 1,000 summary characters",
+    "retention": "Audio kept for {{days}} days",
+    "retentionForever": "Audio kept until you delete it",
+    "apiYes": "API tokens enabled",
+    "apiNo": "API tokens disabled",
+    "credit": "{{amount}} starting credit",
+    "uploadCap": "Max upload {{size}}",
+    "choose": "Sign up with this plan"
   },
   "auth": {
     "login": "Sign in",
@@ -136,7 +148,19 @@
     "title": "Statistics",
     "transcribeDone": "Completed transcription tasks",
     "summarizeDone": "Completed summarization tasks",
-    "transcribedAudio": "Total transcribed audio time"
+    "transcribedAudio": "Total transcribed audio time",
+    "summaryChars": "Summary characters",
+    "spent": "Charged",
+    "from": "From",
+    "to": "To",
+    "user": "User",
+    "kind": "Type",
+    "days7": "7 days",
+    "days30": "30 days",
+    "month": "This month",
+    "allTime": "All time",
+    "calendar": "By day (UTC)",
+    "day": "Day"
   },
   "profile": {
     "title": "Profile",
@@ -144,7 +168,9 @@
     "newToken": "Create token",
     "secretOnce": "Copy this token now. It will not be shown again.",
     "revoke": "Revoke",
-    "revoked": "revoked"
+    "revoked": "revoked",
+    "blockedTariff": "blocked by plan",
+    "apiDisabled": "Your current plan does not allow API tokens. Existing keys are kept but cannot be used."
   },
   "instance": {
     "title": "Instance",
@@ -169,7 +195,10 @@
     "unarchive": "Unarchive",
     "priceAudio": "Price / audio sec",
     "priceJob": "Price / summarize job",
-    "priceText": "Price / generated text",
+    "priceText": "Price / 1,000 summary characters",
+    "retentionDays": "Audio retention (days, 0 = keep)",
+    "apiEnabled": "Allow API tokens",
+    "signupCredit": "Signup credit",
     "uploadCap": "Upload cap (bytes)",
     "orgCount": "Orgs",
     "walletDelta": "Wallet delta",
@@ -246,6 +275,7 @@
     "email_taken": "This email is already registered.",
     "invalid_credentials": "Invalid email or password.",
     "tariff_not_available": "This tariff is not available.",
+    "api_disabled": "API access is not included in this plan.",
     "text_too_long": "Transcript and skill payload is too large.",
     "bootstrap_invalid": "Invalid bootstrap token.",
     "conflict": "Conflict.",

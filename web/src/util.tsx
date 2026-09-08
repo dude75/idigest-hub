@@ -15,6 +15,14 @@ export function formatAudioTime(
   return t('instance.durationS', { s })
 }
 
+export function formatBytes(bytes: number): string {
+  const n = Math.max(0, Number(bytes) || 0)
+  if (n < 1024) return `${n} B`
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
+  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(n % (1024 * 1024) === 0 ? 0 : 1)} MB`
+  return `${(n / (1024 * 1024 * 1024)).toFixed(n % (1024 * 1024 * 1024) === 0 ? 0 : 1)} GB`
+}
+
 export function fmtDate(iso: string): string {
   try {
     return new Date(iso).toLocaleString()

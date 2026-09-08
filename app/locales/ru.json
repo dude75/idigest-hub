@@ -21,6 +21,7 @@
   "email_taken": "Этот email уже занят.",
   "invalid_credentials": "Неверный email или пароль.",
   "tariff_not_available": "Этот тариф недоступен.",
+  "api_disabled": "API недоступен на этом тарифе.",
   "text_too_long": "Транскрипт и скил слишком большие.",
   "bootstrap_invalid": "Неверный bootstrap-токен.",
   "conflict": "Конфликт.",

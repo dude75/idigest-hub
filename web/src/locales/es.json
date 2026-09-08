@@ -51,7 +51,19 @@
     "lead": "Un hub para su organización: suba grabaciones, transcriba y resuma, y guarde todo en una biblioteca. Los workers se quedan de su lado.",
     "step1": "Subir audio",
     "step2": "Obtener la transcripción",
-    "step3": "Resumir con un skill"
+    "step3": "Resumir con un skill",
+    "tariffsTitle": "Planes",
+    "tariffsLead": "Elija un plan para crear una organización. Podrá cambiarlo después.",
+    "priceAudio": "{{price}} por segundo de audio",
+    "priceJob": "{{price}} por trabajo de resumen",
+    "priceChars": "{{price}} por 1000 caracteres de resumen",
+    "retention": "Audio guardado {{days}} días",
+    "retentionForever": "Audio hasta que lo elimine",
+    "apiYes": "Tokens API habilitados",
+    "apiNo": "Tokens API deshabilitados",
+    "credit": "{{amount}} de crédito inicial",
+    "uploadCap": "Subida máxima {{size}}",
+    "choose": "Registrarse con este plan"
   },
   "auth": {
     "login": "Entrar",
@@ -136,7 +148,19 @@
     "title": "Estadísticas",
     "transcribeDone": "Tareas de transcripción completadas",
     "summarizeDone": "Tareas de resumen completadas",
-    "transcribedAudio": "Tiempo total de audio transcrito"
+    "transcribedAudio": "Tiempo total de audio transcrito",
+    "summaryChars": "Caracteres de resumen",
+    "spent": "Cobrado",
+    "from": "Desde",
+    "to": "Hasta",
+    "user": "Usuario",
+    "kind": "Tipo",
+    "days7": "7 días",
+    "days30": "30 días",
+    "month": "Este mes",
+    "allTime": "Todo",
+    "calendar": "Por día (UTC)",
+    "day": "Día"
   },
   "profile": {
     "title": "Perfil",
@@ -144,7 +168,9 @@
     "newToken": "Crear token",
     "secretOnce": "Copie este token ahora. No se mostrará de nuevo.",
     "revoke": "Revocar",
-    "revoked": "revocado"
+    "revoked": "revocado",
+    "blockedTariff": "bloqueado por el plan",
+    "apiDisabled": "Su plan actual no permite tokens API. Las claves se conservan pero no funcionan."
   },
   "instance": {
     "title": "Instancia",
@@ -169,7 +195,10 @@
     "unarchive": "Desarchivar",
     "priceAudio": "Precio / seg. audio",
     "priceJob": "Precio / trabajo de resumen",
-    "priceText": "Precio / texto generado",
+    "priceText": "Precio / 1000 caracteres de resumen",
+    "retentionDays": "Retención de audio (días, 0 = conservar)",
+    "apiEnabled": "Permitir tokens API",
+    "signupCredit": "Crédito al registrarse",
     "uploadCap": "Tope de subida (bytes)",
     "orgCount": "Orgs",
     "walletDelta": "Delta de saldo",
@@ -246,6 +275,7 @@
     "email_taken": "Este correo ya está registrado.",
     "invalid_credentials": "Correo o contraseña no válidos.",
     "tariff_not_available": "Esta tarifa no está disponible.",
+    "api_disabled": "El acceso API no está incluido en este plan.",
     "text_too_long": "La transcripción y el skill son demasiado grandes.",
     "bootstrap_invalid": "Token de bootstrap no válido.",
     "conflict": "Conflicto.",
