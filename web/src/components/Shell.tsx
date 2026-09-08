@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { WalletLabel } from '../util'
+import { AppBrand } from './AppBrand'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
 export function Shell() {
@@ -29,7 +30,7 @@ export function Shell() {
         </div>
       )}
       <header className="topbar">
-        <NavLink to="/app" className="brand">{t('app')}</NavLink>
+        <AppBrand link />
         <nav className="nav">
           {member && <NavLink to="/app" end>{t('nav.library')}</NavLink>}
           {member && <NavLink to="/app/skills">{t('nav.skills')}</NavLink>}

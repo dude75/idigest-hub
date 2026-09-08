@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, useAuth } from '../auth'
+import { AppBrand } from '../components/AppBrand'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import type { Tariff } from '../types'
 import { formatBytes } from '../util'
@@ -27,7 +28,7 @@ export function LandingPage() {
   return (
     <div className="landing">
       <header className="topbar">
-        <span className="brand">{t('app')}</span>
+        <AppBrand />
         <div className="right row">
           <LanguageSwitcher />
           <Link to="/login" className="btn">{t('auth.login')}</Link>
