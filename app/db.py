@@ -23,7 +23,7 @@ def sqlite_url(path: str) -> str:
     return f"sqlite:///{resolved}"
 
 
-def resolve_database_url(url: str) -> str:
+def resolve_database_url(url: str, *, data_dir: str = "./data") -> str:
     parsed = make_url(url)
     if parsed.drivername != "sqlite":
         return url
@@ -32,9 +32,13 @@ def resolve_database_url(url: str) -> str:
     if not database or database == ":memory:":
         return url
 
-    resolved = Path(database).expanduser()
-    if not resolved.is_absolute():
-        resolved = resolved.resolve()
+    db_path = Path(database).expanduser()
+    if db_path.is_absolute():
+        resolved = db_path
+    else:
+        # Anchor relative paths to DATA_DIR, not process cwd (Docker WORKDIR is /app).
+        resolved = (Path(data_dir).expanduser().resolve() / db_path.name).resolve()
+
     resolved.parent.mkdir(parents=True, exist_ok=True)
     return parsed.set(database=str(resolved)).render_as_string(hide_password=False)
 
@@ -42,7 +46,7 @@ def resolve_database_url(url: str) -> str:
 def database_url(settings: Settings | None = None) -> str:
     settings = settings or get_settings()
     if settings.DATABASE_URL:
-        return resolve_database_url(settings.DATABASE_URL)
+        return resolve_database_url(settings.DATABASE_URL, data_dir=settings.DATA_DIR)
     return sqlite_url(settings.SQLITE_PATH)
 
 
