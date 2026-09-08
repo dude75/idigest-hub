@@ -90,6 +90,7 @@
     "transcripts": "Transcripts",
     "summaries": "Summaries",
     "upload": "Upload audio",
+    "uploading": "Uploading {{name}} — {{percent}}%",
     "showHidden": "Show hidden",
     "sharedBy": "shared by {{who}}",
     "youShared": "you shared",

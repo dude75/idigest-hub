@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
+import { api, apiUpload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import type { Audio, Summary, Transcript } from '../types'
 import { ErrorBox, ShareBadges, fmtDate } from '../util'
@@ -49,17 +49,18 @@ export function LibraryPage() {
   const [summaries, setSummaries] = useState<Summary[]>([])
   const [err, setErr] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<{ name: string; percent: number } | null>(null)
   const admin = isOrgAdmin(me)
   const hasOrg = Boolean(me?.org)
 
-  async function load() {
+  async function load(activeTab: Tab = tab) {
     setErr(null)
     try {
       const q = hidden ? '?include_hidden=true' : ''
-      if (tab === 'audio') {
+      if (activeTab === 'audio') {
         const r = await api<{ items: Audio[] }>(`/audios${q}`)
         setAudios(r.items)
-      } else if (tab === 'transcripts') {
+      } else if (activeTab === 'transcripts') {
         const r = await api<{ items: Transcript[] }>(`/transcripts${q}`)
         setTranscripts(r.items)
       } else {
@@ -81,16 +82,21 @@ export function LibraryPage() {
   async function upload(file: File) {
     setBusy(true)
     setErr(null)
+    setUploadProgress({ name: file.name, percent: 0 })
     try {
       const body = new FormData()
       body.append('file', file)
-      await api('/audios', { method: 'POST', body })
+      const item = await apiUpload<Audio>('/audios', body, (loaded, total) => {
+        setUploadProgress({ name: file.name, percent: total ? Math.round((loaded / total) * 100) : 0 })
+      })
       setTab('audio')
-      await load()
+      setAudios((prev) => [item, ...prev.filter((a) => a.id !== item.id)])
+      await load('audio')
     } catch (e) {
       setErr(e)
     } finally {
       setBusy(false)
+      setUploadProgress(null)
     }
   }
 
@@ -112,6 +118,16 @@ export function LibraryPage() {
           />
         </label>
       </div>
+      {uploadProgress && (
+        <div className="upload-progress" role="status" aria-live="polite">
+          <div className="upload-progress-label">
+            {t('library.uploading', { name: uploadProgress.name, percent: uploadProgress.percent })}
+          </div>
+          <div className="progress-bar" aria-hidden="true">
+            <div className="progress-bar-fill" style={{ width: `${uploadProgress.percent}%` }} />
+          </div>
+        </div>
+      )}
       <div className="tabs">
         {(['audio', 'transcripts', 'summaries'] as Tab[]).map((id) => (
           <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>

@@ -42,3 +42,45 @@ export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   }
   return data as T
 }
+
+function parseJson(text: string): unknown {
+  if (!text) return null
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
+export function apiUpload<T>(
+  path: string,
+  body: FormData,
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `/api/v1${path}`)
+    xhr.withCredentials = true
+    const locale = localStorage.getItem('locale') || 'en'
+    xhr.setRequestHeader('Accept-Language', locale)
+
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) onProgress(e.loaded, e.total)
+      })
+    }
+
+    xhr.onload = () => {
+      const data = parseJson(xhr.responseText)
+      const errBody = data as ErrorBody | null
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new ApiError(errBody?.error?.code || `http_${xhr.status}`, errBody?.error?.message || xhr.statusText))
+        return
+      }
+      resolve(data as T)
+    }
+    xhr.onerror = () => reject(new ApiError('network_error', 'Network error'))
+    xhr.onabort = () => reject(new ApiError('aborted', 'Upload aborted'))
+    xhr.send(body)
+  })
+}

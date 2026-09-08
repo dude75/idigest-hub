@@ -90,6 +90,7 @@
     "transcripts": "Транскрипты",
     "summaries": "Саммари",
     "upload": "Загрузить аудио",
+    "uploading": "Загрузка {{name}} — {{percent}}%",
     "showHidden": "Показать скрытые",
     "sharedBy": "поделился {{who}}",
     "youShared": "вы поделились",

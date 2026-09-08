@@ -139,6 +139,31 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .lang button { padding: 0.2rem 0.4rem; font-size: 0.75rem; }
 .lang button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+.upload-progress {
+  margin: 0 0 0.85rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.upload-progress-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.45rem;
+}
+.progress-bar {
+  height: 0.45rem;
+  background: #e8eef8;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.15s ease;
+}
+
 .tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--line); margin-bottom: 0.85rem; }
 .tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; }
 .tabs button.active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
