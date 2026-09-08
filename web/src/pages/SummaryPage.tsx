@@ -1,0 +1,122 @@
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { api } from '../api'
+import { isOrgAdmin, useAuth } from '../auth'
+import { ShareDialog } from '../components/ShareDialog'
+import { MarkdownBody } from '../markdown'
+import type { Summary } from '../types'
+import { ErrorBox, ShareBadges, fmtDate } from '../util'
+
+export function SummaryPage() {
+  const { id } = useParams<{ id: string }>()
+  const { t } = useTranslation()
+  const { me } = useAuth()
+  const nav = useNavigate()
+  const [item, setItem] = useState<Summary | null>(null)
+  const [draft, setDraft] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [err, setErr] = useState<unknown>(null)
+  const [share, setShare] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const canDelete = item && (item.owner_user_id === me?.user.id || isOrgAdmin(me))
+  const canEdit = Boolean(canDelete)
+  const mine = item?.owner_user_id === me?.user.id
+
+  async function load() {
+    if (!id) return
+    const next = await api<Summary>(`/summaries/${id}`)
+    setItem(next)
+    setDraft(next.body || '')
+  }
+
+  useEffect(() => {
+    load().catch(setErr)
+  }, [id])
+
+  async function save() {
+    if (!id) return
+    setBusy(true)
+    setErr(null)
+    try {
+      const next = await api<Summary>(`/summaries/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ body: draft }),
+      })
+      setItem(next)
+      setDraft(next.body || '')
+      setEditing(false)
+    } catch (e) {
+      setErr(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function remove() {
+    if (!id) return
+    await api(`/summaries/${id}`, { method: 'DELETE' })
+    nav('/app')
+  }
+
+  if (!item && !err) return <p className="muted">{t('common.loading')}</p>
+
+  return (
+    <div>
+      <Link to="/app">{t('common.back')}</Link>
+      <h1>{t('summary.title')}</h1>
+      <ErrorBox err={err} />
+      {item && (
+        <>
+          <div className="row">
+            <ShareBadges item={item} />
+            <span className="muted">{fmtDate(item.created_at)}</span>
+            {item.source_transcript_id && (
+              <Link to={`/app/transcript/${item.source_transcript_id}`}>
+                {t('summary.sourceTranscript', { id: item.source_transcript_id.slice(0, 8) })}
+              </Link>
+            )}
+          </div>
+          <div className="row" style={{ margin: '8px 0' }}>
+            {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
+            {canEdit && !editing && (
+              <button type="button" onClick={() => { setDraft(item.body || ''); setEditing(true) }}>
+                {t('common.edit')}
+              </button>
+            )}
+            {canDelete && (
+              <button type="button" className="danger" onClick={() => void remove()}>{t('common.delete')}</button>
+            )}
+          </div>
+          <h2>{t('summary.body')}</h2>
+          {editing ? (
+            <div className="stack">
+              <textarea
+                className="summary-editor"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+              />
+              <div className="row">
+                <button className="primary" type="button" disabled={busy} onClick={() => void save()}>
+                  {t('common.save')}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => { setDraft(item.body || ''); setEditing(false) }}
+                >
+                  {t('common.cancel')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="summary-body">
+              <MarkdownBody text={item.body || ''} />
+            </div>
+          )}
+        </>
+      )}
+      {share && id && <ShareDialog objectType="summary" objectId={id} onClose={() => { setShare(false); void load() }} />}
+    </div>
+  )
+}

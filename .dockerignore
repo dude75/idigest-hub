@@ -1,0 +1,16 @@
+.git/
+.venv/
+technical/
+.env
+data/**
+!data/.gitkeep
+!data/uploads/.gitkeep
+!data/logs/.gitkeep
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+tests/
+agent-transcripts/
+web/node_modules/
+web/dist/

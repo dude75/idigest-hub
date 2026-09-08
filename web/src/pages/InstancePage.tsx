@@ -1,0 +1,386 @@
+import { useEffect, useState } from 'react'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { api } from '../api'
+import { isInstanceAdmin, useAuth } from '../auth'
+import type { InstanceSettings, InstanceStats, Org, Skill, Tariff, Worker } from '../types'
+import { ErrorBox, formatAudioTime, fmtDate, WalletLabel } from '../util'
+
+const MAX_UPLOAD = 1073741824
+type Tab = 'workers' | 'tariffs' | 'orgs' | 'settings' | 'baseSkills' | 'stats'
+const TABS: Tab[] = ['stats', 'workers', 'tariffs', 'orgs', 'settings', 'baseSkills']
+
+function healthLabel(w: Worker): string {
+  const health = w.last_health
+  if (!health) return '—'
+  const http = health._http
+  const ready = health._ready_http
+  const parts = [
+    w.last_seen_version || '',
+    http != null ? `http ${String(http)}` : '',
+    ready != null ? `ready ${String(ready)}` : '',
+  ]
+  const text = parts.filter(Boolean).join(' · ')
+  return text || JSON.stringify(health)
+}
+
+const emptyWorker = {
+  type: 'transcribe',
+  name: '',
+  base_url: '',
+  api_token: '',
+  weight: 1,
+  enabled: true,
+}
+
+const emptyTariff = {
+  name: '',
+  unlimited: false,
+  available_on_signup: false,
+  price_per_audio_sec: '0',
+  price_per_summarize_job: '0',
+  price_per_generated_text: '0',
+  max_upload_bytes: MAX_UPLOAD,
+}
+
+export function InstancePage() {
+  const { t } = useTranslation()
+  const { me, refresh } = useAuth()
+  const [search, setSearch] = useSearchParams()
+  const tabParam = search.get('tab')
+  const tab: Tab = TABS.includes(tabParam as Tab) ? (tabParam as Tab) : 'stats'
+  function setTab(id: Tab) {
+    setSearch(id === 'stats' ? {} : { tab: id }, { replace: true })
+  }
+  const [err, setErr] = useState<unknown>(null)
+  const [workers, setWorkers] = useState<Worker[]>([])
+  const [wform, setWform] = useState(emptyWorker)
+  const [editW, setEditW] = useState<string | null>(null)
+  const [tariffs, setTariffs] = useState<Tariff[]>([])
+  const [tform, setTform] = useState(emptyTariff)
+  const [editT, setEditT] = useState<string | null>(null)
+  const [orgs, setOrgs] = useState<Org[]>([])
+  const [settings, setSettings] = useState<InstanceSettings | null>(null)
+  const [smtpPassword, setSmtpPassword] = useState('')
+  const [skills, setSkills] = useState<Skill[]>([])
+  const [sname, setSname] = useState('')
+  const [sbody, setSbody] = useState('')
+  const [stats, setStats] = useState<InstanceStats | null>(null)
+  const [deltas, setDeltas] = useState<Record<string, string>>({})
+
+  const allowed = isInstanceAdmin(me)
+
+  async function load() {
+    setErr(null)
+    try {
+      if (tab === 'workers') {
+        setWorkers((await api<{ items: Worker[] }>('/workers')).items)
+      } else if (tab === 'tariffs') {
+        setTariffs((await api<{ items: Tariff[] }>('/tariffs')).items)
+      } else if (tab === 'orgs') {
+        const [o, tr] = await Promise.all([
+          api<{ items: Org[] }>('/orgs'),
+          api<{ items: Tariff[] }>('/tariffs'),
+        ])
+        setOrgs(o.items)
+        setTariffs(tr.items)
+      } else if (tab === 'settings') {
+        setSettings(await api<InstanceSettings>('/instance/settings'))
+      } else if (tab === 'baseSkills') {
+        setSkills((await api<{ items: Skill[] }>('/skills/base')).items)
+      } else {
+        setStats(await api<InstanceStats>('/instance/stats'))
+      }
+    } catch (e) {
+      setErr(e)
+    }
+  }
+
+  useEffect(() => {
+    if (!allowed) return
+    void load()
+  }, [tab, allowed])
+
+  if (!allowed) return <Navigate to="/app" replace />
+
+  async function saveWorker() {
+    const body = { ...wform, weight: Number(wform.weight) }
+    if (editW) {
+      await api(`/workers/${editW}`, { method: 'PATCH', body: JSON.stringify(body) })
+    } else {
+      await api('/workers', { method: 'POST', body: JSON.stringify(body) })
+    }
+    setWform(emptyWorker)
+    setEditW(null)
+    await load()
+  }
+
+  async function saveTariff() {
+    const body = { ...tform, max_upload_bytes: Math.min(Number(tform.max_upload_bytes) || MAX_UPLOAD, MAX_UPLOAD) }
+    if (editT) {
+      await api(`/tariffs/${editT}`, { method: 'PATCH', body: JSON.stringify(body) })
+    } else {
+      await api('/tariffs', { method: 'POST', body: JSON.stringify(body) })
+    }
+    setTform(emptyTariff)
+    setEditT(null)
+    await load()
+  }
+
+  async function saveSettings() {
+    if (!settings) return
+    await api('/instance/settings', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        allow_new_orgs: settings.allow_new_orgs,
+        public_base_url: settings.public_base_url,
+        smtp_host: settings.smtp_host,
+        smtp_port: settings.smtp_port,
+        smtp_user: settings.smtp_user,
+        smtp_from: settings.smtp_from,
+        smtp_tls: settings.smtp_tls,
+        asr_model: settings.asr_model,
+        diarization_model: settings.diarization_model || '',
+        ...(smtpPassword ? { smtp_password: smtpPassword } : {}),
+      }),
+    })
+    setSmtpPassword('')
+    await load()
+  }
+
+  return (
+    <div>
+      <h1>{t('instance.title')}</h1>
+      <div className="tabs">
+        {TABS.map((id) => (
+          <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+            {t(`instance.${id}`)}
+          </button>
+        ))}
+      </div>
+      <ErrorBox err={err} />
+
+      {tab === 'stats' && stats && (
+        <div className="card stack">
+          <div>{t('instance.orgs')}: {stats.orgs}</div>
+          <div>{t('instance.users')}: {stats.users}</div>
+          <div>{t('instance.queued')}: {stats.tasks_queued}</div>
+          <div>{t('instance.running')}: {stats.tasks_running}</div>
+          <div>{t('instance.transcribeDone')}: {stats.tasks_transcribe_success}</div>
+          <div>{t('instance.summarizeDone')}: {stats.tasks_summarize_success}</div>
+          <div>{t('instance.transcribedAudio')}: {formatAudioTime(stats.audio_transcribed_sec, t)}</div>
+          <div>{t('instance.usage')}: {stats.usage_total}</div>
+        </div>
+      )}
+
+      {tab === 'workers' && (
+        <>
+          <div className="card stack">
+            <label>{t('instance.type')}
+              <select value={wform.type} onChange={(e) => setWform({ ...wform, type: e.target.value })}>
+                <option value="transcribe">{t('instance.transcribe')}</option>
+                <option value="summarize">{t('instance.summarize')}</option>
+              </select>
+            </label>
+            <label>{t('common.name')}<input value={wform.name} onChange={(e) => setWform({ ...wform, name: e.target.value })} /></label>
+            <label>{t('instance.baseUrl')}<input value={wform.base_url} onChange={(e) => setWform({ ...wform, base_url: e.target.value })} /></label>
+            <label>{t('instance.apiToken')}<input value={wform.api_token} onChange={(e) => setWform({ ...wform, api_token: e.target.value })} /></label>
+            <label>{t('instance.weight')}<input type="number" min={1} value={wform.weight} onChange={(e) => setWform({ ...wform, weight: Number(e.target.value) })} /></label>
+            <label className="row">
+              <input type="checkbox" checked={wform.enabled} onChange={(e) => setWform({ ...wform, enabled: e.target.checked })} />
+              {t('instance.enabled')}
+            </label>
+            <button className="primary" type="button" onClick={() => void saveWorker()}>{editW ? t('common.save') : t('common.create')}</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>{t('common.name')}</th>
+                <th>{t('instance.type')}</th>
+                <th>{t('instance.health')}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {workers.map((w) => (
+                <tr key={w.id}>
+                  <td>{w.name || w.base_url}</td>
+                  <td>{w.type} · w{w.weight} {w.enabled ? '' : `(${t('common.disable')})`}</td>
+                  <td>{healthLabel(w)}</td>
+                  <td className="row">
+                    <button type="button" onClick={() => { setEditW(w.id); setWform({ type: w.type, name: w.name, base_url: w.base_url, api_token: '', weight: w.weight, enabled: w.enabled }) }}>{t('common.edit')}</button>
+                    <button type="button" className="danger" onClick={() => void api(`/workers/${w.id}`, { method: 'DELETE' }).then(load)}>{t('common.delete')}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {tab === 'tariffs' && (
+        <>
+          <div className="card stack">
+            <label>{t('common.name')}<input value={tform.name} onChange={(e) => setTform({ ...tform, name: e.target.value })} /></label>
+            <label className="row">
+              <input type="checkbox" checked={tform.unlimited} onChange={(e) => setTform({ ...tform, unlimited: e.target.checked })} />
+              {t('instance.unlimited')}
+            </label>
+            <label className="row">
+              <input type="checkbox" checked={tform.available_on_signup} onChange={(e) => setTform({ ...tform, available_on_signup: e.target.checked })} />
+              {t('instance.signup')}
+            </label>
+            <label>{t('instance.priceAudio')}<input value={tform.price_per_audio_sec} onChange={(e) => setTform({ ...tform, price_per_audio_sec: e.target.value })} /></label>
+            <label>{t('instance.priceJob')}<input value={tform.price_per_summarize_job} onChange={(e) => setTform({ ...tform, price_per_summarize_job: e.target.value })} /></label>
+            <label>{t('instance.priceText')}<input value={tform.price_per_generated_text} onChange={(e) => setTform({ ...tform, price_per_generated_text: e.target.value })} /></label>
+            <label>{t('instance.uploadCap')}<input type="number" max={MAX_UPLOAD} value={tform.max_upload_bytes} onChange={(e) => setTform({ ...tform, max_upload_bytes: Number(e.target.value) })} /></label>
+            <button className="primary" type="button" onClick={() => void saveTariff()}>{editT ? t('common.save') : t('common.create')}</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>{t('common.name')}</th>
+                <th>{t('instance.orgCount')}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {tariffs.map((tr) => (
+                <tr key={tr.id}>
+                  <td>
+                    {tr.name} {tr.unlimited && <span className="badge">{t('instance.unlimited')}</span>}
+                    {tr.available_on_signup && <span className="badge out">{t('instance.signup')}</span>}
+                    {tr.archived && <span className="badge warn">{t('instance.archived')}</span>}
+                    <div className="muted">{tr.price_per_audio_sec} / {tr.price_per_summarize_job} / {tr.price_per_generated_text} · {tr.max_upload_bytes}</div>
+                  </td>
+                  <td>{tr.org_count ?? 0}</td>
+                  <td className="row">
+                    <button type="button" onClick={() => {
+                      setEditT(tr.id)
+                      setTform({
+                        name: tr.name,
+                        unlimited: tr.unlimited,
+                        available_on_signup: tr.available_on_signup,
+                        price_per_audio_sec: tr.price_per_audio_sec,
+                        price_per_summarize_job: tr.price_per_summarize_job,
+                        price_per_generated_text: tr.price_per_generated_text,
+                        max_upload_bytes: tr.max_upload_bytes,
+                      })
+                    }}>{t('common.edit')}</button>
+                    {tr.archived ? (
+                      <button type="button" onClick={() => void api(`/tariffs/${tr.id}/unarchive`, { method: 'POST' }).then(load)}>{t('instance.unarchive')}</button>
+                    ) : (
+                      <button type="button" onClick={() => void api(`/tariffs/${tr.id}/archive`, { method: 'POST' }).then(load)}>{t('instance.archive')}</button>
+                    )}
+                    <button type="button" className="danger" onClick={() => void api(`/tariffs/${tr.id}`, { method: 'DELETE' }).then(load).catch(setErr)}>{t('common.delete')}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      {tab === 'orgs' && (
+        <div className="list">
+          {orgs.map((o) => (
+            <div className="item stack" key={o.id}>
+              <div className="row">
+                <strong className="grow">{o.name}</strong>
+                <WalletLabel unlimited={o.unlimited} balance={o.balance} />
+              </div>
+              <label>
+                {t('org.tariff')}
+                <select
+                  value={o.tariff.id}
+                  onChange={(e) => void api(`/orgs/${o.id}/tariff`, { method: 'PATCH', body: JSON.stringify({ tariff_id: e.target.value }) }).then(load)}
+                >
+                  {tariffs.map((tr) => (
+                    <option key={tr.id} value={tr.id}>{tr.name}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="row">
+                <input
+                  placeholder={t('instance.walletDelta')}
+                  value={deltas[o.id] || ''}
+                  onChange={(e) => setDeltas((d) => ({ ...d, [o.id]: e.target.value }))}
+                />
+                <button type="button" onClick={() => void api(`/orgs/${o.id}/wallet`, { method: 'POST', body: JSON.stringify({ delta: deltas[o.id] }) }).then(load)}>
+                  {t('instance.apply')}
+                </button>
+              </div>
+              <details className="fold">
+                <summary>
+                  {t('instance.users')} · {(o.members || []).length}
+                </summary>
+                <div className="stack fold-body">
+                  {(o.members || []).length === 0 && <p className="muted">{t('common.empty')}</p>}
+                  {(o.members || []).map((u) => (
+                    <div className="row" key={u.id}>
+                      <span>{u.email} · {u.role}</span>
+                      {!u.is_instance_admin && (
+                        <button
+                          type="button"
+                          onClick={() => void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) }).then(() => refresh())}
+                        >
+                          {t('instance.impersonate')}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'settings' && settings && (
+        <div className="card stack">
+          <label className="row">
+            <input type="checkbox" checked={settings.allow_new_orgs} onChange={(e) => setSettings({ ...settings, allow_new_orgs: e.target.checked })} />
+            {t('instance.allowNewOrgs')}
+          </label>
+          <label>{t('instance.publicBaseUrl')}<input value={settings.public_base_url || ''} onChange={(e) => setSettings({ ...settings, public_base_url: e.target.value })} /></label>
+          <label>{t('instance.asr')}<input value={settings.asr_model} onChange={(e) => setSettings({ ...settings, asr_model: e.target.value })} /></label>
+          <label>{t('instance.diarization')}<input value={settings.diarization_model || ''} onChange={(e) => setSettings({ ...settings, diarization_model: e.target.value || null })} /></label>
+          <label>{t('instance.smtpHost')}<input value={settings.smtp_host || ''} onChange={(e) => setSettings({ ...settings, smtp_host: e.target.value })} /></label>
+          <label>{t('instance.smtpPort')}<input type="number" value={settings.smtp_port ?? ''} onChange={(e) => setSettings({ ...settings, smtp_port: e.target.value ? Number(e.target.value) : null })} /></label>
+          <label>{t('instance.smtpUser')}<input value={settings.smtp_user || ''} onChange={(e) => setSettings({ ...settings, smtp_user: e.target.value })} /></label>
+          <label>{t('instance.smtpPassword')}<input type="password" value={smtpPassword} onChange={(e) => setSmtpPassword(e.target.value)} /></label>
+          <label>{t('instance.smtpFrom')}<input value={settings.smtp_from || ''} onChange={(e) => setSettings({ ...settings, smtp_from: e.target.value })} /></label>
+          <label className="row">
+            <input type="checkbox" checked={settings.smtp_tls} onChange={(e) => setSettings({ ...settings, smtp_tls: e.target.checked })} />
+            {t('instance.smtpTls')}
+          </label>
+          <button className="primary" type="button" onClick={() => void saveSettings()}>{t('common.save')}</button>
+        </div>
+      )}
+
+      {tab === 'baseSkills' && (
+        <>
+          <div className="card stack">
+            <label>{t('common.name')}<input value={sname} onChange={(e) => setSname(e.target.value)} /></label>
+            <label>{t('skills.body')}<textarea className="summary-editor" value={sbody} onChange={(e) => setSbody(e.target.value)} /></label>
+            <button className="primary" type="button" onClick={() => void api('/skills/base', { method: 'POST', body: JSON.stringify({ name: sname, body: sbody }) }).then(() => { setSname(''); setSbody(''); return load() })}>
+              {t('common.create')}
+            </button>
+          </div>
+          <div className="list">
+            {skills.length === 0 && <p className="muted">{t('common.empty')}</p>}
+            {skills.map((s) => (
+              <div className="item row" key={s.id}>
+                <div className="grow">
+                  <Link className="title" to={`/app/skill/${s.id}`}>{s.name}</Link>
+                  <div className="muted">{fmtDate(s.created_at)}</div>
+                </div>
+                <span className="badge">{s.scope}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}

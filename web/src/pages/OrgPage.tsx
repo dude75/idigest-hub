@@ -1,0 +1,247 @@
+import { useEffect, useState } from 'react'
+import { Navigate, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { api } from '../api'
+import { isOrgAdmin, useAuth } from '../auth'
+import type { Org, Tariff, User } from '../types'
+import { ErrorBox, WalletLabel } from '../util'
+
+export function OrgPage() {
+  const { t } = useTranslation()
+  const { me, refresh } = useAuth()
+  const nav = useNavigate()
+  const [org, setOrg] = useState<Org | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [tariffs, setTariffs] = useState<Tariff[]>([])
+  const [name, setName] = useState('')
+  const [ttl, setTtl] = useState(0)
+  const [tariffId, setTariffId] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole] = useState<'org_admin' | 'org_member'>('org_member')
+  const [offUser, setOffUser] = useState<User | null>(null)
+  const [action, setAction] = useState<'transfer' | 'wipe'>('wipe')
+  const [target, setTarget] = useState('')
+  const [tempPw, setTempPw] = useState<string | null>(null)
+  const [err, setErr] = useState<unknown>(null)
+  const admin = isOrgAdmin(me)
+  const hasOrg = Boolean(me?.org)
+
+  async function load() {
+    const [o, u, tr] = await Promise.all([
+      api<Org>('/org'),
+      api<{ items: User[] }>('/org/users'),
+      api<{ items: Tariff[] }>('/org/available-tariffs'),
+    ])
+    setOrg(o)
+    setName(o.name)
+    setTtl(o.password_ttl_days)
+    setTariffId(o.tariff.id)
+    setUsers(u.items)
+    setTariffs(tr.items)
+  }
+
+  useEffect(() => {
+    if (!hasOrg) return
+    load().catch(setErr)
+  }, [hasOrg])
+
+  if (!hasOrg) return <Navigate to="/app/profile" replace />
+
+  async function saveName() {
+    await api('/org', { method: 'PATCH', body: JSON.stringify({ name }) })
+    await refresh()
+    await load()
+  }
+
+  async function saveTtl() {
+    await api('/org/settings', { method: 'PATCH', body: JSON.stringify({ password_ttl_days: ttl }) })
+    await load()
+  }
+
+  async function saveTariff() {
+    await api('/org/tariff', { method: 'PATCH', body: JSON.stringify({ tariff_id: tariffId }) })
+    await refresh()
+    await load()
+  }
+
+  async function addUser() {
+    setErr(null)
+    try {
+      await api('/org/users', { method: 'POST', body: JSON.stringify({ email, password, role }) })
+      setEmail('')
+      setPassword('')
+      await load()
+    } catch (e) {
+      setErr(e)
+    }
+  }
+
+  async function changeRole(user: User, next: string) {
+    await api(`/org/users/${user.id}`, { method: 'PATCH', body: JSON.stringify({ role: next }) })
+    await load()
+  }
+
+  async function toggleDisabled(user: User) {
+    await api(`/org/users/${user.id}/${user.disabled ? 'enable' : 'disable'}`, { method: 'POST' })
+    await load()
+  }
+
+  async function resetPw(user: User) {
+    const r = await api<{ password: string }>(`/org/users/${user.id}/reset-password`, { method: 'POST' })
+    setTempPw(r.password)
+  }
+
+  async function offboard() {
+    if (!offUser) return
+    setErr(null)
+    try {
+      await api(`/org/users/${offUser.id}/offboard`, {
+        method: 'POST',
+        body: JSON.stringify({ action, target_user_id: action === 'transfer' ? target : undefined }),
+      })
+      setOffUser(null)
+      await load()
+    } catch (e) {
+      setErr(e)
+    }
+  }
+
+  return (
+    <div>
+      <h1>{t('org.title')}</h1>
+      <ErrorBox err={err} />
+      {org && (
+        <div className="card stack">
+          <label>
+            {t('common.name')}
+            <input value={name} disabled={!admin} onChange={(e) => setName(e.target.value)} />
+          </label>
+          {admin && <button className="primary" type="button" onClick={() => void saveName()}>{t('common.save')}</button>}
+          <WalletLabel unlimited={org.unlimited} balance={org.balance} />
+          <label>
+            {t('org.tariff')}
+            <select value={tariffId} disabled={!admin} onChange={(e) => setTariffId(e.target.value)}>
+              {tariffs.map((tr) => (
+                <option key={tr.id} value={tr.id}>
+                  {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+          {admin && <button type="button" onClick={() => void saveTariff()}>{t('common.save')}</button>}
+          <label>
+            {t('org.ttl')}
+            <input type="number" min={0} value={ttl} disabled={!admin} onChange={(e) => setTtl(Number(e.target.value))} />
+          </label>
+          {admin && <button type="button" onClick={() => void saveTtl()}>{t('common.save')}</button>}
+        </div>
+      )}
+      <h2>{t('org.people')}</h2>
+      {tempPw && (
+        <p className="ok">
+          {t('org.newPassword')}: <code className="secret">{tempPw}</code>
+        </p>
+      )}
+      {admin && (
+        <div className="card stack" style={{ marginBottom: 12 }}>
+          <h3>{t('org.addUser')}</h3>
+          <label>
+            {t('common.email')}
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </label>
+          <label>
+            {t('common.password')}
+            <input type="password" minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+          </label>
+          <label>
+            {t('common.role')}
+            <select value={role} onChange={(e) => setRole(e.target.value as 'org_admin' | 'org_member')}>
+              <option value="org_member">{t('org.roleMember')}</option>
+              <option value="org_admin">{t('org.roleAdmin')}</option>
+            </select>
+          </label>
+          <button className="primary" type="button" onClick={() => void addUser()}>{t('common.create')}</button>
+        </div>
+      )}
+      <table>
+        <thead>
+          <tr>
+            <th>{t('common.email')}</th>
+            <th>{t('common.role')}</th>
+            <th>{t('common.status')}</th>
+            {admin && <th>{t('common.actions')}</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((u) => (
+            <tr key={u.id}>
+              <td>{u.email}</td>
+              <td>
+                {admin ? (
+                  <select value={u.role || 'org_member'} onChange={(e) => void changeRole(u, e.target.value)}>
+                    <option value="org_member">{t('org.roleMember')}</option>
+                    <option value="org_admin">{t('org.roleAdmin')}</option>
+                  </select>
+                ) : (
+                  u.role
+                )}
+              </td>
+              <td>{u.disabled ? t('common.disable') : t('common.enable')}</td>
+              {admin && (
+                <td className="row">
+                  {u.id !== me?.user.id && !u.disabled && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void api('/impersonate', {
+                          method: 'POST',
+                          body: JSON.stringify({ user_id: u.id }),
+                        }).then(() => refresh()).then(() => nav('/app'))
+                      }
+                    >
+                      {t('org.impersonate')}
+                    </button>
+                  )}
+                  <button type="button" onClick={() => void toggleDisabled(u)}>
+                    {u.disabled ? t('common.enable') : t('common.disable')}
+                  </button>
+                  <button type="button" onClick={() => void resetPw(u)}>{t('org.resetPassword')}</button>
+                  <button type="button" className="danger" onClick={() => setOffUser(u)}>{t('org.offboard')}</button>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {offUser && (
+        <div className="modal-back" onClick={() => setOffUser(null)}>
+          <div className="card modal stack" onClick={(e) => e.stopPropagation()}>
+            <h2>{t('org.offboard')}: {offUser.email}</h2>
+            <label>
+              <select value={action} onChange={(e) => setAction(e.target.value as 'transfer' | 'wipe')}>
+                <option value="wipe">{t('org.wipe')}</option>
+                <option value="transfer">{t('org.transfer')}</option>
+              </select>
+            </label>
+            {action === 'transfer' && (
+              <label>
+                {t('org.target')}
+                <select value={target} onChange={(e) => setTarget(e.target.value)}>
+                  <option value="">—</option>
+                  {users.filter((u) => u.id !== offUser.id && !u.disabled).map((u) => (
+                    <option key={u.id} value={u.id}>{u.email}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <div className="row">
+              <button className="danger" type="button" onClick={() => void offboard()}>{t('common.confirm')}</button>
+              <button type="button" onClick={() => setOffUser(null)}>{t('common.cancel')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

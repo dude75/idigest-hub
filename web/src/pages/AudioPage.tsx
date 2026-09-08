@@ -1,0 +1,110 @@
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { api } from '../api'
+import { isOrgAdmin, useAuth } from '../auth'
+import { ShareDialog } from '../components/ShareDialog'
+import type { Audio, Task } from '../types'
+import { ErrorBox, ShareBadges, fmtDate } from '../util'
+
+export function AudioPage() {
+  const { id } = useParams<{ id: string }>()
+  const { t } = useTranslation()
+  const { me, refresh } = useAuth()
+  const nav = useNavigate()
+  const [item, setItem] = useState<Audio | null>(null)
+  const [err, setErr] = useState<unknown>(null)
+  const [share, setShare] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const admin = isOrgAdmin(me)
+  const mine = item?.owner_user_id === me?.user.id
+
+  async function load() {
+    if (!id) return
+    try {
+      setItem(await api<Audio>(`/audios/${id}`))
+    } catch (e) {
+      setErr(e)
+    }
+  }
+
+  useEffect(() => {
+    void load()
+  }, [id])
+
+  async function transcribe() {
+    if (!id) return
+    setBusy(true)
+    setErr(null)
+    try {
+      const task = await api<Task>('/tasks/transcribe', { method: 'POST', body: JSON.stringify({ audio_id: id }) })
+      nav(`/app/task/${task.task_id}`)
+    } catch (e) {
+      setErr(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function toggleHidden() {
+    if (!id || !item) return
+    await api(`/audios/${id}/${item.hidden ? 'unhide' : 'hide'}`, { method: 'POST' })
+    await load()
+  }
+
+  async function wipe() {
+    if (!id) return
+    await api(`/audios/${id}`, { method: 'DELETE' })
+    await refresh()
+    nav('/app')
+  }
+
+  if (!item && !err) return <p className="muted">{t('common.loading')}</p>
+
+  return (
+    <div>
+      <Link to="/app">{t('common.back')}</Link>
+      <h1>{item?.filename || t('audio.title')}</h1>
+      <ErrorBox err={err} />
+      {item && (
+        <>
+          <div className="row">
+            <ShareBadges item={item} />
+            <span className="muted">{fmtDate(item.created_at)}</span>
+          </div>
+          <h2>{t('audio.play')}</h2>
+          <audio controls src={`/api/v1/audios/${item.id}/file`} />
+          <div className="row" style={{ marginTop: 12 }}>
+            {item.can_transcribe ? (
+              <button className="primary" disabled={busy} onClick={() => void transcribe()}>
+                {item.transcripts && item.transcripts.length > 0 ? t('audio.transcribeAgain') : t('audio.transcribe')}
+              </button>
+            ) : (
+              <span className="muted">{t('audio.noFile')}</span>
+            )}
+            {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
+            {mine && (
+              <button type="button" onClick={() => void toggleHidden()}>
+                {item.hidden ? t('common.unhide') : t('common.hide')}
+              </button>
+            )}
+            {admin && (
+              <button type="button" className="danger" onClick={() => void wipe()}>{t('common.wipe')}</button>
+            )}
+          </div>
+          <h2>{t('audio.transcripts')}</h2>
+          <div className="list">
+            {(item.transcripts || []).length === 0 && <p className="muted">{t('common.empty')}</p>}
+            {(item.transcripts || []).map((tr) => (
+              <div className="item row" key={tr.id}>
+                <Link className="title grow" to={`/app/transcript/${tr.id}`}>{tr.id.slice(0, 8)}</Link>
+                <ShareBadges item={tr} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+      {share && id && <ShareDialog objectType="audio" objectId={id} onClose={() => { setShare(false); void load() }} />}
+    </div>
+  )
+}

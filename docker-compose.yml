@@ -1,0 +1,21 @@
+services:
+  idigest-hub:
+    restart: always
+    image: idigest-hub:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    user: "1001:1001"
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      HOST: "0.0.0.0"
+      DATA_DIR: /data
+      SQLITE_PATH: /data/hub.db
+      LOG_DIR: /data/logs
+      COOKIE_SECURE: "false"
+    volumes:
+      - ./data:/data
+    command: ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port 8080 --workers 1"]

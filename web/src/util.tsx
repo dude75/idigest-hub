@@ -1,0 +1,64 @@
+import { useTranslation } from 'react-i18next'
+import { ApiError } from './api'
+import type { ShareBadge } from './types'
+
+export function formatAudioTime(
+  sec: number,
+  t: (key: string, opts?: Record<string, number>) => string,
+): string {
+  const total = Math.max(0, Math.round(Number(sec) || 0))
+  const h = Math.floor(total / 3600)
+  const m = Math.floor((total % 3600) / 60)
+  const s = total % 60
+  if (h > 0) return t('instance.durationHms', { h, m, s })
+  if (m > 0) return t('instance.durationMs', { m, s })
+  return t('instance.durationS', { s })
+}
+
+export function fmtDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString()
+  } catch {
+    return iso
+  }
+}
+
+export function errorText(err: unknown, t: (key: string) => string): string {
+  if (err instanceof ApiError) {
+    const key = `errors.${err.code}`
+    const translated = t(key)
+    return translated === key ? err.message || t('errors.generic') : translated
+  }
+  return t('errors.generic')
+}
+
+export function ErrorBox({ err }: { err: unknown }) {
+  const { t } = useTranslation()
+  if (!err) return null
+  return <p className="err" role="alert">{errorText(err, t)}</p>
+}
+
+export function ShareBadges({ item }: { item: ShareBadge }) {
+  const { t } = useTranslation()
+  return (
+    <span className="row">
+      {item.share_kind === 'incoming' && item.shared_by && (
+        <span className="badge warn">{t('library.sharedBy', { who: item.shared_by })}</span>
+      )}
+      {item.share_kind === 'outgoing' && <span className="badge out">{t('library.youShared')}</span>}
+      {item.hidden && <span className="badge">{t('library.hidden')}</span>}
+      {item.edited && <span className="badge">{t('summary.edited')}</span>}
+    </span>
+  )
+}
+
+export function WalletLabel({ unlimited, balance }: { unlimited?: boolean; balance?: string }) {
+  const { t } = useTranslation()
+  if (unlimited) return <strong>{t('wallet.unlimited')}</strong>
+  if (balance == null) return null
+  return (
+    <span>
+      {t('wallet.balance')}: <strong>{balance}</strong>
+    </span>
+  )
+}
