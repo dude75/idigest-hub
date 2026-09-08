@@ -173,6 +173,22 @@ def test_must_change_password_blocks_api_until_changed(client):
     assert me(client)["must_change_password"] is False
 
 
+def test_patch_default_route(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "routes@example.com", "routespass1", tariff_id).status_code == 200
+    payload = me(client)
+    assert payload["user"]["default_route"] == "library"
+
+    patched = client.patch("/api/v1/me", json={"default_route": "tasks"})
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["user"]["default_route"] == "tasks"
+
+    blocked = client.patch("/api/v1/me", json={"default_route": "instance"})
+    assert blocked.status_code == 400
+    assert err_code(blocked) == "validation_error"
+
+
 def test_password_reset_routes_recovery_disabled_without_smtp(client):
     setup_admin(client)
     request = client.post("/api/v1/auth/password/reset/request", json={"email": ADMIN_EMAIL})

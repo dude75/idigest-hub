@@ -22,6 +22,12 @@ import { SummaryPage } from './pages/SummaryPage'
 import { TaskPage } from './pages/TaskPage'
 import { TasksPage } from './pages/TasksPage'
 import { TranscriptPage } from './pages/TranscriptPage'
+import { resolveHomePath } from './routes'
+
+function AppHomeRedirect() {
+  const { me } = useAuth()
+  return <Navigate to={resolveHomePath(me)} replace />
+}
 
 function Gate({ children }: { children: ReactNode }) {
   const { ready, bootstrapDone, me } = useAuth()
@@ -50,7 +56,7 @@ export default function App() {
           </Gate>
         }
       >
-        <Route index element={<Navigate to="library/audio" replace />} />
+        <Route index element={<AppHomeRedirect />} />
         <Route path="library" element={<Navigate to="library/audio" replace />} />
         <Route path="library/:tab" element={<LibraryPage />} />
         <Route path="audio/:id" element={<AudioPage />} />

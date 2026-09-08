@@ -76,6 +76,12 @@ def ensure_schema(engine: Engine) -> None:
         return
 
     with engine.begin() as conn:
+        user_cols = _table_columns(conn, "users")
+        if user_cols and "default_route" not in user_cols:
+            conn.exec_driver_sql(
+                "ALTER TABLE users ADD COLUMN default_route VARCHAR(32) NOT NULL DEFAULT 'library'"
+            )
+
         summary_cols = _table_columns(conn, "summaries")
         if summary_cols and "edited" not in summary_cols:
             conn.exec_driver_sql(

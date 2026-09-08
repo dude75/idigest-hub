@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 from app.constants import (
     COOKIE_NAME,
     DEFAULT_LOCALE,
+    DEFAULT_ROUTE,
+    DEFAULT_ROUTES,
     DEFAULT_TARIFF_NAME,
     MAX_UPLOAD_BYTES_CAP,
     PASSWORD_RESET_TTL_SEC,
@@ -100,6 +102,7 @@ class TokenCreateBody(BaseModel):
 
 class MePatchBody(BaseModel):
     locale: str | None = None
+    default_route: str | None = None
 
 
 def _norm_email(email: str) -> str:
@@ -108,6 +111,21 @@ def _norm_email(email: str) -> str:
 
 def _locale(value: str) -> str:
     return value if value in SUPPORTED_LOCALES else DEFAULT_LOCALE
+
+
+def _allowed_default_routes(ctx: AuthContext) -> set[str]:
+    routes = {"tasks"}
+    if ctx.org:
+        routes.update({"library", "skills", "org"})
+        if ctx.membership and ctx.membership.role == "org_admin":
+            routes.add("stats")
+    if ctx.user.is_instance_admin and not ctx.impersonating:
+        routes.add("instance")
+    return routes
+
+
+def _default_route(value: str) -> str:
+    return value if value in DEFAULT_ROUTES else DEFAULT_ROUTE
 
 
 def seed_default_tariff(db: Session) -> Tariff:
@@ -435,6 +453,12 @@ def patch_me(
 ) -> dict:
     if body.locale:
         ctx.user.locale = _locale(body.locale)
+        ctx.user.updated_at = utcnow()
+    if body.default_route is not None:
+        route = _default_route(body.default_route)
+        if route not in _allowed_default_routes(ctx):
+            ctx.raise_error(ErrorCode.validation_error)
+        ctx.user.default_route = route
         ctx.user.updated_at = utcnow()
     return _me_payload(ctx, db)
 

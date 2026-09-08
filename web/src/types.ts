@@ -4,6 +4,7 @@ export type User = {
   id: string
   email: string
   locale: string
+  default_route: string
   disabled: boolean
   must_change_password: boolean
   is_instance_admin: boolean

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
-import { LIBRARY_DEFAULT } from '../routes'
+import { resolveHomePath } from '../routes'
 import { ErrorBox } from '../util'
 
 export function LoginPage() {
@@ -17,7 +17,7 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false)
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
-  if (ready && me) return <Navigate to={me.must_change_password ? '/change-password' : LIBRARY_DEFAULT} replace />
+  if (ready && me) return <Navigate to={me.must_change_password ? '/change-password' : resolveHomePath(me)} replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -26,7 +26,7 @@ export function LoginPage() {
     try {
       await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
       await refresh()
-      nav(LIBRARY_DEFAULT, { replace: true })
+      nav('/app', { replace: true })
     } catch (e) {
       setErr(e)
     } finally {

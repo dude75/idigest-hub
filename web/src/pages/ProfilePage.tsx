@@ -2,12 +2,13 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { allowedDefaultRoutes, isDefaultRoute, type DefaultRoute } from '../routes'
 import type { ApiToken } from '../types'
 import { ErrorBox, fmtDate } from '../util'
 
 export function ProfilePage() {
   const { t } = useTranslation()
-  const { me, refresh } = useAuth()
+  const { me, refresh, setDefaultRoute } = useAuth()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [tokens, setTokens] = useState<ApiToken[]>([])
@@ -64,6 +65,26 @@ export function ProfilePage() {
     <div>
       <h1>{t('profile.title')}</h1>
       <p className="muted">{me?.user.email}</p>
+      <form className="card stack">
+        <h2>{t('profile.defaultRoute')}</h2>
+        <label>
+          {t('profile.defaultRouteHint')}
+          <select
+            value={
+              isDefaultRoute(me?.user.default_route) && allowedDefaultRoutes(me).includes(me.user.default_route)
+                ? me.user.default_route
+                : allowedDefaultRoutes(me)[0]
+            }
+            onChange={(e) => void setDefaultRoute(e.target.value as DefaultRoute)}
+          >
+            {allowedDefaultRoutes(me).map((route) => (
+              <option key={route} value={route}>
+                {t(`nav.${route}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </form>
       <ErrorBox err={err} />
       {ok && <p className="ok">{t('common.save')}</p>}
       <form className="card stack" onSubmit={(e) => void changePw(e)}>

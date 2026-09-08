@@ -25,6 +25,7 @@ def user_public(user: User, role: str | None = None) -> dict[str, Any]:
         "id": user.id,
         "email": user.email,
         "locale": user.locale,
+        "default_route": user.default_route,
         "disabled": user.disabled_at is not None,
         "must_change_password": user.must_change_password,
         "is_instance_admin": user.is_instance_admin,

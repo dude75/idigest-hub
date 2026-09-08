@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
-import { isInstanceAdmin, useAuth } from '../auth'
+import { useAuth } from '../auth'
 import { AppBrand } from '../components/AppBrand'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
-import { LIBRARY_DEFAULT } from '../routes'
+import { resolveHomePath } from '../routes'
 import type { Tariff } from '../types'
 import { formatBytes } from '../util'
 
@@ -23,8 +23,7 @@ export function LandingPage() {
   if (!ready) return <p className="page muted">{t('common.loading')}</p>
   if (!bootstrapDone) return <Navigate to="/setup" replace />
   if (me?.must_change_password) return <Navigate to="/change-password" replace />
-  if (me && !me.org && isInstanceAdmin(me)) return <Navigate to="/app/instance" replace />
-  if (me) return <Navigate to={LIBRARY_DEFAULT} replace />
+  if (me) return <Navigate to={resolveHomePath(me)} replace />
 
   return (
     <div className="landing">

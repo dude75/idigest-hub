@@ -165,6 +165,8 @@
   },
   "profile": {
     "title": "Profile",
+    "defaultRoute": "Default section",
+    "defaultRouteHint": "Open after login",
     "tokens": "API tokens",
     "newToken": "Create token",
     "secretOnce": "Copy this token now. It will not be shown again.",

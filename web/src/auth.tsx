@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, ApiError } from './api'
+import type { DefaultRoute } from './routes'
 import type { Locale, Me } from './types'
 
 type AuthState = {
@@ -9,6 +10,7 @@ type AuthState = {
   me: Me | null
   refresh: () => Promise<void>
   setLocale: (locale: Locale) => Promise<void>
+  setDefaultRoute: (route: DefaultRoute) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -63,14 +65,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [i18n, me],
   )
 
+  const setDefaultRoute = useCallback(
+    async (route: DefaultRoute) => {
+      if (me) {
+        const next = await api<Me>('/me', { method: 'PATCH', body: JSON.stringify({ default_route: route }) })
+        setMe(next)
+      }
+    },
+    [me],
+  )
+
   const logout = useCallback(async () => {
     await api('/auth/logout', { method: 'POST' })
     setMe(null)
   }, [])
 
   const value = useMemo(
-    () => ({ ready, bootstrapDone, me, refresh, setLocale, logout }),
-    [ready, bootstrapDone, me, refresh, setLocale, logout],
+    () => ({ ready, bootstrapDone, me, refresh, setLocale, setDefaultRoute, logout }),
+    [ready, bootstrapDone, me, refresh, setLocale, setDefaultRoute, logout],
   )
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>

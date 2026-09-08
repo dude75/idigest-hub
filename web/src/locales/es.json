@@ -165,6 +165,8 @@
   },
   "profile": {
     "title": "Perfil",
+    "defaultRoute": "Sección predeterminada",
+    "defaultRouteHint": "Abrir después del inicio de sesión",
     "tokens": "Tokens API",
     "newToken": "Crear token",
     "secretOnce": "Copie este token ahora. No se mostrará de nuevo.",
