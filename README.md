@@ -179,6 +179,54 @@ docker compose down
 
 `./data` on the host is not deleted. After switching from a root-owned image, run `sudo chown -R 1001:1001 ./data` before the next `up` if logs show `Permission denied` on `/data`.
 
+## Rate limiting
+
+The hub enforces optional rate limits in **process memory** (one Uvicorn worker — see [Install and run](#install-and-run)). Counters reset on restart. A background sweeper drops expired buckets; at most **20 000** buckets are kept in RAM (oldest evicted first).
+
+**Configuration:** instance admin → **Instance** → **Settings**. Master switch: **Enable rate limiting**. **`0`** on a limit disables that rule.
+
+### What is limited
+
+| Traffic | Keys | Notes |
+| -------- | ----- | ----- |
+| Auth (`/auth/login`, signup, password reset, `/setup`) | Normalized **email**, **client IP**, **global** | Checked before expensive work (e.g. bcrypt on login). |
+| Programmatic API | **`Authorization: Bearer`** only | **User id**, **IP**, **global**; extra limits on `POST /tasks/transcribe` and `POST /tasks/summarize`. Browser session (cookie) is **not** API-rate-limited. |
+
+On limit exceeded: HTTP **429**, `error.code = rate_limited`, header `Retry-After` (seconds).
+
+### Default limits
+
+| Rule | Per email / user | Per IP | Global | Window |
+| ---- | ---------------- | ------ | ------ | ------ |
+| Login | 30 / min | **0 (off)** | 500 / min | 1 min |
+| Signup | 10 / min | **0** | 100 / min | 1 min |
+| Password reset | 10 / hour | **0** | 50 / hour | 1 hour |
+| Reset confirm | — | **0** | 100 / hour | 1 hour |
+| Setup | — | **0** | 10 / hour | 1 hour |
+| Bearer API | 120 / min | **0** | 2000 / min | 1 min |
+| Bearer task create | 30 / min | **0** | — | 1 min |
+
+### Client IP behind a reverse proxy
+
+By default the hub uses the **TCP peer address** (`request.client.host`) — usually the reverse proxy, not the browser.
+
+- If the proxy does **not** pass the real client IP, all users may share one IP for hub limits. Per-email / per-user limits still apply; per-IP stays off until you set a non-zero value in Settings.
+- To count **real client IPs**, the proxy can send `X-Forwarded-For` or `X-Real-IP`; support for trusted proxy headers may be added later. **Do not** trust these headers if the hub is reachable directly from the internet.
+
+Example (nginx in front of the hub):
+
+```nginx
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Real-IP $remote_addr;
+```
+
+Coarse IP flood protection can also be configured on the **reverse proxy**; the hub does not require proxy changes to work.
+
+### Operations
+
+- Always run **`--workers 1`**: limits are per process.
+- `/api/v1/health` and static assets are not rate-limited.
+
 ## Typical errors
 
 | What you see                                                         | Meaning                                                                                          |
@@ -188,3 +236,4 @@ docker compose down
 | HTTP **403**, `error.code = signup_disabled`                         | Instance admin turned off new orgs, or no non-archived signup tariff.                            |
 | Transcripts / worker tokens unreadable after changing `HUB_SECRET`   | Fernet key is `SHA-256` of the previous secret. Restore the old `.env` or re-enter worker tokens and accept lost ciphertext. |
 | `Permission denied` on `/data/...` (`hub.db`, `logs`, `uploads`)     | Host `./data` is not writable by uid 1001. Run `sudo chown -R 1001:1001 ./data` and restart. Do not chmod `777`. |
+| HTTP **429**, `error.code = rate_limited`                            | Too many requests; wait for `Retry-After` or raise limits in Instance → Settings.                                |

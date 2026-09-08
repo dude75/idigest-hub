@@ -23,6 +23,7 @@ from app.logging_setup import setup_logging
 from app.models import Base
 from app.routers import auth, instance, library, org, skills, tasks
 from app.services.dispatcher import dispatcher_loop
+from app.rate_limit import rate_limit_sweeper
 from app.version import read_version
 
 log = logging.getLogger("app")
@@ -39,16 +40,23 @@ async def lifespan(app: FastAPI):
     ensure_schema(engine)
     stop_event = asyncio.Event()
     task = asyncio.create_task(dispatcher_loop(stop_event))
+    rate_limit_task = asyncio.create_task(rate_limit_sweeper(stop_event))
     app.state.dispatcher_stop = stop_event
     app.state.dispatcher_task = task
+    app.state.rate_limit_task = rate_limit_task
     log.info("service start")
     try:
         yield
     finally:
         stop_event.set()
         task.cancel()
+        rate_limit_task.cancel()
         try:
             await task
+        except asyncio.CancelledError:
+            pass
+        try:
+            await rate_limit_task
         except asyncio.CancelledError:
             pass
         log.info("service stop")
@@ -65,7 +73,7 @@ def _locale(request: Request) -> str:
 async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
     detail = exc.detail
     if isinstance(detail, dict) and detail.get("status") == "error":
-        return JSONResponse(status_code=exc.status_code, content=detail)
+        return JSONResponse(status_code=exc.status_code, content=detail, headers=exc.headers)
     locale = _locale(request)
     code = ErrorCode.not_found if exc.status_code == 404 else ErrorCode.validation_error
     return JSONResponse(status_code=exc.status_code, content=error_payload(code, t(locale, code.value)))

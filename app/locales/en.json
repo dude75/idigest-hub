@@ -27,5 +27,6 @@
   "conflict": "Conflict.",
   "pipeline_error": "The worker failed to process the task.",
   "engine_unavailable": "Required ASR or diarization engine is not available.",
+  "rate_limited": "Too many requests. Try again later.",
   "ok": "ok"
 }

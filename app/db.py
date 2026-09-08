@@ -126,6 +126,53 @@ def ensure_schema(engine: Engine) -> None:
         if usage_cols and "summary_chars" not in usage_cols:
             conn.exec_driver_sql("ALTER TABLE usage_events ADD COLUMN summary_chars INTEGER")
 
+        settings_cols = _table_columns(conn, "instance_settings")
+        if settings_cols:
+            _instance_rate_limit_patches(conn, settings_cols)
+
+
+def _add_int_column(conn, table: str, column: str, default: int) -> None:
+    cols = _table_columns(conn, table)
+    if column not in cols:
+        conn.exec_driver_sql(
+            f"ALTER TABLE {table} ADD COLUMN {column} INTEGER NOT NULL DEFAULT {default}"
+        )
+
+
+def _add_bool_column(conn, table: str, column: str, default: int) -> None:
+    cols = _table_columns(conn, table)
+    if column not in cols:
+        conn.exec_driver_sql(
+            f"ALTER TABLE {table} ADD COLUMN {column} BOOLEAN NOT NULL DEFAULT {default}"
+        )
+
+
+def _instance_rate_limit_patches(conn, settings_cols: set[str]) -> None:
+    if "rate_limit_enabled" not in settings_cols:
+        _add_bool_column(conn, "instance_settings", "rate_limit_enabled", 1)
+    patches = (
+        ("rate_limit_login_email", 30),
+        ("rate_limit_login_ip", 0),
+        ("rate_limit_login_global", 500),
+        ("rate_limit_signup_email", 10),
+        ("rate_limit_signup_ip", 0),
+        ("rate_limit_signup_global", 100),
+        ("rate_limit_reset_email", 10),
+        ("rate_limit_reset_ip", 0),
+        ("rate_limit_reset_global", 50),
+        ("rate_limit_reset_confirm_ip", 0),
+        ("rate_limit_reset_confirm_global", 100),
+        ("rate_limit_setup_ip", 0),
+        ("rate_limit_setup_global", 10),
+        ("rate_limit_api_user", 120),
+        ("rate_limit_api_ip", 0),
+        ("rate_limit_api_global", 2000),
+        ("rate_limit_api_tasks_user", 30),
+        ("rate_limit_api_tasks_ip", 0),
+    )
+    for column, default in patches:
+        _add_int_column(conn, "instance_settings", column, default)
+
 
 def get_engine() -> Engine:
     global _engine, SessionLocal

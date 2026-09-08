@@ -42,6 +42,10 @@ def client(tmp_path, monkeypatch):
     reset_engine()
     Base.metadata.create_all(get_engine())
 
+    from app.rate_limit import reset_rate_limiter
+
+    reset_rate_limiter()
+
     import app.services.dispatcher as dispatcher
 
     dispatcher._tick_lock = None
@@ -54,6 +58,10 @@ def client(tmp_path, monkeypatch):
     get_settings.cache_clear()
     reset_engine()
     dispatcher._tick_lock = None
+
+    from app.rate_limit import reset_rate_limiter
+
+    reset_rate_limiter()
 
 
 def err_code(response) -> str:

@@ -18,6 +18,7 @@ from app.models import Membership, Organization, Task, Tariff, UsageEvent, User,
 from app.money import parse_money
 from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.routers.auth import seed_default_tariff
+from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
 from app.services.audit import write_audit
 from app.services.stats import completed_job_stats
 from app.timeutil import utcnow
@@ -62,6 +63,25 @@ class SettingsPatch(BaseModel):
     smtp_tls: bool | None = None
     asr_model: str | None = None
     diarization_model: str | None = Field(default=None)
+    rate_limit_enabled: bool | None = None
+    rate_limit_login_email: int | None = None
+    rate_limit_login_ip: int | None = None
+    rate_limit_login_global: int | None = None
+    rate_limit_signup_email: int | None = None
+    rate_limit_signup_ip: int | None = None
+    rate_limit_signup_global: int | None = None
+    rate_limit_reset_email: int | None = None
+    rate_limit_reset_ip: int | None = None
+    rate_limit_reset_global: int | None = None
+    rate_limit_reset_confirm_ip: int | None = None
+    rate_limit_reset_confirm_global: int | None = None
+    rate_limit_setup_ip: int | None = None
+    rate_limit_setup_global: int | None = None
+    rate_limit_api_user: int | None = None
+    rate_limit_api_ip: int | None = None
+    rate_limit_api_global: int | None = None
+    rate_limit_api_tasks_user: int | None = None
+    rate_limit_api_tasks_ip: int | None = None
 
 
 class OrgTariffBody(BaseModel):
@@ -297,6 +317,7 @@ def get_settings_ep(db: Session = Depends(get_session), ctx: AuthContext = Depen
         "smtp_tls": s.smtp_tls,
         "asr_model": s.asr_model,
         "diarization_model": s.diarization_model,
+        **rate_limits_public(s),
     }
 
 
@@ -317,6 +338,7 @@ def patch_settings(
             s.smtp_password_encrypted = encrypt_str(password)
     for key, value in data.items():
         setattr(s, key, value)
+    invalidate_rate_limit_cache()
     return get_settings_ep(db, ctx)
 
 

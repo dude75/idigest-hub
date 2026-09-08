@@ -144,6 +144,25 @@ export function InstancePage() {
         smtp_tls: settings.smtp_tls,
         asr_model: settings.asr_model,
         diarization_model: settings.diarization_model || '',
+        rate_limit_enabled: settings.rate_limit_enabled,
+        rate_limit_login_email: settings.rate_limit_login_email,
+        rate_limit_login_ip: settings.rate_limit_login_ip,
+        rate_limit_login_global: settings.rate_limit_login_global,
+        rate_limit_signup_email: settings.rate_limit_signup_email,
+        rate_limit_signup_ip: settings.rate_limit_signup_ip,
+        rate_limit_signup_global: settings.rate_limit_signup_global,
+        rate_limit_reset_email: settings.rate_limit_reset_email,
+        rate_limit_reset_ip: settings.rate_limit_reset_ip,
+        rate_limit_reset_global: settings.rate_limit_reset_global,
+        rate_limit_reset_confirm_ip: settings.rate_limit_reset_confirm_ip,
+        rate_limit_reset_confirm_global: settings.rate_limit_reset_confirm_global,
+        rate_limit_setup_ip: settings.rate_limit_setup_ip,
+        rate_limit_setup_global: settings.rate_limit_setup_global,
+        rate_limit_api_user: settings.rate_limit_api_user,
+        rate_limit_api_ip: settings.rate_limit_api_ip,
+        rate_limit_api_global: settings.rate_limit_api_global,
+        rate_limit_api_tasks_user: settings.rate_limit_api_tasks_user,
+        rate_limit_api_tasks_ip: settings.rate_limit_api_tasks_ip,
         ...(smtpPassword ? { smtp_password: smtpPassword } : {}),
       }),
     })
@@ -366,6 +385,51 @@ export function InstancePage() {
             <input type="checkbox" checked={settings.smtp_tls} onChange={(e) => setSettings({ ...settings, smtp_tls: e.target.checked })} />
             {t('instance.smtpTls')}
           </label>
+
+          <details className="fold">
+            <summary>{t('instance.rateLimitTitle')}</summary>
+            <div className="stack">
+              <p className="muted">{t('instance.rateLimitHint')}</p>
+              <label className="row">
+                <input type="checkbox" checked={settings.rate_limit_enabled} onChange={(e) => setSettings({ ...settings, rate_limit_enabled: e.target.checked })} />
+                {t('instance.rateLimitEnabled')}
+              </label>
+              <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+                <legend>{t('instance.rateLimitLogin')}</legend>
+                <label>{t('instance.rateLimitPerEmailMin')}<input type="number" min={0} value={settings.rate_limit_login_email} onChange={(e) => setSettings({ ...settings, rate_limit_login_email: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitPerIpMin')}<input type="number" min={0} value={settings.rate_limit_login_ip} onChange={(e) => setSettings({ ...settings, rate_limit_login_ip: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitGlobalMin')}<input type="number" min={0} value={settings.rate_limit_login_global} onChange={(e) => setSettings({ ...settings, rate_limit_login_global: Number(e.target.value) })} /></label>
+              </fieldset>
+              <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+                <legend>{t('instance.rateLimitSignup')}</legend>
+                <label>{t('instance.rateLimitPerEmailMin')}<input type="number" min={0} value={settings.rate_limit_signup_email} onChange={(e) => setSettings({ ...settings, rate_limit_signup_email: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitPerIpMin')}<input type="number" min={0} value={settings.rate_limit_signup_ip} onChange={(e) => setSettings({ ...settings, rate_limit_signup_ip: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitGlobalMin')}<input type="number" min={0} value={settings.rate_limit_signup_global} onChange={(e) => setSettings({ ...settings, rate_limit_signup_global: Number(e.target.value) })} /></label>
+              </fieldset>
+              <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+                <legend>{t('instance.rateLimitReset')}</legend>
+                <label>{t('instance.rateLimitPerEmailHour')}<input type="number" min={0} value={settings.rate_limit_reset_email} onChange={(e) => setSettings({ ...settings, rate_limit_reset_email: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitPerIpHour')}<input type="number" min={0} value={settings.rate_limit_reset_ip} onChange={(e) => setSettings({ ...settings, rate_limit_reset_ip: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitGlobalHour')}<input type="number" min={0} value={settings.rate_limit_reset_global} onChange={(e) => setSettings({ ...settings, rate_limit_reset_global: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitConfirmPerIpHour')}<input type="number" min={0} value={settings.rate_limit_reset_confirm_ip} onChange={(e) => setSettings({ ...settings, rate_limit_reset_confirm_ip: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitConfirmGlobalHour')}<input type="number" min={0} value={settings.rate_limit_reset_confirm_global} onChange={(e) => setSettings({ ...settings, rate_limit_reset_confirm_global: Number(e.target.value) })} /></label>
+              </fieldset>
+              <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+                <legend>{t('instance.rateLimitSetup')}</legend>
+                <label>{t('instance.rateLimitPerIpHour')}<input type="number" min={0} value={settings.rate_limit_setup_ip} onChange={(e) => setSettings({ ...settings, rate_limit_setup_ip: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitGlobalHour')}<input type="number" min={0} value={settings.rate_limit_setup_global} onChange={(e) => setSettings({ ...settings, rate_limit_setup_global: Number(e.target.value) })} /></label>
+              </fieldset>
+              <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+                <legend>{t('instance.rateLimitApi')}</legend>
+                <label>{t('instance.rateLimitPerUserMin')}<input type="number" min={0} value={settings.rate_limit_api_user} onChange={(e) => setSettings({ ...settings, rate_limit_api_user: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitPerIpMin')}<input type="number" min={0} value={settings.rate_limit_api_ip} onChange={(e) => setSettings({ ...settings, rate_limit_api_ip: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitGlobalMin')}<input type="number" min={0} value={settings.rate_limit_api_global} onChange={(e) => setSettings({ ...settings, rate_limit_api_global: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitTasksPerUserMin')}<input type="number" min={0} value={settings.rate_limit_api_tasks_user} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_user: Number(e.target.value) })} /></label>
+                <label>{t('instance.rateLimitTasksPerIpMin')}<input type="number" min={0} value={settings.rate_limit_api_tasks_ip} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_ip: Number(e.target.value) })} /></label>
+              </fieldset>
+            </div>
+          </details>
+
           <button className="primary" type="button" onClick={() => void saveSettings()}>{t('common.save')}</button>
         </div>
       )}

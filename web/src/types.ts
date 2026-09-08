@@ -163,6 +163,25 @@ export type InstanceSettings = {
   smtp_tls: boolean
   asr_model: string
   diarization_model: string | null
+  rate_limit_enabled: boolean
+  rate_limit_login_email: number
+  rate_limit_login_ip: number
+  rate_limit_login_global: number
+  rate_limit_signup_email: number
+  rate_limit_signup_ip: number
+  rate_limit_signup_global: number
+  rate_limit_reset_email: number
+  rate_limit_reset_ip: number
+  rate_limit_reset_global: number
+  rate_limit_reset_confirm_ip: number
+  rate_limit_reset_confirm_global: number
+  rate_limit_setup_ip: number
+  rate_limit_setup_global: number
+  rate_limit_api_user: number
+  rate_limit_api_ip: number
+  rate_limit_api_global: number
+  rate_limit_api_tasks_user: number
+  rate_limit_api_tasks_ip: number
 }
 
 export type JobStats = {

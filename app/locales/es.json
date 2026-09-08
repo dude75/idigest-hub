@@ -27,5 +27,6 @@
   "conflict": "Conflicto.",
   "pipeline_error": "El worker no pudo procesar la tarea.",
   "engine_unavailable": "El motor ASR o de diarización no está disponible.",
+  "rate_limited": "Demasiadas solicitudes. Inténtelo más tarde.",
   "ok": "ok"
 }

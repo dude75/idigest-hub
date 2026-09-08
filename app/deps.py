@@ -136,6 +136,9 @@ def resolve_auth(request: Request, db: Session = Depends(get_session)) -> AuthCo
 
             if not org_api_enabled(org):
                 abort(locale, ErrorCode.api_disabled)
+            from app.rate_limit import enforce_bearer_api, get_rate_limits
+
+            enforce_bearer_api(request, user.id, get_rate_limits(db), locale)
             return AuthContext(
                 user=user,
                 actor=user,

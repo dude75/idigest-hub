@@ -40,6 +40,7 @@ class ErrorCode(str, Enum):
     engine_unavailable = "engine_unavailable"
     invalid_file_worker = "invalid_file"
     worker_error = "pipeline_error"
+    rate_limited = "rate_limited"
 
 
 HTTP_STATUS: dict[ErrorCode, int] = {
@@ -65,6 +66,7 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.text_too_long: 413,
     ErrorCode.bootstrap_invalid: 401,
     ErrorCode.conflict: 409,
+    ErrorCode.rate_limited: 429,
 }
 
 
@@ -76,9 +78,16 @@ def error_payload(code: ErrorCode, message: str | None = None) -> dict[str, Any]
 
 
 class ApiError(HTTPException):
-    def __init__(self, code: ErrorCode, message: str | None = None, status_code: int | None = None) -> None:
+    def __init__(
+        self,
+        code: ErrorCode,
+        message: str | None = None,
+        status_code: int | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         super().__init__(
             status_code=status_code or HTTP_STATUS.get(code, 400),
             detail=error_payload(code, message),
+            headers=headers,
         )
         self.code = code

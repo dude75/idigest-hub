@@ -47,6 +47,15 @@ from app.security import (
 )
 from app.services.audit import write_audit
 from app.services.mail import send_mail, smtp_configured
+from app.rate_limit import (
+    client_ip,
+    enforce_login,
+    enforce_reset_confirm,
+    enforce_reset_request,
+    enforce_setup,
+    enforce_signup,
+    get_rate_limits,
+)
 from app.timeutil import as_utc, utcnow
 
 router = APIRouter()
@@ -182,8 +191,10 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
 
 
 @router.post("/setup")
-def setup(body: SetupBody, response: Response, db: Session = Depends(get_session)) -> dict:
+def setup(body: SetupBody, request: Request, response: Response, db: Session = Depends(get_session)) -> dict:
     locale = _locale(body.locale)
+    limits = get_rate_limits(db)
+    enforce_setup(client_ip(request), limits, locale)
     settings = get_instance_settings(db)
     if settings.bootstrap_done:
         abort(locale, ErrorCode.setup_already_done)
@@ -232,6 +243,9 @@ def signup(body: SignupBody, request: Request, response: Response, db: Session =
     )
     if signup_tariffs_exist is None:
         abort(locale, ErrorCode.signup_disabled)
+    email = _norm_email(body.email)
+    limits = get_rate_limits(db)
+    enforce_signup(email, client_ip(request), limits, locale)
     tariff = db.get(Tariff, body.tariff_id)
     if (
         tariff is None
@@ -239,7 +253,6 @@ def signup(body: SignupBody, request: Request, response: Response, db: Session =
         or not tariff.available_on_signup
     ):
         abort(locale, ErrorCode.tariff_not_available)
-    email = _norm_email(body.email)
     if db.scalar(select(User).where(User.email == email)):
         abort(locale, ErrorCode.email_taken)
     now = utcnow()
@@ -298,6 +311,8 @@ def setup_status(db: Session = Depends(get_session)) -> dict:
 def login(body: LoginBody, request: Request, response: Response, db: Session = Depends(get_session)) -> dict:
     locale = locale_from_request(request)
     email = _norm_email(body.email)
+    limits = get_rate_limits(db)
+    enforce_login(email, client_ip(request), limits, locale)
     user = db.scalar(select(User).where(User.email == email))
     if user is None or user.disabled_at is not None or not user.password_hash:
         abort(locale, ErrorCode.invalid_credentials)
@@ -355,6 +370,8 @@ def reset_request(body: ResetRequestBody, request: Request, db: Session = Depend
     if not smtp_configured(settings):
         abort(locale, ErrorCode.recovery_disabled)
     email = _norm_email(body.email)
+    limits = get_rate_limits(db)
+    enforce_reset_request(email, client_ip(request), limits, locale)
     user = db.scalar(select(User).where(User.email == email))
     if user is not None and user.disabled_at is None:
         raw = new_reset_token()
@@ -382,6 +399,8 @@ def reset_request(body: ResetRequestBody, request: Request, db: Session = Depend
 @router.post("/auth/password/reset/confirm")
 def reset_confirm(body: ResetConfirmBody, request: Request, db: Session = Depends(get_session)) -> dict:
     locale = locale_from_request(request)
+    limits = get_rate_limits(db)
+    enforce_reset_confirm(client_ip(request), limits, locale)
     row = db.scalar(
         select(PasswordResetToken).where(
             PasswordResetToken.token_hash == hash_secret(body.token),
