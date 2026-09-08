@@ -5,6 +5,7 @@ import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
+import { libraryPath } from '../routes'
 import type { Summary } from '../types'
 import { ErrorBox, ShareBadges, fmtDate } from '../util'
 
@@ -56,14 +57,14 @@ export function SummaryPage() {
   async function remove() {
     if (!id) return
     await api(`/summaries/${id}`, { method: 'DELETE' })
-    nav('/app')
+    nav(libraryPath('summaries'))
   }
 
   if (!item && !err) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
-      <Link to="/app">{t('common.back')}</Link>
+      <Link to={libraryPath('summaries')}>{t('common.back')}</Link>
       <h1>{t('summary.title')}</h1>
       <ErrorBox err={err} />
       {item && (

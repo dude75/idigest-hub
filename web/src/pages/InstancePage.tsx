@@ -3,6 +3,7 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, useAuth } from '../auth'
+import { LIBRARY_DEFAULT } from '../routes'
 import type { InstanceSettings, InstanceStats, Org, Skill, Tariff, Worker } from '../types'
 import { ErrorBox, formatAudioTime, fmtDate, WalletLabel } from '../util'
 
@@ -104,7 +105,7 @@ export function InstancePage() {
     void load()
   }, [tab, allowed])
 
-  if (!allowed) return <Navigate to="/app" replace />
+  if (!allowed) return <Navigate to={LIBRARY_DEFAULT} replace />
 
   async function saveWorker() {
     const body = { ...wform, weight: Number(wform.weight) }

@@ -50,7 +50,9 @@ export default function App() {
           </Gate>
         }
       >
-        <Route index element={<LibraryPage />} />
+        <Route index element={<Navigate to="library/audio" replace />} />
+        <Route path="library" element={<Navigate to="library/audio" replace />} />
+        <Route path="library/:tab" element={<LibraryPage />} />
         <Route path="audio/:id" element={<AudioPage />} />
         <Route path="transcript/:id" element={<TranscriptPage />} />
         <Route path="summary/:id" element={<SummaryPage />} />

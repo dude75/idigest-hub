@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { LIBRARY_DEFAULT } from '../routes'
 import type { Tariff } from '../types'
 import { ErrorBox } from '../util'
 
@@ -31,7 +32,7 @@ export function SignupPage() {
   }, [wanted])
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
-  if (ready && me) return <Navigate to="/app" replace />
+  if (ready && me) return <Navigate to={LIBRARY_DEFAULT} replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -43,7 +44,7 @@ export function SignupPage() {
         body: JSON.stringify({ email, password, tariff_id: tariffId, locale: i18n.language }),
       })
       await refresh()
-      nav('/app', { replace: true })
+      nav(LIBRARY_DEFAULT, { replace: true })
     } catch (e) {
       setErr(e)
     } finally {

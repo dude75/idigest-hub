@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { ShareDialog } from '../components/ShareDialog'
+import { LIBRARY_DEFAULT } from '../routes'
 import type { Audio, Task } from '../types'
 import { ErrorBox, ShareBadges, fmtDate } from '../util'
 
@@ -56,14 +57,14 @@ export function AudioPage() {
     if (!id) return
     await api(`/audios/${id}`, { method: 'DELETE' })
     await refresh()
-    nav('/app')
+    nav(LIBRARY_DEFAULT)
   }
 
   if (!item && !err) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
-      <Link to="/app">{t('common.back')}</Link>
+      <Link to={LIBRARY_DEFAULT}>{t('common.back')}</Link>
       <h1>{item?.filename || t('audio.title')}</h1>
       <ErrorBox err={err} />
       {item && (

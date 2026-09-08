@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiUpload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
+import { isLibraryTab, libraryPath, type LibraryTab } from '../routes'
 import type { Audio, Summary, Transcript } from '../types'
 import { ErrorBox, ShareBadges, fmtDate } from '../util'
-
-type Tab = 'audio' | 'transcripts' | 'summaries'
 
 type SourceGroup<T> = {
   key: string
@@ -42,7 +41,9 @@ function groupBySource<T extends { created_at: string }>(
 export function LibraryPage() {
   const { t } = useTranslation()
   const { me } = useAuth()
-  const [tab, setTab] = useState<Tab>('audio')
+  const { tab: tabParam } = useParams<{ tab: string }>()
+  const nav = useNavigate()
+  const tab: LibraryTab = isLibraryTab(tabParam) ? tabParam : 'audio'
   const [hidden, setHidden] = useState(false)
   const [audios, setAudios] = useState<Audio[]>([])
   const [transcripts, setTranscripts] = useState<Transcript[]>([])
@@ -53,7 +54,7 @@ export function LibraryPage() {
   const admin = isOrgAdmin(me)
   const hasOrg = Boolean(me?.org)
 
-  async function load(activeTab: Tab = tab) {
+  async function load(activeTab: LibraryTab = tab) {
     setErr(null)
     try {
       const q = hidden ? '?include_hidden=true' : ''
@@ -78,6 +79,9 @@ export function LibraryPage() {
   }, [tab, hidden, hasOrg])
 
   if (!hasOrg) return <Navigate to={me?.user.is_instance_admin ? '/app/instance' : '/app/profile'} replace />
+  if (tabParam && !isLibraryTab(tabParam)) {
+    return <Navigate to={libraryPath('audio')} replace />
+  }
 
   async function upload(file: File) {
     setBusy(true)
@@ -89,7 +93,7 @@ export function LibraryPage() {
       const item = await apiUpload<Audio>('/audios', body, (loaded, total) => {
         setUploadProgress({ name: file.name, percent: total ? Math.round((loaded / total) * 100) : 0 })
       })
-      setTab('audio')
+      nav(libraryPath('audio'))
       setAudios((prev) => [item, ...prev.filter((a) => a.id !== item.id)])
       await load('audio')
     } catch (e) {
@@ -129,10 +133,10 @@ export function LibraryPage() {
         </div>
       )}
       <div className="tabs">
-        {(['audio', 'transcripts', 'summaries'] as Tab[]).map((id) => (
-          <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+        {(['audio', 'transcripts', 'summaries'] as LibraryTab[]).map((id) => (
+          <NavLink key={id} to={libraryPath(id)} className={({ isActive }) => (isActive ? 'active' : '')}>
             {t(`library.${id}`)}
-          </button>
+          </NavLink>
         ))}
       </div>
       {tab !== 'summaries' && !admin && (

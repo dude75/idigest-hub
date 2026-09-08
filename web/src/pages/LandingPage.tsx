@@ -5,6 +5,7 @@ import { api } from '../api'
 import { isInstanceAdmin, useAuth } from '../auth'
 import { AppBrand } from '../components/AppBrand'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { LIBRARY_DEFAULT } from '../routes'
 import type { Tariff } from '../types'
 import { formatBytes } from '../util'
 
@@ -23,7 +24,7 @@ export function LandingPage() {
   if (!bootstrapDone) return <Navigate to="/setup" replace />
   if (me?.must_change_password) return <Navigate to="/change-password" replace />
   if (me && !me.org && isInstanceAdmin(me)) return <Navigate to="/app/instance" replace />
-  if (me) return <Navigate to="/app" replace />
+  if (me) return <Navigate to={LIBRARY_DEFAULT} replace />
 
   return (
     <div className="landing">

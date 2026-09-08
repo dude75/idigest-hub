@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { LIBRARY_DEFAULT } from '../routes'
 import { ErrorBox } from '../util'
 
 export function ChangePasswordPage() {
@@ -31,7 +32,7 @@ export function ChangePasswordPage() {
         }),
       })
       await refresh()
-      nav('/app', { replace: true })
+      nav(LIBRARY_DEFAULT, { replace: true })
     } catch (e) {
       setErr(e)
     } finally {

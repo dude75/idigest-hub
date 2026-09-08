@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { ShareDialog } from '../components/ShareDialog'
+import { libraryPath } from '../routes'
 import type { Skill, Task, Transcript } from '../types'
 import { ErrorBox, ShareBadges, fmtDate } from '../util'
 
@@ -68,14 +69,14 @@ export function TranscriptPage() {
   async function wipe() {
     if (!id) return
     await api(`/transcripts/${id}`, { method: 'DELETE' })
-    nav('/app')
+    nav(libraryPath('transcripts'))
   }
 
   if (!item && !err) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
-      <Link to="/app">{t('common.back')}</Link>
+      <Link to={libraryPath('transcripts')}>{t('common.back')}</Link>
       <h1>{t('transcript.title')}</h1>
       <ErrorBox err={err} />
       {item && (

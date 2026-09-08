@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { LIBRARY_DEFAULT } from '../routes'
 import { useAppVersion } from '../useAppVersion'
 
 type Props = {
@@ -18,7 +19,7 @@ export function AppBrand({ link = false }: Props) {
 
   if (link) {
     return (
-      <NavLink to="/app" className="brand">
+      <NavLink to={LIBRARY_DEFAULT} className="brand">
         {content}
       </NavLink>
     )

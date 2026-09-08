@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
+import { LIBRARY_DEFAULT } from '../routes'
 import type { OrgStats, User } from '../types'
 import { ErrorBox, formatAudioTime } from '../util'
 
@@ -46,7 +47,7 @@ export function StatsPage() {
   }, [hasOrg, admin, query])
 
   if (!hasOrg) return <Navigate to="/app/profile" replace />
-  if (!admin) return <Navigate to="/app" replace />
+  if (!admin) return <Navigate to={LIBRARY_DEFAULT} replace />
 
   function preset(days: number | 'month' | 'all') {
     if (days === 'all') {

@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
+import { LIBRARY_DEFAULT } from '../routes'
 import type { Org, Tariff, User } from '../types'
 import { ErrorBox, WalletLabel } from '../util'
 
@@ -197,7 +198,7 @@ export function OrgPage() {
                         void api('/impersonate', {
                           method: 'POST',
                           body: JSON.stringify({ user_id: u.id }),
-                        }).then(() => refresh()).then(() => nav('/app'))
+                        }).then(() => refresh()).then(() => nav(LIBRARY_DEFAULT))
                       }
                     >
                       {t('org.impersonate')}

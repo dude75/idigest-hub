@@ -165,8 +165,8 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 }
 
 .tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--line); margin-bottom: 0.85rem; }
-.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; }
-.tabs button.active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
+.tabs button, .tabs a { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; text-decoration: none; color: inherit; padding: 0.35rem 0.6rem; }
+.tabs button.active, .tabs a.active { border-bottom-color: var(--accent); color: var(--accent); font-weight: 600; }
 
 .badge {
   display: inline-block;

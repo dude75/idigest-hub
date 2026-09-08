@@ -32,7 +32,7 @@ export function Shell() {
       <header className="topbar">
         <AppBrand link />
         <nav className="nav">
-          {member && <NavLink to="/app" end>{t('nav.library')}</NavLink>}
+          {member && <NavLink to="/app/library" end={false}>{t('nav.library')}</NavLink>}
           {member && <NavLink to="/app/skills">{t('nav.skills')}</NavLink>}
           {member && <NavLink to="/app/org">{t('nav.org')}</NavLink>}
           {orgAdmin && <NavLink to="/app/stats">{t('nav.stats')}</NavLink>}
