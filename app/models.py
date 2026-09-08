@@ -273,8 +273,12 @@ class Task(Base):
     skill_ids_json: Mapped[list[Any] | None] = mapped_column(JSON)
     worker_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("worker_nodes.id"))
     worker_task_id: Mapped[str | None] = mapped_column(String(64))
-    produced_transcript_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("transcripts.id"))
-    produced_summary_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("summaries.id"))
+    produced_transcript_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("transcripts.id", ondelete="SET NULL")
+    )
+    produced_summary_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("summaries.id", ondelete="SET NULL")
+    )
     error_code: Mapped[str | None] = mapped_column(String(64))
     snap_unlimited: Mapped[bool] = mapped_column(Boolean, nullable=False)
     snap_price_per_audio_sec: Mapped[Decimal] = mapped_column(Numeric(12, 6), nullable=False)

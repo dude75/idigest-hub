@@ -1,12 +1,14 @@
 import json
 
 from tests.conftest import (
+    add_worker,
     default_tariff_id,
     err_code,
     login_ready,
     logout,
     me,
     open_db,
+    seed_node_health,
     setup_admin,
     signup,
     upload_audio,
@@ -140,6 +142,52 @@ def test_delete_transcript_does_not_cascade_summaries(client):
     assert listed.status_code == 200
     match = next(item for item in listed.json()["items"] if item["id"] == summary_id)
     assert match["edited"] is True
+
+
+def test_delete_artifacts_after_task_produced_refs(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client)
+    seed_node_health(worker["id"])
+    summarize_worker = add_worker(
+        client, type="summarize", name="llm", base_url="http://summarize.test"
+    )
+    seed_node_health(summarize_worker["id"], ready_http=200)
+    skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "Sum it up"})
+    assert skill.status_code == 200, skill.text
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "wipe@example.com", "wipepass1", tariff_id).status_code == 200
+
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    audio_id = audio.json()["id"]
+    fake_workers.transcribe_mode = "success"
+    transcribed = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio_id})
+    assert transcribed.status_code == 202, transcribed.text
+    assert transcribed.json()["status"] == "success"
+    transcript_id = transcribed.json()["transcript_id"]
+    assert transcript_id
+
+    fake_workers.summarize_mode = "success"
+    summarized = client.post(
+        "/api/v1/tasks/summarize",
+        json={"transcript_id": transcript_id, "skill_ids": [skill.json()["id"]]},
+    )
+    assert summarized.status_code == 202, summarized.text
+    assert summarized.json()["status"] == "success"
+    summary_id = summarized.json()["summary_id"]
+    assert summary_id
+
+    wiped_audio = client.delete(f"/api/v1/audios/{audio_id}")
+    assert wiped_audio.status_code == 200, wiped_audio.text
+
+    deleted_transcript = client.delete(f"/api/v1/transcripts/{transcript_id}")
+    assert deleted_transcript.status_code == 200, deleted_transcript.text
+    assert client.get(f"/api/v1/transcripts/{transcript_id}").status_code == 404
+
+    deleted_summary = client.delete(f"/api/v1/summaries/{summary_id}")
+    assert deleted_summary.status_code == 200, deleted_summary.text
+    assert client.get(f"/api/v1/summaries/{summary_id}").status_code == 404
 
 
 def test_shares_incoming_and_recipient_decline(client):

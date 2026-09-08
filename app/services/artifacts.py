@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.models import Audio, HiddenItem, Share, Summary, Task, Transcript
@@ -23,6 +23,21 @@ def cancel_queued_for_source(db: Session, *, audio_id: str | None = None, transc
         elif task.status in {"queued", "running"}:
             task.skip_persist = True
             task.skip_reason = "source_deleted"
+
+
+def _clear_task_produced_refs(
+    db: Session, *, transcript_id: str | None = None, summary_id: str | None = None
+) -> None:
+    if transcript_id:
+        db.execute(
+            update(Task)
+            .where(Task.produced_transcript_id == transcript_id)
+            .values(produced_transcript_id=None)
+        )
+    if summary_id:
+        db.execute(
+            update(Task).where(Task.produced_summary_id == summary_id).values(produced_summary_id=None)
+        )
 
 
 def wipe_object_shares(db: Session, object_type: str, object_id: str) -> None:
@@ -53,9 +68,11 @@ def hard_delete_audio(db: Session, audio: Audio) -> None:
 def hard_delete_transcript(db: Session, transcript: Transcript) -> None:
     cancel_queued_for_source(db, transcript_id=transcript.id)
     wipe_object_shares(db, "transcript", transcript.id)
+    _clear_task_produced_refs(db, transcript_id=transcript.id)
     db.delete(transcript)
 
 
 def hard_delete_summary(db: Session, summary: Summary) -> None:
     wipe_object_shares(db, "summary", summary.id)
+    _clear_task_produced_refs(db, summary_id=summary.id)
     db.delete(summary)
