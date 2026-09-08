@@ -14,6 +14,8 @@ export function ProfilePage() {
   const [tokens, setTokens] = useState<ApiToken[]>([])
   const [tokenName, setTokenName] = useState('')
   const [secret, setSecret] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [creating, setCreating] = useState(false)
   const [err, setErr] = useState<unknown>(null)
   const [ok, setOk] = useState(false)
   const [routeOk, setRouteOk] = useState(false)
@@ -22,6 +24,9 @@ export function ProfilePage() {
     const allowed = allowedDefaultRoutes(me)
     return stored && allowed.includes(stored) ? stored : allowed[0]
   })
+
+  const apiAllowed = !me?.org || Boolean(me.org.tariff.api_enabled)
+  const activeTokens = tokens.filter((tok) => !tok.revoked)
 
   async function load() {
     const r = await api<{ items: ApiToken[] }>('/auth/tokens')
@@ -70,99 +75,187 @@ export function ProfilePage() {
   }
 
   async function createToken() {
+    const name = tokenName.trim()
+    if (!name || !apiAllowed) return
     setErr(null)
+    setCopied(false)
+    setCreating(true)
     try {
-      const row = await api<ApiToken>('/auth/tokens', { method: 'POST', body: JSON.stringify({ name: tokenName }) })
+      const row = await api<ApiToken>('/auth/tokens', { method: 'POST', body: JSON.stringify({ name }) })
       setSecret(row.token || null)
       setTokenName('')
+      await load()
+    } catch (e) {
+      setErr(e)
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  async function copySecret() {
+    if (!secret) return
+    try {
+      await navigator.clipboard.writeText(secret)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  async function revoke(id: string) {
+    setErr(null)
+    try {
+      await api(`/auth/tokens/${id}`, { method: 'DELETE' })
       await load()
     } catch (e) {
       setErr(e)
     }
   }
 
-  async function revoke(id: string) {
-    await api(`/auth/tokens/${id}`, { method: 'DELETE' })
-    await load()
-  }
-
   return (
-    <div>
-      <h1>{t('profile.title')}</h1>
-      <p className="muted">{me?.user.email}</p>
-      <div className="card stack">
-        <h2>{t('profile.defaultRoute')}</h2>
-        <label>
-          {t('profile.defaultRouteHint')}
-          <select
-            value={defaultRoute}
-            onChange={(e) => {
-              setRouteOk(false)
-              setDefaultRouteLocal(e.target.value as DefaultRoute)
-            }}
-          >
-            {allowedDefaultRoutes(me).map((route) => (
-              <option key={route} value={route}>
-                {defaultRouteLabel(route, t)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button className="primary" type="button" onClick={() => void saveDefaultRoute()}>
-          {t('common.save')}
-        </button>
-        {routeOk && <p className="ok">{t('common.save')}</p>}
-      </div>
-      <ErrorBox err={err} />
-      <form className="card stack" onSubmit={(e) => void changePw(e)}>
-        <h2>{t('auth.changePassword')}</h2>
-        <label>
-          {t('auth.currentPassword')}
-          <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} />
-        </label>
-        <label>
-          {t('auth.newPassword')}
-          <input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} />
-        </label>
-        <button className="primary" type="submit">{t('common.save')}</button>
-        {ok && <p className="ok">{t('common.save')}</p>}
-      </form>
-      <h2>{t('profile.tokens')}</h2>
-      {!me?.org?.tariff.api_enabled && me?.org && <p className="muted">{t('profile.apiDisabled')}</p>}
-      {secret && (
-        <div className="card">
-          <p>{t('profile.secretOnce')}</p>
-          <div className="secret">{secret}</div>
+    <div className="profile-page">
+      <header className="profile-head">
+        <div>
+          <h1>{t('profile.title')}</h1>
+          <p className="muted profile-email">{me?.user.email}</p>
         </div>
-      )}
-      <div className="row" style={{ margin: '8px 0' }}>
-        <input placeholder={t('common.name')} value={tokenName} onChange={(e) => setTokenName(e.target.value)} />
-        <button className="primary" type="button" disabled={Boolean(me?.org) && !me?.org?.tariff.api_enabled} onClick={() => void createToken()}>{t('profile.newToken')}</button>
+      </header>
+
+      <ErrorBox err={err} />
+
+      <div className="profile-grid">
+        <section className="card stack profile-section">
+          <div className="profile-section-head">
+            <h2>{t('profile.defaultRoute')}</h2>
+            <p className="muted profile-section-lead">{t('profile.defaultRouteHint')}</p>
+          </div>
+          <label>
+            {t('profile.defaultRoute')}
+            <select
+              value={defaultRoute}
+              onChange={(e) => {
+                setRouteOk(false)
+                setDefaultRouteLocal(e.target.value as DefaultRoute)
+              }}
+            >
+              {allowedDefaultRoutes(me).map((route) => (
+                <option key={route} value={route}>
+                  {defaultRouteLabel(route, t)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="profile-actions">
+            <button className="primary" type="button" onClick={() => void saveDefaultRoute()}>
+              {t('common.save')}
+            </button>
+            {routeOk && <p className="ok">{t('profile.saved')}</p>}
+          </div>
+        </section>
+
+        <form className="card stack profile-section" onSubmit={(e) => void changePw(e)}>
+          <div className="profile-section-head">
+            <h2>{t('auth.changePassword')}</h2>
+          </div>
+          <label>
+            {t('auth.currentPassword')}
+            <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
+          </label>
+          <label>
+            {t('auth.newPassword')}
+            <input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
+          </label>
+          <div className="profile-actions">
+            <button className="primary" type="submit">{t('common.save')}</button>
+            {ok && <p className="ok">{t('profile.saved')}</p>}
+          </div>
+        </form>
+
+        <section className="card stack profile-section profile-tokens">
+          <div className="profile-section-head">
+            <h2>{t('profile.tokens')}</h2>
+            <p className="muted profile-section-lead">{t('profile.tokensLead')}</p>
+          </div>
+
+          {!apiAllowed && (
+            <div className="profile-alert" role="status">
+              {t('profile.apiDisabled')}
+            </div>
+          )}
+
+          {secret && (
+            <div className="profile-secret-card">
+              <p className="profile-secret-title">{t('profile.secretOnce')}</p>
+              <div className="profile-secret-row">
+                <code className="secret profile-secret-value">{secret}</code>
+                <button type="button" onClick={() => void copySecret()}>
+                  {copied ? t('profile.copied') : t('profile.copy')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="profile-token-create">
+            <label className="grow">
+              {t('profile.tokenName')}
+              <input
+                placeholder={t('profile.tokenNamePlaceholder')}
+                value={tokenName}
+                onChange={(e) => setTokenName(e.target.value)}
+                disabled={!apiAllowed || creating}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    void createToken()
+                  }
+                }}
+              />
+            </label>
+            <button
+              className="primary profile-create-btn"
+              type="button"
+              disabled={!apiAllowed || creating || !tokenName.trim()}
+              onClick={() => void createToken()}
+            >
+              {creating ? t('common.loading') : t('profile.newToken')}
+            </button>
+          </div>
+
+          {tokens.length === 0 ? (
+            <p className="muted profile-empty">{t('profile.noTokens')}</p>
+          ) : (
+            <ul className="profile-token-list">
+              {tokens.map((tok) => (
+                <li key={tok.id} className={`profile-token-item${tok.revoked ? ' is-revoked' : ''}`}>
+                  <div className="profile-token-main">
+                    <div className="profile-token-name">{tok.name}</div>
+                    <div className="profile-token-meta">
+                      <span className="profile-token-prefix">{tok.prefix}</span>
+                      <span className="profile-token-date">{fmtDate(tok.created_at)}</span>
+                    </div>
+                    <div className="profile-token-badges">
+                      {tok.revoked && <span className="badge">{t('profile.revoked')}</span>}
+                      {tok.blocked_by_tariff && <span className="badge warn">{t('profile.blockedTariff')}</span>}
+                    </div>
+                  </div>
+                  {!tok.revoked && (
+                    <button type="button" className="danger" onClick={() => void revoke(tok.id)}>
+                      {t('profile.revoke')}
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {activeTokens.length > 0 && (
+            <p className="muted profile-token-count">
+              {t('profile.tokenCount', { count: activeTokens.length })}
+            </p>
+          )}
+        </section>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>{t('common.name')}</th>
-            <th>prefix</th>
-            <th>{t('common.created')}</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {tokens.map((tok) => (
-            <tr key={tok.id}>
-              <td>{tok.name} {tok.revoked && <span className="badge">{t('profile.revoked')}</span>} {tok.blocked_by_tariff && <span className="badge warn">{t('profile.blockedTariff')}</span>}</td>
-              <td>{tok.prefix}</td>
-              <td>{fmtDate(tok.created_at)}</td>
-              <td>
-                {!tok.revoked && (
-                  <button type="button" className="danger" onClick={() => void revoke(tok.id)}>{t('profile.revoke')}</button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   )
 }
