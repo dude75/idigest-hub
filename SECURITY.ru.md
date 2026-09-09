@@ -147,7 +147,7 @@ Job `deploy:kubernetes` зарезервирован. После появлен�
 | Workers | Токены workers не отдаются пользователям |
 | Аудит действий | Таблица `audit_log` (setup, wallet, impersonation, …) |
 | Rate limiting | In-memory, один процесс Uvicorn (`--workers 1`) |
-| Файлы audio | На диске **не шифруются** в текущей версии |
+| Файлы audio | Local: **не** шифруются приложением. S3: **SSE** на object storage (`STORAGE_BACKEND=s3`) |
 
 ---
 
@@ -156,7 +156,7 @@ Job `deploy:kubernetes` зарезервирован. После появлен�
 | Данные | Расположение | Backup |
 | ------ | ------------ | ------ |
 | SQLite / PostgreSQL | `./data` на хосте | Копия каталога `./data` + **отдельно** `.env` |
-| Загрузки audio | `./data/uploads/` | Вместе с `./data` |
+| Загрузки audio | `./data/uploads/` (local) или S3 bucket (`STORAGE_BACKEND=s3`) | Local: с `./data`. S3: backup/replication bucket у провайдера |
 | Логи | `./data/logs/` | По политике заказчика |
 
 Смена `HUB_SECRET` без резервной копии делает зашифрованные строки в БД нечитаемыми. Смена `SESSION_SECRET` разлогинивает всех пользователей.

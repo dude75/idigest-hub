@@ -8,7 +8,7 @@
 - Конечные пользователи не должны получать credentials воркеров
 - Backup базы без `.env` не должен раскрывать worker tokens, transcripts или summaries
 
-Аудиофайлы на диске в текущей версии **не шифруются**.
+**Audio blobs:** при `STORAGE_BACKEND=local` файлы на диске **не шифруются** приложением. При `STORAGE_BACKEND=s3` — server-side encryption (SSE) на стороне object storage; hub не делает app-level encrypt/decrypt аудио.
 
 ## Секреты в `.env`
 

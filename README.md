@@ -113,7 +113,13 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `SESSION_SECRET`             | Pepper for session and API-token hashes. Changing it invalidates existing cookies and tokens.                                                                    |
 | `HOST`                       | Bind address (`127.0.0.1` locally; Docker uses `0.0.0.0`).                                                                                                       |
 | `PORT`                       | HTTP port (default `8080`).                                                                                                                                      |
-| `DATA_DIR`                   | Persistent root (default `./data`): logs, uploads at `{DATA_DIR}/uploads/{audio_id}/`. SQLite file lives under this tree when using the default URL. |
+| `DATA_DIR`                   | Persistent root (default `./data`): logs and (with `STORAGE_BACKEND=local`) uploads at `{DATA_DIR}/uploads/{audio_id}/`. SQLite file lives under this tree when using the default URL. |
+| `STORAGE_BACKEND`            | Audio blob backend: `local` (default) or `s3`. Workers are unchanged — the hub still streams files to transcribe workers. |
+| `S3_ENDPOINT`                | S3-compatible API URL (empty for AWS). Required when `STORAGE_BACKEND=s3` unless using default AWS endpoints. |
+| `S3_BUCKET`                  | Bucket name for audio objects. Required when `STORAGE_BACKEND=s3`. |
+| `S3_REGION`                  | Region (provider-specific; may be empty for some on-prem MinIO setups). |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Credentials for the object storage API. |
+| `S3_SSE`                     | Server-side encryption for new uploads (default `AES256`). Set empty to rely on bucket default encryption only. |
 | `DATABASE_URL`               | SQLAlchemy URL (default `sqlite:///./data/hub.db`). Use `postgresql+psycopg://user:pass@host:5432/db` for PostgreSQL. **Switching URL uses a different database with different data** — there is no automatic SQLite ↔ PostgreSQL migration. |
 | `SQLITE_PATH`                | Legacy fallback if `DATABASE_URL` is empty (default `./data/hub.db`). Prefer `DATABASE_URL`. |
 | `LOG_DIR`                    | Application log directory (default `./data/logs`).                                                                                                               |
@@ -123,9 +129,9 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `COOKIE_SECURE`              | Session cookie `Secure` flag. Default `false` (local HTTP). Set `true` behind HTTPS.                                                                             |
 | `TRUSTED_PROXIES`            | Comma-separated IPs/CIDRs of reverse proxies allowed to set `X-Forwarded-For` / `X-Real-IP` for per-IP rate limits. Empty = trust none (TCP peer only).        |
 
-Everything that must survive a restart lives under `./data` (SQLite `hub.db` or `./data/pg` for Compose PostgreSQL, logs, **and uploads** `{DATA_DIR}/uploads/{audio_id}/`). Mount that directory in Docker. The Compose container writes it as uid/gid **1001** (see [Docker Compose](#docker-compose)).
+Everything that must survive a restart lives under `./data` (SQLite `hub.db` or `./data/pg` for Compose PostgreSQL, and logs). With the default **`STORAGE_BACKEND=local`**, audio uploads also live under `{DATA_DIR}/uploads/{audio_id}/` — mount `./data` in Docker. With **`STORAGE_BACKEND=s3`**, audio is in object storage (SSE at rest); the hub pod needs DB + logs only, not a volume for uploads. The Compose container writes `./data` as uid/gid **1001** (see [Docker Compose](#docker-compose)).
 
-Worker `api_token`s, transcript JSON, summary bodies, and SMTP passwords in the hub database are Fernet-encrypted (AES-128-CBC + HMAC). The key is `SHA-256(HUB_SECRET)`, not the raw secret — same idea as `API_TOKEN` on the workers. The API still returns plaintext to authorized callers. Audio files on disk are **not** encrypted in this version. This only helps if the database leaks without `.env`.
+Worker `api_token`s, transcript JSON, summary bodies, and SMTP passwords in the hub database are Fernet-encrypted (AES-128-CBC + HMAC). The key is `SHA-256(HUB_SECRET)`, not the raw secret — same idea as `API_TOKEN` on the workers. The API still returns plaintext to authorized callers. **Audio blobs** use `STORAGE_BACKEND`: local files are plain on disk; with `s3`, rely on **server-side encryption** (SSE) on the bucket — the hub does not app-level encrypt audio. DB encryption only helps if the database leaks without `.env`.
 
 **Changing `HUB_SECRET` makes existing encrypted rows unreadable** (worker tokens, transcripts, summaries, SMTP password). There is no automatic re-encrypt. Set the secret once and keep a backup of `.env`. Same warning the workers give for rotating `API_TOKEN`.
 

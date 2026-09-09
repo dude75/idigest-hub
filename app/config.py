@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     PORT: int = 8080
 
     DATA_DIR: str = "./data"
+    # Audio blobs: local filesystem under DATA_DIR/uploads or S3-compatible object storage.
+    STORAGE_BACKEND: str = "local"
+    S3_ENDPOINT: str = ""
+    S3_BUCKET: str = ""
+    S3_REGION: str = ""
+    S3_ACCESS_KEY: str = ""
+    S3_SECRET_KEY: str = ""
+    # Server-side encryption for new objects (e.g. AES256). Empty = bucket default only.
+    S3_SSE: str = "AES256"
     DATABASE_URL: str = "sqlite:///./data/hub.db"
     SQLITE_PATH: str = "./data/hub.db"
     LOG_DIR: str = "./data/logs"
@@ -57,6 +66,14 @@ class Settings(BaseSettings):
         if value < 0:
             raise ValueError("DISPATCH_NO_CANDIDATE_SEC must be >= 0")
         return value
+
+    @field_validator("STORAGE_BACKEND")
+    @classmethod
+    def _storage_backend(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"local", "s3"}:
+            raise ValueError("STORAGE_BACKEND must be 'local' or 's3'")
+        return normalized
 
 
 @lru_cache

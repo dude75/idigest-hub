@@ -10,7 +10,7 @@
 | **HTTP API** | `app/main.py`, `app/routers/` | FastAPI на `/api/v1/*`; отдаёт SPA с того же origin |
 | **Dispatcher** | `app/services/dispatcher.py` | Фоновый цикл: health checks, dispatch, poll, биллинг при успехе |
 | **Database** | SQLite (по умолчанию) или PostgreSQL | Организации, пользователи, задачи, метаданные зашифрованных артефактов |
-| **File storage** | `{DATA_DIR}/uploads/{audio_id}/` | Исходные аудиофайлы (в текущей версии не шифруются at rest) |
+| **File storage** | `app/services/storage.py` | Audio: локальный диск (`STORAGE_BACKEND=local`) или S3-compatible object storage с SSE (`STORAGE_BACKEND=s3`) |
 | **Workers** | Внешние процессы | `itranscribe-worker`, `isummarize-worker` — регистрируются instance admin |
 
 ```mermaid
@@ -24,7 +24,7 @@ flowchart TB
     FastAPI[FastAPI + SPA static]
     Dispatch[dispatcher_loop]
     DB[(Database)]
-    FS[uploads/]
+    FS[local uploads или S3]
   end
 
   subgraph workers [Внешние воркеры]
@@ -81,8 +81,8 @@ Instance (одно развёртывание)
 
 ## Поток данных (высокий уровень)
 
-1. Пользователь загружает аудио → `POST /audios` → файл на диске + строка `Audio`
-2. Пользователь запускает transcribe → `POST /tasks/transcribe` → `Task` в очереди → dispatcher POST-ит файл на воркер
+1. Пользователь загружает аудио → `POST /audios` → storage backend сохраняет blob + строка `Audio`
+2. Пользователь запускает transcribe → `POST /tasks/transcribe` → `Task` в очереди → dispatcher материализует локальный путь (temp для S3) и POST-ит файл на воркер
 3. Воркер завершает работу → хаб шифрует utterances → строка `Transcript` → списание с кошелька → `DELETE` задачи на воркере
 4. Пользователь запускает summarize → `POST /tasks/summarize` с `skill_ids` → dispatcher отправляет текст + объединённые skills на summarize worker
 5. Успех → зашифрованное тело `Summary` → биллинг → задача на воркере удаляется

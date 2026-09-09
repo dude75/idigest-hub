@@ -96,16 +96,18 @@ Hub сам эти заголовки не выставляет — настра�
 
 ## Персистентность данных
 
-Всё под `{DATA_DIR}` (по умолчанию `./data`):
+Под `{DATA_DIR}` (по умолчанию `./data`):
 
 | Путь | Содержимое |
 | ---- | ---------- |
 | `hub.db` | SQLite database |
 | `pg/` | Файлы PostgreSQL (compose profile) |
 | `logs/` | Rotating `app.log` |
-| `uploads/{audio_id}/` | Загруженное audio |
+| `uploads/{audio_id}/` | Загруженное audio (**только local backend**) |
 
-**Стратегия резервного копирования:** остановите hub (опционально, но безопаснее), скопируйте весь `./data` и надёжно сохраните копию `.env`.
+При **`STORAGE_BACKEND=s3`** audio в настроенном bucket (server-side encryption). Hub скачивает во временный файл при отправке на transcribe-воркер — API воркера не меняется.
+
+**Стратегия резервного копирования:** остановите hub (опционально), скопируйте `./data` + содержимое bucket (если S3) и надёжно сохраните `.env`.
 
 ## Rate limiting
 
@@ -121,9 +123,9 @@ Auth-трафик: email + IP + global buckets. Bearer API: user + IP + global. 
 
 - Один цикл dispatcher
 - In-memory rate limiter
-- Загрузки на локальную файловую систему
+- Локальная ФС или S3-compatible object storage для audio (`STORAGE_BACKEND`)
 
-Горизонтальное масштабирование потребует общего хранилища, общего store для rate limit и одного лидера dispatcher — из коробки не поддерживается.
+Горизонтальное масштабирование потребует общего store для rate limit и одного лидера dispatcher — S3 убирает необходимость shared filesystem для uploads, но multi-replica hub из коробки не поддерживается.
 
 ## Исследование API
 

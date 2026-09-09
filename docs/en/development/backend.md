@@ -38,7 +38,8 @@ app/
     ├── stats.py
     ├── sso.py          # OIDC login, state, token exchange
     ├── backup.py       # Profile ZIP/TGZ archives
-    └── export.py       # Download filenames, markdown fence unwrap
+    ├── export.py       # Download filenames, markdown fence unwrap
+    └── storage.py      # Audio blobs: local filesystem or S3 (STORAGE_BACKEND)
 ```
 
 ## Request path

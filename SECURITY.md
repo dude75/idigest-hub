@@ -147,7 +147,7 @@ Full description: [docs/en/architecture/security.md](docs/en/architecture/securi
 | Workers | Worker tokens are not exposed to end users |
 | Action audit | `audit_log` table (setup, wallet, impersonation, …) |
 | Rate limiting | In-memory, single Uvicorn process (`--workers 1`) |
-| Audio files | **Not encrypted** on disk in the current version |
+| Audio files | Local disk: **not** app-encrypted. S3 backend: **SSE** on object storage (`STORAGE_BACKEND=s3`) |
 
 ---
 
@@ -156,7 +156,7 @@ Full description: [docs/en/architecture/security.md](docs/en/architecture/securi
 | Data | Location | Backup |
 | ---- | -------- | ------ |
 | SQLite / PostgreSQL | `./data` on host | Copy `./data` + **separately** `.env` |
-| Audio uploads | `./data/uploads/` | Together with `./data` |
+| Audio uploads | `./data/uploads/` (local) or S3 bucket (`STORAGE_BACKEND=s3`) | Local: with `./data`. S3: bucket backup/replication per provider |
 | Logs | `./data/logs/` | Per customer policy |
 
 Changing `HUB_SECRET` without a backup makes encrypted DB rows unreadable. Changing `SESSION_SECRET` logs out all users.

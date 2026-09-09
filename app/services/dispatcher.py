@@ -6,7 +6,6 @@ import asyncio
 import json
 import logging
 from decimal import Decimal
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
@@ -362,13 +361,16 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
                 if audio is None:
                     _fail(task, "source_deleted")
                     return
-                body = await post_transcribe(
-                    node,
-                    Path(audio.storage_path),
-                    audio.original_filename,
-                    task.snap_asr_model or "whisper",
-                    task.snap_diarization_model,
-                )
+                from app.services.storage import get_storage
+
+                async with get_storage().local_path_for_worker(audio.storage_path) as audio_path:
+                    body = await post_transcribe(
+                        node,
+                        audio_path,
+                        audio.original_filename,
+                        task.snap_asr_model or "whisper",
+                        task.snap_diarization_model,
+                    )
             else:
                 transcript = db.get(Transcript, task.transcript_id) if task.transcript_id else None
                 if transcript is None:

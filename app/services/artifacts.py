@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.models import Audio, HiddenItem, Share, Summary, Task, Transcript
+from app.services.storage import get_storage
 
 
 def cancel_queued_for_source(db: Session, *, audio_id: str | None = None, transcript_id: str | None = None) -> None:
@@ -50,19 +49,9 @@ def wipe_object_shares(db: Session, object_type: str, object_id: str) -> None:
 def hard_delete_audio(db: Session, audio: Audio) -> None:
     cancel_queued_for_source(db, audio_id=audio.id)
     wipe_object_shares(db, "audio", audio.id)
-    path = Path(audio.storage_path)
-    if path.is_file():
-        path.unlink(missing_ok=True)
-    parent = path.parent
+    get_storage().delete(audio.storage_path)
     db.delete(audio)
     db.flush()
-    if parent.is_dir():
-        try:
-            next(parent.iterdir())
-        except StopIteration:
-            parent.rmdir()
-        except OSError:
-            pass
 
 
 def hard_delete_transcript(db: Session, transcript: Transcript) -> None:

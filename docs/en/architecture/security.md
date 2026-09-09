@@ -8,7 +8,7 @@ The hub is designed for **on-premise / private network** deployment:
 - End users must not obtain worker credentials
 - Database backup without `.env` should not expose worker tokens, transcripts, or summaries
 
-Audio files on disk are **not encrypted** in the current version.
+**Audio blobs:** with `STORAGE_BACKEND=local`, files on disk are **not** app-encrypted. With `STORAGE_BACKEND=s3`, use **server-side encryption** (SSE) on the bucket; the hub does not app-level encrypt audio.
 
 ## Secrets in `.env`
 

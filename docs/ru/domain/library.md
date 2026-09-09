@@ -12,7 +12,7 @@
 | ------- | -------- |
 | Разрешённые расширения | `.wav`, `.mp3`, `.m4a` |
 | Макс. размер | `min(tariff.max_upload_bytes, 1 GiB)` |
-| Путь хранения | `{DATA_DIR}/uploads/{audio_id}/original{suffix}` |
+| Хранение | `STORAGE_BACKEND=local`: `{DATA_DIR}/uploads/{audio_id}/original{suffix}`. `STORAGE_BACKEND=s3`: `s3://{bucket}/uploads/{audio_id}/original{suffix}` (SSE при upload). |
 
 Неверное расширение → `invalid_file`. Превышение лимита → `payload_too_large`.
 

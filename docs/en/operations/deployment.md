@@ -96,16 +96,18 @@ Process env changes require restart.
 
 ## Data persistence
 
-Everything under `{DATA_DIR}` (default `./data`):
+Under `{DATA_DIR}` (default `./data`):
 
 | Path | Content |
 | ---- | ------- |
 | `hub.db` | SQLite database |
 | `pg/` | PostgreSQL files (compose profile) |
 | `logs/` | Rotating `app.log` |
-| `uploads/{audio_id}/` | Uploaded audio |
+| `uploads/{audio_id}/` | Uploaded audio (**local backend only**) |
 
-**Backup strategy:** stop hub (optional but safer), copy entire `./data` + secure copy of `.env`.
+With **`STORAGE_BACKEND=s3`**, audio lives in the configured bucket (server-side encryption). The hub downloads to a temp file when streaming to transcribe workers — worker API is unchanged.
+
+**Backup strategy:** stop hub (optional but safer), copy `./data` + bucket contents (if S3) + secure copy of `.env`.
 
 ## Rate limiting
 
@@ -121,9 +123,9 @@ Current architecture targets **single-node** deployment:
 
 - One dispatcher loop
 - In-memory rate limiter
-- Local filesystem uploads
+- Local filesystem or S3-compatible object storage for audio (`STORAGE_BACKEND`)
 
-Horizontal scaling would require shared storage, shared rate-limit store, and single dispatcher leader — not supported out of the box.
+Horizontal scaling would require shared rate-limit store and single dispatcher leader — S3 removes the need for shared filesystem for uploads, but multi-replica hub is still not supported out of the box.
 
 ## API exploration
 

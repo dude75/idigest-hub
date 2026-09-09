@@ -38,7 +38,10 @@ def client(tmp_path, monkeypatch):
     from app.db import get_engine, reset_engine
     from app.models import Base
 
+    from app.services.storage import reset_storage
+
     get_settings.cache_clear()
+    reset_storage()
     reset_engine()
     Base.metadata.create_all(get_engine())
 
@@ -55,7 +58,10 @@ def client(tmp_path, monkeypatch):
     with TestClient(app) as test_client:
         yield test_client
 
+    from app.services.storage import reset_storage
+
     get_settings.cache_clear()
+    reset_storage()
     reset_engine()
     dispatcher._tick_lock = None
 

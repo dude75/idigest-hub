@@ -10,7 +10,7 @@
 | **HTTP API** | `app/main.py`, `app/routers/` | FastAPI on `/api/v1/*`; serves SPA from same origin |
 | **Dispatcher** | `app/services/dispatcher.py` | Background loop: health checks, dispatch, poll, billing on success |
 | **Database** | SQLite (default) or PostgreSQL | Orgs, users, tasks, encrypted artifacts metadata |
-| **File storage** | `{DATA_DIR}/uploads/{audio_id}/` | Raw audio files (not encrypted at rest in current version) |
+| **File storage** | `app/services/storage.py` | Audio blobs: local disk (`STORAGE_BACKEND=local`) or S3-compatible object storage with SSE (`STORAGE_BACKEND=s3`) |
 | **Workers** | External processes | `itranscribe-worker`, `isummarize-worker` — registered by instance admin |
 
 ```mermaid
@@ -24,7 +24,7 @@ flowchart TB
     FastAPI[FastAPI + SPA static]
     Dispatch[dispatcher_loop]
     DB[(Database)]
-    FS[uploads/]
+    FS[local uploads or S3]
   end
 
   subgraph workers [External workers]
@@ -81,8 +81,8 @@ Instance (single deployment)
 
 ## Data flow (high level)
 
-1. User uploads audio → `POST /audios` → file on disk + `Audio` row
-2. User starts transcribe → `POST /tasks/transcribe` → `Task` queued → dispatcher POSTs file to worker
+1. User uploads audio → `POST /audios` → storage backend persists blob + `Audio` row
+2. User starts transcribe → `POST /tasks/transcribe` → `Task` queued → dispatcher materializes local path (temp file for S3) and POSTs file to worker
 3. Worker completes → hub encrypts utterances → `Transcript` row → charges wallet → `DELETE` worker task
 4. User starts summarize → `POST /tasks/summarize` with `skill_ids` → dispatcher sends text + combined skills to summarize worker
 5. Success → encrypted `Summary` body → billing → worker task deleted

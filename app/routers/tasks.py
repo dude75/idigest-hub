@@ -94,9 +94,9 @@ async def create_transcribe(
     audio = db.get(Audio, body.audio_id)
     if audio is None or audio.org_id != org.id or not can_use_audio(ctx, db, audio):
         ctx.raise_error(ErrorCode.not_found)
-    from pathlib import Path
+    from app.services.storage import get_storage
 
-    if not Path(audio.storage_path).is_file():
+    if not get_storage().exists(audio.storage_path):
         ctx.raise_error(ErrorCode.not_found)
     tariff = assert_can_accept_task(ctx, org, ctx.locale)
     settings = get_instance_settings(db)

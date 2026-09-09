@@ -113,7 +113,13 @@ URL должен совпадать с тем, как хаб видят поль
 | `SESSION_SECRET`             | Перец для хешей сессий и API-токенов. Смена инвалидирует уже выданные cookie и токены.                                                                           |
 | `HOST`                       | Интерфейс (`127.0.0.1` локально; в Docker — `0.0.0.0`).                                                                                                          |
 | `PORT`                       | HTTP-порт (по умолчанию `8080`).                                                                                                                                 |
-| `DATA_DIR`                   | Корень персистентных данных (по умолчанию `./data`): логи, загрузки `{DATA_DIR}/uploads/{audio_id}/`. Файл SQLite — в этом дереве при URL по умолчанию. |
+| `DATA_DIR`                   | Корень персистентных данных (по умолчанию `./data`): логи и (при `STORAGE_BACKEND=local`) загрузки `{DATA_DIR}/uploads/{audio_id}/`. Файл SQLite — в этом дереве при URL по умолчанию. |
+| `STORAGE_BACKEND`            | Хранилище audio: `local` (по умолчанию) или `s3`. Воркеры не меняются — hub по-прежнему стримит файл на transcribe-воркер. |
+| `S3_ENDPOINT`                | URL S3-compatible API (пусто для AWS). |
+| `S3_BUCKET`                  | Имя bucket для audio. Обязателен при `STORAGE_BACKEND=s3`. |
+| `S3_REGION`                  | Регион (зависит от провайдера). |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Ключи доступа к object storage. |
+| `S3_SSE`                     | Server-side encryption для новых объектов (по умолчанию `AES256`). Пусто = только default encryption bucket. |
 | `DATABASE_URL`               | SQLAlchemy URL (по умолчанию `sqlite:///./data/hub.db`). Для PostgreSQL: `postgresql+psycopg://user:pass@host:5432/db`. **Смена URL — другая БД с другими данными**, автоматической миграции SQLite ↔ PostgreSQL нет. |
 | `SQLITE_PATH`                | Legacy fallback, если `DATABASE_URL` пуст (по умолчанию `./data/hub.db`). Лучше задавать `DATABASE_URL`. |
 | `LOG_DIR`                    | Каталог прикладных логов (по умолчанию `./data/logs`).                                                                                                           |
@@ -123,9 +129,9 @@ URL должен совпадать с тем, как хаб видят поль
 | `COOKIE_SECURE`              | Флаг `Secure` у session cookie. По умолчанию `false` (локальный HTTP). За HTTPS ставьте `true`.                                                                  |
 | `TRUSTED_PROXIES`            | IP/CIDR reverse proxy через запятую; им доверяют заголовки `X-Forwarded-For` / `X-Real-IP` для per-IP лимитов. Пусто = не доверять (только TCP peer).          |
 
-Всё, что должно пережить рестарт, лежит в `./data` (SQLite `hub.db` или `./data/pg` для PostgreSQL в Compose, логи **и загрузки** `{DATA_DIR}/uploads/{audio_id}/`). В Docker монтируйте этот каталог. Контейнер Compose пишет в него от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
+Всё, что должно пережить рестарт, лежит в `./data` (SQLite `hub.db` или `./data/pg` для PostgreSQL в Compose, логи). При **`STORAGE_BACKEND=local`** (по умолчанию) загрузки audio — в `{DATA_DIR}/uploads/{audio_id}/`; монтируйте `./data` в Docker. При **`STORAGE_BACKEND=s3`** audio в object storage (SSE at rest); hub-поду volume для uploads не нужен — только БД и логи. Контейнер Compose пишет `./data` от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
 
-`api_token` воркеров, JSON транскриптов, тела саммари и SMTP-пароль в БД хаба хранятся в Fernet (AES-128-CBC + HMAC). Ключ — `SHA-256(HUB_SECRET)`, не сырой секрет — та же идея, что `API_TOKEN` у воркеров. API по-прежнему отдаёт открытый текст авторизованным клиентам. Аудио на диске в этой версии **не** шифруется. Это защита только от утечки БД без `.env`.
+`api_token` воркеров, JSON транскриптов, тела саммари и SMTP-пароль в БД хаба хранятся в Fernet (AES-128-CBC + HMAC). Ключ — `SHA-256(HUB_SECRET)`, не сырой секрет — та же идея, что `API_TOKEN` у воркеров. API по-прежнему отдаёт открытый текст авторизованным клиентам. **Audio** — через `STORAGE_BACKEND`: на диске plain; при `s3` — **server-side encryption** на bucket, без app-level шифрования в hub. Защита БД актуальна при утечке дампа без `.env`.
 
 **Смена `HUB_SECRET` делает уже зашифрованные строки нечитаемыми** (токены воркеров, транскрипты, саммари, SMTP-пароль). Автоматической перешифровки нет. Задайте секрет один раз и храните запасную копию `.env`. То же предупреждение, что у воркеров про ротацию `API_TOKEN`.
 

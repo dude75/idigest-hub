@@ -12,7 +12,7 @@ The **library** is the org-scoped store of user artifacts. Pipeline: **Audio →
 | ---- | ----- |
 | Allowed extensions | `.wav`, `.mp3`, `.m4a` |
 | Max size | `min(tariff.max_upload_bytes, 1 GiB)` |
-| Storage path | `{DATA_DIR}/uploads/{audio_id}/original{suffix}` |
+| Storage | `STORAGE_BACKEND=local`: `{DATA_DIR}/uploads/{audio_id}/original{suffix}`. `STORAGE_BACKEND=s3`: `s3://{bucket}/uploads/{audio_id}/original{suffix}` (SSE on upload). |
 
 Invalid extension → `invalid_file`. Over limit → `payload_too_large`.
 

@@ -6,12 +6,10 @@ import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request, UploadFile
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.constants import ALLOWED_AUDIO_SUFFIXES, MAX_UPLOAD_BYTES_CAP
 from app.crypto import decrypt_str, encrypt_str
 from app.db import get_session
@@ -31,6 +29,7 @@ from app.services.dispatcher import utterances_to_text
 from app.services.export import attachment_response, safe_filename, unwrap_markdown_fence
 from app.rate_limit import enforce_write_limits, get_rate_limits
 from app.services.audit import write_audit
+from app.services.storage import PayloadTooLarge, get_storage
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
 
@@ -145,31 +144,17 @@ async def upload_audio(
         except ValueError:
             pass
     audio_id = new_id()
-    dest_dir = Path(get_settings().DATA_DIR) / "uploads" / audio_id
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / f"original{suffix}"
-    size = 0
+    storage = get_storage()
     try:
-        with dest.open("wb") as handle:
-            while True:
-                chunk = await file.read(1024 * 1024)
-                if not chunk:
-                    break
-                size += len(chunk)
-                if size > limit:
-                    handle.close()
-                    dest.unlink(missing_ok=True)
-                    ctx.raise_error(ErrorCode.payload_too_large)
-                handle.write(chunk)
-    except Exception:
-        dest.unlink(missing_ok=True)
-        raise
+        storage_path = await storage.save_upload(audio_id, suffix, file, max_bytes=limit)
+    except PayloadTooLarge:
+        ctx.raise_error(ErrorCode.payload_too_large)
     row = Audio(
         id=audio_id,
         org_id=org.id,
         owner_user_id=ctx.user.id,
-        storage_path=str(dest),
-        original_filename=file.filename or dest.name,
+        storage_path=storage_path,
+        original_filename=file.filename or f"original{suffix}",
         created_at=utcnow(),
     )
     db.add(row)
@@ -216,7 +201,7 @@ def get_audio(
         )
         and not is_hidden(db, ctx.user.id, "transcript", item.id)
     ]
-    payload["can_transcribe"] = Path(row.storage_path).is_file()
+    payload["can_transcribe"] = get_storage().exists(row.storage_path)
     return payload
 
 
@@ -230,15 +215,12 @@ def audio_file(
     row = db.get(Audio, audio_id)
     if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
-    path = Path(row.storage_path)
-    if not path.is_file():
+    storage = get_storage()
+    if not storage.exists(row.storage_path):
         ctx.raise_error(ErrorCode.not_found)
-    headers = {}
-    if download:
-        headers["Content-Disposition"] = (
-            f'attachment; filename="{safe_filename(row.original_filename)}"'
-        )
-    return FileResponse(path, filename=row.original_filename, headers=headers)
+    return storage.download_response(
+        row.storage_path, row.original_filename, download=download
+    )
 
 
 @router.post("/audios/{audio_id}/hide")
