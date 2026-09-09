@@ -93,7 +93,8 @@ def test_bearer_api_rate_limit(client: TestClient):
     assert err_code(blocked) == "rate_limited"
 
 
-def test_cookie_session_not_api_rate_limited(client: TestClient):
+def test_cookie_session_not_bearer_api_rate_limited(client: TestClient):
+    """Cookie sessions skip Bearer general limits; write limits are tested in test_abuse.py."""
     setup_admin(client)
     login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
 

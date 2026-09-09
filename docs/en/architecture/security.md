@@ -48,8 +48,8 @@ Logout deletes the session row and clears the cookie.
 
 - Created per user: `POST /auth/tokens` (requires org tariff `api_enabled`)
 - Shown **once** in create response; only prefix stored for listing
-- Bearer auth triggers **rate limits** (per user, IP, global, extra limits on task create)
-- Browser cookie sessions are **not** subject to API rate limits
+- Bearer auth triggers **rate limits** (per user, IP, global)
+- Browser cookie sessions skip Bearer general limits, but **upload** and **task create** share the same write limits as Bearer (`rate_limit_api_tasks_*`)
 - Revoked tokens: `DELETE /auth/tokens/{id}`
 
 Users with `must_change_password` or expired org password TTL cannot use API tokens.

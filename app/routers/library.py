@@ -29,6 +29,7 @@ from app.services.access import can_read_object, is_hidden, is_shared_with, outg
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 from app.services.dispatcher import utterances_to_text
 from app.services.export import attachment_response, safe_filename, unwrap_markdown_fence
+from app.rate_limit import enforce_write_limits, get_rate_limits
 from app.services.audit import write_audit
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
@@ -131,6 +132,7 @@ async def upload_audio(
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org()
+    enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     suffix = Path(file.filename or "").suffix.lower()
     if suffix not in ALLOWED_AUDIO_SUFFIXES:
         ctx.raise_error(ErrorCode.invalid_file)

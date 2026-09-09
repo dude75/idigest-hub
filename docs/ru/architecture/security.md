@@ -48,8 +48,8 @@ Logout удаляет строку session и очищает cookie.
 
 - Создаются на пользователя: `POST /auth/tokens` (требуется org tariff `api_enabled`)
 - Показываются **один раз** в ответе create; для listing хранится только prefix
-- Bearer auth включает **rate limits** (per user, IP, global, дополнительные лимиты на task create)
-- Browser cookie sessions **не** подпадают под API rate limits
+- Bearer auth включает **rate limits** (per user, IP, global)
+- Cookie-сессии не попадают под общие Bearer-лимиты, но **upload** и **task create** используют те же write-лимиты (`rate_limit_api_tasks_*`)
 - Отозванные tokens: `DELETE /auth/tokens/{id}`
 
 Пользователи с `must_change_password` или истёкшим org password TTL не могут использовать API tokens.

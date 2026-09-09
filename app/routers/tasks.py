@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from app.models import Audio, Organization, Skill, Task, Transcript, User, new_i
 from app.presenters import task_public
 from app.services.access import can_use_audio, can_use_transcript
 from app.services.billing import assert_can_accept_task, snapshot_fields
+from app.rate_limit import enforce_write_limits, get_rate_limits
 from app.services.dispatcher import locked_tick
 from app.timeutil import utcnow
 
@@ -84,10 +85,12 @@ def _task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
 @router.post("/tasks/transcribe", status_code=202)
 async def create_transcribe(
     body: TranscribeBody,
+    request: Request,
     db: Session = Depends(get_session),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org()
+    enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     audio = db.get(Audio, body.audio_id)
     if audio is None or audio.org_id != org.id or not can_use_audio(ctx, db, audio):
         ctx.raise_error(ErrorCode.not_found)
@@ -120,10 +123,12 @@ async def create_transcribe(
 @router.post("/tasks/summarize", status_code=202)
 async def create_summarize(
     body: SummarizeBody,
+    request: Request,
     db: Session = Depends(get_session),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org()
+    enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     transcript = db.get(Transcript, body.transcript_id)
     if transcript is None or transcript.org_id != org.id or not can_use_transcript(ctx, db, transcript):
         ctx.raise_error(ErrorCode.not_found)

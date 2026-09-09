@@ -243,20 +243,35 @@ def enforce_bearer_api(request: Request, user_id: str, limits: RateLimits, local
     if not limits.enabled:
         return
     ip = client_ip(request)
-    path = request.url.path.rstrip("/") or "/"
     checks: list[tuple[str, int, float]] = [
         (f"api:user:{user_id}", limits.api_user, WINDOW_MIN),
         (f"api:ip:{ip}", limits.api_ip, WINDOW_MIN),
         ("api:global", limits.api_global, WINDOW_MIN),
     ]
-    if request.method == "POST" and path.endswith(("/tasks/transcribe", "/tasks/summarize")):
-        checks.extend(
-            [
-                (f"api:tasks:user:{user_id}", limits.api_tasks_user, WINDOW_MIN),
-                (f"api:tasks:ip:{ip}", limits.api_tasks_ip, WINDOW_MIN),
-            ]
-        )
     enforce_checks(checks, locale)
+
+
+def enforce_write_limits(request: Request, user_id: str, limits: RateLimits, locale: str) -> None:
+    """Rate-limit upload and task-create for session cookies and Bearer alike."""
+    if not limits.enabled:
+        return
+    ip = client_ip(request)
+    path = request.url.path.rstrip("/") or "/"
+    if request.method != "POST":
+        return
+    checks: list[tuple[str, int, float]] = []
+    if path.endswith("/audios"):
+        checks = [
+            (f"write:upload:user:{user_id}", limits.api_tasks_user, WINDOW_MIN),
+            (f"write:upload:ip:{ip}", limits.api_tasks_ip, WINDOW_MIN),
+        ]
+    elif path.endswith(("/tasks/transcribe", "/tasks/summarize")):
+        checks = [
+            (f"api:tasks:user:{user_id}", limits.api_tasks_user, WINDOW_MIN),
+            (f"api:tasks:ip:{ip}", limits.api_tasks_ip, WINDOW_MIN),
+        ]
+    if checks:
+        enforce_checks(checks, locale)
 
 
 def purge_expired_buckets() -> int:

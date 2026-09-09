@@ -18,9 +18,11 @@ export function SignupPage() {
   const [password, setPassword] = useState('')
   const [tariffId, setTariffId] = useState('')
   const [tariffs, setTariffs] = useState<Tariff[]>([])
+  const [tariffsLoading, setTariffsLoading] = useState(true)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
+    setTariffsLoading(true)
     api<{ items: Tariff[] }>('/auth/signup-tariffs')
       .then((r) => {
         setTariffs(r.items)
@@ -28,6 +30,7 @@ export function SignupPage() {
         setTariffId((match || r.items[0])?.id || '')
       })
       .catch(showError)
+      .finally(() => setTariffsLoading(false))
   }, [wanted])
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
@@ -57,7 +60,9 @@ export function SignupPage() {
           <h1 className="grow">{t('auth.signup')}</h1>
           <LanguageSwitcher />
         </div>
-        {tariffs.length === 0 ? (
+        {tariffsLoading ? (
+          <p className="muted">{t('common.loading')}</p>
+        ) : tariffs.length === 0 ? (
           <p className="muted">{t('auth.noSignup')}</p>
         ) : (
           <>
