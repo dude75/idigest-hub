@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Generator
 from pathlib import Path
 from urllib.parse import unquote
@@ -12,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Settings, get_settings
 
+log = logging.getLogger("app.db")
 _engine: Engine | None = None
 SessionLocal: sessionmaker[Session] | None = None
 _SQLITE_BUSY_TIMEOUT_SEC = 30.0
@@ -62,9 +64,12 @@ def _table_columns(conn, table: str, *, engine: Engine) -> set[str]:
     if is_sqlite_engine(engine):
         rows = conn.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
         return {row[1] for row in rows}
-    if not inspect(engine).has_table(table):
+    # Use the active connection; inspect(engine) opens another one and can deadlock
+    # PostgreSQL DDL/metadata checks inside engine.begin().
+    table_insp = inspect(conn)
+    if not table_insp.has_table(table):
         return set()
-    return {column["name"] for column in inspect(engine).get_columns(table)}
+    return {column["name"] for column in table_insp.get_columns(table)}
 
 
 def _try_drop_column(conn, table: str, column: str) -> None:
@@ -194,30 +199,15 @@ def _instance_rate_limit_patches(conn, settings_cols: set[str], *, engine: Engin
         _add_int_column(conn, "instance_settings", column, default, engine=engine)
 
 
-def run_alembic_upgrade() -> None:
-    from alembic import command
-    from alembic.config import Config
-
-    root = Path(__file__).resolve().parent.parent
-    cfg = Config(str(root / "alembic.ini"))
-    cfg.set_main_option("sqlalchemy.url", database_url())
-    command.upgrade(cfg, "head")
-
-
 def init_database(engine: Engine) -> None:
     """Create tables and apply incremental schema updates."""
     from app.models import Base
 
-    if is_sqlite_engine(engine):
-        Base.metadata.create_all(engine)
-        ensure_schema(engine)
-        return
-
-    inspector = inspect(engine)
-    if inspector.has_table("alembic_version"):
-        run_alembic_upgrade()
+    log.info("database init: create_all")
     Base.metadata.create_all(engine)
+    log.info("database init: ensure_schema")
     ensure_schema(engine)
+    log.info("database init: done")
 
 
 def get_engine() -> Engine:
@@ -243,7 +233,12 @@ def get_engine() -> Engine:
                 cursor.execute(f"PRAGMA busy_timeout={int(_SQLITE_BUSY_TIMEOUT_SEC * 1000)}")
                 cursor.close()
         else:
-            _engine = create_engine(url, future=True, pool_pre_ping=True)
+            _engine = create_engine(
+                url,
+                future=True,
+                pool_pre_ping=True,
+                connect_args={"connect_timeout": 10},
+            )
 
         SessionLocal = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False, future=True)
     return _engine
