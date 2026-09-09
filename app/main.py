@@ -20,6 +20,7 @@ from app.db import get_engine, init_database
 from app.errors import ErrorCode, error_payload
 from app.i18n import negotiate_locale, t
 from app.logging_setup import setup_logging
+from app.openapi import configure_openapi
 from app.routers import auth, instance, library, org, skills, tasks
 from app.services.dispatcher import dispatcher_loop
 from app.rate_limit import rate_limit_sweeper
@@ -60,7 +61,13 @@ async def lifespan(app: FastAPI):
         log.info("service stop")
 
 
-app = FastAPI(title="idigest-hub", version=read_version(), lifespan=lifespan)
+app = FastAPI(
+    title="idigest-hub",
+    version=read_version(),
+    lifespan=lifespan,
+    swagger_ui_parameters={"persistAuthorization": True},
+)
+configure_openapi(app)
 
 
 def _locale(request: Request) -> str:
