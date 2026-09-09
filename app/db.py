@@ -160,6 +160,21 @@ def ensure_schema(engine: Engine) -> None:
         if usage_cols and "summary_chars" not in usage_cols:
             conn.exec_driver_sql("ALTER TABLE usage_events ADD COLUMN summary_chars INTEGER")
 
+        org_cols = _table_columns(conn, "organizations", engine=engine)
+        if org_cols:
+            if "sso_enabled" not in org_cols:
+                _add_bool_column(conn, "organizations", "sso_enabled", 0, engine=engine)
+            if "sso_issuer" not in org_cols:
+                conn.exec_driver_sql("ALTER TABLE organizations ADD COLUMN sso_issuer VARCHAR(512)")
+            if "sso_client_id" not in org_cols:
+                conn.exec_driver_sql("ALTER TABLE organizations ADD COLUMN sso_client_id VARCHAR(255)")
+            if "sso_client_secret_encrypted" not in org_cols:
+                conn.exec_driver_sql("ALTER TABLE organizations ADD COLUMN sso_client_secret_encrypted TEXT")
+
+        user_cols = _table_columns(conn, "users", engine=engine)
+        if user_cols and "sso_sub" not in user_cols:
+            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN sso_sub VARCHAR(255)")
+
         settings_cols = _table_columns(conn, "instance_settings", engine=engine)
         if settings_cols:
             _instance_rate_limit_patches(conn, settings_cols, engine=engine)

@@ -152,6 +152,22 @@
     "roleMember": "Участник",
     "impersonate": "Имперсонировать"
   },
+  "sso": {
+    "title": "Вход в организацию",
+    "continue": "Войти через SSO",
+    "notConfigured": "SSO для этой организации не настроен.",
+    "notEnabled": "SSO настроен, но ещё не включён.",
+    "settingsTitle": "Single sign-on (Keycloak)",
+    "settingsLead": "Redirect URI → в Keycloak. Issuer, Client ID, secret ← из Keycloak. При включённом SSO пароль только у админов.",
+    "loginUrl": "Вход",
+    "callbackUrl": "Redirect URI",
+    "publicBaseUrlMissing": "Сначала укажите публичный URL в настройках инстанса — без него SSO-ссылки не собрать.",
+    "issuer": "Issuer URL",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "secretSaved": "Оставьте пустым, чтобы сохранить текущий secret",
+    "enabled": "SSO включён"
+  },
   "stats": {
     "title": "Статистика",
     "transcribeDone": "Выполненных задач транскрибации",

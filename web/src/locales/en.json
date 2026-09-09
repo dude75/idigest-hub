@@ -152,6 +152,22 @@
     "roleMember": "Member",
     "impersonate": "Impersonate"
   },
+  "sso": {
+    "title": "Organization sign-in",
+    "continue": "Continue with SSO",
+    "notConfigured": "Single sign-on is not configured for this organization.",
+    "notEnabled": "Single sign-on is configured but not enabled yet.",
+    "settingsTitle": "Single sign-on (Keycloak)",
+    "settingsLead": "Redirect URI → Keycloak client. Issuer, Client ID, secret ← from Keycloak. When SSO is on, only admins use password.",
+    "loginUrl": "Login",
+    "callbackUrl": "Redirect URI",
+    "publicBaseUrlMissing": "Set Public URL in Instance settings first — SSO links cannot be built without it.",
+    "issuer": "Issuer URL",
+    "clientId": "Client ID",
+    "clientSecret": "Client secret",
+    "secretSaved": "Leave blank to keep the saved secret",
+    "enabled": "SSO enabled"
+  },
   "stats": {
     "title": "Statistics",
     "transcribeDone": "Completed transcription tasks",

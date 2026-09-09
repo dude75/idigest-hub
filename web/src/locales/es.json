@@ -152,6 +152,22 @@
     "roleMember": "Miembro",
     "impersonate": "Suplantar"
   },
+  "sso": {
+    "title": "Inicio de sesión de la organización",
+    "continue": "Continuar con SSO",
+    "notConfigured": "El inicio de sesión único no está configurado para esta organización.",
+    "notEnabled": "El inicio de sesión único está configurado pero aún no habilitado.",
+    "settingsTitle": "Inicio de sesión único (Keycloak)",
+    "settingsLead": "Redirect URI → cliente Keycloak. Issuer, Client ID, secret ← desde Keycloak. Con SSO activo, solo admins usan contraseña.",
+    "loginUrl": "Inicio",
+    "callbackUrl": "Redirect URI",
+    "publicBaseUrlMissing": "Configure primero la URL pública en ajustes de instancia; sin ella no se pueden generar enlaces SSO.",
+    "issuer": "URL del emisor",
+    "clientId": "ID de cliente",
+    "clientSecret": "Secreto de cliente",
+    "secretSaved": "Dejar en blanco para conservar el secreto guardado",
+    "enabled": "SSO habilitado"
+  },
   "stats": {
     "title": "Estadísticas",
     "transcribeDone": "Tareas de transcripción completadas",

@@ -4,8 +4,33 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
-import type { Org, Tariff, User } from '../types'
+import type { Org, OrgSsoAdmin, Tariff, User } from '../types'
 import { showError, WalletLabel } from '../util'
+
+function SsoUrlRow({ label, value }: { label: string; value: string }) {
+  const { t } = useTranslation()
+  const [copied, setCopied] = useState(false)
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    } catch {
+      /* clipboard unavailable */
+    }
+  }
+
+  return (
+    <div className="sso-url-row">
+      <span className="sso-url-label">{label}</span>
+      <code className="sso-url-value" title={value}>{value}</code>
+      <button type="button" className="sso-url-copy" onClick={() => void copy()}>
+        {copied ? t('profile.copied') : t('common.copy')}
+      </button>
+    </div>
+  )
+}
 
 export function OrgPage() {
   const { t } = useTranslation()
@@ -24,21 +49,41 @@ export function OrgPage() {
   const [action, setAction] = useState<'transfer' | 'wipe'>('wipe')
   const [target, setTarget] = useState('')
   const [tempPw, setTempPw] = useState<string | null>(null)
+  const [sso, setSso] = useState<OrgSsoAdmin | null>(null)
+  const [ssoIssuer, setSsoIssuer] = useState('')
+  const [ssoClientId, setSsoClientId] = useState('')
+  const [ssoClientSecret, setSsoClientSecret] = useState('')
+  const [ssoEnabled, setSsoEnabled] = useState(false)
   const admin = isOrgAdmin(me)
   const hasOrg = Boolean(me?.org)
+  const canConfigureSso = admin && hasOrg
 
   async function load() {
-    const [o, u, tr] = await Promise.all([
+    const requests: [
+      Promise<Org>,
+      Promise<{ items: User[] }>,
+      Promise<{ items: Tariff[] }>,
+      Promise<OrgSsoAdmin> | Promise<null>,
+    ] = [
       api<Org>('/org'),
       api<{ items: User[] }>('/org/users'),
       api<{ items: Tariff[] }>('/org/available-tariffs'),
-    ])
+      admin && hasOrg ? api<OrgSsoAdmin>('/org/sso') : Promise.resolve(null),
+    ]
+    const [o, u, tr, ssoConfig] = await Promise.all(requests)
     setOrg(o)
     setName(o.name)
     setTtl(o.password_ttl_days)
     setTariffId(o.tariff.id)
     setUsers(u.items)
     setTariffs(tr.items)
+    if (ssoConfig) {
+      setSso(ssoConfig)
+      setSsoIssuer(ssoConfig.issuer || '')
+      setSsoClientId(ssoConfig.client_id || '')
+      setSsoEnabled(ssoConfig.enabled)
+      setSsoClientSecret('')
+    }
   }
 
   useEffect(() => {
@@ -56,6 +101,18 @@ export function OrgPage() {
 
   async function saveTtl() {
     await api('/org/settings', { method: 'PATCH', body: JSON.stringify({ password_ttl_days: ttl }) })
+    await load()
+  }
+
+  async function saveSso() {
+    const body: Record<string, unknown> = {
+      issuer: ssoIssuer,
+      client_id: ssoClientId,
+      enabled: ssoEnabled,
+    }
+    if (ssoClientSecret.trim()) body.client_secret = ssoClientSecret
+    await api('/org/sso', { method: 'PATCH', body: JSON.stringify(body) })
+    setSsoClientSecret('')
     await load()
   }
 
@@ -132,6 +189,52 @@ export function OrgPage() {
             <input type="number" min={0} value={ttl} disabled={!admin} onChange={(e) => setTtl(Number(e.target.value))} />
           </label>
           {admin && <button type="button" onClick={() => void saveTtl()}>{t('common.save')}</button>}
+        </div>
+      )}
+      {canConfigureSso && (
+        <div className="card sso-card" style={{ marginTop: 12 }}>
+          <h2 className="sso-title">{t('sso.settingsTitle')}</h2>
+          <p className="muted sso-lead">{t('sso.settingsLead')}</p>
+          {sso && (
+            sso.public_base_url_set && sso.login_url && sso.callback_url ? (
+              <div className="sso-ref">
+                <SsoUrlRow label={t('sso.callbackUrl')} value={sso.callback_url} />
+                <SsoUrlRow label={t('sso.loginUrl')} value={sso.login_url} />
+              </div>
+            ) : (
+              <p className="err sso-lead">{t('sso.publicBaseUrlMissing')}</p>
+            )
+          )}
+          <div className="sso-fields">
+            <label>
+              {t('sso.issuer')}
+              <input value={ssoIssuer} onChange={(e) => setSsoIssuer(e.target.value)} placeholder="https://keycloak.example/realms/myrealm" />
+            </label>
+            <div className="sso-field-row">
+              <label>
+                {t('sso.clientId')}
+                <input value={ssoClientId} onChange={(e) => setSsoClientId(e.target.value)} />
+              </label>
+              <label>
+                {t('sso.clientSecret')}
+                <input
+                  type="password"
+                  value={ssoClientSecret}
+                  onChange={(e) => setSsoClientSecret(e.target.value)}
+                  placeholder={sso?.has_client_secret ? t('sso.secretSaved') : ''}
+                />
+              </label>
+            </div>
+          </div>
+          <div className="sso-actions">
+            <label className="inline">
+              <input type="checkbox" checked={ssoEnabled} onChange={(e) => setSsoEnabled(e.target.checked)} />
+              <span>{t('sso.enabled')}</span>
+            </label>
+            <button className="primary" type="button" onClick={() => void saveSso().catch(showError)}>
+              {t('common.save')}
+            </button>
+          </div>
         </div>
       )}
       <h2>{t('org.people')}</h2>

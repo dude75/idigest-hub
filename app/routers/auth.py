@@ -6,6 +6,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
@@ -49,6 +50,18 @@ from app.security import (
     verify_password,
 )
 from app.services.audit import write_audit
+from app.services.sso import (
+    build_authorization_url,
+    email_from_claims,
+    exchange_code,
+    make_oauth_state,
+    org_sso_public,
+    password_login_allowed,
+    resolve_or_provision_user,
+    sso_configured,
+    validate_id_token,
+    verify_oauth_state,
+)
 from app.services.backup import build_backup
 from app.services.export import safe_filename
 from app.services.mail import send_mail, smtp_configured
@@ -195,6 +208,12 @@ def revoke_user_tokens(db: Session, user_id: str) -> None:
         token.revoked_at = now
 
 
+def _public_base_url(db: Session) -> str | None:
+    settings = get_instance_settings(db)
+    value = (settings.public_base_url or "").strip()
+    return value or None
+
+
 def _me_payload(ctx: AuthContext, db: Session) -> dict:
     role = ctx.membership.role if ctx.membership else ("instance_admin" if ctx.user.is_instance_admin else None)
     usage = None
@@ -207,7 +226,7 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
         usage = {"total_amount": str(total)}
     return {
         "user": user_public(ctx.user, role),
-        "org": org_public(ctx.org, usage=usage) if ctx.org else None,
+        "org": org_public(ctx.org, usage=usage, public_base_url=_public_base_url(db)) if ctx.org else None,
         "impersonating": ctx.impersonating,
         "actor": user_public(ctx.actor) if ctx.impersonating else None,
         "must_change_password": ctx.user.must_change_password
@@ -338,6 +357,14 @@ def setup_status(db: Session = Depends(get_session)) -> dict:
     return {"bootstrap_done": bool(settings.bootstrap_done)}
 
 
+def _login_membership_org(db: Session, user: User) -> tuple[Membership | None, Organization | None]:
+    membership = db.scalar(select(Membership).where(Membership.user_id == user.id))
+    if membership is None:
+        return None, None
+    org = db.get(Organization, membership.org_id)
+    return membership, org
+
+
 @router.post("/auth/login")
 def login(body: LoginBody, request: Request, response: Response, db: Session = Depends(get_session)) -> dict:
     locale = locale_from_request(request)
@@ -347,11 +374,102 @@ def login(body: LoginBody, request: Request, response: Response, db: Session = D
     user = db.scalar(select(User).where(User.email == email))
     if user is None or user.disabled_at is not None or not user.password_hash:
         abort(locale, ErrorCode.invalid_credentials)
+    membership, org = _login_membership_org(db, user)
+    if not password_login_allowed(
+        membership=membership,
+        org=org,
+        is_instance_admin=user.is_instance_admin,
+    ):
+        abort(locale, ErrorCode.sso_login_required)
     if not verify_password(body.password, user.password_hash):
         abort(locale, ErrorCode.invalid_credentials)
     raw = create_session(db, user.id)
     set_session_cookie(response, raw)
     return {"status": "ok"}
+
+
+@router.get("/auth/sso/{org_id}/info")
+def sso_info(org_id: str, request: Request, db: Session = Depends(get_session)) -> dict:
+    locale = locale_from_request(request)
+    org = db.get(Organization, org_id)
+    if org is None:
+        abort(locale, ErrorCode.not_found)
+    return {
+        "org_id": org.id,
+        "org_name": org.name,
+        **org_sso_public(org, public_base_url=_public_base_url(db)),
+    }
+
+
+@router.get("/auth/sso/{org_id}/start")
+def sso_start(org_id: str, request: Request, db: Session = Depends(get_session)) -> RedirectResponse:
+    locale = locale_from_request(request)
+    org = db.get(Organization, org_id)
+    if org is None:
+        abort(locale, ErrorCode.not_found)
+    if not sso_configured(org):
+        abort(locale, ErrorCode.sso_misconfigured)
+    if not org.sso_enabled:
+        abort(locale, ErrorCode.sso_disabled)
+    public_base = _public_base_url(db)
+    if not public_base:
+        abort(locale, ErrorCode.sso_misconfigured)
+    try:
+        state, nonce = make_oauth_state(org_id)
+        url = build_authorization_url(
+            org=org,
+            public_base_url=public_base,
+            state=state,
+            nonce=nonce,
+        )
+    except Exception:
+        abort(locale, ErrorCode.sso_misconfigured)
+    return RedirectResponse(url, status_code=302)
+
+
+@router.get("/auth/sso/{org_id}/callback")
+def sso_callback(
+    org_id: str,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_session),
+    code: str | None = None,
+    state: str | None = None,
+) -> RedirectResponse:
+    locale = locale_from_request(request)
+    org = db.get(Organization, org_id)
+    if org is None:
+        abort(locale, ErrorCode.not_found)
+    if not sso_configured(org) or not org.sso_enabled:
+        abort(locale, ErrorCode.sso_disabled)
+    public_base = _public_base_url(db)
+    if not public_base or not code or not state:
+        abort(locale, ErrorCode.sso_misconfigured)
+    try:
+        nonce = verify_oauth_state(state, org_id)
+        token_payload = exchange_code(org=org, public_base_url=public_base, code=code)
+        id_token = token_payload.get("id_token")
+        if not id_token:
+            abort(locale, ErrorCode.sso_misconfigured)
+        claims = validate_id_token(org=org, id_token=id_token, nonce=nonce)
+        email = email_from_claims(claims)
+        sub = str(claims.get("sub") or "")
+        if not email or not sub:
+            abort(locale, ErrorCode.sso_email_missing)
+        user = resolve_or_provision_user(db, org=org, email=email, sub=sub, locale=locale)
+    except ValueError as exc:
+        message = str(exc)
+        if message == "user wrong org":
+            abort(locale, ErrorCode.sso_user_wrong_org)
+        if message == "user disabled":
+            abort(locale, ErrorCode.forbidden)
+        abort(locale, ErrorCode.sso_state_invalid)
+    except Exception:
+        abort(locale, ErrorCode.sso_misconfigured)
+    raw = create_session(db, user.id)
+    redirect = RedirectResponse(f"{public_base.rstrip('/')}/app", status_code=302)
+    set_session_cookie(redirect, raw)
+    return redirect
 
 
 @router.post("/auth/logout")
@@ -405,6 +523,13 @@ def reset_request(body: ResetRequestBody, request: Request, db: Session = Depend
     enforce_reset_request(email, client_ip(request), limits, locale)
     user = db.scalar(select(User).where(User.email == email))
     if user is not None and user.disabled_at is None:
+        membership, org = _login_membership_org(db, user)
+        if not password_login_allowed(
+            membership=membership,
+            org=org,
+            is_instance_admin=user.is_instance_admin,
+        ):
+            return {"status": "ok"}
         raw = new_reset_token()
         now = utcnow()
         db.add(

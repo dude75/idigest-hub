@@ -28,6 +28,21 @@ export type Tariff = {
   org_count?: number
 }
 
+export type OrgSso = {
+  configured: boolean
+  enabled: boolean
+  login_url: string | null
+}
+
+export type OrgSsoAdmin = OrgSso & {
+  org_id: string
+  callback_url: string | null
+  public_base_url_set: boolean
+  issuer: string | null
+  client_id: string | null
+  has_client_secret: boolean
+}
+
 export type Org = {
   id: string
   name: string
@@ -38,6 +53,7 @@ export type Org = {
   tariff: Tariff
   usage?: { total_amount: string }
   members?: User[]
+  sso?: OrgSso
 }
 
 export type Me = {

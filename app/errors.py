@@ -41,6 +41,12 @@ class ErrorCode(str, Enum):
     invalid_file_worker = "invalid_file"
     worker_error = "pipeline_error"
     rate_limited = "rate_limited"
+    sso_disabled = "sso_disabled"
+    sso_misconfigured = "sso_misconfigured"
+    sso_state_invalid = "sso_state_invalid"
+    sso_email_missing = "sso_email_missing"
+    sso_user_wrong_org = "sso_user_wrong_org"
+    sso_login_required = "sso_login_required"
 
 
 HTTP_STATUS: dict[ErrorCode, int] = {
@@ -67,6 +73,12 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.bootstrap_invalid: 401,
     ErrorCode.conflict: 409,
     ErrorCode.rate_limited: 429,
+    ErrorCode.sso_disabled: 403,
+    ErrorCode.sso_misconfigured: 400,
+    ErrorCode.sso_state_invalid: 400,
+    ErrorCode.sso_email_missing: 400,
+    ErrorCode.sso_user_wrong_org: 403,
+    ErrorCode.sso_login_required: 403,
 }
 
 

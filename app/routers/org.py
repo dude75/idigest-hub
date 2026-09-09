@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_session
-from app.deps import AuthContext, require_auth
+from app.deps import AuthContext, get_instance_settings, require_auth
 from app.errors import ErrorCode
 from app.models import Membership, Tariff, UsageEvent, User, new_id
 from app.presenters import org_public, user_public
@@ -17,10 +17,24 @@ from app.security import hash_password, random_password
 from app.services.access import guard_last_org_admin
 from app.services.audit import write_audit
 from app.services.offboarding import transfer_user, wipe_user_content
+from app.services.sso import (
+    clear_client_secret,
+    org_sso_admin_public,
+    sso_configured,
+    sso_login_url,
+    store_client_secret,
+    validate_sso_config,
+)
 from app.services.stats import org_usage_stats, parse_org_stats_range
 from app.timeutil import utcnow
 
 router = APIRouter()
+
+
+def _public_base_url(db: Session) -> str | None:
+    settings = get_instance_settings(db)
+    value = (settings.public_base_url or "").strip()
+    return value or None
 
 
 class OrgPatch(BaseModel):
@@ -33,6 +47,14 @@ class OrgTariffBody(BaseModel):
 
 class OrgSettingsPatch(BaseModel):
     password_ttl_days: int | None = None
+
+
+class OrgSsoPatch(BaseModel):
+    issuer: str | None = None
+    client_id: str | None = None
+    client_secret: str | None = None
+    clear_client_secret: bool = False
+    enabled: bool | None = None
 
 
 class CreateUserBody(BaseModel):
@@ -66,7 +88,7 @@ def available_tariffs(db: Session = Depends(get_session), ctx: AuthContext = Dep
 def get_org(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
     org, _ = ctx.require_org()
     total = db.scalar(select(func.coalesce(func.sum(UsageEvent.amount), 0)).where(UsageEvent.org_id == org.id))
-    return org_public(org, usage={"total_amount": str(total)})
+    return org_public(org, usage={"total_amount": str(total)}, public_base_url=_public_base_url(db))
 
 
 @router.get("/org/stats")
@@ -101,7 +123,7 @@ def patch_org(
     if body.name and body.name.strip():
         org.name = body.name.strip()
         org.updated_at = utcnow()
-    return org_public(org)
+    return org_public(org, public_base_url=_public_base_url(db))
 
 
 @router.patch("/org/tariff")
@@ -116,7 +138,7 @@ def patch_org_tariff(
     org.updated_at = utcnow()
     org.tariff = tariff
     write_audit(db, "org.tariff.self", ctx, {"tariff_id": tariff.id})
-    return org_public(org)
+    return org_public(org, public_base_url=_public_base_url(db))
 
 
 @router.patch("/org/settings")
@@ -129,7 +151,55 @@ def patch_org_settings(
             ctx.raise_error(ErrorCode.validation_error)
         org.password_ttl_days = body.password_ttl_days
         org.updated_at = utcnow()
-    return org_public(org)
+    return org_public(org, public_base_url=_public_base_url(db))
+
+
+
+@router.get("/org/sso")
+def get_org_sso(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+    org, _ = ctx.require_org_admin()
+    return org_sso_admin_public(org, public_base_url=_public_base_url(db))
+
+
+@router.patch("/org/sso")
+def patch_org_sso(
+    body: OrgSsoPatch, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    org, _ = ctx.require_org_admin()
+    if body.issuer is not None:
+        org.sso_issuer = body.issuer.strip() or None
+    if body.client_id is not None:
+        org.sso_client_id = body.client_id.strip() or None
+    if body.clear_client_secret:
+        clear_client_secret(org)
+    elif body.client_secret is not None:
+        store_client_secret(org, body.client_secret)
+    if body.enabled is not None:
+        org.sso_enabled = body.enabled
+    try:
+        validate_sso_config(issuer=org.sso_issuer, client_id=org.sso_client_id)
+    except ValueError:
+        if sso_configured(org) or body.enabled:
+            ctx.raise_error(ErrorCode.sso_misconfigured)
+    if org.sso_enabled and not sso_configured(org):
+        ctx.raise_error(ErrorCode.sso_misconfigured)
+    public_base = _public_base_url(db)
+    if org.sso_enabled and not public_base:
+        ctx.raise_error(ErrorCode.sso_misconfigured)
+    if sso_configured(org) and not public_base:
+        ctx.raise_error(ErrorCode.sso_misconfigured)
+    org.updated_at = utcnow()
+    write_audit(
+        db,
+        "org.sso.update",
+        ctx,
+        {
+            "enabled": org.sso_enabled,
+            "configured": sso_configured(org),
+            "login_url": sso_login_url(public_base, org.id),
+        },
+    )
+    return org_sso_admin_public(org, public_base_url=public_base)
 
 
 @router.get("/org/users")

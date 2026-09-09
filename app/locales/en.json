@@ -28,5 +28,11 @@
   "pipeline_error": "The worker failed to process the task.",
   "engine_unavailable": "Required ASR or diarization engine is not available.",
   "rate_limited": "Too many requests. Try again later.",
+  "sso_disabled": "Single sign-on is not enabled for this organization.",
+  "sso_misconfigured": "Single sign-on is not configured correctly.",
+  "sso_state_invalid": "Invalid or expired sign-on session. Try again.",
+  "sso_email_missing": "Your identity provider did not return an email address.",
+  "sso_user_wrong_org": "This account belongs to another organization.",
+  "sso_login_required": "Sign in with your organization SSO.",
   "ok": "ok"
 }

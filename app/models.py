@@ -74,6 +74,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     password_hash: Mapped[str | None] = mapped_column(String(255))
     auth_provider: Mapped[str] = mapped_column(String(32), default="local", nullable=False)
+    sso_sub: Mapped[str | None] = mapped_column(String(255))
     locale: Mapped[str] = mapped_column(String(8), default="en", nullable=False)
     default_route: Mapped[str] = mapped_column(String(32), default="library/audio", nullable=False)
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -95,6 +96,10 @@ class Organization(Base):
     tariff_id: Mapped[str] = mapped_column(String(36), ForeignKey("tariffs.id"), nullable=False, index=True)
     password_ttl_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    sso_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    sso_issuer: Mapped[str | None] = mapped_column(String(512))
+    sso_client_id: Mapped[str | None] = mapped_column(String(255))
+    sso_client_secret_encrypted: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

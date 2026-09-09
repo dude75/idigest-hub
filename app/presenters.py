@@ -19,6 +19,7 @@ from app.models import (
     WorkerNode,
 )
 from app.money import money_str
+from app.services.sso import org_sso_public
 
 
 def user_public(user: User, role: str | None = None) -> dict[str, Any]:
@@ -55,7 +56,12 @@ def tariff_public(tariff: Tariff, org_count: int | None = None) -> dict[str, Any
     return body
 
 
-def org_public(org: Organization, *, usage: dict[str, Any] | None = None) -> dict[str, Any]:
+def org_public(
+    org: Organization,
+    *,
+    usage: dict[str, Any] | None = None,
+    public_base_url: str | None = None,
+) -> dict[str, Any]:
     tariff = org.tariff
     body: dict[str, Any] = {
         "id": org.id,
@@ -65,6 +71,7 @@ def org_public(org: Organization, *, usage: dict[str, Any] | None = None) -> dic
         "balance": money_str(Decimal(org.balance)),
         "unlimited": tariff.unlimited,
         "tariff": tariff_public(tariff),
+        "sso": org_sso_public(org, public_base_url=public_base_url),
     }
     if usage is not None:
         body["usage"] = usage

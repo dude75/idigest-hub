@@ -10,6 +10,7 @@ import { InstancePage } from './pages/InstancePage'
 import { LibraryPage } from './pages/LibraryPage'
 import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
+import { SsoLoginPage } from './pages/SsoLoginPage'
 import { OrgPage } from './pages/OrgPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { ResetPage } from './pages/ResetPage'
@@ -44,6 +45,7 @@ export default function App() {
     <Routes>
       <Route path="/setup" element={<SetupPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/sso/:orgId" element={<SsoLoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/forgot" element={<ForgotPage />} />
       <Route path="/reset" element={<ResetPage />} />
