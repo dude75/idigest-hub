@@ -88,6 +88,14 @@ def _share_badge(db: Session, object_type: str, object_id: str, owner_id: str, c
     return extra
 
 
+def _count_hidden_for_user(ctx: AuthContext, db: Session, model, object_type: str) -> int:
+    return sum(
+        1
+        for row in _list_filter(ctx, db, model, object_type, include_hidden=True)
+        if is_hidden(db, ctx.user.id, object_type, row.id)
+    )
+
+
 def _list_filter(
     ctx: AuthContext,
     db: Session,
@@ -100,14 +108,16 @@ def _list_filter(
     visible = []
     for row in rows:
         owner = row.owner_user_id
+        own = owner == ctx.user.id
         if membership.role == "org_admin":
+            if not include_hidden and is_hidden(db, ctx.user.id, object_type, row.id):
+                continue
             visible.append(row)
             continue
-        own = owner == ctx.user.id
         shared = is_shared_with(db, object_type, row.id, ctx.user.id) is not None
         if not own and not shared:
             continue
-        if own and not include_hidden and is_hidden(db, ctx.user.id, object_type, row.id):
+        if not include_hidden and is_hidden(db, ctx.user.id, object_type, row.id):
             continue
         visible.append(row)
     return visible
@@ -175,7 +185,8 @@ def list_audios(
     return {
         "items": [
             audio_public(row, _share_badge(db, "audio", row.id, row.owner_user_id, ctx)) for row in rows
-        ]
+        ],
+        "hidden_count": _count_hidden_for_user(ctx, db, Audio, "audio"),
     }
 
 
@@ -197,8 +208,11 @@ def get_audio(
             source_filename=row.original_filename,
         )
         for item in transcripts
-        if can_read_object(ctx, db, "transcript", item.owner_user_id, item.org_id, item.id)
-        or ctx.is_org_admin
+        if (
+            can_read_object(ctx, db, "transcript", item.owner_user_id, item.org_id, item.id)
+            or ctx.is_org_admin
+        )
+        and not is_hidden(db, ctx.user.id, "transcript", item.id)
     ]
     payload["can_transcribe"] = Path(row.storage_path).is_file()
     return payload
@@ -230,7 +244,7 @@ def hide_audio(
     audio_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Audio, audio_id)
-    if row is None or row.owner_user_id != ctx.user.id:
+    if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
     if not is_hidden(db, ctx.user.id, "audio", row.id):
         db.add(HiddenItem(id=new_id(), user_id=ctx.user.id, object_type="audio", object_id=row.id))
@@ -242,7 +256,7 @@ def unhide_audio(
     audio_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Audio, audio_id)
-    if row is None or row.owner_user_id != ctx.user.id:
+    if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
     hidden = db.scalar(
         select(HiddenItem).where(
@@ -297,7 +311,8 @@ def list_transcripts(
                 source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
             )
             for row in rows
-        ]
+        ],
+        "hidden_count": _count_hidden_for_user(ctx, db, Transcript, "transcript"),
     }
 
 
@@ -322,7 +337,11 @@ def get_transcript(
     payload["summaries"] = [
         summary_public(item, extra=_share_badge(db, "summary", item.id, item.owner_user_id, ctx))
         for item in summaries
-        if can_read_object(ctx, db, "summary", item.owner_user_id, item.org_id, item.id) or ctx.is_org_admin
+        if (
+            can_read_object(ctx, db, "summary", item.owner_user_id, item.org_id, item.id)
+            or ctx.is_org_admin
+        )
+        and not is_hidden(db, ctx.user.id, "summary", item.id)
     ]
     return payload
 
@@ -356,7 +375,7 @@ def hide_transcript(
     transcript_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Transcript, transcript_id)
-    if row is None or row.owner_user_id != ctx.user.id:
+    if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
     if not is_hidden(db, ctx.user.id, "transcript", row.id):
         db.add(HiddenItem(id=new_id(), user_id=ctx.user.id, object_type="transcript", object_id=row.id))
@@ -368,7 +387,7 @@ def unhide_transcript(
     transcript_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Transcript, transcript_id)
-    if row is None or row.owner_user_id != ctx.user.id:
+    if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
     hidden = db.scalar(
         select(HiddenItem).where(
@@ -399,15 +418,17 @@ def delete_transcript(
 
 @router.get("/summaries")
 def list_summaries(
+    include_hidden: bool = False,
     db: Session = Depends(get_session),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
-    rows = _list_filter(ctx, db, Summary, "summary", include_hidden=True)
+    rows = _list_filter(ctx, db, Summary, "summary", include_hidden)
     return {
         "items": [
             summary_public(row, extra=_share_badge(db, "summary", row.id, row.owner_user_id, ctx))
             for row in rows
-        ]
+        ],
+        "hidden_count": _count_hidden_for_user(ctx, db, Summary, "summary"),
     }
 
 
@@ -436,6 +457,37 @@ def export_summary(
     ext = "md" if format == "md" else "txt"
     media = "text/markdown; charset=utf-8" if format == "md" else "text/plain; charset=utf-8"
     return attachment_response(body, f"{safe_filename(summary_display_title(row))}.{ext}", media)
+
+
+@router.post("/summaries/{summary_id}/hide")
+def hide_summary(
+    summary_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    row = db.get(Summary, summary_id)
+    if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
+        ctx.raise_error(ErrorCode.not_found)
+    if not is_hidden(db, ctx.user.id, "summary", row.id):
+        db.add(HiddenItem(id=new_id(), user_id=ctx.user.id, object_type="summary", object_id=row.id))
+    return {"status": "ok"}
+
+
+@router.post("/summaries/{summary_id}/unhide")
+def unhide_summary(
+    summary_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    row = db.get(Summary, summary_id)
+    if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
+        ctx.raise_error(ErrorCode.not_found)
+    hidden = db.scalar(
+        select(HiddenItem).where(
+            HiddenItem.user_id == ctx.user.id,
+            HiddenItem.object_type == "summary",
+            HiddenItem.object_id == row.id,
+        )
+    )
+    if hidden:
+        db.delete(hidden)
+    return {"status": "ok"}
 
 
 @router.patch("/transcripts/{transcript_id}")

@@ -68,8 +68,12 @@ export function TranscriptPage() {
 
   async function toggleHidden() {
     if (!id || !item) return
-    await api(`/transcripts/${id}/${item.hidden ? 'unhide' : 'hide'}`, { method: 'POST' })
-    await load()
+    try {
+      await api(`/transcripts/${id}/${item.hidden ? 'unhide' : 'hide'}`, { method: 'POST' })
+      await load()
+    } catch (e) {
+      showError(e)
+    }
   }
 
   async function wipe() {
@@ -135,11 +139,9 @@ export function TranscriptPage() {
               {t('common.downloadJson')}
             </button>
             {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
-            {mine && (
-              <button type="button" onClick={() => void toggleHidden()}>
-                {item.hidden ? t('common.unhide') : t('common.hide')}
-              </button>
-            )}
+            <button type="button" onClick={() => void toggleHidden()}>
+              {item.hidden ? t('common.unhide') : t('common.hide')}
+            </button>
             {admin && <button type="button" className="danger" onClick={() => void wipe()}>{t('common.wipe')}</button>}
           </div>
           <section className="item fold">

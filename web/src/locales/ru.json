@@ -96,7 +96,7 @@
     "summaries": "Саммари",
     "upload": "Загрузить аудио",
     "uploading": "Загрузка {{name}} — {{percent}}%",
-    "showHidden": "Показать скрытые",
+    "showHidden": "Показать скрытые ({{count}})",
     "sharedBy": "поделился {{who}}",
     "youShared": "вы поделились",
     "sharedWith": "расшарено: {{who}}",

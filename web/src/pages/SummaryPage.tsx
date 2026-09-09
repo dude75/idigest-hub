@@ -59,6 +59,16 @@ export function SummaryPage() {
     }
   }
 
+  async function toggleHidden() {
+    if (!id || !item) return
+    try {
+      await api(`/summaries/${id}/${item.hidden ? 'unhide' : 'hide'}`, { method: 'POST' })
+      await load()
+    } catch (e) {
+      showError(e)
+    }
+  }
+
   async function remove() {
     if (!id) return
     await api(`/summaries/${id}`, { method: 'DELETE' })
@@ -116,6 +126,9 @@ export function SummaryPage() {
               {t('common.downloadMd')}
             </button>
             {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
+            <button type="button" onClick={() => void toggleHidden()}>
+              {item.hidden ? t('common.unhide') : t('common.hide')}
+            </button>
             {canEdit && !editing && (
               <button type="button" onClick={() => { setDraft(item.body || ''); setEditing(true) }}>
                 {t('common.edit')}

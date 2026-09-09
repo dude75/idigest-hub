@@ -96,7 +96,7 @@
     "summaries": "Summaries",
     "upload": "Upload audio",
     "uploading": "Uploading {{name}} — {{percent}}%",
-    "showHidden": "Show hidden",
+    "showHidden": "Show hidden ({{count}})",
     "sharedBy": "shared by {{who}}",
     "youShared": "you shared",
     "sharedWith": "shared with {{who}}",

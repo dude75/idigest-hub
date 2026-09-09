@@ -50,8 +50,12 @@ export function AudioPage() {
 
   async function toggleHidden() {
     if (!id || !item) return
-    await api(`/audios/${id}/${item.hidden ? 'unhide' : 'hide'}`, { method: 'POST' })
-    await load()
+    try {
+      await api(`/audios/${id}/${item.hidden ? 'unhide' : 'hide'}`, { method: 'POST' })
+      await load()
+    } catch (e) {
+      showError(e)
+    }
   }
 
   async function wipe() {
@@ -92,11 +96,9 @@ export function AudioPage() {
               <span className="muted">{t('audio.noFile')}</span>
             )}
             {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
-            {mine && (
-              <button type="button" onClick={() => void toggleHidden()}>
-                {item.hidden ? t('common.unhide') : t('common.hide')}
-              </button>
-            )}
+            <button type="button" onClick={() => void toggleHidden()}>
+              {item.hidden ? t('common.unhide') : t('common.hide')}
+            </button>
             {admin && (
               <button type="button" className="danger" onClick={() => void wipe()}>{t('common.wipe')}</button>
             )}

@@ -92,6 +92,92 @@ def test_org_admin_sees_member_hidden_audio_unhide_restores(client):
     assert any(item["id"] == audio_id for item in restored.json()["items"])
 
 
+def test_include_hidden_shows_own_hidden_audio(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    audio_id = audio.json()["id"]
+    assert client.post(f"/api/v1/audios/{audio_id}/hide").status_code == 200
+
+    hidden = client.get("/api/v1/audios")
+    assert hidden.status_code == 200
+    assert all(item["id"] != audio_id for item in hidden.json()["items"])
+    assert hidden.json()["hidden_count"] == 1
+
+    shown = client.get("/api/v1/audios?include_hidden=true")
+    assert shown.status_code == 200
+    match = next(item for item in shown.json()["items"] if item["id"] == audio_id)
+    assert match["hidden"] is True
+    assert shown.json()["hidden_count"] == 1
+
+
+def test_org_admin_own_hidden_audio_respects_include_hidden(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    audio_id = audio.json()["id"]
+    assert client.post(f"/api/v1/audios/{audio_id}/hide").status_code == 200
+
+    hidden = client.get("/api/v1/audios")
+    assert hidden.status_code == 200
+    assert all(item["id"] != audio_id for item in hidden.json()["items"])
+    assert hidden.json()["hidden_count"] == 1
+
+    shown = client.get("/api/v1/audios?include_hidden=true")
+    assert shown.status_code == 200
+    assert any(item["id"] == audio_id for item in shown.json()["items"])
+    assert shown.json()["hidden_count"] == 1
+
+
+def test_include_hidden_shows_own_hidden_summary(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    _transcript_id, summary_id = _insert_transcript_and_summary(org_id, user_id)
+    assert client.post(f"/api/v1/summaries/{summary_id}/hide").status_code == 200
+
+    hidden = client.get("/api/v1/summaries")
+    assert hidden.status_code == 200
+    assert all(item["id"] != summary_id for item in hidden.json()["items"])
+    assert hidden.json()["hidden_count"] == 1
+
+    shown = client.get("/api/v1/summaries?include_hidden=true")
+    assert shown.status_code == 200
+    match = next(item for item in shown.json()["items"] if item["id"] == summary_id)
+    assert match["hidden"] is True
+    assert shown.json()["hidden_count"] == 1
+
+
+def test_org_admin_can_hide_member_summary(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    member = client.post(
+        "/api/v1/org/users",
+        json={"email": "sum@example.com", "password": "sumpass1", "role": "org_member"},
+    )
+    assert member.status_code == 200, member.text
+    logout(client)
+    login_ready(client, "sum@example.com", "sumpass1")
+    member_user_id = me(client)["user"]["id"]
+    _transcript_id, summary_id = _insert_transcript_and_summary(org_id, member_user_id)
+    logout(client)
+    login_ready(client, "lead@example.com", "leadpass1")
+    assert client.post(f"/api/v1/summaries/{summary_id}/hide").status_code == 200
+
+    hidden = client.get("/api/v1/summaries")
+    assert hidden.status_code == 200
+    assert all(item["id"] != summary_id for item in hidden.json()["items"])
+    assert hidden.json()["hidden_count"] == 1
+
+
 def test_list_transcripts_includes_source_filename(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

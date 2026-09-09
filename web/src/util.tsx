@@ -48,7 +48,7 @@ export function showError(err: unknown, opts?: { id?: string }) {
   toast.error(errorText(err, i18n.t.bind(i18n)), { id: opts?.id })
 }
 
-export function ShareBadges({ item }: { item: ShareBadge }) {
+export function ShareBadges({ item, showHidden = true }: { item: ShareBadge; showHidden?: boolean }) {
   const { t } = useTranslation()
   const sharedWith =
     item.shares?.map((s) => s.email).join(', ')
@@ -64,7 +64,7 @@ export function ShareBadges({ item }: { item: ShareBadge }) {
       {item.share_kind === 'outgoing' && !sharedWith && (
         <span className="badge out">{t('library.youShared')}</span>
       )}
-      {item.hidden && <span className="badge">{t('library.hidden')}</span>}
+      {showHidden && item.hidden && <span className="badge">{t('library.hidden')}</span>}
       {item.edited && <span className="badge">{t('summary.edited')}</span>}
     </span>
   )

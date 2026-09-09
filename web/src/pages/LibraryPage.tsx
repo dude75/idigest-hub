@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, Navigate, NavLink, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiUpload } from '../api'
-import { isOrgAdmin, useAuth } from '../auth'
+import { useAuth } from '../auth'
 import { isLibraryTab, libraryPath, type LibraryTab } from '../routes'
 import type { Audio, Summary, Transcript } from '../types'
 import { ShareBadges, fmtDate, showError } from '../util'
@@ -45,26 +45,29 @@ export function LibraryPage() {
   const nav = useNavigate()
   const tab: LibraryTab = isLibraryTab(tabParam) ? tabParam : 'audio'
   const [hidden, setHidden] = useState(false)
+  const [hiddenCount, setHiddenCount] = useState(0)
   const [audios, setAudios] = useState<Audio[]>([])
   const [transcripts, setTranscripts] = useState<Transcript[]>([])
   const [summaries, setSummaries] = useState<Summary[]>([])
   const [busy, setBusy] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{ name: string; percent: number } | null>(null)
-  const admin = isOrgAdmin(me)
   const hasOrg = Boolean(me?.org)
 
   async function load(activeTab: LibraryTab = tab) {
     try {
       const q = hidden ? '?include_hidden=true' : ''
       if (activeTab === 'audio') {
-        const r = await api<{ items: Audio[] }>(`/audios${q}`)
+        const r = await api<{ items: Audio[]; hidden_count: number }>(`/audios${q}`)
         setAudios(r.items)
+        setHiddenCount(r.hidden_count ?? 0)
       } else if (activeTab === 'transcripts') {
-        const r = await api<{ items: Transcript[] }>(`/transcripts${q}`)
+        const r = await api<{ items: Transcript[]; hidden_count: number }>(`/transcripts${q}`)
         setTranscripts(r.items)
+        setHiddenCount(r.hidden_count ?? 0)
       } else {
-        const r = await api<{ items: Summary[] }>('/summaries')
+        const r = await api<{ items: Summary[]; hidden_count: number }>(`/summaries${q}`)
         setSummaries(r.items)
+        setHiddenCount(r.hidden_count ?? 0)
       }
     } catch (e) {
       showError(e)
@@ -136,13 +139,10 @@ export function LibraryPage() {
           </NavLink>
         ))}
       </div>
-      {tab !== 'summaries' && !admin && (
-        <label className="row" style={{ marginBottom: 12 }}>
-          <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
-          {t('library.showHidden')}
-        </label>
-      )}
-      {admin && <p className="muted">{t('library.showHidden')}</p>}
+      <label className="row" style={{ marginBottom: 12 }}>
+        <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
+        {t('library.showHidden', { count: hiddenCount })}
+      </label>
       {tab === 'audio' && (
         <div className="list">
           {audios.length === 0 && <p className="muted">{t('common.empty')}</p>}
