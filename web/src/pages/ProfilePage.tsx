@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
+import { api, apiDownload } from '../api'
 import { useAuth } from '../auth'
 import { allowedDefaultRoutes, defaultRouteLabel, normalizeDefaultRoute, type DefaultRoute } from '../routes'
 import type { ApiToken } from '../types'
@@ -25,8 +25,14 @@ export function ProfilePage() {
     return stored && allowed.includes(stored) ? stored : allowed[0]
   })
 
+  const hasOrg = Boolean(me?.org)
   const apiAllowed = !me?.org || Boolean(me.org.tariff.api_enabled)
   const activeTokens = tokens.filter((tok) => !tok.revoked)
+  const [backupTranscripts, setBackupTranscripts] = useState(true)
+  const [backupSummaries, setBackupSummaries] = useState(true)
+  const [backupSkills, setBackupSkills] = useState(true)
+  const [backupFormat, setBackupFormat] = useState<'zip' | 'tgz'>('zip')
+  const [backingUp, setBackingUp] = useState(false)
 
   async function load() {
     const r = await api<{ items: ApiToken[] }>('/auth/tokens')
@@ -113,6 +119,29 @@ export function ProfilePage() {
     }
   }
 
+  async function downloadBackup() {
+    if (!backupTranscripts && !backupSummaries && !backupSkills) {
+      setErr(new Error(t('profile.backupNothingSelected')))
+      return
+    }
+    setErr(null)
+    setBackingUp(true)
+    try {
+      const params = new URLSearchParams()
+      if (backupTranscripts) params.set('transcripts', 'true')
+      if (backupSummaries) params.set('summaries', 'true')
+      if (backupSkills) params.set('skills', 'true')
+      params.set('format', backupFormat)
+      const ext = backupFormat === 'zip' ? 'zip' : 'tar.gz'
+      const stamp = new Date().toISOString().slice(0, 10)
+      await apiDownload(`/me/backup?${params}`, `idigest-backup-${stamp}.${ext}`)
+    } catch (e) {
+      setErr(e)
+    } finally {
+      setBackingUp(false)
+    }
+  }
+
   return (
     <div className="profile-page">
       <header className="profile-head">
@@ -171,6 +200,79 @@ export function ProfilePage() {
             {ok && <p className="ok">{t('profile.saved')}</p>}
           </div>
         </form>
+
+        {hasOrg && (
+          <section className="card stack profile-section profile-backup">
+            <div className="profile-section-head">
+              <h2>{t('profile.backup')}</h2>
+              <p className="muted profile-section-lead">{t('profile.backupLead')}</p>
+            </div>
+            <div className="profile-backup-body">
+              <div className="profile-backup-group">
+                <span className="profile-backup-label">{t('profile.backupInclude')}</span>
+                <div className="profile-backup-checks">
+                  <label className="profile-check-row">
+                    <input
+                      type="checkbox"
+                      checked={backupTranscripts}
+                      onChange={(e) => setBackupTranscripts(e.target.checked)}
+                    />
+                    {t('library.transcripts')}
+                  </label>
+                  <label className="profile-check-row">
+                    <input
+                      type="checkbox"
+                      checked={backupSummaries}
+                      onChange={(e) => setBackupSummaries(e.target.checked)}
+                    />
+                    {t('library.summaries')}
+                  </label>
+                  <label className="profile-check-row">
+                    <input
+                      type="checkbox"
+                      checked={backupSkills}
+                      onChange={(e) => setBackupSkills(e.target.checked)}
+                    />
+                    {t('nav.skills')}
+                  </label>
+                </div>
+              </div>
+              <div className="profile-backup-group">
+                <span className="profile-backup-label">{t('profile.backupFormat')}</span>
+                <div className="profile-backup-formats" role="radiogroup" aria-label={t('profile.backupFormat')}>
+                  <button
+                    type="button"
+                    className={backupFormat === 'zip' ? 'active' : ''}
+                    role="radio"
+                    aria-checked={backupFormat === 'zip'}
+                    onClick={() => setBackupFormat('zip')}
+                  >
+                    ZIP
+                  </button>
+                  <button
+                    type="button"
+                    className={backupFormat === 'tgz' ? 'active' : ''}
+                    role="radio"
+                    aria-checked={backupFormat === 'tgz'}
+                    onClick={() => setBackupFormat('tgz')}
+                  >
+                    TGZ
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="profile-actions profile-backup-actions">
+              <button
+                className="primary"
+                type="button"
+                disabled={backingUp || (!backupTranscripts && !backupSummaries && !backupSkills)}
+                onClick={() => void downloadBackup()}
+              >
+                {backingUp ? t('common.loading') : t('profile.downloadBackup')}
+              </button>
+            </div>
+          </section>
+        )}
 
         <section className="card stack profile-section profile-tokens">
           <div className="profile-section-head">

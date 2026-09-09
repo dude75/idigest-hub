@@ -188,7 +188,13 @@
     "revoke": "Revocar",
     "revoked": "revocado",
     "blockedTariff": "bloqueado por el plan",
-    "apiDisabled": "Su plan actual no permite tokens API. Las claves se conservan pero no funcionan."
+    "apiDisabled": "Su plan actual no permite tokens API. Las claves se conservan pero no funcionan.",
+    "backup": "Copia de seguridad",
+    "backupLead": "Descargue transcripciones, resúmenes y skills personales en un archivo.",
+    "backupInclude": "Incluir",
+    "backupFormat": "Formato del archivo",
+    "downloadBackup": "Descargar copia",
+    "backupNothingSelected": "Seleccione al menos un tipo de datos."
   },
   "instance": {
     "title": "Instancia",

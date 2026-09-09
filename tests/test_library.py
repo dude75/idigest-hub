@@ -377,6 +377,59 @@ def test_rename_transcript_and_summary(client):
     assert both.json()["edited"] is True
 
 
+def test_backup_zip_and_tgz(client):
+    import io
+    import json
+    import tarfile
+    import zipfile
+
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    transcript_id, summary_id = _insert_transcript_and_summary(org_id, user_id, audio.json()["id"])
+    skill = client.post("/api/v1/skills/self", json={"name": "My skill", "body": "# Notes\nKeep"})
+    assert skill.status_code == 200, skill.text
+
+    zip_resp = client.get(
+        "/api/v1/me/backup?transcripts=true&summaries=true&skills=true&format=zip"
+    )
+    assert zip_resp.status_code == 200, zip_resp.text
+    assert zip_resp.headers["content-type"] == "application/zip"
+    assert "attachment" in zip_resp.headers.get("content-disposition", "")
+
+    with zipfile.ZipFile(io.BytesIO(zip_resp.content)) as zf:
+        names = set(zf.namelist())
+        assert "manifest.json" in names
+        assert f"transcripts/{transcript_id}.json" in names
+        transcript_payload = json.loads(zf.read(f"transcripts/{transcript_id}.json"))
+        assert transcript_payload["utterances"][0]["text"] == "hi"
+        summary_md = [name for name in names if name.startswith("summaries/") and name.endswith(".md")]
+        assert len(summary_md) == 1
+        assert zf.read(summary_md[0]).decode() == "kept summary"
+        skill_md = [name for name in names if name.startswith("skills/") and name.endswith(".md")]
+        assert len(skill_md) == 1
+        assert zf.read(skill_md[0]).decode() == "# Notes\nKeep"
+        manifest = json.loads(zf.read("manifest.json"))
+        assert manifest["includes"] == ["transcripts", "summaries", "skills"]
+
+    tgz_resp = client.get("/api/v1/me/backup?summaries=true&format=tgz")
+    assert tgz_resp.status_code == 200, tgz_resp.text
+    assert tgz_resp.headers["content-type"] == "application/gzip"
+    with tarfile.open(fileobj=io.BytesIO(tgz_resp.content), mode="r:gz") as tf:
+        names = tf.getnames()
+        assert "manifest.json" in names
+        assert any(name.startswith("summaries/") and name.endswith(".md") for name in names)
+        assert not any(name.startswith("transcripts/") for name in names)
+
+    empty = client.get("/api/v1/me/backup")
+    assert empty.status_code == 400
+    assert err_code(empty) == "validation_error"
+
+
 def test_export_skill(client):
     setup_admin(client)
     skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "# Prompt\nDo it"})

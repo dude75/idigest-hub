@@ -188,7 +188,13 @@
     "revoke": "Revoke",
     "revoked": "revoked",
     "blockedTariff": "blocked by plan",
-    "apiDisabled": "Your current plan does not allow API tokens. Existing keys are kept but cannot be used."
+    "apiDisabled": "Your current plan does not allow API tokens. Existing keys are kept but cannot be used.",
+    "backup": "Data backup",
+    "backupLead": "Download your transcripts, summaries, and personal skills as an archive.",
+    "backupInclude": "Include",
+    "backupFormat": "Archive format",
+    "downloadBackup": "Download backup",
+    "backupNothingSelected": "Select at least one data type."
   },
   "instance": {
     "title": "Instance",

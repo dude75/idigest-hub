@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
@@ -49,6 +49,8 @@ from app.security import (
     verify_password,
 )
 from app.services.audit import write_audit
+from app.services.backup import build_backup
+from app.services.export import safe_filename
 from app.services.mail import send_mail, smtp_configured
 from app.rate_limit import (
     client_ip,
@@ -454,6 +456,32 @@ def reset_confirm(body: ResetConfirmBody, request: Request, db: Session = Depend
 @router.get("/me")
 def me(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
     return _me_payload(ctx, db)
+
+
+@router.get("/me/backup")
+def download_backup(
+    transcripts: bool = Query(False),
+    summaries: bool = Query(False),
+    skills: bool = Query(False),
+    format: str = Query("zip", pattern="^(zip|tgz)$"),
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+):
+    if not transcripts and not summaries and not skills:
+        ctx.raise_error(ErrorCode.validation_error)
+    content, filename, media_type = build_backup(
+        ctx,
+        db,
+        include_transcripts=transcripts,
+        include_summaries=summaries,
+        include_skills=skills,
+        archive_format=format,
+    )
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename(filename)}"'},
+    )
 
 
 @router.patch("/me")
