@@ -15,6 +15,12 @@ function utcDay(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
+function statsRangeForDays(days: number): { from: string; to: string } {
+  const to = new Date()
+  const from = new Date(to.getTime() - (days - 1) * 86400000)
+  return { from: utcDay(from), to: utcDay(to) }
+}
+
 function healthLabel(w: Worker): string {
   const health = w.last_health
   if (!health) return '—'
@@ -75,8 +81,8 @@ export function InstancePage() {
   const [snapshot, setSnapshot] = useState<InstanceSnapshot | null>(null)
   const [stats, setStats] = useState<InstanceStats | null>(null)
   const [statsOrgs, setStatsOrgs] = useState<Org[]>([])
-  const [fromDay, setFromDay] = useState('')
-  const [toDay, setToDay] = useState('')
+  const [fromDay, setFromDay] = useState(() => statsRangeForDays(7).from)
+  const [toDay, setToDay] = useState(() => statsRangeForDays(7).to)
   const [statsOrgId, setStatsOrgId] = useState('')
   const [statsUserId, setStatsUserId] = useState('')
   const [statsKind, setStatsKind] = useState('')
@@ -166,9 +172,9 @@ export function InstancePage() {
       setToDay(utcDay(to))
       return
     }
-    const from = new Date(to.getTime() - (days - 1) * 86400000)
-    setFromDay(utcDay(from))
-    setToDay(utcDay(to))
+    const range = statsRangeForDays(days)
+    setFromDay(range.from)
+    setToDay(range.to)
   }
 
   if (!allowed) return <Navigate to={LIBRARY_DEFAULT} replace />
