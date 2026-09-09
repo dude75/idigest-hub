@@ -230,3 +230,26 @@ export type InstanceStats = JobStats &
     summary_chars: number
     days: OrgStatsDay[]
   }
+
+export type OrgLedgerEntry = {
+  id: string
+  entry_type: 'charge' | 'wallet'
+  created_at: string
+  amount: string
+  usage_amount: string | null
+  kind: string | null
+  user_id: string | null
+  user_email: string | null
+  task_id: string | null
+  actor_email: string | null
+  unlimited_skip: boolean
+  audio_sec: number | null
+  summary_chars: number | null
+}
+
+export type OrgLedger = {
+  items: OrgLedgerEntry[]
+  total_spent: string
+  total_topup: string
+  net: string
+}

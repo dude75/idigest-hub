@@ -266,7 +266,20 @@
     "rateLimitConfirmGlobalHour": "Confirm global / час",
     "rateLimitPerUserMin": "На user / мин",
     "rateLimitTasksPerUserMin": "Создание task на user / мин",
-    "rateLimitTasksPerIpMin": "Создание task на IP / мин (0 = выкл.)"
+    "rateLimitTasksPerIpMin": "Создание task на IP / мин (0 = выкл.)",
+    "ledger": "Операции по кошельку",
+    "ledgerDate": "Дата",
+    "ledgerType": "Тип",
+    "ledgerAmount": "Сумма",
+    "ledgerCharge": "Списание",
+    "ledgerTopup": "Пополнение",
+    "ledgerWalletAdjust": "Корректировка",
+    "ledgerActor": "Администратор",
+    "ledgerTotalTopup": "Пополнено",
+    "ledgerTotalSpent": "Списано",
+    "ledgerNet": "Итого за период",
+    "ledgerUnlimitedSkip": "безлимит",
+    "openLedger": "Операции по кошельку"
   },
   "task": {
     "title": "Задачи",

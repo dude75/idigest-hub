@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
-import type { InstanceSettings, InstanceSnapshot, InstanceStats, Org, Skill, Tariff, Worker } from '../types'
+import { detectLedgerPreset, OrgLedgerModal } from '../components/OrgLedgerModal'
+import type { InstanceSettings, InstanceSnapshot, InstanceStats, Org, OrgLedger, Skill, Tariff, Worker } from '../types'
 import { formatAudioTime, fmtDate, showError, WalletLabel } from '../util'
 
 const MAX_UPLOAD = 1073741824
@@ -87,6 +88,12 @@ export function InstancePage() {
   const [statsUserId, setStatsUserId] = useState('')
   const [statsKind, setStatsKind] = useState('')
   const [deltas, setDeltas] = useState<Record<string, string>>({})
+  const [orgCard, setOrgCard] = useState<Org | null>(null)
+  const [orgLedger, setOrgLedger] = useState<OrgLedger | null>(null)
+  const [orgFromDay, setOrgFromDay] = useState(() => statsRangeForDays(7).from)
+  const [orgToDay, setOrgToDay] = useState(() => statsRangeForDays(7).to)
+  const [orgUserId, setOrgUserId] = useState('')
+  const [orgKind, setOrgKind] = useState('')
 
   const allowed = isInstanceAdmin(me)
 
@@ -105,6 +112,21 @@ export function InstancePage() {
     if (!statsOrgId) return []
     return statsOrgs.find((o) => o.id === statsOrgId)?.members || []
   }, [statsOrgs, statsOrgId])
+
+  const orgLedgerQuery = useMemo(() => {
+    const params = new URLSearchParams()
+    if (orgFromDay) params.set('from', orgFromDay)
+    if (orgToDay) params.set('to', orgToDay)
+    if (orgUserId) params.set('user_id', orgUserId)
+    if (orgKind) params.set('kind', orgKind)
+    const text = params.toString()
+    return text ? `?${text}` : ''
+  }, [orgFromDay, orgToDay, orgUserId, orgKind])
+
+  const orgActivePreset = useMemo(
+    () => detectLedgerPreset(orgFromDay, orgToDay, utcDay),
+    [orgFromDay, orgToDay],
+  )
 
   async function load() {
     try {
@@ -159,6 +181,23 @@ export function InstancePage() {
       .catch(showError)
   }, [allowed, tab, statsQuery])
 
+  useEffect(() => {
+    if (!allowed || !orgCard) return
+    api<OrgLedger>(`/orgs/${orgCard.id}/ledger${orgLedgerQuery}`)
+      .then(setOrgLedger)
+      .catch(showError)
+  }, [allowed, orgCard, orgLedgerQuery])
+
+  function openOrgCard(org: Org) {
+    const range = statsRangeForDays(7)
+    setOrgFromDay(range.from)
+    setOrgToDay(range.to)
+    setOrgUserId('')
+    setOrgKind('')
+    setOrgLedger(null)
+    setOrgCard(org)
+  }
+
   function statsPreset(days: number | 'month' | 'all') {
     if (days === 'all') {
       setFromDay('')
@@ -175,6 +214,24 @@ export function InstancePage() {
     const range = statsRangeForDays(days)
     setFromDay(range.from)
     setToDay(range.to)
+  }
+
+  function orgPreset(days: number | 'month' | 'all') {
+    if (days === 'all') {
+      setOrgFromDay('')
+      setOrgToDay('')
+      return
+    }
+    const to = new Date()
+    if (days === 'month') {
+      const start = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), 1))
+      setOrgFromDay(utcDay(start))
+      setOrgToDay(utcDay(to))
+      return
+    }
+    const range = statsRangeForDays(days)
+    setOrgFromDay(range.from)
+    setOrgToDay(range.to)
   }
 
   if (!allowed) return <Navigate to={LIBRARY_DEFAULT} replace />
@@ -503,10 +560,15 @@ export function InstancePage() {
       {tab === 'orgs' && (
         <div className="list">
           {orgs.map((o) => (
-            <div className="item stack" key={o.id}>
-              <div className="row">
-                <strong className="grow">{o.name}</strong>
-                <WalletLabel unlimited={o.unlimited} balance={o.balance} />
+            <div className="item org-item stack" key={o.id}>
+              <div className="org-item-head">
+                <button type="button" className="org-item-open" onClick={() => openOrgCard(o)}>
+                  <span className="org-item-name">{o.name}</span>
+                  <span className="org-item-hint">{t('instance.openLedger')}</span>
+                </button>
+                <div className="org-item-balance">
+                  <WalletLabel unlimited={o.unlimited} balance={o.balance} />
+                </div>
               </div>
               <label>
                 {t('org.tariff')}
@@ -620,6 +682,24 @@ export function InstancePage() {
 
           <button className="primary" type="button" onClick={() => void saveSettings()}>{t('common.save')}</button>
         </div>
+      )}
+
+      {orgCard && (
+        <OrgLedgerModal
+          org={orgCard}
+          ledger={orgLedger}
+          fromDay={orgFromDay}
+          toDay={orgToDay}
+          userId={orgUserId}
+          kind={orgKind}
+          activePreset={orgActivePreset}
+          onClose={() => setOrgCard(null)}
+          onFromDayChange={setOrgFromDay}
+          onToDayChange={setOrgToDay}
+          onUserIdChange={setOrgUserId}
+          onKindChange={setOrgKind}
+          onPreset={orgPreset}
+        />
       )}
 
       {tab === 'baseSkills' && (

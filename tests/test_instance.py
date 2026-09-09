@@ -2,10 +2,12 @@ from tests.conftest import (
     ADMIN_EMAIL,
     ADMIN_PASSWORD,
     add_worker,
+    create_tariff,
     default_tariff_id,
     err_code,
     login,
     logout,
+    me,
     seed_node_health,
     setup_admin,
     signup,
@@ -69,6 +71,59 @@ def test_instance_stats_counts_completed_jobs_and_audio_time(client, fake_worker
     assert body["audio_transcribed_sec"] == 35.0
     assert body["summary_chars"] == 2
     assert body["days"]
+
+
+def test_instance_org_ledger_shows_charges_and_wallet_topups(client, fake_workers):
+    setup_admin(client)
+    transcribe_worker = add_worker(client, type="transcribe", name="asr")
+    seed_node_health(transcribe_worker["id"])
+    paid = create_tariff(client, name="Metered ledger", price_per_audio_sec="1.000000")
+    logout(client)
+
+    assert signup(client, "ledger@example.com", "ledgerpass", paid["id"]).status_code == 200
+    org_id = me(client)["org"]["id"]
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    assert client.post(f"/api/v1/orgs/{org_id}/wallet", json={"delta": "20.00"}).status_code == 200
+    logout(client)
+    login(client, "ledger@example.com", "ledgerpass")
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    fake_workers.transcribe_mode = "success"
+    fake_workers.audio_duration_sec = 12.0
+    task = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert task.status_code == 202, task.text
+    assert task.json()["status"] == "success"
+
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    wallet = client.post(f"/api/v1/orgs/{org_id}/wallet", json={"delta": "5.00"})
+    assert wallet.status_code == 200, wallet.text
+
+    ledger = client.get(f"/api/v1/orgs/{org_id}/ledger")
+    assert ledger.status_code == 200, ledger.text
+    body = ledger.json()
+    assert body["total_topup"] == "25.00"
+    assert body["total_spent"] == "12.00"
+    types = {item["entry_type"] for item in body["items"]}
+    assert types == {"charge", "wallet"}
+    charge = next(item for item in body["items"] if item["entry_type"] == "charge")
+    assert charge["kind"] == "transcribe"
+    assert charge["user_email"] == "ledger@example.com"
+    topup = next(item for item in body["items"] if item["entry_type"] == "wallet")
+    assert topup["amount"] == "5.00"
+    assert topup["actor_email"] == ADMIN_EMAIL
+
+
+def test_instance_org_ledger_forbidden_for_non_admin(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "member@example.com", "memberpass", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    response = client.get(f"/api/v1/orgs/{org_id}/ledger")
+    assert response.status_code == 403
+    assert err_code(response) == "forbidden"
 
 
 def test_instance_stats_forbidden_for_non_admin(client):

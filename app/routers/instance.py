@@ -20,7 +20,7 @@ from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.routers.auth import seed_default_tariff
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
 from app.services.audit import write_audit
-from app.services.stats import parse_org_stats_range, usage_stats
+from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
 from app.timeutil import utcnow
 
 router = APIRouter()
@@ -357,6 +357,34 @@ def list_orgs(db: Session = Depends(get_session), ctx: AuthContext = Depends(req
                 payload["members"].append(user_public(user, membership.role))
         items.append(payload)
     return {"items": items}
+
+
+@router.get("/orgs/{org_id}/ledger")
+def org_ledger_ep(
+    org_id: str,
+    from_day: str | None = Query(None, alias="from"),
+    to_day: str | None = Query(None, alias="to"),
+    user_id: str | None = None,
+    kind: str | None = None,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _admin(ctx)
+    org = db.get(Organization, org_id)
+    if org is None:
+        ctx.raise_error(ErrorCode.not_found)
+    try:
+        start, end = parse_org_stats_range(from_day, to_day)
+    except ValueError:
+        ctx.raise_error(ErrorCode.validation_error)
+    return org_ledger(
+        db,
+        org_id,
+        start=start,
+        end=end,
+        user_id=(user_id or "").strip() or None,
+        kind=(kind or "").strip() or None,
+    )
 
 
 @router.patch("/orgs/{org_id}/tariff")

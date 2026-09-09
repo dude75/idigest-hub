@@ -266,7 +266,20 @@
     "rateLimitConfirmGlobalHour": "Confirm global / hora",
     "rateLimitPerUserMin": "Por usuario / min",
     "rateLimitTasksPerUserMin": "Crear task por usuario / min",
-    "rateLimitTasksPerIpMin": "Crear task por IP / min (0 = off)"
+    "rateLimitTasksPerIpMin": "Crear task por IP / min (0 = off)",
+    "ledger": "Operaciones de saldo",
+    "ledgerDate": "Fecha",
+    "ledgerType": "Tipo",
+    "ledgerAmount": "Importe",
+    "ledgerCharge": "Cargo",
+    "ledgerTopup": "Recarga",
+    "ledgerWalletAdjust": "Ajuste",
+    "ledgerActor": "Admin",
+    "ledgerTotalTopup": "Recargado",
+    "ledgerTotalSpent": "Cargado",
+    "ledgerNet": "Neto del periodo",
+    "ledgerUnlimitedSkip": "ilimitado",
+    "openLedger": "Operaciones de saldo"
   },
   "task": {
     "title": "Tareas",

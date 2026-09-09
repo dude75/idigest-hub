@@ -8,8 +8,8 @@ from decimal import Decimal
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Task, UsageEvent
-from app.money import money_str
+from app.models import AuditLog, Task, UsageEvent, User
+from app.money import money_str, parse_money
 from app.timeutil import as_utc
 
 
@@ -167,3 +167,99 @@ def parse_org_stats_range(from_day: str | None, to_day: str | None) -> tuple[dat
     if end is not None and end.hour == 0 and end.minute == 0 and end.second == 0 and "T" not in (to_day or ""):
         end = end + timedelta(days=1)
     return start, end
+
+
+def org_ledger(
+    db: Session,
+    org_id: str,
+    *,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    user_id: str | None = None,
+    kind: str | None = None,
+) -> dict:
+    entries: list[dict] = []
+    user_cache: dict[str, str | None] = {}
+    total_spent = Decimal("0.00")
+    total_topup = Decimal("0.00")
+    net = Decimal("0.00")
+
+    usage_filters = [UsageEvent.org_id == org_id]
+    if start is not None:
+        usage_filters.append(UsageEvent.created_at >= start)
+    if end is not None:
+        usage_filters.append(UsageEvent.created_at < end)
+    if user_id:
+        usage_filters.append(UsageEvent.user_id == user_id)
+    if kind in {"transcribe", "summarize"}:
+        usage_filters.append(UsageEvent.kind == kind)
+
+    for event in db.scalars(select(UsageEvent).where(*usage_filters)).all():
+        if event.user_id not in user_cache:
+            user = db.get(User, event.user_id)
+            user_cache[event.user_id] = user.email if user else None
+        usage_amount = Decimal(event.amount)
+        impact = Decimal("0.00") if event.unlimited_skip else -usage_amount
+        total_spent += -impact
+        net += impact
+        entries.append(
+            {
+                "id": event.id,
+                "entry_type": "charge",
+                "created_at": as_utc(event.created_at).isoformat(),
+                "amount": money_str(impact),
+                "usage_amount": money_str(usage_amount),
+                "kind": event.kind,
+                "user_id": event.user_id,
+                "user_email": user_cache[event.user_id],
+                "task_id": event.task_id,
+                "actor_email": None,
+                "unlimited_skip": event.unlimited_skip,
+                "audio_sec": event.audio_sec,
+                "summary_chars": event.summary_chars,
+            }
+        )
+
+    if not user_id and kind not in {"transcribe", "summarize"}:
+        audit_filters = [AuditLog.action == "wallet.delta"]
+        if start is not None:
+            audit_filters.append(AuditLog.created_at >= start)
+        if end is not None:
+            audit_filters.append(AuditLog.created_at < end)
+        for row in db.scalars(select(AuditLog).where(*audit_filters)).all():
+            payload = row.payload_json or {}
+            if payload.get("org_id") != org_id:
+                continue
+            delta = parse_money(str(payload.get("delta", "0")))
+            actor_email = None
+            if row.actor_user_id:
+                actor = db.get(User, row.actor_user_id)
+                actor_email = actor.email if actor else None
+            if delta > 0:
+                total_topup += delta
+            net += delta
+            entries.append(
+                {
+                    "id": row.id,
+                    "entry_type": "wallet",
+                    "created_at": as_utc(row.created_at).isoformat(),
+                    "amount": money_str(delta),
+                    "usage_amount": None,
+                    "kind": None,
+                    "user_id": None,
+                    "user_email": None,
+                    "task_id": None,
+                    "actor_email": actor_email,
+                    "unlimited_skip": False,
+                    "audio_sec": None,
+                    "summary_chars": None,
+                }
+            )
+
+    entries.sort(key=lambda row: row["created_at"], reverse=True)
+    return {
+        "items": entries,
+        "total_spent": money_str(total_spent),
+        "total_topup": money_str(total_topup),
+        "net": money_str(net),
+    }
