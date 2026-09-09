@@ -5,7 +5,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { resolveHomePath } from '../routes'
-import { ErrorBox } from '../util'
+import { showError } from '../util'
 
 export function LoginPage() {
   const { t } = useTranslation()
@@ -13,7 +13,6 @@ export function LoginPage() {
   const nav = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [err, setErr] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
@@ -22,13 +21,12 @@ export function LoginPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    setErr(null)
     try {
       await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
       await refresh()
       nav('/app', { replace: true })
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -41,7 +39,6 @@ export function LoginPage() {
           <h1 className="grow">{t('auth.login')}</h1>
           <LanguageSwitcher />
         </div>
-        <ErrorBox err={err} />
         <label>
           {t('common.email')}
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

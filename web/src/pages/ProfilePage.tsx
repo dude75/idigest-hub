@@ -4,7 +4,7 @@ import { api, apiDownload } from '../api'
 import { useAuth } from '../auth'
 import { allowedDefaultRoutes, defaultRouteLabel, normalizeDefaultRoute, type DefaultRoute } from '../routes'
 import type { ApiToken } from '../types'
-import { ErrorBox, fmtDate } from '../util'
+import { fmtDate, showError } from '../util'
 
 export function ProfilePage() {
   const { t } = useTranslation()
@@ -16,7 +16,6 @@ export function ProfilePage() {
   const [secret, setSecret] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [creating, setCreating] = useState(false)
-  const [err, setErr] = useState<unknown>(null)
   const [ok, setOk] = useState(false)
   const [routeOk, setRouteOk] = useState(false)
   const [defaultRoute, setDefaultRouteLocal] = useState<DefaultRoute>(() => {
@@ -40,7 +39,7 @@ export function ProfilePage() {
   }
 
   useEffect(() => {
-    load().catch(setErr)
+    load().catch(showError)
   }, [])
 
   useEffect(() => {
@@ -50,20 +49,18 @@ export function ProfilePage() {
   }, [me])
 
   async function saveDefaultRoute() {
-    setErr(null)
     setRouteOk(false)
     setOk(false)
     try {
       await setDefaultRoute(defaultRoute)
       setRouteOk(true)
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
   async function changePw(e: FormEvent) {
     e.preventDefault()
-    setErr(null)
     setOk(false)
     setRouteOk(false)
     try {
@@ -76,14 +73,13 @@ export function ProfilePage() {
       setOk(true)
       await refresh()
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
   async function createToken() {
     const name = tokenName.trim()
     if (!name || !apiAllowed) return
-    setErr(null)
     setCopied(false)
     setCreating(true)
     try {
@@ -92,7 +88,7 @@ export function ProfilePage() {
       setTokenName('')
       await load()
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setCreating(false)
     }
@@ -110,21 +106,19 @@ export function ProfilePage() {
   }
 
   async function revoke(id: string) {
-    setErr(null)
     try {
       await api(`/auth/tokens/${id}`, { method: 'DELETE' })
       await load()
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
   async function downloadBackup() {
     if (!backupTranscripts && !backupSummaries && !backupSkills) {
-      setErr(new Error(t('profile.backupNothingSelected')))
+      showError(new Error(t('profile.backupNothingSelected')))
       return
     }
-    setErr(null)
     setBackingUp(true)
     try {
       const params = new URLSearchParams()
@@ -136,7 +130,7 @@ export function ProfilePage() {
       const stamp = new Date().toISOString().slice(0, 10)
       await apiDownload(`/me/backup?${params}`, `idigest-backup-${stamp}.${ext}`)
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBackingUp(false)
     }
@@ -150,8 +144,6 @@ export function ProfilePage() {
           <p className="muted profile-email">{me?.user.email}</p>
         </div>
       </header>
-
-      <ErrorBox err={err} />
 
       <div className="profile-grid">
         <section className="card stack profile-section">

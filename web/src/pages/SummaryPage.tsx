@@ -8,7 +8,7 @@ import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
 import { libraryPath } from '../routes'
 import type { Summary } from '../types'
-import { ErrorBox, ShareBadges, fmtDate } from '../util'
+import { ShareBadges, fmtDate, showError } from '../util'
 
 export function SummaryPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,7 +18,7 @@ export function SummaryPage() {
   const [item, setItem] = useState<Summary | null>(null)
   const [draft, setDraft] = useState('')
   const [editing, setEditing] = useState(false)
-  const [err, setErr] = useState<unknown>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
   const [busy, setBusy] = useState(false)
   const canDelete = item && (item.owner_user_id === me?.user.id || isOrgAdmin(me))
@@ -33,13 +33,17 @@ export function SummaryPage() {
   }
 
   useEffect(() => {
-    load().catch(setErr)
+    load()
+      .then(() => setLoadFailed(false))
+      .catch((e) => {
+        setLoadFailed(true)
+        showError(e)
+      })
   }, [id])
 
   async function save() {
     if (!id) return
     setBusy(true)
-    setErr(null)
     try {
       const next = await api<Summary>(`/summaries/${id}`, {
         method: 'PATCH',
@@ -49,7 +53,7 @@ export function SummaryPage() {
       setDraft(next.body || '')
       setEditing(false)
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -64,7 +68,6 @@ export function SummaryPage() {
   async function renameTitle(title: string) {
     if (!id) return
     setBusy(true)
-    setErr(null)
     try {
       const next = await api<Summary>(`/summaries/${id}`, {
         method: 'PATCH',
@@ -72,14 +75,14 @@ export function SummaryPage() {
       })
       setItem(next)
     } catch (e) {
-      setErr(e)
+      showError(e)
       throw e
     } finally {
       setBusy(false)
     }
   }
 
-  if (!item && !err) return <p className="muted">{t('common.loading')}</p>
+  if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
@@ -94,7 +97,6 @@ export function SummaryPage() {
       ) : (
         <h1>{t('summary.title')}</h1>
       )}
-      <ErrorBox err={err} />
       {item && (
         <>
           <div className="row">
@@ -109,7 +111,7 @@ export function SummaryPage() {
           <div className="row" style={{ margin: '8px 0' }}>
             <button
               type="button"
-              onClick={() => void apiDownload(`/summaries/${item.id}/export?format=md`).catch(setErr)}
+              onClick={() => void apiDownload(`/summaries/${item.id}/export?format=md`).catch(showError)}
             >
               {t('common.downloadMd')}
             </button>

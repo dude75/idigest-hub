@@ -4,13 +4,12 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
-import { ErrorBox } from '../util'
+import { showError } from '../util'
 
 export function ForgotPage() {
   const { t } = useTranslation()
   const { ready, bootstrapDone } = useAuth()
   const [email, setEmail] = useState('')
-  const [err, setErr] = useState<unknown>(null)
   const [ok, setOk] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -19,12 +18,11 @@ export function ForgotPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    setErr(null)
     try {
       await api('/auth/password/reset/request', { method: 'POST', body: JSON.stringify({ email }) })
       setOk(true)
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -37,7 +35,6 @@ export function ForgotPage() {
           <h1 className="grow">{t('auth.forgot')}</h1>
           <LanguageSwitcher />
         </div>
-        <ErrorBox err={err} />
         {ok && <p className="ok">{t('auth.sent')}</p>}
         <label>
           {t('common.email')}

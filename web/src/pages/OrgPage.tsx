@@ -5,7 +5,7 @@ import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Org, Tariff, User } from '../types'
-import { ErrorBox, WalletLabel } from '../util'
+import { showError, WalletLabel } from '../util'
 
 export function OrgPage() {
   const { t } = useTranslation()
@@ -24,7 +24,6 @@ export function OrgPage() {
   const [action, setAction] = useState<'transfer' | 'wipe'>('wipe')
   const [target, setTarget] = useState('')
   const [tempPw, setTempPw] = useState<string | null>(null)
-  const [err, setErr] = useState<unknown>(null)
   const admin = isOrgAdmin(me)
   const hasOrg = Boolean(me?.org)
 
@@ -44,7 +43,7 @@ export function OrgPage() {
 
   useEffect(() => {
     if (!hasOrg) return
-    load().catch(setErr)
+    load().catch(showError)
   }, [hasOrg])
 
   if (!hasOrg) return <Navigate to="/app/profile" replace />
@@ -67,14 +66,13 @@ export function OrgPage() {
   }
 
   async function addUser() {
-    setErr(null)
     try {
       await api('/org/users', { method: 'POST', body: JSON.stringify({ email, password, role }) })
       setEmail('')
       setPassword('')
       await load()
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
@@ -95,7 +93,6 @@ export function OrgPage() {
 
   async function offboard() {
     if (!offUser) return
-    setErr(null)
     try {
       await api(`/org/users/${offUser.id}/offboard`, {
         method: 'POST',
@@ -104,14 +101,13 @@ export function OrgPage() {
       setOffUser(null)
       await load()
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
   return (
     <div>
       <h1>{t('org.title')}</h1>
-      <ErrorBox err={err} />
       {org && (
         <div className="card stack">
           <label>

@@ -5,7 +5,7 @@ import { api, apiUpload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { isLibraryTab, libraryPath, type LibraryTab } from '../routes'
 import type { Audio, Summary, Transcript } from '../types'
-import { ErrorBox, ShareBadges, fmtDate } from '../util'
+import { ShareBadges, fmtDate, showError } from '../util'
 
 type SourceGroup<T> = {
   key: string
@@ -48,14 +48,12 @@ export function LibraryPage() {
   const [audios, setAudios] = useState<Audio[]>([])
   const [transcripts, setTranscripts] = useState<Transcript[]>([])
   const [summaries, setSummaries] = useState<Summary[]>([])
-  const [err, setErr] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{ name: string; percent: number } | null>(null)
   const admin = isOrgAdmin(me)
   const hasOrg = Boolean(me?.org)
 
   async function load(activeTab: LibraryTab = tab) {
-    setErr(null)
     try {
       const q = hidden ? '?include_hidden=true' : ''
       if (activeTab === 'audio') {
@@ -69,7 +67,7 @@ export function LibraryPage() {
         setSummaries(r.items)
       }
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
@@ -85,7 +83,6 @@ export function LibraryPage() {
 
   async function upload(file: File) {
     setBusy(true)
-    setErr(null)
     setUploadProgress({ name: file.name, percent: 0 })
     try {
       const body = new FormData()
@@ -97,7 +94,7 @@ export function LibraryPage() {
       setAudios((prev) => [item, ...prev.filter((a) => a.id !== item.id)])
       await load('audio')
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
       setUploadProgress(null)
@@ -146,7 +143,6 @@ export function LibraryPage() {
         </label>
       )}
       {admin && <p className="muted">{t('library.showHidden')}</p>}
-      <ErrorBox err={err} />
       {tab === 'audio' && (
         <div className="list">
           {audios.length === 0 && <p className="muted">{t('common.empty')}</p>}

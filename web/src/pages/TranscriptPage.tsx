@@ -7,7 +7,7 @@ import { InlineRename } from '../components/InlineRename'
 import { ShareDialog } from '../components/ShareDialog'
 import { libraryPath } from '../routes'
 import type { Skill, Task, Transcript } from '../types'
-import { ErrorBox, ShareBadges, fmtDate } from '../util'
+import { ShareBadges, fmtDate, showError } from '../util'
 
 export function TranscriptPage() {
   const { id } = useParams<{ id: string }>()
@@ -17,7 +17,7 @@ export function TranscriptPage() {
   const [item, setItem] = useState<Transcript | null>(null)
   const [skills, setSkills] = useState<Skill[]>([])
   const [picked, setPicked] = useState<Record<string, boolean>>({})
-  const [err, setErr] = useState<unknown>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
   const [busy, setBusy] = useState(false)
   const [openText, setOpenText] = useState(false)
@@ -37,18 +37,22 @@ export function TranscriptPage() {
 
   useEffect(() => {
     setOpenText(false)
-    load().catch(setErr)
+    load()
+      .then(() => setLoadFailed(false))
+      .catch((e) => {
+        setLoadFailed(true)
+        showError(e)
+      })
   }, [id])
 
   async function summarize() {
     if (!id) return
     const skill_ids = Object.entries(picked).filter(([, v]) => v).map(([sid]) => sid)
     if (skill_ids.length === 0) {
-      setErr(new Error(t('transcript.needSkills')))
+      showError(new Error(t('transcript.needSkills')))
       return
     }
     setBusy(true)
-    setErr(null)
     try {
       const task = await api<Task>('/tasks/summarize', {
         method: 'POST',
@@ -56,7 +60,7 @@ export function TranscriptPage() {
       })
       nav(`/app/task/${task.task_id}`)
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -77,7 +81,6 @@ export function TranscriptPage() {
   async function renameTitle(title: string) {
     if (!id) return
     setBusy(true)
-    setErr(null)
     try {
       const next = await api<Transcript>(`/transcripts/${id}`, {
         method: 'PATCH',
@@ -85,14 +88,14 @@ export function TranscriptPage() {
       })
       setItem((prev) => (prev ? { ...prev, ...next } : next))
     } catch (e) {
-      setErr(e)
+      showError(e)
       throw e
     } finally {
       setBusy(false)
     }
   }
 
-  if (!item && !err) return <p className="muted">{t('common.loading')}</p>
+  if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
@@ -107,7 +110,6 @@ export function TranscriptPage() {
       ) : (
         <h1>{t('transcript.title')}</h1>
       )}
-      <ErrorBox err={err} />
       {item && (
         <>
           <div className="row">
@@ -122,13 +124,13 @@ export function TranscriptPage() {
           <div className="row" style={{ margin: '8px 0' }}>
             <button
               type="button"
-              onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=txt`).catch(setErr)}
+              onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=txt`).catch(showError)}
             >
               {t('common.downloadTxt')}
             </button>
             <button
               type="button"
-              onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=json`).catch(setErr)}
+              onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=json`).catch(showError)}
             >
               {t('common.downloadJson')}
             </button>

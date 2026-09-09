@@ -518,3 +518,14 @@ audio { width: 100%; }
   .topbar { flex-wrap: wrap; }
   .hide-sm { display: none; }
 }
+
+[data-sonner-toaster][data-sonner-theme='light'] {
+  --normal-bg: var(--card);
+  --normal-border: var(--line);
+  --normal-text: var(--ink);
+  font-family: inherit;
+}
+[data-sonner-toaster][data-position='top-right'] {
+  top: 1rem;
+  right: 1rem;
+}

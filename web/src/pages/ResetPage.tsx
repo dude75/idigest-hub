@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
-import { ErrorBox } from '../util'
+import { showError } from '../util'
 
 export function ResetPage() {
   const { t } = useTranslation()
@@ -12,7 +12,6 @@ export function ResetPage() {
   const [params] = useSearchParams()
   const token = params.get('token') || ''
   const [password, setPassword] = useState('')
-  const [err, setErr] = useState<unknown>(null)
   const [ok, setOk] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -21,7 +20,6 @@ export function ResetPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    setErr(null)
     try {
       await api('/auth/password/reset/confirm', {
         method: 'POST',
@@ -29,7 +27,7 @@ export function ResetPage() {
       })
       setOk(true)
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -42,7 +40,6 @@ export function ResetPage() {
           <h1 className="grow">{t('auth.reset')}</h1>
           <LanguageSwitcher />
         </div>
-        <ErrorBox err={err} />
         {ok ? (
           <>
             <p className="ok">{t('auth.resetDone')}</p>

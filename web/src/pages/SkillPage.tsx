@@ -7,7 +7,7 @@ import { InlineRename } from '../components/InlineRename'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
 import type { Skill } from '../types'
-import { ErrorBox, fmtDate } from '../util'
+import { fmtDate, showError } from '../util'
 
 function skillPath(skill: Skill): string {
   if (skill.scope === 'base') return `/skills/base/${skill.id}`
@@ -24,7 +24,7 @@ export function SkillPage() {
   const [name, setName] = useState('')
   const [draft, setDraft] = useState('')
   const [editing, setEditing] = useState(false)
-  const [err, setErr] = useState<unknown>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
   const [busy, setBusy] = useState(false)
   const instance = isInstanceAdmin(me)
@@ -50,13 +50,17 @@ export function SkillPage() {
 
   useEffect(() => {
     setEditing(false)
-    load().catch(setErr)
+    load()
+      .then(() => setLoadFailed(false))
+      .catch((e) => {
+        setLoadFailed(true)
+        showError(e)
+      })
   }, [id, hasOrg])
 
   async function save() {
     if (!item) return
     setBusy(true)
-    setErr(null)
     try {
       const next = await api<Skill>(skillPath(item), {
         method: 'PATCH',
@@ -67,7 +71,7 @@ export function SkillPage() {
       setDraft(next.body || '')
       setEditing(false)
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -88,7 +92,6 @@ export function SkillPage() {
   async function renameSkill(nextName: string) {
     if (!item) return
     setBusy(true)
-    setErr(null)
     try {
       const next = await api<Skill>(skillPath(item), {
         method: 'PATCH',
@@ -97,14 +100,14 @@ export function SkillPage() {
       setItem({ ...item, ...next })
       setName(next.name)
     } catch (e) {
-      setErr(e)
+      showError(e)
       throw e
     } finally {
       setBusy(false)
     }
   }
 
-  if (!item && !err) return <p className="muted">{t('common.loading')}</p>
+  if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
@@ -119,7 +122,6 @@ export function SkillPage() {
       ) : (
         <h1>{t('skills.title')}</h1>
       )}
-      <ErrorBox err={err} />
       {item && (
         <>
           <div className="row">
@@ -129,7 +131,7 @@ export function SkillPage() {
           <div className="row" style={{ margin: '8px 0' }}>
             <button
               type="button"
-              onClick={() => void apiDownload(`/skills/${item.id}/export`, `${item.name}.md`).catch(setErr)}
+              onClick={() => void apiDownload(`/skills/${item.id}/export`, `${item.name}.md`).catch(showError)}
             >
               {t('common.downloadMd')}
             </button>

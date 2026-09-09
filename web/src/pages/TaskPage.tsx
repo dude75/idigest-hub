@@ -3,14 +3,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import type { Task } from '../types'
-import { ErrorBox } from '../util'
+import { showError } from '../util'
 
 export function TaskPage() {
   const { id } = useParams<{ id: string }>()
   const { t } = useTranslation()
   const nav = useNavigate()
   const [task, setTask] = useState<Task | null>(null)
-  const [err, setErr] = useState<unknown>(null)
 
   useEffect(() => {
     if (!id) return
@@ -32,7 +31,7 @@ export function TaskPage() {
           nav(`/app/summary/${next.summary_id}`, { replace: true })
         }
       } catch (e) {
-        if (!stop) setErr(e)
+        if (!stop) showError(e, { id: 'task-poll' })
       }
     }
     void poll()
@@ -45,7 +44,7 @@ export function TaskPage() {
       await api(`/tasks/${id}`, { method: 'DELETE' })
       nav('/app/tasks')
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
@@ -53,7 +52,6 @@ export function TaskPage() {
     <div className="card stack">
       <Link to="/app/tasks">{t('common.back')}</Link>
       <h1>{t('task.working', { status: task?.status || '…' })}</h1>
-      <ErrorBox err={err} />
       {task?.error && <p className="err">{t(`errors.${task.error.code}`, { defaultValue: t('task.failed') })}</p>}
       {task?.status === 'queued' && (
         <button type="button" onClick={() => void cancel()}>{t('task.cancel')}</button>

@@ -5,7 +5,7 @@ import { api } from '../api'
 import { isInstanceAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { InstanceSettings, InstanceStats, Org, Skill, Tariff, Worker } from '../types'
-import { ErrorBox, formatAudioTime, fmtDate, WalletLabel } from '../util'
+import { formatAudioTime, fmtDate, showError, WalletLabel } from '../util'
 
 const MAX_UPLOAD = 1073741824
 type Tab = 'workers' | 'tariffs' | 'orgs' | 'settings' | 'baseSkills' | 'stats'
@@ -56,7 +56,6 @@ export function InstancePage() {
   function setTab(id: Tab) {
     setSearch(id === 'stats' ? {} : { tab: id }, { replace: true })
   }
-  const [err, setErr] = useState<unknown>(null)
   const [workers, setWorkers] = useState<Worker[]>([])
   const [wform, setWform] = useState(emptyWorker)
   const [editW, setEditW] = useState<string | null>(null)
@@ -75,7 +74,6 @@ export function InstancePage() {
   const allowed = isInstanceAdmin(me)
 
   async function load() {
-    setErr(null)
     try {
       if (tab === 'workers') {
         setWorkers((await api<{ items: Worker[] }>('/workers')).items)
@@ -96,7 +94,7 @@ export function InstancePage() {
         setStats(await api<InstanceStats>('/instance/stats'))
       }
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
@@ -181,7 +179,6 @@ export function InstancePage() {
           </button>
         ))}
       </div>
-      <ErrorBox err={err} />
 
       {tab === 'stats' && stats && (
         <div className="card stack">
@@ -304,7 +301,7 @@ export function InstancePage() {
                     ) : (
                       <button type="button" onClick={() => void api(`/tariffs/${tr.id}/archive`, { method: 'POST' }).then(load)}>{t('instance.archive')}</button>
                     )}
-                    <button type="button" className="danger" onClick={() => void api(`/tariffs/${tr.id}`, { method: 'DELETE' }).then(load).catch(setErr)}>{t('common.delete')}</button>
+                    <button type="button" className="danger" onClick={() => void api(`/tariffs/${tr.id}`, { method: 'DELETE' }).then(load).catch(showError)}>{t('common.delete')}</button>
                   </td>
                 </tr>
               ))}

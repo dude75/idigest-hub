@@ -6,7 +6,7 @@ import { isOrgAdmin, useAuth } from '../auth'
 import { ShareDialog } from '../components/ShareDialog'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Audio, Task } from '../types'
-import { ErrorBox, ShareBadges, fmtDate } from '../util'
+import { ShareBadges, fmtDate, showError } from '../util'
 
 export function AudioPage() {
   const { id } = useParams<{ id: string }>()
@@ -14,7 +14,7 @@ export function AudioPage() {
   const { me, refresh } = useAuth()
   const nav = useNavigate()
   const [item, setItem] = useState<Audio | null>(null)
-  const [err, setErr] = useState<unknown>(null)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
   const [busy, setBusy] = useState(false)
   const admin = isOrgAdmin(me)
@@ -24,8 +24,10 @@ export function AudioPage() {
     if (!id) return
     try {
       setItem(await api<Audio>(`/audios/${id}`))
+      setLoadFailed(false)
     } catch (e) {
-      setErr(e)
+      setLoadFailed(true)
+      showError(e)
     }
   }
 
@@ -36,12 +38,11 @@ export function AudioPage() {
   async function transcribe() {
     if (!id) return
     setBusy(true)
-    setErr(null)
     try {
       const task = await api<Task>('/tasks/transcribe', { method: 'POST', body: JSON.stringify({ audio_id: id }) })
       nav(`/app/task/${task.task_id}`)
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -60,13 +61,12 @@ export function AudioPage() {
     nav(LIBRARY_DEFAULT)
   }
 
-  if (!item && !err) return <p className="muted">{t('common.loading')}</p>
+  if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
       <Link to={LIBRARY_DEFAULT}>{t('common.back')}</Link>
       <h1>{item?.filename || t('audio.title')}</h1>
-      <ErrorBox err={err} />
       {item && (
         <>
           <div className="row">
@@ -79,7 +79,7 @@ export function AudioPage() {
             {item.can_transcribe && (
               <button
                 type="button"
-                onClick={() => void apiDownload(`/audios/${item.id}/file?download=1`, item.filename).catch(setErr)}
+                onClick={() => void apiDownload(`/audios/${item.id}/file?download=1`, item.filename).catch(showError)}
               >
                 {t('common.download')}
               </button>

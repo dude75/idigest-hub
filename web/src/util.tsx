@@ -1,5 +1,7 @@
+import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from './api'
+import i18n from './i18n'
 import type { ShareBadge } from './types'
 
 export function formatAudioTime(
@@ -37,13 +39,13 @@ export function errorText(err: unknown, t: (key: string) => string): string {
     const translated = t(key)
     return translated === key ? err.message || t('errors.generic') : translated
   }
+  if (err instanceof Error && err.message) return err.message
   return t('errors.generic')
 }
 
-export function ErrorBox({ err }: { err: unknown }) {
-  const { t } = useTranslation()
-  if (!err) return null
-  return <p className="err" role="alert">{errorText(err, t)}</p>
+export function showError(err: unknown, opts?: { id?: string }) {
+  if (!err) return
+  toast.error(errorText(err, i18n.t.bind(i18n)), { id: opts?.id })
 }
 
 export function ShareBadges({ item }: { item: ShareBadge }) {

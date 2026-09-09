@@ -6,7 +6,7 @@ import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { resolveHomePath } from '../routes'
 import type { Tariff } from '../types'
-import { ErrorBox } from '../util'
+import { showError } from '../util'
 
 export function SignupPage() {
   const { t, i18n } = useTranslation()
@@ -18,7 +18,6 @@ export function SignupPage() {
   const [password, setPassword] = useState('')
   const [tariffId, setTariffId] = useState('')
   const [tariffs, setTariffs] = useState<Tariff[]>([])
-  const [err, setErr] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -28,7 +27,7 @@ export function SignupPage() {
         const match = r.items.find((item) => item.id === wanted)
         setTariffId((match || r.items[0])?.id || '')
       })
-      .catch(setErr)
+      .catch(showError)
   }, [wanted])
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
@@ -37,7 +36,6 @@ export function SignupPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    setErr(null)
     try {
       await api('/auth/signup', {
         method: 'POST',
@@ -46,7 +44,7 @@ export function SignupPage() {
       await refresh()
       nav('/app', { replace: true })
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -59,7 +57,6 @@ export function SignupPage() {
           <h1 className="grow">{t('auth.signup')}</h1>
           <LanguageSwitcher />
         </div>
-        <ErrorBox err={err} />
         {tariffs.length === 0 ? (
           <p className="muted">{t('auth.noSignup')}</p>
         ) : (

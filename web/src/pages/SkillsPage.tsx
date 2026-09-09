@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import type { Skill } from '../types'
-import { ErrorBox, fmtDate } from '../util'
+import { fmtDate, showError } from '../util'
 
 const FILTERS = ['all', 'base', 'org', 'self', 'shared'] as const
 
@@ -13,7 +13,6 @@ export function SkillsPage() {
   const { me } = useAuth()
   const [items, setItems] = useState<Skill[]>([])
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all')
-  const [err, setErr] = useState<unknown>(null)
   const [name, setName] = useState('')
   const [body, setBody] = useState('')
   const admin = isOrgAdmin(me)
@@ -27,14 +26,13 @@ export function SkillsPage() {
 
   useEffect(() => {
     if (!hasOrg) return
-    load().catch(setErr)
+    load().catch(showError)
   }, [filter, hasOrg])
 
   const shown = useMemo(() => items, [items])
   if (!hasOrg) return <Navigate to="/app/profile" replace />
 
   async function create(kind: 'self' | 'org') {
-    setErr(null)
     try {
       const path = kind === 'self' ? '/skills/self' : '/org/skills'
       await api(path, { method: 'POST', body: JSON.stringify({ name, body }) })
@@ -42,7 +40,7 @@ export function SkillsPage() {
       setBody('')
       await load()
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
@@ -56,7 +54,6 @@ export function SkillsPage() {
           </button>
         ))}
       </div>
-      <ErrorBox err={err} />
       <div className="card stack" style={{ marginBottom: 16 }}>
         <h2>{t('skills.newSelf')}</h2>
         <label>

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import type { Org, Task, User } from '../types'
-import { ErrorBox, fmtDate } from '../util'
+import { fmtDate, showError } from '../util'
 
 const ACTIVE = new Set(['queued', 'running'])
 const PAGE_SIZES = [10, 50, 100] as const
@@ -49,7 +49,6 @@ export function TasksPage() {
   const { t } = useTranslation()
   const { me } = useAuth()
   const [items, setItems] = useState<Task[]>([])
-  const [err, setErr] = useState<unknown>(null)
   const [pageSize, setPageSize] = useState<PageSize>(10)
   const [page, setPage] = useState(0)
   const [orgs, setOrgs] = useState<Org[]>([])
@@ -71,9 +70,8 @@ export function TasksPage() {
     try {
       const r = await api<{ items: Task[] }>(tasksPath(orgId, userId))
       setItems(r.items)
-      setErr(null)
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
@@ -90,7 +88,7 @@ export function TasksPage() {
           if (!stop) setOrgUsers(r.items)
         }
       } catch (e) {
-        if (!stop) setErr(e)
+        if (!stop) showError(e)
       }
     }
     void loadFilters()
@@ -108,12 +106,11 @@ export function TasksPage() {
         const r = await api<{ items: Task[] }>(tasksPath(orgId, userId))
         if (stop) return
         setItems(r.items)
-        setErr(null)
         const active = r.items.some((item) => ACTIVE.has(item.status))
         timer = window.setTimeout(() => { void tick() }, active ? 1500 : 8000)
       } catch (e) {
         if (!stop) {
-          setErr(e)
+          showError(e, { id: 'tasks-poll' })
           timer = window.setTimeout(() => { void tick() }, 8000)
         }
       }
@@ -126,12 +123,11 @@ export function TasksPage() {
   }, [orgId, userId])
 
   async function cancel(id: string) {
-    setErr(null)
     try {
       await api(`/tasks/${id}`, { method: 'DELETE' })
       await load()
     } catch (e) {
-      setErr(e)
+      showError(e)
     }
   }
 
@@ -174,7 +170,6 @@ export function TasksPage() {
   return (
     <div>
       <h1>{t('task.title')}</h1>
-      <ErrorBox err={err} />
       {showFilters && (
         <div className="row filters">
           {instance && (

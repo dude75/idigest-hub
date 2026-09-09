@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
-import { WalletLabel } from '../util'
+import { showError, WalletLabel } from '../util'
 import { AppBrand } from './AppBrand'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
@@ -19,9 +19,13 @@ export function Shell() {
 
   async function stopImpersonate() {
     const back = me?.actor?.is_instance_admin ? '/app/instance' : '/app/org'
-    await api('/impersonate', { method: 'DELETE' })
-    await refresh()
-    nav(back)
+    try {
+      await api('/impersonate', { method: 'DELETE' })
+      await refresh()
+      nav(back)
+    } catch (e) {
+      showError(e)
+    }
   }
 
   return (

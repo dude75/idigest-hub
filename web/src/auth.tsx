@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, ApiError } from './api'
+import { showError } from './util'
 import type { DefaultRoute } from './routes'
 import type { Locale, Me } from './types'
 
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refresh()
       .catch((err) => {
         setBootstrapError(err)
+        showError(err)
         setMe(null)
       })
       .finally(() => setReady(true))

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import type { ShareRecord, User } from '../types'
-import { ErrorBox } from '../util'
+import { showError } from '../util'
 
 type Props = {
   objectType: 'audio' | 'transcript' | 'summary' | 'skill'
@@ -15,7 +15,6 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
   const [users, setUsers] = useState<User[]>([])
   const [shares, setShares] = useState<ShareRecord[]>([])
   const [picked, setPicked] = useState<Record<string, boolean>>({})
-  const [err, setErr] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
   const [revoking, setRevoking] = useState<string | null>(null)
 
@@ -32,7 +31,7 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
       loadShares(),
     ])
       .then(([orgUsers]) => setUsers(orgUsers.items))
-      .catch(setErr)
+      .catch(showError)
   }, [objectType, objectId])
 
   const sharedIds = new Set(shares.map((s) => s.to_user_id))
@@ -42,7 +41,6 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
     const ids = Object.entries(picked).filter(([, v]) => v).map(([id]) => id)
     if (!ids.length) return
     setBusy(true)
-    setErr(null)
     try {
       await api('/shares', {
         method: 'POST',
@@ -51,7 +49,7 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
       setPicked({})
       await loadShares()
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -59,12 +57,11 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
 
   async function revoke(shareId: string) {
     setRevoking(shareId)
-    setErr(null)
     try {
       await api(`/shares/${shareId}`, { method: 'DELETE' })
       setShares((prev) => prev.filter((s) => s.id !== shareId))
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setRevoking(null)
     }
@@ -74,7 +71,6 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
     <div className="modal-back" onClick={onClose}>
       <div className="card modal" onClick={(e) => e.stopPropagation()}>
         <h2>{t('share.title')}</h2>
-        <ErrorBox err={err} />
 
         <h3 style={{ marginTop: 16, marginBottom: 8, fontSize: '0.95rem' }}>{t('share.current')}</h3>
         {shares.length === 0 ? (

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
-import { ErrorBox } from '../util'
+import { showError } from '../util'
 
 export function ChangePasswordPage() {
   const { t } = useTranslation()
@@ -12,7 +12,6 @@ export function ChangePasswordPage() {
   const nav = useNavigate()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
-  const [err, setErr] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
   const forced = Boolean(me?.must_change_password)
 
@@ -21,7 +20,6 @@ export function ChangePasswordPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    setErr(null)
     try {
       await api('/auth/password/change', {
         method: 'POST',
@@ -33,7 +31,7 @@ export function ChangePasswordPage() {
       await refresh()
       nav('/app', { replace: true })
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -47,7 +45,6 @@ export function ChangePasswordPage() {
           <LanguageSwitcher />
         </div>
         {forced && <p className="muted">{t('auth.mustChange')}</p>}
-        <ErrorBox err={err} />
         {!forced && (
           <label>
             {t('auth.currentPassword')}

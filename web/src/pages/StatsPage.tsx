@@ -5,7 +5,7 @@ import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { OrgStats, User } from '../types'
-import { ErrorBox, formatAudioTime } from '../util'
+import { formatAudioTime, showError } from '../util'
 
 function utcDay(d: Date): string {
   return d.toISOString().slice(0, 10)
@@ -20,7 +20,6 @@ export function StatsPage() {
   const [toDay, setToDay] = useState('')
   const [userId, setUserId] = useState('')
   const [kind, setKind] = useState('')
-  const [err, setErr] = useState<unknown>(null)
   const admin = isOrgAdmin(me)
   const hasOrg = Boolean(me?.org)
 
@@ -36,14 +35,14 @@ export function StatsPage() {
 
   useEffect(() => {
     if (!hasOrg || !admin) return
-    api<{ items: User[] }>('/org/users').then((r) => setUsers(r.items)).catch(setErr)
+    api<{ items: User[] }>('/org/users').then((r) => setUsers(r.items)).catch(showError)
   }, [hasOrg, admin])
 
   useEffect(() => {
     if (!hasOrg || !admin) return
     api<OrgStats>(`/org/stats${query}`)
       .then(setStats)
-      .catch(setErr)
+      .catch(showError)
   }, [hasOrg, admin, query])
 
   if (!hasOrg) return <Navigate to="/app/profile" replace />
@@ -70,7 +69,6 @@ export function StatsPage() {
   return (
     <div>
       <h1>{t('stats.title')}</h1>
-      <ErrorBox err={err} />
       <div className="card stack stats-filters">
         <div className="row wrap">
           <label>{t('stats.from')}<input type="date" value={fromDay} onChange={(e) => setFromDay(e.target.value)} /></label>

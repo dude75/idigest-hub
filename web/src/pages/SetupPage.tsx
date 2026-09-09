@@ -6,16 +6,15 @@ import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { LOCALES } from '../i18n'
 import type { Locale } from '../types'
-import { ErrorBox } from '../util'
+import { showError } from '../util'
 
 export function SetupPage() {
   const { t, i18n } = useTranslation()
-  const { ready, bootstrapDone, bootstrapError, refresh } = useAuth()
+  const { ready, bootstrapDone, refresh } = useAuth()
   const nav = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [token, setToken] = useState('')
-  const [err, setErr] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
 
   if (ready && bootstrapDone) return <Navigate to="/login" replace />
@@ -23,7 +22,6 @@ export function SetupPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    setErr(null)
     try {
       await api('/setup', {
         method: 'POST',
@@ -37,7 +35,7 @@ export function SetupPage() {
       await refresh()
       nav('/app', { replace: true })
     } catch (e) {
-      setErr(e)
+      showError(e)
     } finally {
       setBusy(false)
     }
@@ -50,7 +48,6 @@ export function SetupPage() {
           <h1 className="grow">{t('auth.setup')}</h1>
           <LanguageSwitcher />
         </div>
-        <ErrorBox err={bootstrapError ?? err} />
         <label>
           {t('common.email')}
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
