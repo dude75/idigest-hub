@@ -22,7 +22,7 @@
 | ------ | ---- | ------ |
 | GET | `/audios` | Список видимых (см. роли) |
 | GET | `/audios/{id}` | Детали + id transcript |
-| GET | `/audios/{id}/file` | Скачать оригинал |
+| GET | `/audios/{id}/file` | Поток или скачивание оригинала (`?download=true`) |
 | POST | `/audios/{id}/hide` | Владелец |
 | POST | `/audios/{id}/unhide` | Владелец |
 | DELETE | `/audios/{id}` | org_admin wipe |
@@ -41,6 +41,8 @@ Query `include_hidden=true` в списке включает скрытые об
 - `source_audio_id` ссылается на источник (nullable после hard-delete audio через SET NULL)
 - GET detail возвращает расшифрованные `utterances` + связанные summaries
 
+Опциональное поле `title`; редактирование через `PATCH /transcripts/{id}`. Export: `GET /transcripts/{id}/export?format=txt|json`.
+
 Hide/unhide/delete по тому же шаблону, что у audio (delete = org_admin wipe).
 
 ## Summaries
@@ -55,13 +57,15 @@ Hide/unhide/delete по тому же шаблону, что у audio (delete = 
 
 ### Редактирование
 
-`PATCH /summaries/{id}` — владелец или org_admin может обновить `body`. Устанавливает `edited=true`, перешифровывает body, запись в audit log.
+`PATCH /summaries/{id}` — владелец или org_admin может обновить `body` и/или `title`. Изменение body устанавливает `edited=true`, перешифровывает body, запись в audit log.
+
+### Hide / export
+
+Тот же hide/unhide, что у audio и transcripts. Список поддерживает `include_hidden=true`. Export: `GET /summaries/{id}/export?format=md|txt` (убирает markdown code fences из вывода воркера).
 
 ### Удаление
 
 Владелец или org_admin — hard delete (не то же самое, что org wipe endpoints для audio/transcript).
-
-Список summaries всегда включает скрытые элементы для фильтрации владельцем (переключателя hide в list API для summaries нет — бейджи hide всё равно применяются, если заданы).
 
 ## Шаринг
 
@@ -78,7 +82,13 @@ POST /shares
 
 Получатели получают read-доступ (и могут использовать расшаренный transcript в summarize, если есть доступ к навыкам). Ответ: `{ "ids": ["share_id", ...] }`.
 
+Список получателей: `GET /shares?object_type=...&object_id=...` (владелец). UI показывает получателей и позволяет отозвать доступ.
+
 Отзыв: `DELETE /shares/{share_id}` — владелец или получатель.
+
+## Резервная копия профиля
+
+`GET /me/backup` — ZIP или TGZ своих transcripts, summaries и/или personal skills (страница Profile в UI).
 
 ## Алгоритм видимости списка
 

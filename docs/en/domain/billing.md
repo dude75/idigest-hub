@@ -22,7 +22,8 @@ Default tariff seeded at setup: name `"Default"`, `unlimited=true`, `available_o
 ## Wallet
 
 - One balance per organization
-- **Instance admin** adjusts via `POST /instance/orgs/{org_id}/wallet` with `delta` (string decimal, e.g. `"10.00"` or `"-5"`)
+- **Instance admin** adjusts via `POST /orgs/{org_id}/wallet` with `delta` (string decimal, e.g. `"10.00"` or `"-5"`)
+- **Ledger** — `GET /orgs/{org_id}/ledger` merges usage charges and wallet top-ups for auditing (Instance UI modal with filters)
 - Before accepting a new task (non-unlimited): `balance` must be **> 0** or API returns `insufficient_balance` (HTTP 429)
 
 Charges apply **only on successful task completion**, once per task (`task.billed` guard).

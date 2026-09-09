@@ -57,6 +57,8 @@ location / {
 
 Hub в конфигурации по умолчанию сам не завершает TLS.
 
+Задайте **Публичный URL** в Instance → Settings — внешний базовый адрес, по которому пользователи и Keycloak достигают хаба (напр. `https://hub.example.com`). Нужен для SSO org, ссылок сброса пароля и корректных OAuth redirect URI. См. [README — Публичный URL](../../../README.ru.md#публичный-url-instance-admin).
+
 ## Переменные окружения
 
 Полная таблица в [README — `.env`](../../../README.ru.md#env). Критичные секреты:
@@ -84,7 +86,7 @@ Hub в конфигурации по умолчанию сам не заверш
 
 Настраивается в UI Instance → Settings (хранится в БД). Применяется в RAM — перезапуск обнуляет счётчики.
 
-Auth-трафик: email + IP + global buckets. Bearer API: user + IP + global + task-create sublimits.
+Auth-трафик: email + IP + global buckets. Bearer API: user + IP + global. Лимиты upload и создания task применяются **и** к Bearer, **и** к browser session.
 
 `/api/v1/health` и статические ресурсы исключены.
 
@@ -97,6 +99,11 @@ Auth-трафик: email + IP + global buckets. Bearer API: user + IP + global +
 - Загрузки на локальную файловую систему
 
 Горизонтальное масштабирование потребует общего хранилища, общего store для rate limit и одного лидера dispatcher — из коробки не поддерживается.
+
+## Исследование API
+
+- OpenAPI JSON: `GET /openapi.json`
+- Swagger UI: `/docs` (Authorize с session cookie или Bearer token `idg_…`)
 
 ## Связанные страницы
 

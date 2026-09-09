@@ -55,15 +55,15 @@
 
 ## Organizations
 
-### GET `/instance/orgs`
+### GET `/orgs`
 
-Список всех org.
+Список всех org с tariff и списком участников.
 
-### PATCH `/instance/orgs/{org_id}/tariff`
+### PATCH `/orgs/{org_id}/tariff`
 
 Назначение любого неархивного tariff.
 
-### POST `/instance/orgs/{org_id}/wallet`
+### POST `/orgs/{org_id}/wallet`
 
 ```json
 { "delta": "100.00" }
@@ -71,11 +71,26 @@
 
 Добавляет или вычитает balance. Audit logged.
 
+### GET `/orgs/{org_id}/ledger`
+
+Ledger кошелька org: списания за usage и пополнения instance admin.
+
+Query (те же правила дат, что у stats):
+
+| Param | Описание |
+| ----- | -------- |
+| `from` | Дата начала `YYYY-MM-DD` |
+| `to` | Дата окончания включительно |
+| `user_id` | Фильтр списаний по участнику |
+| `kind` | `transcribe` или `summarize` |
+
+Возвращает `{ "entries": [...], "total_spent", "total_topup", "net" }`. Типы записей: `charge` (usage) и `wallet` (ручной delta).
+
 ## Settings
 
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, ASR models, rate limit matrix.
+SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, ASR models, rate limit matrix. Также `smtp_configured`: true только при host, from-address **и** `public_base_url` (нужно для писем сброса пароля).
 
 ### PATCH `/instance/settings`
 
@@ -106,7 +121,19 @@ Session действует от имени target user. Admin UI показыв�
 
 ### GET `/instance/stats`
 
-Instance-wide статистика завершённых job.
+Статистика usage по `usage_events` на уровне инстанса.
+
+Query:
+
+| Param | Описание |
+| ----- | -------- |
+| `from` | Дата начала `YYYY-MM-DD` (UI по умолчанию — последние 7 дней) |
+| `to` | Дата окончания включительно |
+| `org_id` | Фильтр по org |
+| `user_id` | Фильтр по пользователю |
+| `kind` | `transcribe` или `summarize` |
+
+Возвращает счётчики org/user, queued/running tasks, разбивку по дням, итоги (`transcribe_done`, `summarize_done`, `audio_sec`, `summary_chars`, `usage_total`).
 
 ## Base skills
 

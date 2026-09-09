@@ -30,6 +30,7 @@
 - `transcripts.utterances_encrypted`
 - `summaries.body_encrypted`
 - `instance_settings.smtp_password_encrypted`
+- `organizations.sso_client_secret_encrypted`
 
 Авторизованные API-ответы расшифровываются на лету — клиенты получают plaintext JSON. Шифрование защищает от утечек только DB.
 
@@ -49,7 +50,7 @@ Logout удаляет строку session и очищает cookie.
 - Создаются на пользователя: `POST /auth/tokens` (требуется org tariff `api_enabled`)
 - Показываются **один раз** в ответе create; для listing хранится только prefix
 - Bearer auth включает **rate limits** (per user, IP, global)
-- Cookie-сессии не попадают под общие Bearer-лимиты, но **upload** и **task create** используют те же write-лимиты (`rate_limit_api_tasks_*`)
+- Cookie-сессии не попадают под общие Bearer API-лимиты, но **upload audio** и **создание task** используют те же write-лимиты (`enforce_write_limits`, `rate_limit_api_tasks_*`)
 - Отозванные tokens: `DELETE /auth/tokens/{id}`
 
 Пользователи с `must_change_password` или истёкшим org password TTL не могут использовать API tokens.
@@ -60,7 +61,20 @@ Logout удаляет строку session и очищает cookie.
 - Org может задать `password_ttl_days` — после дедлайна разрешены только смена пароля (+ `/me`, logout)
 - Org admin может принудительно сбросить (`must_change_password`) через reset-password endpoint
 
-Email сброса пароля требует настроенный SMTP в Instance settings; иначе `recovery_disabled`.
+Email сброса пароля требует SMTP **и** **Публичный URL** в Instance settings (`smtp_configured`); иначе `recovery_disabled`.
+
+## Single sign-on (SSO)
+
+OIDC на уровне org (совместим с Keycloak). Client secrets хранятся зашифрованными (`sso_client_secret_encrypted`). OAuth state/nonce в подписанных cookies (TTL 10 мин).
+
+| Правило | Поведение |
+| ------- | --------- |
+| SSO включён и настроен | password login `org_member` → `sso_login_required` |
+| Аварийный вход | `org_admin` и `instance_admin` сохраняют password login |
+| Auto-provision | Новый email из IdP → `org_member` в этой org |
+| Callback | `{public_base_url}/api/v1/auth/sso/{org_id}/callback` |
+
+Требует **Публичный URL** инстанса — как ссылки сброса пароля и URL входа участников SSO.
 
 ## Слои авторизации
 

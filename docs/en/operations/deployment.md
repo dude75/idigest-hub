@@ -57,6 +57,8 @@ location / {
 
 Hub does not terminate TLS itself in the default setup.
 
+Set **Public URL** in Instance → Settings to the external base URL users and Keycloak reach (e.g. `https://hub.example.com`). Required for org SSO, password-reset email links, and correct OAuth redirect URIs. See [README — Public URL](../../../README.md#public-url-instance-admin).
+
 ## Environment variables
 
 Full table in [README — `.env`](../../../README.md#env). Critical secrets:
@@ -84,7 +86,7 @@ Everything under `{DATA_DIR}` (default `./data`):
 
 Configured in Instance → Settings UI (stored in DB). Enforced in RAM — restart clears counters.
 
-Auth traffic: email + IP + global buckets. Bearer API: user + IP + global + task-create sublimits.
+Auth traffic: email + IP + global buckets. Bearer API: user + IP + global. Upload and task-create limits apply to **both** Bearer tokens and browser sessions.
 
 `/api/v1/health` and static assets are excluded.
 
@@ -97,6 +99,11 @@ Current architecture targets **single-node** deployment:
 - Local filesystem uploads
 
 Horizontal scaling would require shared storage, shared rate-limit store, and single dispatcher leader — not supported out of the box.
+
+## API exploration
+
+- OpenAPI JSON: `GET /openapi.json`
+- Swagger UI: `/docs` (Authorize with session cookie or Bearer `idg_…` token)
 
 ## Related pages
 

@@ -50,11 +50,33 @@
 { "email": "...", "password": "..." }
 ```
 
-Успех: `{ "status": "ok" }` + cookie. Ошибка: `invalid_credentials`.
+Успех: `{ "status": "ok" }` + cookie. Ошибки: `invalid_credentials`, `sso_login_required` (403), когда SSO org включён и пользователь — `org_member`.
 
 ### POST `/auth/logout`
 
 Auth опционален. Очищает session.
+
+## SSO (OIDC, совместимый с Keycloak)
+
+На уровне организации. Требует **Публичный URL** инстанса (`public_base_url` в Instance → Settings). Точка входа в браузере: `{public_url}/sso/{org_id}`.
+
+### GET `/auth/sso/{org_id}/info`
+
+Публичный. `{ "org_id", "org_name", "configured", "enabled", "login_url" }`.
+
+### GET `/auth/sso/{org_id}/start`
+
+Публичный. Редирект (302) на authorization URL IdP. Ошибки: `sso_disabled` (403), `sso_misconfigured` (400).
+
+### GET `/auth/sso/{org_id}/callback`
+
+OAuth callback (`code`, `state` в query). При успехе: session cookie, редирект на `{public_base_url}/app`. Ошибки: `sso_disabled`, `sso_misconfigured`, `sso_state_invalid`, `sso_email_missing`, `sso_user_wrong_org`.
+
+Auto-provision: первый SSO-вход с неизвестным email создаёт `org_member` в этой org (email из claims IdP). Существующий пользователь должен принадлежать той же org.
+
+**Пароль при настроенном SSO:** только `org_admin` (аварийный вход). `org_member` после включения SSO использует IdP.
+
+Настройка credentials — [эндпоинты SSO org](org.md#sso).
 
 ## Пароль
 
@@ -77,7 +99,7 @@ Auth опционален. Очищает session.
 { "email": "..." }
 ```
 
-Всегда возвращает `{ "status": "ok" }` (без перечисления email). Отправляет письмо, если пользователь существует и SMTP настроен. Ошибка при отсутствии SMTP: `recovery_disabled`.
+Всегда возвращает `{ "status": "ok" }` (без перечисления email). Отправляет письмо, если пользователь существует, SMTP настроен и задан **Публичный URL**. Ошибка при отсутствии SMTP или Public URL: `recovery_disabled`. Для пользователей с обязательным SSO (`org_member`) письмо не отправляется.
 
 ### POST `/auth/password/reset/confirm`
 
@@ -120,6 +142,23 @@ Auth опционален. Очищает session.
 
 `default_route` должен быть разрешён для роли. Ошибка: `validation_error`.
 
+## Резервная копия профиля
+
+### GET `/me/backup`
+
+Требуется auth. Скачивание ZIP или TGZ с данными библиотеки пользователя.
+
+Query (хотя бы один флаг `true`):
+
+| Param | Описание |
+| ----- | -------- |
+| `transcripts` | Свои transcripts в JSON |
+| `summaries` | Свои summaries в JSON |
+| `skills` | Свои personal skills в JSON |
+| `format` | `zip` (по умолчанию) или `tgz` |
+
+Ответ: `Content-Disposition: attachment` с manifest и выбранными файлами.
+
 ## API-токены
 
 Требуют auth + тариф org с `api_enabled` + без блокировки пароля.
@@ -130,7 +169,7 @@ Auth опционален. Очищает session.
 { "name": "CI pipeline" }
 ```
 
-Ответ включает одноразовое поле `"token": "hub_..."`.
+Ответ включает одноразовое поле `"token": "idg_..."`.
 
 ### GET `/auth/tokens`
 

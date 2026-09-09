@@ -22,7 +22,7 @@ Invalid extension → `invalid_file`. Over limit → `payload_too_large`.
 | ------ | ---- | ------ |
 | GET | `/audios` | List visible (see roles) |
 | GET | `/audios/{id}` | Detail + transcript ids |
-| GET | `/audios/{id}/file` | Download original |
+| GET | `/audios/{id}/file` | Stream or download original (`?download=true`) |
 | POST | `/audios/{id}/hide` | Owner |
 | POST | `/audios/{id}/unhide` | Owner |
 | DELETE | `/audios/{id}` | org_admin wipe |
@@ -41,6 +41,8 @@ Created by successful **transcribe tasks**, not uploaded directly.
 - `source_audio_id` links back (nullable after audio hard-delete via SET NULL)
 - GET detail returns decrypted `utterances` + linked summaries
 
+Optional `title` field; editable via `PATCH /transcripts/{id}`. Export: `GET /transcripts/{id}/export?format=txt|json`.
+
 Hide/unhide/delete follow same pattern as audio (delete = org_admin wipe).
 
 ## Summaries
@@ -55,13 +57,15 @@ Created by successful **summarize tasks**.
 
 ### Edit
 
-`PATCH /summaries/{id}` — owner or org_admin can update `body`. Sets `edited=true`, re-encrypts body, audit log entry.
+`PATCH /summaries/{id}` — owner or org_admin can update `body` and/or `title`. Body edit sets `edited=true`, re-encrypts body, audit log entry.
+
+### Hide / export
+
+Same hide/unhide pattern as audio and transcripts. List supports `include_hidden=true`. Export: `GET /summaries/{id}/export?format=md|txt` (strips markdown code fences from worker output).
 
 ### Delete
 
 Owner or org_admin — hard delete (not the same as org wipe endpoints for audio/transcript).
-
-Summaries list always includes hidden items for owner filtering (no hide toggle in list API for summaries — hide badges still apply if set).
 
 ## Sharing
 
@@ -78,7 +82,13 @@ POST /shares
 
 Recipients gain read access (and can use shared transcript in summarize if they have skill access). Response: `{ "ids": ["share_id", ...] }`.
 
+List recipients: `GET /shares?object_type=...&object_id=...` (owner). UI shows recipients and allows revoke.
+
 Revoke: `DELETE /shares/{share_id}` — owner or recipient.
+
+## Profile backup
+
+`GET /me/backup` — ZIP or TGZ of owned transcripts, summaries, and/or personal skills (Profile page in UI).
 
 ## List visibility algorithm
 

@@ -42,13 +42,19 @@ Utterance shape:
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
-| GET | `/summaries` | List |
+| GET | `/summaries?include_hidden=false` | List |
 | GET | `/summaries/{id}` | Detail with `body` |
-| GET | `/summaries/{id}/export?format=md\|txt` | Download summary |
+| GET | `/summaries/{id}/export?format=md\|txt` | Download summary (markdown fences stripped) |
 | PATCH | `/summaries/{id}` | `{ "body": "..." }` and/or `{ "title": "..." }` — owner or org_admin |
+| POST | `/summaries/{id}/hide` | Owner |
+| POST | `/summaries/{id}/unhide` | Owner |
 | DELETE | `/summaries/{id}` | Owner or org_admin |
 
 ## Shares
+
+### GET `/shares?object_type=...&object_id=...`
+
+Owner only. Lists outgoing shares: `{ "items": [{ "id", "to_user_id", "to_email", "created_at" }, ...] }`.
 
 ### POST `/shares`
 

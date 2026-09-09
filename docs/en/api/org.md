@@ -24,6 +24,32 @@ org_admin. `{ "tariff_id": "uuid" }`
 
 org_admin. `{ "password_ttl_days": 90 }` — `0` disables TTL.
 
+## SSO
+
+org_admin. Keycloak-compatible OIDC per organization. Requires instance **Public URL**.
+
+### GET `/org/sso`
+
+Returns admin view: `issuer`, `client_id`, `has_client_secret`, `enabled`, `configured`, `public_base_url_set`, `login_url`, `callback_url` (redirect URI for Keycloak **Valid redirect URIs**).
+
+### PATCH `/org/sso`
+
+```json
+{
+  "issuer": "https://keycloak.example.com/realms/myrealm",
+  "client_id": "idigest-hub",
+  "client_secret": "optional-on-update",
+  "clear_client_secret": false,
+  "enabled": true
+}
+```
+
+Omit `client_secret` to keep the stored secret. Set `clear_client_secret: true` to remove it.
+
+Errors: `sso_misconfigured` when enabling without valid issuer/client, client secret, or Public URL.
+
+Member login URL: `{public_url}/sso/{org_id}` (also in GET response when Public URL is set).
+
 ## Statistics
 
 ### GET `/org/stats`

@@ -32,7 +32,7 @@ GET `/org` возвращает org + вложенный tariff + итог ис�
 
 **org admin** — `PATCH /org/tariff`: только тарифы, которые активны и помечены `available_on_signup`.
 
-**instance admin** — `PATCH /instance/orgs/{org_id}/tariff`: может назначить любой неархивированный тариф.
+**instance admin** — `PATCH /orgs/{org_id}/tariff`: может назначить любой неархивированный тариф.
 
 Смена тарифа **не** меняет зафиксированные на задачах цены.
 
@@ -63,7 +63,18 @@ GET `/org` возвращает org + вложенный tariff + итог ис�
 
 Агрегирует `usage_events` по дню, пользователю, kind (`transcribe` | `summarize`). Опциональные фильтры: `user_id`, `kind`.
 
-Статистика уровня инстанса: `GET /instance/stats` (завершённые jobs, instance admin).
+Статистика уровня инстанса: `GET /instance/stats` с фильтрами даты/org/user/kind (instance admin). Ledger кошелька: `GET /orgs/{org_id}/ledger`.
+
+## Single sign-on (SSO)
+
+У каждой org может быть **OIDC SSO** (совместим с Keycloak):
+
+1. instance admin задаёт **Публичный URL** в Instance → Settings.
+2. org admin настраивает issuer, client ID и secret в Org → SSO; копирует **callback URL** в Keycloak.
+3. При `sso_enabled` участники `org_member` входят по `{public_url}/sso/{org_id}`; пароль для них заблокирован (`sso_login_required`).
+4. `org_admin` сохраняет пароль как аварийный вход.
+
+GET `/org` включает `sso: { configured, enabled, login_url }`. Auto-provision создаёт новых участников при первом SSO-входе (email из IdP).
 
 ## Отключение signup
 

@@ -32,6 +32,12 @@
 
 Создаёт personal copy из base, org, own или shared skill.
 
+## Export
+
+### GET `/skills/{id}/export`
+
+Скачать body навыка как Markdown (`.md`). Те же правила видимости, что у чтения каталога.
+
 ## Base skills (instance_admin)
 
 | Method | Path |

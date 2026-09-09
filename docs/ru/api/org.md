@@ -24,6 +24,32 @@ org_admin. `{ "tariff_id": "uuid" }`
 
 org_admin. `{ "password_ttl_days": 90 }` — `0` отключает TTL.
 
+## SSO
+
+org_admin. OIDC, совместимый с Keycloak, на уровне организации. Требует **Публичный URL** инстанса.
+
+### GET `/org/sso`
+
+Admin-представление: `issuer`, `client_id`, `has_client_secret`, `enabled`, `configured`, `public_base_url_set`, `login_url`, `callback_url` (redirect URI для Keycloak **Valid redirect URIs**).
+
+### PATCH `/org/sso`
+
+```json
+{
+  "issuer": "https://keycloak.example.com/realms/myrealm",
+  "client_id": "idigest-hub",
+  "client_secret": "optional-on-update",
+  "clear_client_secret": false,
+  "enabled": true
+}
+```
+
+Omit `client_secret`, чтобы сохранить текущий секрет. `clear_client_secret: true` — удалить секрет.
+
+Ошибки: `sso_misconfigured` при включении без issuer/client/секрета или Public URL.
+
+URL входа участников: `{public_url}/sso/{org_id}` (также в ответе GET при заданном Public URL).
+
 ## Статистика
 
 ### GET `/org/stats`

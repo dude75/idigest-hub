@@ -32,7 +32,7 @@ GET `/org` returns org + embedded tariff + usage total (`sum(usage_events.amount
 
 **Org admin** — `PATCH /org/tariff`: only tariffs that are active and flagged `available_on_signup`.
 
-**Instance admin** — `PATCH /instance/orgs/{org_id}/tariff`: can assign any non-archived tariff.
+**Instance admin** — `PATCH /orgs/{org_id}/tariff`: can assign any non-archived tariff.
 
 Changing tariff does **not** alter snapshotted prices on existing tasks.
 
@@ -63,7 +63,18 @@ Guard: cannot offboard last org admin without replacement.
 
 Aggregates `usage_events` by day, user, kind (`transcribe` | `summarize`). Optional filters: `user_id`, `kind`.
 
-Instance-level stats: `GET /instance/stats` (completed jobs, instance admin).
+Instance-level stats: `GET /instance/stats` with date/org/user/kind filters (instance admin). Wallet ledger: `GET /orgs/{org_id}/ledger`.
+
+## Single sign-on (SSO)
+
+Each org may enable **OIDC SSO** (Keycloak-compatible):
+
+1. Instance admin sets **Public URL** in Instance → Settings.
+2. Org admin configures issuer, client ID, and secret in Org → SSO; copies **callback URL** into Keycloak.
+3. When `sso_enabled`, `org_member` users sign in at `{public_url}/sso/{org_id}`; password login is blocked for them (`sso_login_required`).
+4. `org_admin` retains password login as break-glass.
+
+GET `/org` embeds `sso: { configured, enabled, login_url }`. Auto-provision creates new members on first SSO login (email from IdP).
 
 ## Signup disable
 

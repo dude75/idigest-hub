@@ -42,7 +42,7 @@ Body text...
 | Method | Path |
 | ------ | ---- |
 | POST | `/skills/self` |
-| PATCH | `/skills/self/{id}` |
+| PATCH | `/skills/self/{id}` | `{ "name", "body" }` — поддерживается переименование |
 | DELETE | `/skills/self/{id}` |
 
 ## CRUD org-навыков (org_admin)
@@ -61,6 +61,10 @@ Body text...
 | POST | `/skills/base` |
 | PATCH | `/skills/base/{id}` |
 | DELETE | `/skills/base/{id}` |
+
+## Export
+
+`GET /skills/{id}/export` — скачать body навыка как Markdown (`.md`).
 
 ## Копирование
 

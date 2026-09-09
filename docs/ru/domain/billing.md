@@ -22,7 +22,8 @@
 ## Кошелёк
 
 - Один баланс на организацию
-- **instance admin** корректирует через `POST /instance/orgs/{org_id}/wallet` с `delta` (строковое decimal, напр. `"10.00"` или `"-5"`)
+- **instance admin** корректирует через `POST /orgs/{org_id}/wallet` с `delta` (строковое decimal, напр. `"10.00"` или `"-5"`)
+- **Ledger** — `GET /orgs/{org_id}/ledger` объединяет списания за usage и пополнения кошелька (модальное окно в Instance UI с фильтрами)
 - Перед принятием новой задачи (не unlimited): `balance` должен быть **> 0**, иначе API вернёт `insufficient_balance` (HTTP 429)
 
 Списания применяются **только при успешном завершении задачи**, один раз на задачу (защита `task.billed`).

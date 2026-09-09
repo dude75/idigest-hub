@@ -2,7 +2,7 @@
 
 Базовый путь: **`/api/v1`**
 
-Интерактивная схема OpenAPI: `{origin}/openapi.json` (автоматически генерируется FastAPI).
+Интерактивная схема OpenAPI: `{origin}/openapi.json` (автоматически генерируется FastAPI). Swagger UI: `{origin}/docs` — **Authorize** для session cookie (`hub_session`) или Bearer API token (`idg_…` из `POST /auth/tokens`).
 
 ## Формат ответа
 
@@ -30,8 +30,8 @@
 
 | Метод | Заголовок / cookie | Ограничение частоты |
 | ----- | ------------------ | ------------------- |
-| Сессия | Cookie `hub_session` | Только эндпоинты auth |
-| API-токен | `Authorization: Bearer <token>` | Да (правила Bearer) |
+| Сессия | Cookie `hub_session` | Auth; upload + создание task — те же write limits, что у Bearer |
+| API-токен | `Authorization: Bearer <token>` | Да (Bearer + write limits на upload/tasks) |
 
 Неаутентифицированные запросы к защищённым маршрутам → **401** `unauthorized`.
 
@@ -59,7 +59,13 @@
 | `forbidden` | 403 | Недостаточная роль |
 | `must_change_password` | 403 | Требуется смена пароля |
 | `signup_disabled` | 403 | Регистрация закрыта |
-| `recovery_disabled` | 403 | SMTP не настроен |
+| `recovery_disabled` | 403 | SMTP или Public URL не настроены |
+| `sso_login_required` | 403 | Пароль запрещён; используйте SSO org |
+| `sso_disabled` | 403 | SSO не включён для org |
+| `sso_misconfigured` | 400 | Нет issuer/client/secret или Public URL |
+| `sso_state_invalid` | 400 | Неверный или просроченный OAuth state |
+| `sso_email_missing` | 400 | В токене IdP нет email |
+| `sso_user_wrong_org` | 403 | Пользователь принадлежит другой org |
 | `api_disabled` | 403 | Тариф отключает API |
 | `not_found` | 404 | Ресурс или маршрут |
 | `validation_error` | 400 | Некорректное body/query |

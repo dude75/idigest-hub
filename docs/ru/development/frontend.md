@@ -19,17 +19,20 @@ web/src/
 │   ├── SkillsPage, SkillPage
 │   ├── OrgPage, StatsPage
 │   ├── InstancePage
+│   ├── SsoLoginPage
 │   └── ProfilePage, ChangePasswordPage, ...
 └── components/
-    ├── Shell.tsx     # Nav layout
+    ├── Shell.tsx         # Nav layout
     ├── AppBrand.tsx
     ├── LanguageSwitcher.tsx
-    └── ShareDialog.tsx
+    ├── ShareDialog.tsx   # Список получателей + отзыв
+    ├── InlineRename.tsx  # Заголовки transcript/summary/skill
+    └── OrgLedgerModal.tsx # Ledger кошелька в instance admin
 ```
 
 ## Routing
 
-Browser routes под `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`.
+Browser routes под `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`, `/sso/:orgId`.
 
 `resolveHomePath(me)` в `routes.ts` выбирает landing page из user `default_route` и role.
 
@@ -37,7 +40,7 @@ Browser routes под `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/
 
 `api.ts` использует `fetch` с `credentials: 'include'` для cookie auth. Same origin в production; Vite proxy в dev.
 
-Errors ожидают `{ status: "error", error: { code, message } }`.
+Errors ожидают `{ status: "error", error: { code, message } }`. Ошибки API показываются toast-уведомлениями справа сверху (`sonner` через `util.tsx` `showError`).
 
 ## Auth flow
 

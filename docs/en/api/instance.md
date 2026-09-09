@@ -55,15 +55,15 @@ Fails with `tariff_in_use` or `last_tariff` if blocked.
 
 ## Organizations
 
-### GET `/instance/orgs`
+### GET `/orgs`
 
-List all orgs.
+List all orgs with embedded tariff and member list.
 
-### PATCH `/instance/orgs/{org_id}/tariff`
+### PATCH `/orgs/{org_id}/tariff`
 
 Assign any non-archived tariff.
 
-### POST `/instance/orgs/{org_id}/wallet`
+### POST `/orgs/{org_id}/wallet`
 
 ```json
 { "delta": "100.00" }
@@ -71,11 +71,26 @@ Assign any non-archived tariff.
 
 Adds or subtracts balance. Audit logged.
 
+### GET `/orgs/{org_id}/ledger`
+
+Wallet ledger for one org: usage charges and instance-admin top-ups.
+
+Query (same date semantics as stats):
+
+| Param | Description |
+| ----- | ----------- |
+| `from` | Start date `YYYY-MM-DD` |
+| `to` | End date inclusive |
+| `user_id` | Filter charges by member |
+| `kind` | `transcribe` or `summarize` |
+
+Returns `{ "entries": [...], "total_spent", "total_topup", "net" }`. Entry types: `charge` (usage) and `wallet` (manual delta).
+
 ## Settings
 
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, ASR models, rate limit matrix.
+SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, ASR models, rate limit matrix. Also `smtp_configured`: true only when host, from-address, **and** `public_base_url` are set (required for password reset emails).
 
 ### PATCH `/instance/settings`
 
@@ -106,7 +121,19 @@ Return to admin identity.
 
 ### GET `/instance/stats`
 
-Instance-wide completed job statistics.
+Instance-wide usage statistics from `usage_events`.
+
+Query:
+
+| Param | Description |
+| ----- | ----------- |
+| `from` | Start date `YYYY-MM-DD` (UI defaults to last 7 days) |
+| `to` | End date inclusive |
+| `org_id` | Filter by organization |
+| `user_id` | Filter by user |
+| `kind` | `transcribe` or `summarize` |
+
+Returns org/user counts, queued/running tasks, daily breakdown, totals (`transcribe_done`, `summarize_done`, `audio_sec`, `summary_chars`, `usage_total`).
 
 ## Base skills
 

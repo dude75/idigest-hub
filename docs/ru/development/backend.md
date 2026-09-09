@@ -17,6 +17,7 @@ app/
 ├── cookies.py        # Session cookie helpers
 ├── i18n.py           # Locale negotiation + translations
 ├── rate_limit.py     # In-memory limiter
+├── openapi.py        # Swagger security schemes (Bearer + session cookie)
 ├── routers/
 │   ├── auth.py
 │   ├── tasks.py
@@ -34,7 +35,10 @@ app/
     ├── retention.py
     ├── audit.py
     ├── mail.py
-    └── stats.py
+    ├── stats.py
+    ├── sso.py          # OIDC login, state, token exchange
+    ├── backup.py       # Profile ZIP/TGZ archives
+    └── export.py       # Download filenames, markdown fence unwrap
 ```
 
 ## Путь запроса

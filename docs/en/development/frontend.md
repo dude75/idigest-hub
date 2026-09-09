@@ -19,17 +19,20 @@ web/src/
 │   ├── SkillsPage, SkillPage
 │   ├── OrgPage, StatsPage
 │   ├── InstancePage
+│   ├── SsoLoginPage
 │   └── ProfilePage, ChangePasswordPage, ...
 └── components/
-    ├── Shell.tsx     # Nav layout
+    ├── Shell.tsx         # Nav layout
     ├── AppBrand.tsx
     ├── LanguageSwitcher.tsx
-    └── ShareDialog.tsx
+    ├── ShareDialog.tsx   # Recipients list + revoke
+    ├── InlineRename.tsx  # Transcript/summary/skill titles
+    └── OrgLedgerModal.tsx # Instance admin wallet ledger
 ```
 
 ## Routing
 
-Browser routes under `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`.
+Browser routes under `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`, `/sso/:orgId`.
 
 `resolveHomePath(me)` in `routes.ts` picks landing page from user `default_route` and role.
 
@@ -37,7 +40,7 @@ Browser routes under `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/s
 
 `api.ts` uses `fetch` with `credentials: 'include'` for cookie auth. Same origin in production; Vite proxy in dev.
 
-Errors expect `{ status: "error", error: { code, message } }`.
+Errors expect `{ status: "error", error: { code, message } }`. API failures show as top-right toast notifications (`sonner` via `util.tsx` `showError`).
 
 ## Auth flow
 

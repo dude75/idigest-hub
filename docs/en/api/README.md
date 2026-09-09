@@ -2,7 +2,7 @@
 
 Base path: **`/api/v1`**
 
-Interactive OpenAPI schema: `{origin}/openapi.json` (FastAPI auto-generated).
+Interactive OpenAPI schema: `{origin}/openapi.json` (FastAPI auto-generated). Swagger UI: `{origin}/docs` — use **Authorize** for session cookie (`hub_session`) or Bearer API token (`idg_…` from `POST /auth/tokens`).
 
 ## Response envelope
 
@@ -30,8 +30,8 @@ Task create returns **202** with task body (not wrapped).
 
 | Method | Header / cookie | Rate limited |
 | ------ | ----------------- | ------------ |
-| Session | Cookie `hub_session` | Auth endpoints only |
-| API token | `Authorization: Bearer <token>` | Yes (Bearer rules) |
+| Session | Cookie `hub_session` | Auth endpoints; upload + task create share Bearer write limits |
+| API token | `Authorization: Bearer <token>` | Yes (Bearer + write limits on upload/tasks) |
 
 Unauthenticated requests to protected routes → **401** `unauthorized`.
 
@@ -59,7 +59,13 @@ Unauthenticated requests to protected routes → **401** `unauthorized`.
 | `forbidden` | 403 | Insufficient role |
 | `must_change_password` | 403 | Password change required |
 | `signup_disabled` | 403 | Signup closed |
-| `recovery_disabled` | 403 | SMTP not configured |
+| `recovery_disabled` | 403 | SMTP or Public URL not configured |
+| `sso_login_required` | 403 | Password login blocked; use org SSO |
+| `sso_disabled` | 403 | SSO not enabled for org |
+| `sso_misconfigured` | 400 | Missing issuer/client/secret or Public URL |
+| `sso_state_invalid` | 400 | Invalid or expired OAuth state |
+| `sso_email_missing` | 400 | IdP token lacks email claim |
+| `sso_user_wrong_org` | 403 | Existing user belongs to another org |
 | `api_disabled` | 403 | Tariff disables API |
 | `not_found` | 404 | Resource or route |
 | `validation_error` | 400 | Invalid body/query |

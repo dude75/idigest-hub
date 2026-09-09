@@ -50,11 +50,33 @@ Creates user + org + session. Errors: `signup_disabled`, `tariff_not_available`,
 { "email": "...", "password": "..." }
 ```
 
-Success: `{ "status": "ok" }` + cookie. Error: `invalid_credentials`.
+Success: `{ "status": "ok" }` + cookie. Errors: `invalid_credentials`, `sso_login_required` (403) when org SSO is enabled and the user is `org_member`.
 
 ### POST `/auth/logout`
 
 Optional auth. Clears session.
+
+## SSO (OIDC, Keycloak-compatible)
+
+Per-organization. Requires instance **Public URL** (`public_base_url` in Instance → Settings). Browser entry: `{public_url}/sso/{org_id}`.
+
+### GET `/auth/sso/{org_id}/info`
+
+Public. `{ "org_id", "org_name", "configured", "enabled", "login_url" }`.
+
+### GET `/auth/sso/{org_id}/start`
+
+Public. Redirects (302) to the IdP authorization URL. Errors: `sso_disabled` (403), `sso_misconfigured` (400).
+
+### GET `/auth/sso/{org_id}/callback`
+
+OAuth callback (`code`, `state` query params). On success: sets session cookie, redirects to `{public_base_url}/app`. Errors: `sso_disabled`, `sso_misconfigured`, `sso_state_invalid`, `sso_email_missing`, `sso_user_wrong_org`.
+
+Auto-provision: first SSO login for an unknown email creates `org_member` in that org (email from IdP claims). Existing users must belong to the same org.
+
+**Password login when SSO is configured:** `org_admin` only (break-glass). `org_member` must use SSO once enabled.
+
+Org admin configures credentials via [Org SSO endpoints](org.md#sso).
 
 ## Password
 
@@ -77,7 +99,7 @@ Auth required. Not allowed while impersonating.
 { "email": "..." }
 ```
 
-Always returns `{ "status": "ok" }` (no email enumeration). Sends mail if user exists and SMTP configured. Error if no SMTP: `recovery_disabled`.
+Always returns `{ "status": "ok" }` (no email enumeration). Sends mail if user exists, SMTP is configured, and **Public URL** is set. Error if SMTP or Public URL missing: `recovery_disabled`. Skips mail silently for users who must use SSO (`org_member` with SSO enabled).
 
 ### POST `/auth/password/reset/confirm`
 
@@ -120,6 +142,23 @@ Invalid/expired token → `not_found`.
 
 `default_route` must be allowed for role. Error: `validation_error`.
 
+## Profile backup
+
+### GET `/me/backup`
+
+Auth required. Downloads a ZIP or TGZ archive of owned library data.
+
+Query (at least one flag must be `true`):
+
+| Param | Description |
+| ----- | ----------- |
+| `transcripts` | Include owned transcripts as JSON |
+| `summaries` | Include owned summaries as JSON |
+| `skills` | Include owned personal skills as JSON |
+| `format` | `zip` (default) or `tgz` |
+
+Response: `Content-Disposition: attachment` with manifest + selected files.
+
 ## API tokens
 
 Require auth + org tariff `api_enabled` + no password lock.
@@ -130,7 +169,7 @@ Require auth + org tariff `api_enabled` + no password lock.
 { "name": "CI pipeline" }
 ```
 
-Response includes one-time `"token": "hub_..."` field.
+Response includes one-time `"token": "idg_..."` field.
 
 ### GET `/auth/tokens`
 
