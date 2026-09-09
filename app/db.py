@@ -3,20 +3,24 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Generator
 from pathlib import Path
 from urllib.parse import unquote
 
-from sqlalchemy import create_engine, event, inspect
+from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import Settings, get_settings
 
-log = logging.getLogger("app.db")
+log = logging.getLogger("app")
 _engine: Engine | None = None
 SessionLocal: sessionmaker[Session] | None = None
 _SQLITE_BUSY_TIMEOUT_SEC = 30.0
+_POSTGRES_CONNECT_TIMEOUT_SEC = 10
+_POSTGRES_STARTUP_RETRIES = 60
+_POSTGRES_STARTUP_RETRY_SEC = 1.0
 
 
 def sqlite_url(path: str) -> str:
@@ -28,7 +32,9 @@ def sqlite_url(path: str) -> str:
 def resolve_database_url(url: str, *, data_dir: str = "./data") -> str:
     parsed = make_url(url)
     if parsed.drivername != "sqlite":
-        return url
+        query = dict(parsed.query)
+        query.setdefault("connect_timeout", str(_POSTGRES_CONNECT_TIMEOUT_SEC))
+        return parsed.set(query=query).render_as_string(hide_password=False)
 
     database = unquote(parsed.database or "")
     if not database or database == ":memory:":
@@ -199,15 +205,42 @@ def _instance_rate_limit_patches(conn, settings_cols: set[str], *, engine: Engin
         _add_int_column(conn, "instance_settings", column, default, engine=engine)
 
 
+def _startup_log(message: str) -> None:
+    print(f"idigest-hub: {message}", flush=True)
+    log.info(message)
+
+
+def _wait_for_database(engine: Engine) -> None:
+    if is_sqlite_engine(engine):
+        return
+    last_error: Exception | None = None
+    for attempt in range(1, _POSTGRES_STARTUP_RETRIES + 1):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            if attempt > 1:
+                _startup_log(f"database init: postgres ready after {attempt} attempts")
+            return
+        except Exception as exc:
+            last_error = exc
+            _startup_log(
+                f"database init: waiting for postgres ({attempt}/{_POSTGRES_STARTUP_RETRIES}): {exc}"
+            )
+            time.sleep(_POSTGRES_STARTUP_RETRY_SEC)
+    raise RuntimeError("PostgreSQL did not become ready during startup") from last_error
+
+
 def init_database(engine: Engine) -> None:
     """Create tables and apply incremental schema updates."""
     from app.models import Base
 
-    log.info("database init: create_all")
+    _startup_log("database init: begin")
+    _wait_for_database(engine)
+    _startup_log("database init: create_all")
     Base.metadata.create_all(engine)
-    log.info("database init: ensure_schema")
+    _startup_log("database init: ensure_schema")
     ensure_schema(engine)
-    log.info("database init: done")
+    _startup_log("database init: done")
 
 
 def get_engine() -> Engine:
@@ -237,8 +270,15 @@ def get_engine() -> Engine:
                 url,
                 future=True,
                 pool_pre_ping=True,
-                connect_args={"connect_timeout": 10},
+                connect_args={"connect_timeout": _POSTGRES_CONNECT_TIMEOUT_SEC},
             )
+
+            @event.listens_for(_engine, "connect")
+            def _pg_session_limits(dbapi_connection, _connection_record) -> None:  # type: ignore[no-untyped-def]
+                cursor = dbapi_connection.cursor()
+                cursor.execute("SET lock_timeout = '10s'")
+                cursor.execute("SET statement_timeout = '120s'")
+                cursor.close()
 
         SessionLocal = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False, future=True)
     return _engine
