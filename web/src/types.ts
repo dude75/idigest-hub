@@ -217,10 +217,16 @@ export type OrgStats = JobStats & {
   days: OrgStatsDay[]
 }
 
-export type InstanceStats = JobStats & {
+export type InstanceSnapshot = {
   orgs: number
   users: number
   tasks_queued: number
   tasks_running: number
-  usage_total: string
 }
+
+export type InstanceStats = JobStats &
+  InstanceSnapshot & {
+    usage_total: string
+    summary_chars: number
+    days: OrgStatsDay[]
+  }

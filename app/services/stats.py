@@ -62,16 +62,18 @@ def _parse_day_start(value: str | None) -> datetime | None:
     return day
 
 
-def org_usage_stats(
+def usage_stats(
     db: Session,
-    org_id: str,
     *,
+    org_id: str | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
     user_id: str | None = None,
     kind: str | None = None,
 ) -> dict:
-    filters = [UsageEvent.org_id == org_id]
+    filters = []
+    if org_id is not None:
+        filters.append(UsageEvent.org_id == org_id)
     if start is not None:
         filters.append(UsageEvent.created_at >= start)
     if end is not None:
@@ -138,6 +140,25 @@ def org_usage_stats(
         "total_amount": money_str(total),
         "days": days,
     }
+
+
+def org_usage_stats(
+    db: Session,
+    org_id: str,
+    *,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    user_id: str | None = None,
+    kind: str | None = None,
+) -> dict:
+    return usage_stats(
+        db,
+        org_id=org_id,
+        start=start,
+        end=end,
+        user_id=user_id,
+        kind=kind,
+    )
 
 
 def parse_org_stats_range(from_day: str | None, to_day: str | None) -> tuple[datetime | None, datetime | None]:

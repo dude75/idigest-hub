@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
@@ -20,7 +20,7 @@ from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.routers.auth import seed_default_tariff
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
 from app.services.audit import write_audit
-from app.services.stats import completed_job_stats
+from app.services.stats import parse_org_stats_range, usage_stats
 from app.timeutil import utcnow
 
 router = APIRouter()
@@ -429,21 +429,42 @@ def stop_impersonate(
 
 
 @router.get("/instance/stats")
-def stats(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def stats(
+    from_day: str | None = Query(None, alias="from"),
+    to_day: str | None = Query(None, alias="to"),
+    org_id: str | None = None,
+    user_id: str | None = None,
+    kind: str | None = None,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
     _admin(ctx)
+    try:
+        start, end = parse_org_stats_range(from_day, to_day)
+    except ValueError:
+        ctx.raise_error(ErrorCode.validation_error)
+    org_filter = (org_id or "").strip() or None
+    if org_filter and db.get(Organization, org_filter) is None:
+        ctx.raise_error(ErrorCode.not_found)
+    usage = usage_stats(
+        db,
+        org_id=org_filter,
+        start=start,
+        end=end,
+        user_id=(user_id or "").strip() or None,
+        kind=(kind or "").strip() or None,
+    )
     queued = int(db.scalar(select(func.count()).select_from(Task).where(Task.status == "queued")) or 0)
     running = int(db.scalar(select(func.count()).select_from(Task).where(Task.status == "running")) or 0)
-    jobs = completed_job_stats(db)
     orgs = int(db.scalar(select(func.count()).select_from(Organization)) or 0)
     users = int(db.scalar(select(func.count()).select_from(User)) or 0)
-    usage_sum = db.scalar(select(func.coalesce(func.sum(UsageEvent.amount), 0)))
     return {
         "orgs": orgs,
         "users": users,
         "tasks_queued": queued,
         "tasks_running": running,
-        **jobs,
-        "usage_total": str(usage_sum),
+        **usage,
+        "usage_total": usage["total_amount"],
     }
 
 

@@ -1,15 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
-import type { InstanceSettings, InstanceStats, Org, Skill, Tariff, Worker } from '../types'
+import type { InstanceSettings, InstanceSnapshot, InstanceStats, Org, Skill, Tariff, Worker } from '../types'
 import { formatAudioTime, fmtDate, showError, WalletLabel } from '../util'
 
 const MAX_UPLOAD = 1073741824
 type Tab = 'workers' | 'tariffs' | 'orgs' | 'settings' | 'baseSkills' | 'stats'
 const TABS: Tab[] = ['stats', 'workers', 'tariffs', 'orgs', 'settings', 'baseSkills']
+
+function utcDay(d: Date): string {
+  return d.toISOString().slice(0, 10)
+}
 
 function healthLabel(w: Worker): string {
   const health = w.last_health
@@ -68,10 +72,33 @@ export function InstancePage() {
   const [skills, setSkills] = useState<Skill[]>([])
   const [sname, setSname] = useState('')
   const [sbody, setSbody] = useState('')
+  const [snapshot, setSnapshot] = useState<InstanceSnapshot | null>(null)
   const [stats, setStats] = useState<InstanceStats | null>(null)
+  const [statsOrgs, setStatsOrgs] = useState<Org[]>([])
+  const [fromDay, setFromDay] = useState('')
+  const [toDay, setToDay] = useState('')
+  const [statsOrgId, setStatsOrgId] = useState('')
+  const [statsUserId, setStatsUserId] = useState('')
+  const [statsKind, setStatsKind] = useState('')
   const [deltas, setDeltas] = useState<Record<string, string>>({})
 
   const allowed = isInstanceAdmin(me)
+
+  const statsQuery = useMemo(() => {
+    const params = new URLSearchParams()
+    if (fromDay) params.set('from', fromDay)
+    if (toDay) params.set('to', toDay)
+    if (statsOrgId) params.set('org_id', statsOrgId)
+    if (statsUserId) params.set('user_id', statsUserId)
+    if (statsKind) params.set('kind', statsKind)
+    const text = params.toString()
+    return text ? `?${text}` : ''
+  }, [fromDay, toDay, statsOrgId, statsUserId, statsKind])
+
+  const statsUsers = useMemo(() => {
+    if (!statsOrgId) return []
+    return statsOrgs.find((o) => o.id === statsOrgId)?.members || []
+  }, [statsOrgs, statsOrgId])
 
   async function load() {
     try {
@@ -90,8 +117,6 @@ export function InstancePage() {
         setSettings(await api<InstanceSettings>('/instance/settings'))
       } else if (tab === 'baseSkills') {
         setSkills((await api<{ items: Skill[] }>('/skills/base')).items)
-      } else {
-        setStats(await api<InstanceStats>('/instance/stats'))
       }
     } catch (e) {
       showError(e)
@@ -100,8 +125,51 @@ export function InstancePage() {
 
   useEffect(() => {
     if (!allowed) return
+    if (tab === 'stats') return
     void load()
   }, [tab, allowed])
+
+  useEffect(() => {
+    if (!allowed || tab !== 'stats') return
+    api<{ items: Org[] }>('/orgs').then((r) => setStatsOrgs(r.items)).catch(showError)
+  }, [allowed, tab])
+
+  useEffect(() => {
+    if (!allowed || tab !== 'stats') return
+    api<InstanceStats>('/instance/stats')
+      .then((r) => setSnapshot({
+        orgs: r.orgs,
+        users: r.users,
+        tasks_queued: r.tasks_queued,
+        tasks_running: r.tasks_running,
+      }))
+      .catch(showError)
+  }, [allowed, tab])
+
+  useEffect(() => {
+    if (!allowed || tab !== 'stats') return
+    api<InstanceStats>(`/instance/stats${statsQuery}`)
+      .then(setStats)
+      .catch(showError)
+  }, [allowed, tab, statsQuery])
+
+  function statsPreset(days: number | 'month' | 'all') {
+    if (days === 'all') {
+      setFromDay('')
+      setToDay('')
+      return
+    }
+    const to = new Date()
+    if (days === 'month') {
+      const start = new Date(Date.UTC(to.getUTCFullYear(), to.getUTCMonth(), 1))
+      setFromDay(utcDay(start))
+      setToDay(utcDay(to))
+      return
+    }
+    const from = new Date(to.getTime() - (days - 1) * 86400000)
+    setFromDay(utcDay(from))
+    setToDay(utcDay(to))
+  }
 
   if (!allowed) return <Navigate to={LIBRARY_DEFAULT} replace />
 
@@ -180,17 +248,133 @@ export function InstancePage() {
         ))}
       </div>
 
-      {tab === 'stats' && stats && (
-        <div className="card stack">
-          <div>{t('instance.orgs')}: {stats.orgs}</div>
-          <div>{t('instance.users')}: {stats.users}</div>
-          <div>{t('instance.queued')}: {stats.tasks_queued}</div>
-          <div>{t('instance.running')}: {stats.tasks_running}</div>
-          <div>{t('instance.transcribeDone')}: {stats.tasks_transcribe_success}</div>
-          <div>{t('instance.summarizeDone')}: {stats.tasks_summarize_success}</div>
-          <div>{t('instance.transcribedAudio')}: {formatAudioTime(stats.audio_transcribed_sec, t)}</div>
-          <div>{t('instance.usage')}: {stats.usage_total}</div>
+      {tab === 'stats' && snapshot && (
+        <div className="stat-grid">
+          <div className="stat">
+            <div className="stat-label">{t('instance.orgs')}</div>
+            <div className="stat-value">{snapshot.orgs}</div>
+          </div>
+          <div className="stat">
+            <div className="stat-label">{t('instance.users')}</div>
+            <div className="stat-value">{snapshot.users}</div>
+          </div>
+          <div className="stat">
+            <div className="stat-label">{t('instance.queued')}</div>
+            <div className="stat-value">{snapshot.tasks_queued}</div>
+          </div>
+          <div className="stat">
+            <div className="stat-label">{t('instance.running')}</div>
+            <div className="stat-value">{snapshot.tasks_running}</div>
+          </div>
         </div>
+      )}
+
+      {tab === 'stats' && (
+        <>
+          <div className="card stack stats-filters">
+            <div className="row wrap">
+              <label>{t('stats.from')}<input type="date" value={fromDay} onChange={(e) => setFromDay(e.target.value)} /></label>
+              <label>{t('stats.to')}<input type="date" value={toDay} onChange={(e) => setToDay(e.target.value)} /></label>
+              <label>
+                {t('instance.orgs')}
+                <select
+                  value={statsOrgId}
+                  onChange={(e) => {
+                    setStatsOrgId(e.target.value)
+                    setStatsUserId('')
+                  }}
+                >
+                  <option value="">{t('common.all')}</option>
+                  {statsOrgs.map((o) => (
+                    <option key={o.id} value={o.id}>{o.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t('stats.user')}
+                <select
+                  value={statsUserId}
+                  disabled={!statsOrgId}
+                  onChange={(e) => setStatsUserId(e.target.value)}
+                >
+                  <option value="">{t('common.all')}</option>
+                  {statsUsers.map((u) => (
+                    <option key={u.id} value={u.id}>{u.email}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t('stats.kind')}
+                <select value={statsKind} onChange={(e) => setStatsKind(e.target.value)}>
+                  <option value="">{t('common.all')}</option>
+                  <option value="transcribe">{t('task.type.transcribe')}</option>
+                  <option value="summarize">{t('task.type.summarize')}</option>
+                </select>
+              </label>
+            </div>
+            <div className="row wrap">
+              <button type="button" onClick={() => statsPreset(7)}>{t('stats.days7')}</button>
+              <button type="button" onClick={() => statsPreset(30)}>{t('stats.days30')}</button>
+              <button type="button" onClick={() => statsPreset('month')}>{t('stats.month')}</button>
+              <button type="button" onClick={() => statsPreset('all')}>{t('stats.allTime')}</button>
+            </div>
+          </div>
+          {stats && (
+            <>
+              <div className="stat-grid">
+                <div className="stat">
+                  <div className="stat-label">{t('instance.transcribeDone')}</div>
+                  <div className="stat-value">{stats.tasks_transcribe_success}</div>
+                </div>
+                <div className="stat">
+                  <div className="stat-label">{t('instance.summarizeDone')}</div>
+                  <div className="stat-value">{stats.tasks_summarize_success}</div>
+                </div>
+                <div className="stat">
+                  <div className="stat-label">{t('instance.transcribedAudio')}</div>
+                  <div className="stat-value">{formatAudioTime(stats.audio_transcribed_sec, t)}</div>
+                </div>
+                <div className="stat">
+                  <div className="stat-label">{t('stats.summaryChars')}</div>
+                  <div className="stat-value">{stats.summary_chars}</div>
+                </div>
+                <div className="stat">
+                  <div className="stat-label">{t('instance.usage')}</div>
+                  <div className="stat-value">{stats.usage_total}</div>
+                </div>
+              </div>
+              <h2>{t('stats.calendar')}</h2>
+              {stats.days.length === 0 ? (
+                <p className="muted">{t('common.empty')}</p>
+              ) : (
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{t('stats.day')}</th>
+                      <th>{t('task.type.transcribe')}</th>
+                      <th>{t('task.type.summarize')}</th>
+                      <th>{t('stats.transcribedAudio')}</th>
+                      <th>{t('stats.summaryChars')}</th>
+                      <th>{t('stats.spent')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stats.days.map((day) => (
+                      <tr key={day.date}>
+                        <td>{day.date}</td>
+                        <td>{day.tasks_transcribe_success}</td>
+                        <td>{day.tasks_summarize_success}</td>
+                        <td>{formatAudioTime(day.audio_transcribed_sec, t)}</td>
+                        <td>{day.summary_chars}</td>
+                        <td>{day.amount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </>
+          )}
+        </>
       )}
 
       {tab === 'workers' && (

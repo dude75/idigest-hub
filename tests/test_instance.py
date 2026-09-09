@@ -67,6 +67,8 @@ def test_instance_stats_counts_completed_jobs_and_audio_time(client, fake_worker
     assert body["tasks_transcribe_success"] == 2
     assert body["tasks_summarize_success"] == 1
     assert body["audio_transcribed_sec"] == 35.0
+    assert body["summary_chars"] == 2
+    assert body["days"]
 
 
 def test_instance_stats_forbidden_for_non_admin(client):
