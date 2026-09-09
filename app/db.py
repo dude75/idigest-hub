@@ -108,6 +108,13 @@ def ensure_schema(engine: Engine) -> None:
             conn.exec_driver_sql(
                 f"ALTER TABLE summaries ADD COLUMN edited BOOLEAN NOT NULL DEFAULT {bool_false}"
             )
+        summary_cols = _table_columns(conn, "summaries", engine=engine)
+        if summary_cols and "title" not in summary_cols:
+            conn.exec_driver_sql("ALTER TABLE summaries ADD COLUMN title VARCHAR(255)")
+
+        transcript_cols = _table_columns(conn, "transcripts", engine=engine)
+        if transcript_cols and "title" not in transcript_cols:
+            conn.exec_driver_sql("ALTER TABLE transcripts ADD COLUMN title VARCHAR(255)")
 
         tariff_cols = _table_columns(conn, "tariffs", engine=engine)
         if tariff_cols:

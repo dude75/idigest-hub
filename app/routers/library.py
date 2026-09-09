@@ -7,7 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query, Request, UploadFile
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -18,7 +18,13 @@ from app.db import get_session
 from app.deps import AuthContext, require_auth
 from app.errors import ErrorCode
 from app.models import Audio, HiddenItem, Share, Summary, Transcript, User, new_id
-from app.presenters import audio_public, summary_public, transcript_public
+from app.presenters import (
+    audio_public,
+    summary_display_title,
+    summary_public,
+    transcript_display_title,
+    transcript_public,
+)
 from app.services.access import can_read_object, is_hidden, is_shared_with, outgoing_shares
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 from app.services.dispatcher import utterances_to_text
@@ -36,8 +42,13 @@ class ShareBody(BaseModel):
     to_user_ids: list[str]
 
 
+class TitlePatch(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+
+
 class SummaryPatch(BaseModel):
-    body: str
+    body: str | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 def _share_items(db: Session, rows: list[Share]) -> list[dict]:
@@ -328,8 +339,12 @@ def export_transcript(
         ctx.raise_error(ErrorCode.not_found)
     utterances = json.loads(decrypt_str(row.utterances_encrypted))
     source_audio = db.get(Audio, row.source_audio_id) if row.source_audio_id else None
-    base = source_audio.original_filename if source_audio else f"transcript-{row.id[:8]}"
-    stem = Path(base).stem
+    stem = safe_filename(
+        transcript_display_title(
+            row,
+            source_filename=source_audio.original_filename if source_audio else None,
+        )
+    )
     if format == "json":
         content = json.dumps(utterances, ensure_ascii=False, indent=2)
         return attachment_response(content, f"{stem}.json", "application/json")
@@ -420,7 +435,31 @@ def export_summary(
     body = decrypt_str(row.body_encrypted)
     ext = "md" if format == "md" else "txt"
     media = "text/markdown; charset=utf-8" if format == "md" else "text/plain; charset=utf-8"
-    return attachment_response(body, f"summary-{row.id[:8]}.{ext}", media)
+    return attachment_response(body, f"{safe_filename(summary_display_title(row))}.{ext}", media)
+
+
+@router.patch("/transcripts/{transcript_id}")
+def patch_transcript(
+    transcript_id: str,
+    body: TitlePatch,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    row = db.get(Transcript, transcript_id)
+    if row is None:
+        ctx.raise_error(ErrorCode.not_found)
+    if row.owner_user_id != ctx.user.id and not ctx.is_org_admin:
+        ctx.raise_error(ErrorCode.forbidden)
+    if ctx.org is None or row.org_id != ctx.org.id:
+        ctx.raise_error(ErrorCode.not_found)
+    row.title = body.title.strip()
+    write_audit(db, "transcript.rename", ctx, {"transcript_id": row.id})
+    source_audio = db.get(Audio, row.source_audio_id) if row.source_audio_id else None
+    return transcript_public(
+        row,
+        extra=_share_badge(db, "transcript", row.id, row.owner_user_id, ctx),
+        source_filename=source_audio.original_filename if source_audio else None,
+    )
 
 
 @router.patch("/summaries/{summary_id}")
@@ -437,12 +476,21 @@ def patch_summary(
         ctx.raise_error(ErrorCode.forbidden)
     if ctx.org is None or row.org_id != ctx.org.id:
         ctx.raise_error(ErrorCode.not_found)
-    current = decrypt_str(row.body_encrypted)
-    if body.body != current:
+    if body.body is None and body.title is None:
+        ctx.raise_error(ErrorCode.validation_error)
+    body_text = decrypt_str(row.body_encrypted)
+    changed = False
+    if body.title is not None:
+        row.title = body.title.strip()
+        changed = True
+    if body.body is not None and body.body != body_text:
         row.body_encrypted = encrypt_str(body.body)
         row.edited = True
+        body_text = body.body
+        changed = True
+    if changed:
         write_audit(db, "summary.update", ctx, {"summary_id": row.id})
-    return summary_public(row, body.body, _share_badge(db, "summary", row.id, row.owner_user_id, ctx))
+    return summary_public(row, body_text, _share_badge(db, "summary", row.id, row.owner_user_id, ctx))
 
 
 @router.delete("/summaries/{summary_id}")

@@ -228,6 +228,7 @@ class Transcript(Base):
     source_audio_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("audios.id", ondelete="SET NULL")
     )
+    title: Mapped[str | None] = mapped_column(String(255))
     utterances_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -246,6 +247,7 @@ class Summary(Base):
         String(36), ForeignKey("transcripts.id", ondelete="SET NULL")
     )
     skill_ids_json: Mapped[list[Any]] = mapped_column(JSON, nullable=False, default=list)
+    title: Mapped[str | None] = mapped_column(String(255))
     body_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
     edited: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

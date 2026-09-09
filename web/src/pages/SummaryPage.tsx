@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
+import { InlineRename } from '../components/InlineRename'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
 import { libraryPath } from '../routes'
@@ -60,12 +61,39 @@ export function SummaryPage() {
     nav(libraryPath('summaries'))
   }
 
+  async function renameTitle(title: string) {
+    if (!id) return
+    setBusy(true)
+    setErr(null)
+    try {
+      const next = await api<Summary>(`/summaries/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ title }),
+      })
+      setItem(next)
+    } catch (e) {
+      setErr(e)
+      throw e
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (!item && !err) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
       <Link to={libraryPath('summaries')}>{t('common.back')}</Link>
-      <h1>{t('summary.title')}</h1>
+      {item ? (
+        <InlineRename
+          value={item.display_title || item.title || item.id.slice(0, 8)}
+          canEdit={canEdit}
+          busy={busy}
+          onSave={renameTitle}
+        />
+      ) : (
+        <h1>{t('summary.title')}</h1>
+      )}
       <ErrorBox err={err} />
       {item && (
         <>

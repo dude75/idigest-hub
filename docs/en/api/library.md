@@ -23,6 +23,7 @@ List/detail items include share badges: `share_kind`, `shared_with`, `shared_by`
 | ------ | ---- | ----------- |
 | GET | `/transcripts?include_hidden=false` | List |
 | GET | `/transcripts/{id}` | Detail with `utterances` array |
+| PATCH | `/transcripts/{id}` | `{ "title": "..." }` — owner or org_admin |
 | GET | `/transcripts/{id}/export?format=txt\|json` | Download transcript |
 | POST | `/transcripts/{id}/hide` | Owner |
 | POST | `/transcripts/{id}/unhide` | Owner |
@@ -44,7 +45,7 @@ Utterance shape:
 | GET | `/summaries` | List |
 | GET | `/summaries/{id}` | Detail with `body` |
 | GET | `/summaries/{id}/export?format=md\|txt` | Download summary |
-| PATCH | `/summaries/{id}` | `{ "body": "..." }` — owner or org_admin |
+| PATCH | `/summaries/{id}` | `{ "body": "..." }` and/or `{ "title": "..." }` — owner or org_admin |
 | DELETE | `/summaries/{id}` | Owner or org_admin |
 
 ## Shares

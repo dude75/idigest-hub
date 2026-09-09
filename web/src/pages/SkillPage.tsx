@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isInstanceAdmin, useAuth } from '../auth'
+import { InlineRename } from '../components/InlineRename'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
 import type { Skill } from '../types'
@@ -84,12 +85,40 @@ export function SkillPage() {
     nav(`/app/skill/${next.id}`)
   }
 
+  async function renameSkill(nextName: string) {
+    if (!item) return
+    setBusy(true)
+    setErr(null)
+    try {
+      const next = await api<Skill>(skillPath(item), {
+        method: 'PATCH',
+        body: JSON.stringify({ name: nextName, body: item.body }),
+      })
+      setItem({ ...item, ...next })
+      setName(next.name)
+    } catch (e) {
+      setErr(e)
+      throw e
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (!item && !err) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
       <Link to={backTo}>{t('common.back')}</Link>
-      <h1>{item?.name || t('skills.title')}</h1>
+      {item ? (
+        <InlineRename
+          value={item.name}
+          canEdit={mine}
+          busy={busy}
+          onSave={renameSkill}
+        />
+      ) : (
+        <h1>{t('skills.title')}</h1>
+      )}
       <ErrorBox err={err} />
       {item && (
         <>

@@ -89,6 +89,8 @@ export type Transcript = ShareBadge & {
   owner_user_id: string
   source_audio_id: string | null
   source_filename?: string | null
+  title?: string | null
+  display_title?: string
   created_at: string
   utterances?: Utterance[]
   summaries?: Summary[]
@@ -100,6 +102,8 @@ export type Summary = ShareBadge & {
   owner_user_id: string
   source_transcript_id: string | null
   skill_ids: string[]
+  title?: string | null
+  display_title?: string
   edited: boolean
   created_at: string
   body?: string

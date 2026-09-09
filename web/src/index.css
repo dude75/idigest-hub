@@ -215,6 +215,10 @@ th { color: var(--muted); font-weight: 550; }
   margin-top: 0.25rem;
 }
 .item a.title { font-weight: 600; color: var(--ink); }
+.inline-rename { align-items: center; gap: 0.5rem; margin: 0.25rem 0 0.5rem; }
+.inline-rename h1 { margin: 0; }
+.inline-rename-input { flex: 1; min-width: 0; font-size: 1.35rem; font-weight: 650; padding: 0.25rem 0.5rem; }
+.inline-rename-btn { font-size: 0.85rem; }
 .group {
   display: grid;
   gap: 0.4rem;

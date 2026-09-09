@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from app.models import (
@@ -114,6 +115,20 @@ def audio_public(audio: Audio, extra: dict[str, Any] | None = None) -> dict[str,
     return body
 
 
+def transcript_display_title(transcript: Transcript, *, source_filename: str | None = None) -> str:
+    if transcript.title and transcript.title.strip():
+        return transcript.title.strip()
+    if source_filename:
+        return Path(source_filename).stem
+    return f"transcript-{transcript.id[:8]}"
+
+
+def summary_display_title(summary: Summary) -> str:
+    if summary.title and summary.title.strip():
+        return summary.title.strip()
+    return f"summary-{summary.id[:8]}"
+
+
 def transcript_public(
     transcript: Transcript,
     utterances: list | None = None,
@@ -127,6 +142,8 @@ def transcript_public(
         "owner_user_id": transcript.owner_user_id,
         "source_audio_id": transcript.source_audio_id,
         "source_filename": source_filename,
+        "title": transcript.title,
+        "display_title": transcript_display_title(transcript, source_filename=source_filename),
         "created_at": transcript.created_at.isoformat(),
     }
     if utterances is not None:
@@ -145,6 +162,8 @@ def summary_public(
         "owner_user_id": summary.owner_user_id,
         "source_transcript_id": summary.source_transcript_id,
         "skill_ids": summary.skill_ids_json,
+        "title": summary.title,
+        "display_title": summary_display_title(summary),
         "edited": summary.edited,
         "created_at": summary.created_at.isoformat(),
     }

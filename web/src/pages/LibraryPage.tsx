@@ -178,7 +178,9 @@ export function LibraryPage() {
               {g.items.map((tr) => (
                 <div className="item row" key={tr.id}>
                   <div className="grow">
-                    <Link className="title" to={`/app/transcript/${tr.id}`}>{tr.id.slice(0, 8)}</Link>
+                    <Link className="title" to={`/app/transcript/${tr.id}`}>
+                      {tr.display_title || tr.title || tr.id.slice(0, 8)}
+                    </Link>
                     <div className="muted">{fmtDate(tr.created_at)} {tr.owner_email && `· ${tr.owner_email}`}</div>
                   </div>
                   <ShareBadges item={tr} />
@@ -205,7 +207,9 @@ export function LibraryPage() {
               {g.items.map((s) => (
                 <div className="item row" key={s.id}>
                   <div className="grow">
-                    <Link className="title" to={`/app/summary/${s.id}`}>{s.id.slice(0, 8)}</Link>
+                    <Link className="title" to={`/app/summary/${s.id}`}>
+                      {s.display_title || s.title || s.id.slice(0, 8)}
+                    </Link>
                     <div className="muted">{fmtDate(s.created_at)} {s.owner_email && `· ${s.owner_email}`}</div>
                   </div>
                   <ShareBadges item={s} />

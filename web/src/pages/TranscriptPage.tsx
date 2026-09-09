@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
+import { InlineRename } from '../components/InlineRename'
 import { ShareDialog } from '../components/ShareDialog'
 import { libraryPath } from '../routes'
 import type { Skill, Task, Transcript } from '../types'
@@ -22,6 +23,7 @@ export function TranscriptPage() {
   const [openText, setOpenText] = useState(false)
   const admin = isOrgAdmin(me)
   const mine = item?.owner_user_id === me?.user.id
+  const canRename = Boolean(mine || admin)
 
   async function load() {
     if (!id) return
@@ -72,12 +74,39 @@ export function TranscriptPage() {
     nav(libraryPath('transcripts'))
   }
 
+  async function renameTitle(title: string) {
+    if (!id) return
+    setBusy(true)
+    setErr(null)
+    try {
+      const next = await api<Transcript>(`/transcripts/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ title }),
+      })
+      setItem((prev) => (prev ? { ...prev, ...next } : next))
+    } catch (e) {
+      setErr(e)
+      throw e
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (!item && !err) return <p className="muted">{t('common.loading')}</p>
 
   return (
     <div>
       <Link to={libraryPath('transcripts')}>{t('common.back')}</Link>
-      <h1>{t('transcript.title')}</h1>
+      {item ? (
+        <InlineRename
+          value={item.display_title || item.title || item.id.slice(0, 8)}
+          canEdit={canRename}
+          busy={busy}
+          onSave={renameTitle}
+        />
+      ) : (
+        <h1>{t('transcript.title')}</h1>
+      )}
       <ErrorBox err={err} />
       {item && (
         <>
@@ -151,7 +180,9 @@ export function TranscriptPage() {
           <div className="list">
             {(item.summaries || []).map((s) => (
               <div className="item row" key={s.id}>
-                <Link className="title grow" to={`/app/summary/${s.id}`}>{s.id.slice(0, 8)}</Link>
+                <Link className="title grow" to={`/app/summary/${s.id}`}>
+                  {s.display_title || s.title || s.id.slice(0, 8)}
+                </Link>
                 <ShareBadges item={s} />
               </div>
             ))}

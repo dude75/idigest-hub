@@ -343,6 +343,40 @@ def test_export_audio_transcript_summary(client):
     assert "markdown" in summary.headers["content-type"]
 
 
+def test_rename_transcript_and_summary(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    transcript_id, summary_id = _insert_transcript_and_summary(org_id, user_id, audio.json()["id"])
+
+    renamed_tr = client.patch(f"/api/v1/transcripts/{transcript_id}", json={"title": "Meeting notes"})
+    assert renamed_tr.status_code == 200, renamed_tr.text
+    assert renamed_tr.json()["title"] == "Meeting notes"
+    assert renamed_tr.json()["display_title"] == "Meeting notes"
+
+    listed = client.get("/api/v1/transcripts")
+    match = next(item for item in listed.json()["items"] if item["id"] == transcript_id)
+    assert match["display_title"] == "Meeting notes"
+
+    renamed_sum = client.patch(f"/api/v1/summaries/{summary_id}", json={"title": "Weekly recap"})
+    assert renamed_sum.status_code == 200, renamed_sum.text
+    assert renamed_sum.json()["title"] == "Weekly recap"
+    assert renamed_sum.json()["display_title"] == "Weekly recap"
+
+    both = client.patch(
+        f"/api/v1/summaries/{summary_id}",
+        json={"title": "Final recap", "body": "updated body"},
+    )
+    assert both.status_code == 200, both.text
+    assert both.json()["title"] == "Final recap"
+    assert both.json()["body"] == "updated body"
+    assert both.json()["edited"] is True
+
+
 def test_export_skill(client):
     setup_admin(client)
     skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "# Prompt\nDo it"})

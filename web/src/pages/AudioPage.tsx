@@ -106,7 +106,9 @@ export function AudioPage() {
             {(item.transcripts || []).length === 0 && <p className="muted">{t('common.empty')}</p>}
             {(item.transcripts || []).map((tr) => (
               <div className="item row" key={tr.id}>
-                <Link className="title grow" to={`/app/transcript/${tr.id}`}>{tr.id.slice(0, 8)}</Link>
+                <Link className="title grow" to={`/app/transcript/${tr.id}`}>
+                  {tr.display_title || tr.title || tr.id.slice(0, 8)}
+                </Link>
                 <ShareBadges item={tr} />
               </div>
             ))}
