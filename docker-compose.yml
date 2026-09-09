@@ -17,7 +17,8 @@ services:
 
   idigest-hub:
     restart: always
-    image: idigest-hub:latest
+    # CI sets HUB_IMAGE to $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA; local default below.
+    image: ${HUB_IMAGE:-idigest-hub:latest}
     build:
       context: .
       dockerfile: Dockerfile
