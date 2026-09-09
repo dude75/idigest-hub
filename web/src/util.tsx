@@ -48,12 +48,20 @@ export function ErrorBox({ err }: { err: unknown }) {
 
 export function ShareBadges({ item }: { item: ShareBadge }) {
   const { t } = useTranslation()
+  const sharedWith =
+    item.shares?.map((s) => s.email).join(', ')
+    || (item.shared_with?.length ? t('library.sharedWithCount', { count: item.shared_with.length }) : null)
   return (
     <span className="row">
       {item.share_kind === 'incoming' && item.shared_by && (
         <span className="badge warn">{t('library.sharedBy', { who: item.shared_by })}</span>
       )}
-      {item.share_kind === 'outgoing' && <span className="badge out">{t('library.youShared')}</span>}
+      {item.share_kind === 'outgoing' && sharedWith && (
+        <span className="badge out">{t('library.sharedWith', { who: sharedWith })}</span>
+      )}
+      {item.share_kind === 'outgoing' && !sharedWith && (
+        <span className="badge out">{t('library.youShared')}</span>
+      )}
       {item.hidden && <span className="badge">{t('library.hidden')}</span>}
       {item.edited && <span className="badge">{t('summary.edited')}</span>}
     </span>

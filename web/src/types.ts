@@ -48,10 +48,17 @@ export type Me = {
   must_change_password: boolean
 }
 
+export type ShareRecord = {
+  id: string
+  to_user_id: string
+  email: string
+}
+
 export type ShareBadge = {
   share_kind?: 'incoming' | 'outgoing' | null
   shared_by?: string
   shared_with?: string[]
+  shares?: ShareRecord[]
   share_id?: string
   hidden?: boolean
   owner_email?: string | null

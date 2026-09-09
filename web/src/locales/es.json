@@ -94,6 +94,8 @@
     "showHidden": "Mostrar ocultos",
     "sharedBy": "compartido por {{who}}",
     "youShared": "usted compartió",
+    "sharedWith": "compartido con {{who}}",
+    "sharedWithCount": "compartido con {{count}} personas",
     "hidden": "oculto"
   },
   "audio": {
@@ -280,7 +282,11 @@
   "share": {
     "title": "Compartir",
     "pick": "Personas de la org",
-    "done": "Compartido"
+    "done": "Compartido",
+    "current": "Compartido con",
+    "none": "Aún no compartido con nadie",
+    "addMore": "Añadir personas",
+    "revoke": "Revocar"
   },
   "errors": {
     "unauthorized": "No hay sesión o ha caducado.",

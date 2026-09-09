@@ -94,6 +94,8 @@
     "showHidden": "Show hidden",
     "sharedBy": "shared by {{who}}",
     "youShared": "you shared",
+    "sharedWith": "shared with {{who}}",
+    "sharedWithCount": "shared with {{count}} people",
     "hidden": "hidden"
   },
   "audio": {
@@ -280,7 +282,11 @@
   "share": {
     "title": "Share",
     "pick": "People in this org",
-    "done": "Shared"
+    "done": "Shared",
+    "current": "Shared with",
+    "none": "Not shared with anyone yet",
+    "addMore": "Add people",
+    "revoke": "Revoke"
   },
   "errors": {
     "unauthorized": "Not signed in or session expired.",

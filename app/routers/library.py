@@ -19,7 +19,7 @@ from app.deps import AuthContext, require_auth
 from app.errors import ErrorCode
 from app.models import Audio, HiddenItem, Share, Summary, Transcript, User, new_id
 from app.presenters import audio_public, summary_public, transcript_public
-from app.services.access import can_read_object, is_hidden, is_shared_with
+from app.services.access import can_read_object, is_hidden, is_shared_with, outgoing_shares
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 from app.services.audit import write_audit
 from app.services.billing import upload_limit
@@ -38,13 +38,30 @@ class SummaryPatch(BaseModel):
     body: str
 
 
+def _share_items(db: Session, rows: list[Share]) -> list[dict]:
+    if not rows:
+        return []
+    user_ids = [row.to_user_id for row in rows]
+    users = {
+        u.id: u
+        for u in db.scalars(select(User).where(User.id.in_(user_ids))).all()
+    }
+    return [
+        {
+            "id": row.id,
+            "to_user_id": row.to_user_id,
+            "email": users[row.to_user_id].email if row.to_user_id in users else row.to_user_id,
+        }
+        for row in rows
+    ]
+
+
 def _share_badge(db: Session, object_type: str, object_id: str, owner_id: str, ctx: AuthContext) -> dict:
     extra: dict = {}
     if owner_id == ctx.user.id:
-        outgoing = db.scalars(
-            select(Share).where(Share.object_type == object_type, Share.object_id == object_id)
-        ).all()
+        outgoing = outgoing_shares(db, object_type, object_id)
         extra["shared_with"] = [row.to_user_id for row in outgoing]
+        extra["shares"] = _share_items(db, outgoing)
         extra["share_kind"] = "outgoing" if outgoing else None
     else:
         row = is_shared_with(db, object_type, object_id, ctx.user.id)
@@ -407,22 +424,39 @@ def _owner_of(db: Session, object_type: str, object_id: str):
     return db.get(model, object_id)
 
 
+def _require_share_owner(
+    db: Session, object_type: str, object_id: str, ctx: AuthContext
+):
+    if object_type not in {"audio", "transcript", "summary", "skill"}:
+        ctx.raise_error(ErrorCode.validation_error)
+    obj = _owner_of(db, object_type, object_id)
+    if obj is None:
+        ctx.raise_error(ErrorCode.not_found)
+    if object_type == "skill":
+        if obj.scope != "self" or obj.owner_user_id != ctx.user.id:
+            ctx.raise_error(ErrorCode.forbidden)
+    elif obj.owner_user_id != ctx.user.id:
+        ctx.raise_error(ErrorCode.forbidden)
+    return obj
+
+
+@router.get("/shares")
+def list_shares(
+    object_type: str,
+    object_id: str,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _require_share_owner(db, object_type, object_id, ctx)
+    rows = outgoing_shares(db, object_type, object_id)
+    return {"items": _share_items(db, rows)}
+
+
 @router.post("/shares")
 def create_shares(
     body: ShareBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
-    if body.object_type not in {"audio", "transcript", "summary", "skill"}:
-        ctx.raise_error(ErrorCode.validation_error)
-    obj = _owner_of(db, body.object_type, body.object_id)
-    if obj is None:
-        ctx.raise_error(ErrorCode.not_found)
-    owner_id = obj.owner_user_id if body.object_type != "skill" or obj.scope == "self" else None
-    if body.object_type == "skill":
-        if obj.scope != "self" or obj.owner_user_id != ctx.user.id:
-            ctx.raise_error(ErrorCode.forbidden)
-        owner_id = obj.owner_user_id
-    elif owner_id != ctx.user.id:
-        ctx.raise_error(ErrorCode.forbidden)
+    obj = _require_share_owner(db, body.object_type, body.object_id, ctx)
     org, _ = ctx.require_org()
     created = []
     for uid in body.to_user_ids:

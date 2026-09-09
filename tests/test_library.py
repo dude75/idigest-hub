@@ -218,6 +218,27 @@ def test_shares_incoming_and_recipient_decline(client):
     owner_view = client.get(f"/api/v1/audios/{audio_id}")
     assert owner_view.status_code == 200
     assert peer_id in owner_view.json()["shared_with"]
+    shares = owner_view.json()["shares"]
+    assert len(shares) == 1
+    assert shares[0]["to_user_id"] == peer_id
+    assert shares[0]["email"] == "peer@example.com"
+    share_id = shares[0]["id"]
+
+    listed = client.get(f"/api/v1/shares?object_type=audio&object_id={audio_id}")
+    assert listed.status_code == 200
+    assert len(listed.json()["items"]) == 1
+
+    revoked = client.delete(f"/api/v1/shares/{share_id}")
+    assert revoked.status_code == 200, revoked.text
+    after_revoke = client.get(f"/api/v1/audios/{audio_id}")
+    assert after_revoke.status_code == 200
+    assert peer_id not in (after_revoke.json().get("shared_with") or [])
+
+    shared = client.post(
+        "/api/v1/shares",
+        json={"object_type": "audio", "object_id": audio_id, "to_user_ids": [peer_id]},
+    )
+    assert shared.status_code == 200, shared.text
 
     logout(client)
     login_ready(client, "peer@example.com", "peerpass1")
