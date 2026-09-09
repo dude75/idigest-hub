@@ -14,6 +14,7 @@ On-premise **multi-tenant control plane** over [itranscribe-worker](#attach-work
 - FastAPI serves the built SPA from the same origin (`web/dist`). Session cookie is HttpOnly + `SameSite=Lax` — no CORS.
 - Default HTTP port is **8080** so it does not clash with workers on `8000`.
 - Compose runs **only the hub** plus `./data` (and optionally PostgreSQL with profile `pg`). Do not put workers in this stack.
+- **Single sign-on (SSO):** per-organization **Keycloak-compatible OIDC**. Org admins configure it in **Org**; members sign in at `{public_url}/sso/{org_id}`.
 
 ## Requirements
 
@@ -74,6 +75,32 @@ curl -sS -X POST http://127.0.0.1:8080/api/v1/setup \
 ```
 
 This can run **once**. After that: HTTP **409** `setup_already_done`. A second instance admin is not created.
+
+## Public URL (instance admin)
+
+After `/setup`, set **Public URL** in **Instance → Settings**. It is the hub’s external base address (scheme + host + port, no trailing slash), e.g. `https://hub.example.com` or `http://127.0.0.1:8080` for local HTTP.
+
+**Why it matters**
+
+| Feature | Without Public URL |
+| ------- | ------------------ |
+| **SSO** (redirect URI, member login link) | Links cannot be built; org SSO setup shows an error |
+| **Password reset email** | Disabled (`recovery_disabled`) — SMTP alone is not enough |
+
+Use the same URL users and Keycloak use to reach the hub. In production prefer **HTTPS** and set `COOKIE_SECURE=true`. Local dev over HTTP works with `COOKIE_SECURE=false` (default).
+
+## Single sign-on (SSO)
+
+Each organization can enable **OIDC SSO** (tested with **Keycloak**). **Org admin** → **Org** → **Single sign-on (Keycloak)**:
+
+1. Instance admin sets **Public URL** (see above).
+2. Org admin copies **Redirect URI** from the Org page into the Keycloak client (**Valid redirect URIs**).
+3. Org admin pastes **Issuer URL**, **Client ID**, and **Client secret** from Keycloak, then saves.
+4. Optional: enable **SSO enabled** when ready.
+
+**Member login:** `{public_url}/sso/{org_id}` (shown on the Org page after Public URL is set).
+
+**Password login when SSO is configured:** only **org_admin** (break-glass). **org_member** uses SSO once it is enabled; auto-provision matches users by email from the IdP.
 
 ## `.env`
 

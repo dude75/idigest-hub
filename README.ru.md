@@ -14,6 +14,7 @@
 - FastAPI отдаёт собранную SPA с того же origin (`web/dist`). Session cookie — HttpOnly + `SameSite=Lax`, без CORS.
 - HTTP-порт по умолчанию **8080**, чтобы не пересечься с воркерами на `8000`.
 - Compose поднимает **только хаб** и volume `./data` (PostgreSQL опционально, profile `pg`). Воркеров в этот стек не класть.
+- **Single sign-on (SSO):** **OIDC**, совместимый с **Keycloak**, на уровне организации. Настраивает **org_admin** в **Org**; участники входят по `{public_url}/sso/{org_id}`.
 
 ## Требования
 
@@ -74,6 +75,32 @@ curl -sS -X POST http://127.0.0.1:8080/api/v1/setup \
 ```
 
 Можно выполнить **один раз**. Повтор — HTTP **409** `setup_already_done`. Второго instance admin нет.
+
+## Публичный URL (instance admin)
+
+После `/setup` задайте **Публичный URL** в **Instance → Settings**. Это внешний базовый адрес хаба (схема + хост + порт, без `/` в конце), например `https://hub.example.com` или `http://127.0.0.1:8080` для локального HTTP.
+
+**Зачем нужен**
+
+| Функция | Без публичного URL |
+| ------- | ------------------ |
+| **SSO** (redirect URI, ссылка входа для участников) | Ссылки не собираются; настройка SSO в org показывает ошибку |
+| **Письмо сброса пароля** | Выключено (`recovery_disabled`) — одного SMTP недостаточно |
+
+URL должен совпадать с тем, как хаб видят пользователи и Keycloak. В проде — **HTTPS** и `COOKIE_SECURE=true`. Локально по HTTP достаточно `COOKIE_SECURE=false` (по умолчанию).
+
+## Single sign-on (SSO)
+
+У каждой организации может быть **OIDC SSO** (ориентир — **Keycloak**). **Org admin** → **Org** → **Single sign-on (Keycloak)**:
+
+1. Instance admin задаёт **Публичный URL** (см. выше).
+2. Org admin копирует **Redirect URI** со страницы Org в клиент Keycloak (**Valid redirect URIs**).
+3. Org admin вставляет **Issuer URL**, **Client ID** и **Client secret** из Keycloak и сохраняет.
+4. По готовности включает **SSO включён**.
+
+**Вход участников:** `{public_url}/sso/{org_id}` (появляется на странице Org после задания публичного URL).
+
+**Пароль при настроенном SSO:** только **org_admin** (аварийный вход). **org_member** после включения SSO входит через IdP; auto-provision по email из Keycloak.
 
 ## `.env`
 
