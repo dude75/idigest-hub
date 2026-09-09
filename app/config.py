@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     LOG_BACKUP_COUNT: int = 5
 
     COOKIE_SECURE: bool = False
+    # Comma-separated IPs/CIDRs of reverse proxies allowed to set X-Forwarded-For / X-Real-IP.
+    # Empty = trust none (use TCP peer only).
+    TRUSTED_PROXIES: str = ""
     DISPATCH_NO_CANDIDATE_SEC: int = 3600
     DISPATCH_POLL_SEC: float = 1.0
     WORKER_HTTP_TIMEOUT_SEC: float = 30.0

@@ -43,12 +43,17 @@ sudo chown -R 1001:1001 ./data
 
 Установите `COOKIE_SECURE=true` при работе через HTTPS, чтобы session cookies получали флаг `Secure`.
 
-Пример location в nginx:
+Hub слушает **только localhost** (`127.0.0.1:8080`); в `.env` задайте `TRUSTED_PROXIES=127.0.0.1,::1`, чтобы per-IP лимиты использовали реальные IP из заголовков прокси. Пустой `TRUSTED_PROXIES` — безопасный дефолт (заголовки игнорируются).
+
+Полный пример site-конфига: [`deploy/nginx/idigest-hub.conf.example`](../../../deploy/nginx/idigest-hub.conf.example).
+
+Минимальный location в nginx:
 
 ```nginx
 location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     client_max_body_size 1024m;

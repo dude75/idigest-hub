@@ -10,6 +10,47 @@ from app.rate_limit import MAX_BUCKETS, _hit, reset_rate_limiter
 from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD, err_code, login, open_db, setup_admin
 
 
+def test_login_rate_limit_by_ip_with_trusted_proxy(client: TestClient, monkeypatch):
+    setup_admin(client)
+    monkeypatch.setenv("TRUSTED_PROXIES", "testclient")
+    from app.config import get_settings
+    from app.proxy import reset_trusted_proxy_cache
+
+    get_settings.cache_clear()
+    reset_trusted_proxy_cache()
+
+    db = open_db()
+    try:
+        from app.models import InstanceSettings
+
+        row = db.get(InstanceSettings, 1)
+        assert row is not None
+        row.rate_limit_login_ip = 2
+        row.rate_limit_login_email = 0
+        row.rate_limit_login_global = 0
+        db.commit()
+    finally:
+        db.close()
+    reset_rate_limiter()
+
+    headers = {"X-Forwarded-For": "203.0.113.50"}
+    for _ in range(2):
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"email": "nobody@example.com", "password": "wrongpass1"},
+            headers=headers,
+        )
+        assert response.status_code == 401
+
+    blocked = client.post(
+        "/api/v1/auth/login",
+        json={"email": "other@example.com", "password": "wrongpass1"},
+        headers=headers,
+    )
+    assert blocked.status_code == 429
+    assert err_code(blocked) == "rate_limited"
+
+
 def test_login_rate_limit_by_email(client: TestClient):
     setup_admin(client)
     db = open_db()

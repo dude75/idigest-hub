@@ -265,7 +265,7 @@
     "users": "Users",
     "usage": "Usage total",
     "rateLimitTitle": "Rate limiting",
-    "rateLimitHint": "0 disables a rule. Per-IP uses the TCP peer address (often the reverse proxy). Browser sessions are not API-rate-limited; Bearer tokens are.",
+    "rateLimitHint": "0 disables a rule. Per-IP uses the client address (TCP peer, or X-Forwarded-For when TRUSTED_PROXIES is set in .env). Browser sessions are not API-rate-limited; Bearer tokens are.",
     "rateLimitEnabled": "Enable rate limiting",
     "rateLimitLogin": "Login",
     "rateLimitSignup": "Signup",

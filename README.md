@@ -121,6 +121,7 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `LOG_MAX_BYTES`              | Rotate `app.log` when it exceeds this size in bytes. Default `5242880` (5 MiB).                                                                                  |
 | `LOG_BACKUP_COUNT`           | How many rotated files to keep (`app.log.1` … `app.log.N`). Default `5`.                                                                                         |
 | `COOKIE_SECURE`              | Session cookie `Secure` flag. Default `false` (local HTTP). Set `true` behind HTTPS.                                                                             |
+| `TRUSTED_PROXIES`            | Comma-separated IPs/CIDRs of reverse proxies allowed to set `X-Forwarded-For` / `X-Real-IP` for per-IP rate limits. Empty = trust none (TCP peer only).        |
 
 Everything that must survive a restart lives under `./data` (SQLite `hub.db` or `./data/pg` for Compose PostgreSQL, logs, **and uploads** `{DATA_DIR}/uploads/{audio_id}/`). Mount that directory in Docker. The Compose container writes it as uid/gid **1001** (see [Docker Compose](#docker-compose)).
 
@@ -237,17 +238,15 @@ On limit exceeded: HTTP **429**, `error.code = rate_limited`, header `Retry-Afte
 
 ### Client IP behind a reverse proxy
 
-By default the hub uses the **TCP peer address** (`request.client.host`) — usually the reverse proxy, not the browser.
+By default the hub uses the **TCP peer address** (`request.client.host`). With `TRUSTED_PROXIES` empty (default), forwarded headers are **ignored** — safe when the hub is reachable directly from the internet.
 
-- If the proxy does **not** pass the real client IP, all users may share one IP for hub limits. Per-email / per-user limits still apply; per-IP stays off until you set a non-zero value in Settings.
-- To count **real client IPs**, the proxy can send `X-Forwarded-For` or `X-Real-IP`; support for trusted proxy headers may be added later. **Do not** trust these headers if the hub is reachable directly from the internet.
+When nginx (or another reverse proxy) sits in front of the hub:
 
-Example (nginx in front of the hub):
+1. Bind the hub to localhost only (`127.0.0.1:8080`) so clients cannot bypass the proxy.
+2. Set `TRUSTED_PROXIES` to the proxy addresses the hub sees as TCP peers (usually `127.0.0.1,::1` when nginx is on the same host).
+3. Configure the proxy to send `X-Forwarded-For` and `X-Real-IP`. Example site file: [`deploy/nginx/idigest-hub.conf.example`](deploy/nginx/idigest-hub.conf.example).
 
-```nginx
-proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header X-Real-IP $remote_addr;
-```
+Per-IP rate limits then use the real client IP from those headers. Per-email / per-user limits work regardless. If `TRUSTED_PROXIES` is unset and the proxy does not pass real IPs, all users share one IP for per-IP limits (off by default until you set a non-zero value in Settings).
 
 Coarse IP flood protection can also be configured on the **reverse proxy**; the hub does not require proxy changes to work.
 

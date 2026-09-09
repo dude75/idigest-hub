@@ -12,10 +12,12 @@ from threading import Lock
 from fastapi import Request
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.deps import get_instance_settings
 from app.errors import ApiError, ErrorCode
 from app.i18n import t
 from app.models import InstanceSettings
+from app.proxy import resolve_client_ip, trusted_proxy_entries
 
 log = logging.getLogger("app.rate_limit")
 
@@ -102,9 +104,8 @@ def get_rate_limits(db: Session) -> RateLimits:
 
 
 def client_ip(request: Request) -> str:
-    if request.client and request.client.host:
-        return request.client.host
-    return "unknown"
+    trusted = trusted_proxy_entries(get_settings().TRUSTED_PROXIES)
+    return resolve_client_ip(request, trusted)
 
 
 def reset_rate_limiter() -> None:

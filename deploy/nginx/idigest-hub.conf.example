@@ -1,0 +1,54 @@
+# Example nginx site for idigest-hub.
+# Copy to /etc/nginx/sites-available/ (Debian/Ubuntu) or include from nginx.conf.
+#
+# Prerequisites on the hub host (.env):
+#   TRUSTED_PROXIES=127.0.0.1,::1
+#   COOKIE_SECURE=true
+# Set Public URL in Instance → Settings to https://hub.example.com
+#
+# Hub must listen only on localhost (default dev/prod behind nginx):
+#   uvicorn app.main:app --host 127.0.0.1 --port 8080 --workers 1
+#
+# Docker Compose: if nginx runs on the host and hub in a container on 8080,
+# TRUSTED_PROXIES=127.0.0.1,::1 still applies. If nginx is another container
+# on the same Docker network, add that network CIDR (e.g. 172.18.0.0/16).
+
+upstream idigest_hub {
+    server 127.0.0.1:8080;
+    keepalive 8;
+}
+
+# Redirect HTTP → HTTPS (adjust server_name and certificate paths).
+server {
+    listen 80;
+    listen [::]:80;
+    server_name hub.example.com;
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name hub.example.com;
+
+    # TLS certificates (Let's Encrypt, internal CA, etc.)
+    ssl_certificate     /etc/ssl/certs/hub.example.com.fullchain.pem;
+    ssl_certificate_key /etc/ssl/private/hub.example.com.key;
+
+    # Large audio uploads (adjust to your max upload size policy).
+    client_max_body_size 1024m;
+
+    location / {
+        proxy_pass http://idigest_hub;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Connection "";
+
+        proxy_read_timeout 300s;
+        proxy_send_timeout 300s;
+    }
+}

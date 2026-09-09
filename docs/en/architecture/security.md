@@ -101,7 +101,7 @@ See [deployment](../operations/deployment.md#rate-limiting) and project README.
 
 ## Client IP behind proxy
 
-Default: `request.client.host` (often the reverse proxy). Per-IP limits are **0 (off)** by default until configured. Do not trust `X-Forwarded-For` unless the hub is not directly reachable from the internet (future trusted-proxy support may be added).
+Default: `request.client.host` (TCP peer). With empty `TRUSTED_PROXIES` (default), `X-Forwarded-For` / `X-Real-IP` are ignored — safe when the hub is directly reachable. Set `TRUSTED_PROXIES` to the proxy IPs/CIDRs the hub sees (e.g. `127.0.0.1,::1` with nginx on the same host) and configure the proxy headers; see [`deploy/nginx/idigest-hub.conf.example`](../../../deploy/nginx/idigest-hub.conf.example). Per-IP limits are **0 (off)** by default until configured in Instance → Settings.
 
 ## Audit log
 

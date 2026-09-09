@@ -265,7 +265,7 @@
     "users": "Пользователи",
     "usage": "Сумма usage",
     "rateLimitTitle": "Ограничение частоты запросов",
-    "rateLimitHint": "0 отключает правило. Per-IP — TCP-адрес клиента (часто reverse proxy). Cookie-сессии не лимитируются как API; Bearer-токены — да.",
+    "rateLimitHint": "0 отключает правило. Per-IP — адрес клиента (TCP peer или X-Forwarded-For при TRUSTED_PROXIES в .env). Cookie-сессии не лимитируются как API; Bearer-токены — да.",
     "rateLimitEnabled": "Включить rate limiting",
     "rateLimitLogin": "Login",
     "rateLimitSignup": "Signup",

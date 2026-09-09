@@ -101,7 +101,7 @@ In-memory token buckets (один процесс). Настраивается в
 
 ## Client IP за proxy
 
-По умолчанию: `request.client.host` (часто reverse proxy). Per-IP limits по умолчанию **0 (off)**, пока не настроены. Не доверяйте `X-Forwarded-For`, если хаб напрямую доступен из интернета (в будущем может появиться trusted-proxy support).
+По умолчанию: `request.client.host` (TCP peer). При пустом `TRUSTED_PROXIES` (дефолт) заголовки `X-Forwarded-For` / `X-Real-IP` игнорируются — безопасно при прямом доступе к hub. Задайте `TRUSTED_PROXIES` (IP/CIDR прокси, напр. `127.0.0.1,::1` с nginx на том же хосте) и настройте заголовки прокси; см. [`deploy/nginx/idigest-hub.conf.example`](../../../deploy/nginx/idigest-hub.conf.example). Per-IP limits по умолчанию **0 (off)**, пока не настроены в Instance → Settings.
 
 ## Audit log
 

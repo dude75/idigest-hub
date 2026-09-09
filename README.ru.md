@@ -121,6 +121,7 @@ URL должен совпадать с тем, как хаб видят поль
 | `LOG_MAX_BYTES`              | Ротация `app.log` при превышении размера в байтах. По умолчанию `5242880` (5 MiB).                                                                               |
 | `LOG_BACKUP_COUNT`           | Сколько архивов хранить (`app.log.1` … `app.log.N`). По умолчанию `5`.                                                                                           |
 | `COOKIE_SECURE`              | Флаг `Secure` у session cookie. По умолчанию `false` (локальный HTTP). За HTTPS ставьте `true`.                                                                  |
+| `TRUSTED_PROXIES`            | IP/CIDR reverse proxy через запятую; им доверяют заголовки `X-Forwarded-For` / `X-Real-IP` для per-IP лимитов. Пусто = не доверять (только TCP peer).          |
 
 Всё, что должно пережить рестарт, лежит в `./data` (SQLite `hub.db` или `./data/pg` для PostgreSQL в Compose, логи **и загрузки** `{DATA_DIR}/uploads/{audio_id}/`). В Docker монтируйте этот каталог. Контейнер Compose пишет в него от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
 
@@ -237,17 +238,15 @@ docker compose down
 
 ### IP клиента за reverse proxy
 
-По умолчанию hub видит **адрес TCP-соединения** (`request.client.host`) — обычно reverse proxy, не браузер.
+По умолчанию hub использует **адрес TCP-соединения** (`request.client.host`). При пустом `TRUSTED_PROXIES` (дефолт) forwarded-заголовки **игнорируются** — безопасно, если hub доступен из интернета напрямую.
 
-- Если прокси **не** передаёт реальный IP, у всех может быть один IP в лимитах hub. Лимиты по email/user работают; per-IP выключен (`0`), пока не зададите значение в Settings.
-- Для **реальных IP** прокси может слать `X-Forwarded-For` или `X-Real-IP`; поддержка trusted proxy может быть добавлена позже. **Не** доверять заголовкам, если hub доступен из интернета напрямую.
+Когда перед hub стоит nginx (или другой reverse proxy):
 
-Пример (nginx перед hub):
+1. Hub слушает только localhost (`127.0.0.1:8080`), чтобы клиенты не обходили прокси.
+2. В `.env`: `TRUSTED_PROXIES=127.0.0.1,::1` (адреса TCP peer прокси; на том же хосте — loopback).
+3. Прокси шлёт `X-Forwarded-For` и `X-Real-IP`. Пример конфига: [`deploy/nginx/idigest-hub.conf.example`](deploy/nginx/idigest-hub.conf.example).
 
-```nginx
-proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header X-Real-IP $remote_addr;
-```
+Per-IP лимиты тогда считают реальный IP клиента. Лимиты по email/user работают в любом случае. Без `TRUSTED_PROXIES` и без передачи IP прокси все пользователи делят один IP (per-IP по умолчанию выключен — `0` в Settings).
 
 Грубое ограничение по IP на **reverse proxy** тоже допустимо; для работы hub настройки прокси **не обязательны**.
 
