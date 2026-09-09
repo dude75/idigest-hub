@@ -44,7 +44,11 @@
     "status": "Status",
     "prev": "Previous",
     "next": "Next",
-    "all": "All"
+    "all": "All",
+    "download": "Download",
+    "downloadTxt": "Download TXT",
+    "downloadJson": "Download JSON",
+    "downloadMd": "Download Markdown"
   },
   "landing": {
     "headline": "Audio in. Transcripts and summaries out.",

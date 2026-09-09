@@ -44,7 +44,11 @@
     "status": "Статус",
     "prev": "Назад",
     "next": "Вперёд",
-    "all": "Все"
+    "all": "Все",
+    "download": "Скачать",
+    "downloadTxt": "Скачать TXT",
+    "downloadJson": "Скачать JSON",
+    "downloadMd": "Скачать Markdown"
   },
   "landing": {
     "headline": "Аудио на вход. Расшифровка и саммари — на выход.",

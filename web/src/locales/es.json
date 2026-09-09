@@ -44,7 +44,11 @@
     "status": "Estado",
     "prev": "Anterior",
     "next": "Siguiente",
-    "all": "Todos"
+    "all": "Todos",
+    "download": "Descargar",
+    "downloadTxt": "Descargar TXT",
+    "downloadJson": "Descargar JSON",
+    "downloadMd": "Descargar Markdown"
   },
   "landing": {
     "headline": "Audio de entrada. Transcripciones y resúmenes de salida.",

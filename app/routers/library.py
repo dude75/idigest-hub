@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request, UploadFile
+from fastapi import APIRouter, Depends, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -21,6 +21,8 @@ from app.models import Audio, HiddenItem, Share, Summary, Transcript, User, new_
 from app.presenters import audio_public, summary_public, transcript_public
 from app.services.access import can_read_object, is_hidden, is_shared_with, outgoing_shares
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
+from app.services.dispatcher import utterances_to_text
+from app.services.export import attachment_response, safe_filename
 from app.services.audit import write_audit
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
@@ -193,7 +195,10 @@ def get_audio(
 
 @router.get("/audios/{audio_id}/file")
 def audio_file(
-    audio_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    audio_id: str,
+    download: bool = False,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
 ):
     row = db.get(Audio, audio_id)
     if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
@@ -201,7 +206,12 @@ def audio_file(
     path = Path(row.storage_path)
     if not path.is_file():
         ctx.raise_error(ErrorCode.not_found)
-    return FileResponse(path, filename=row.original_filename)
+    headers = {}
+    if download:
+        headers["Content-Disposition"] = (
+            f'attachment; filename="{safe_filename(row.original_filename)}"'
+        )
+    return FileResponse(path, filename=row.original_filename, headers=headers)
 
 
 @router.post("/audios/{audio_id}/hide")
@@ -306,6 +316,26 @@ def get_transcript(
     return payload
 
 
+@router.get("/transcripts/{transcript_id}/export")
+def export_transcript(
+    transcript_id: str,
+    format: str = Query("txt", pattern="^(txt|json)$"),
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+):
+    row = db.get(Transcript, transcript_id)
+    if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
+        ctx.raise_error(ErrorCode.not_found)
+    utterances = json.loads(decrypt_str(row.utterances_encrypted))
+    source_audio = db.get(Audio, row.source_audio_id) if row.source_audio_id else None
+    base = source_audio.original_filename if source_audio else f"transcript-{row.id[:8]}"
+    stem = Path(base).stem
+    if format == "json":
+        content = json.dumps(utterances, ensure_ascii=False, indent=2)
+        return attachment_response(content, f"{stem}.json", "application/json")
+    return attachment_response(utterances_to_text(utterances), f"{stem}.txt", "text/plain; charset=utf-8")
+
+
 @router.post("/transcripts/{transcript_id}/hide")
 def hide_transcript(
     transcript_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
@@ -375,6 +405,22 @@ def get_summary(
         ctx.raise_error(ErrorCode.not_found)
     body = decrypt_str(row.body_encrypted)
     return summary_public(row, body, _share_badge(db, "summary", row.id, row.owner_user_id, ctx))
+
+
+@router.get("/summaries/{summary_id}/export")
+def export_summary(
+    summary_id: str,
+    format: str = Query("md", pattern="^(md|txt)$"),
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+):
+    row = db.get(Summary, summary_id)
+    if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
+        ctx.raise_error(ErrorCode.not_found)
+    body = decrypt_str(row.body_encrypted)
+    ext = "md" if format == "md" else "txt"
+    media = "text/markdown; charset=utf-8" if format == "md" else "text/plain; charset=utf-8"
+    return attachment_response(body, f"summary-{row.id[:8]}.{ext}", media)
 
 
 @router.patch("/summaries/{summary_id}")

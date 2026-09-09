@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
+import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { ShareDialog } from '../components/ShareDialog'
 import { LIBRARY_DEFAULT } from '../routes'
@@ -76,6 +76,14 @@ export function AudioPage() {
           <h2>{t('audio.play')}</h2>
           <audio controls src={`/api/v1/audios/${item.id}/file`} />
           <div className="row" style={{ marginTop: 12 }}>
+            {item.can_transcribe && (
+              <button
+                type="button"
+                onClick={() => void apiDownload(`/audios/${item.id}/file?download=1`, item.filename).catch(setErr)}
+              >
+                {t('common.download')}
+              </button>
+            )}
             {item.can_transcribe ? (
               <button className="primary" disabled={busy} onClick={() => void transcribe()}>
                 {item.transcripts && item.transcripts.length > 0 ? t('audio.transcribeAgain') : t('audio.transcribe')}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
+import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { ShareDialog } from '../components/ShareDialog'
 import { libraryPath } from '../routes'
@@ -91,6 +91,18 @@ export function TranscriptPage() {
             )}
           </div>
           <div className="row" style={{ margin: '8px 0' }}>
+            <button
+              type="button"
+              onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=txt`).catch(setErr)}
+            >
+              {t('common.downloadTxt')}
+            </button>
+            <button
+              type="button"
+              onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=json`).catch(setErr)}
+            >
+              {t('common.downloadJson')}
+            </button>
             {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
             {mine && (
               <button type="button" onClick={() => void toggleHidden()}>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
+import { api, apiDownload } from '../api'
 import { isInstanceAdmin, useAuth } from '../auth'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
@@ -98,6 +98,12 @@ export function SkillPage() {
             <span className="muted">{fmtDate(item.created_at)}</span>
           </div>
           <div className="row" style={{ margin: '8px 0' }}>
+            <button
+              type="button"
+              onClick={() => void apiDownload(`/skills/${item.id}/export`, `${item.name}.md`).catch(setErr)}
+            >
+              {t('common.downloadMd')}
+            </button>
             {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
             {canEdit && !editing && (
               <button type="button" onClick={() => { setName(item.name); setDraft(item.body || ''); setEditing(true) }}>

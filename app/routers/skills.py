@@ -13,6 +13,7 @@ from app.errors import ErrorCode
 from app.models import Share, Skill, new_id
 from app.presenters import skill_public
 from app.services.access import is_shared_with
+from app.services.export import attachment_response
 from app.timeutil import utcnow
 
 router = APIRouter()
@@ -21,6 +22,20 @@ router = APIRouter()
 class SkillBody(BaseModel):
     name: str
     body: str
+
+
+def _can_read_skill(db: Session, ctx: AuthContext, skill: Skill) -> bool:
+    if skill.scope == "base":
+        return True
+    if ctx.org is None:
+        return False
+    if skill.scope == "org" and skill.org_id == ctx.org.id:
+        return True
+    if skill.scope == "self" and (
+        skill.owner_user_id == ctx.user.id or is_shared_with(db, "skill", skill.id, ctx.user.id)
+    ):
+        return True
+    return False
 
 
 def _visible_skills(db: Session, ctx: AuthContext, scope: str | None) -> list[tuple[Skill, dict]]:
@@ -167,6 +182,16 @@ def delete_org_skill(
         ctx.raise_error(ErrorCode.not_found)
     db.delete(skill)
     return {"status": "ok"}
+
+
+@router.get("/skills/{skill_id}/export")
+def export_skill(
+    skill_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+):
+    skill = db.get(Skill, skill_id)
+    if skill is None or not _can_read_skill(db, ctx, skill):
+        ctx.raise_error(ErrorCode.not_found)
+    return attachment_response(skill.body, f"{skill.name}.md", "text/markdown; charset=utf-8")
 
 
 @router.post("/skills/{skill_id}/copy")

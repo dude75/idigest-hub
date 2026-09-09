@@ -312,6 +312,49 @@ def test_transfer_offboarding_retargets_incoming_shares_and_frees_email(client):
     assert me(client)["user"]["email"] == "gone@example.com"
 
 
+def test_export_audio_transcript_summary(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    audio_id = audio.json()["id"]
+    transcript_id, summary_id = _insert_transcript_and_summary(org_id, user_id, audio_id)
+
+    audio_file = client.get(f"/api/v1/audios/{audio_id}/file?download=true")
+    assert audio_file.status_code == 200, audio_file.text
+    assert audio_file.content
+    assert "attachment" in audio_file.headers.get("content-disposition", "")
+
+    txt = client.get(f"/api/v1/transcripts/{transcript_id}/export?format=txt")
+    assert txt.status_code == 200, txt.text
+    assert txt.text == "A: hi"
+    assert txt.headers["content-type"].startswith("text/plain")
+
+    exported = client.get(f"/api/v1/transcripts/{transcript_id}/export?format=json")
+    assert exported.status_code == 200, exported.text
+    assert exported.json()[0]["text"] == "hi"
+
+    summary = client.get(f"/api/v1/summaries/{summary_id}/export?format=md")
+    assert summary.status_code == 200, summary.text
+    assert summary.text == "kept summary"
+    assert "markdown" in summary.headers["content-type"]
+
+
+def test_export_skill(client):
+    setup_admin(client)
+    skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "# Prompt\nDo it"})
+    assert skill.status_code == 200, skill.text
+    skill_id = skill.json()["id"]
+
+    exported = client.get(f"/api/v1/skills/{skill_id}/export")
+    assert exported.status_code == 200, exported.text
+    assert exported.text == "# Prompt\nDo it"
+    assert exported.headers["content-disposition"].endswith('Minutes.md"')
+
+
 def test_last_org_admin_cannot_offboard(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

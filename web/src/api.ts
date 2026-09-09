@@ -52,6 +52,50 @@ function parseJson(text: string): unknown {
   }
 }
 
+function filenameFromDisposition(header: string | null): string | undefined {
+  if (!header) return undefined
+  const star = header.match(/filename\*=UTF-8''([^;]+)/i)
+  if (star) {
+    try {
+      return decodeURIComponent(star[1])
+    } catch {
+      return star[1]
+    }
+  }
+  const plain = header.match(/filename="([^"]+)"/i)
+  return plain?.[1]
+}
+
+export async function apiDownload(path: string, filename?: string): Promise<void> {
+  const locale = localStorage.getItem('locale') || 'en'
+  const res = await fetch(`/api/v1${path}`, {
+    credentials: 'include',
+    headers: { 'Accept-Language': locale },
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    let data: unknown = null
+    if (text) {
+      try {
+        data = JSON.parse(text)
+      } catch {
+        data = null
+      }
+    }
+    const body = data as ErrorBody | null
+    throw new ApiError(body?.error?.code || `http_${res.status}`, body?.error?.message || res.statusText)
+  }
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename || filenameFromDisposition(res.headers.get('Content-Disposition')) || 'download'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
 export function apiUpload<T>(
   path: string,
   body: FormData,

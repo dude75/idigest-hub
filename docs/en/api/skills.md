@@ -32,6 +32,12 @@ Returns `{ "items": [ skill_public + catalog, readonly, share_kind ] }`.
 
 Creates personal copy from base, org, own, or shared skill.
 
+## Export
+
+### GET `/skills/{id}/export`
+
+Download skill body as Markdown (`.md`). Same visibility as catalog read access.
+
 ## Base skills (instance_admin)
 
 | Method | Path |
