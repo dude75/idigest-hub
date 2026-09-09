@@ -62,6 +62,26 @@ location / {
 
 Hub does not terminate TLS itself in the default setup.
 
+### Security headers (HSTS, CSP)
+
+The full nginx example adds recommended headers on the HTTPS `server` block:
+
+| Header | Purpose |
+| ------ | ------- |
+| `Strict-Transport-Security` (HSTS) | Browser remembers the site is HTTPS-only |
+| `Content-Security-Policy` (CSP) | Restricts script/style/media sources — mitigates XSS |
+| `X-Content-Type-Options` | Disables MIME sniffing |
+| `X-Frame-Options` | Clickjacking protection (iframe embedding) |
+| `Referrer-Policy` | Controls the `Referer` header on navigation |
+
+The hub does not set these itself — configure them on the reverse proxy. The example CSP targets the same-origin SPA from `web/dist` (`'self'`); org SSO via IdP redirect does not need extra CSP directives.
+
+- **Public HTTPS** — enable HSTS and CSP from the example; smoke-test the UI after deploy (login, SSO, audio upload, `/docs`).
+- **Private network only** — recommended hardening, not a blocker; use HSTS `includeSubDomains` only if every subdomain is on HTTPS.
+- **Verify:** `curl -sI https://hub.example.com | grep -iE 'strict-transport|content-security'`
+
+If you later add external CDNs or scripts, widen `Content-Security-Policy`. Swagger UI (`/docs`) under a strict CSP may need a separate `location` with a relaxed policy.
+
 Set **Public URL** in Instance → Settings to the external base URL users and Keycloak reach (e.g. `https://hub.example.com`). Required for org SSO, password-reset email links, and correct OAuth redirect URIs. See [README — Public URL](../../../README.md#public-url-instance-admin).
 
 ## Environment variables

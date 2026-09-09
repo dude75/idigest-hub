@@ -62,6 +62,26 @@ location / {
 
 Hub в конфигурации по умолчанию сам не завершает TLS.
 
+### Заголовки безопасности (HSTS, CSP)
+
+Полный пример nginx включает рекомендуемые заголовки в HTTPS-блоке:
+
+| Заголовок | Назначение |
+| --------- | ---------- |
+| `Strict-Transport-Security` (HSTS) | Браузер запоминает, что сайт доступен только по HTTPS |
+| `Content-Security-Policy` (CSP) | Ограничивает источники скриптов, стилей, медиа — снижает риск XSS |
+| `X-Content-Type-Options` | Запрещает MIME-sniffing |
+| `X-Frame-Options` | Защита от clickjacking (встраивание в iframe) |
+| `Referrer-Policy` | Контроль заголовка `Referer` при переходах |
+
+Hub сам эти заголовки не выставляет — настраивайте их на reverse proxy. Для SPA из `web/dist` базовая CSP в примере рассчитана на same-origin (`'self'`); SSO через редирект на IdP отдельных директив не требует.
+
+- **Публичный HTTPS** — включайте HSTS и CSP из примера; после деплоя проверьте UI (логин, SSO, загрузка аудио, `/docs`).
+- **Только внутренняя сеть** — рекомендация, не блокер; HSTS с `includeSubDomains` включайте только если все поддомены реально на HTTPS.
+- **Проверка:** `curl -sI https://hub.example.com | grep -iE 'strict-transport|content-security'`
+
+Если позже появятся внешние CDN или скрипты — расширьте `Content-Security-Policy`. Swagger UI (`/docs`) при строгой CSP может потребовать отдельного `location` с ослабленной политикой.
+
 Задайте **Публичный URL** в Instance → Settings — внешний базовый адрес, по которому пользователи и Keycloak достигают хаба (напр. `https://hub.example.com`). Нужен для SSO org, ссылок сброса пароля и корректных OAuth redirect URI. См. [README — Публичный URL](../../../README.ru.md#публичный-url-instance-admin).
 
 ## Переменные окружения
