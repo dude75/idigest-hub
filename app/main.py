@@ -16,11 +16,10 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
 from app.cookies import set_session_cookie
 from app.constants import COOKIE_NAME
-from app.db import ensure_schema, get_engine
+from app.db import get_engine, init_database
 from app.errors import ErrorCode, error_payload
 from app.i18n import negotiate_locale, t
 from app.logging_setup import setup_logging
-from app.models import Base
 from app.routers import auth, instance, library, org, skills, tasks
 from app.services.dispatcher import dispatcher_loop
 from app.rate_limit import rate_limit_sweeper
@@ -36,8 +35,7 @@ async def lifespan(app: FastAPI):
     setup_logging(settings)
     Path(settings.DATA_DIR).mkdir(parents=True, exist_ok=True)
     engine = get_engine()
-    Base.metadata.create_all(engine)
-    ensure_schema(engine)
+    init_database(engine)
     stop_event = asyncio.Event()
     task = asyncio.create_task(dispatcher_loop(stop_event))
     rate_limit_task = asyncio.create_task(rate_limit_sweeper(stop_event))

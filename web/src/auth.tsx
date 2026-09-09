@@ -7,6 +7,7 @@ import type { Locale, Me } from './types'
 type AuthState = {
   ready: boolean
   bootstrapDone: boolean
+  bootstrapError: unknown
   me: Me | null
   refresh: () => Promise<void>
   setLocale: (locale: Locale) => Promise<void>
@@ -20,9 +21,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation()
   const [ready, setReady] = useState(false)
   const [bootstrapDone, setBootstrapDone] = useState(false)
+  const [bootstrapError, setBootstrapError] = useState<unknown>(null)
   const [me, setMe] = useState<Me | null>(null)
 
   const refresh = useCallback(async () => {
+    setBootstrapError(null)
     const status = await api<{ bootstrap_done: boolean }>('/setup/status')
     setBootstrapDone(status.bootstrap_done)
     if (!status.bootstrap_done) {
@@ -47,7 +50,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refresh()
-      .catch(() => {
+      .catch((err) => {
+        setBootstrapError(err)
         setMe(null)
       })
       .finally(() => setReady(true))
@@ -81,8 +85,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo(
-    () => ({ ready, bootstrapDone, me, refresh, setLocale, setDefaultRoute, logout }),
-    [ready, bootstrapDone, me, refresh, setLocale, setDefaultRoute, logout],
+    () => ({ ready, bootstrapDone, bootstrapError, me, refresh, setLocale, setDefaultRoute, logout }),
+    [ready, bootstrapDone, bootstrapError, me, refresh, setLocale, setDefaultRoute, logout],
   )
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>

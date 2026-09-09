@@ -10,7 +10,7 @@ import { ErrorBox } from '../util'
 
 export function SetupPage() {
   const { t, i18n } = useTranslation()
-  const { ready, bootstrapDone, refresh } = useAuth()
+  const { ready, bootstrapDone, bootstrapError, refresh } = useAuth()
   const nav = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -50,7 +50,7 @@ export function SetupPage() {
           <h1 className="grow">{t('auth.setup')}</h1>
           <LanguageSwitcher />
         </div>
-        <ErrorBox err={err} />
+        <ErrorBox err={bootstrapError ?? err} />
         <label>
           {t('common.email')}
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

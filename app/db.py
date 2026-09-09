@@ -6,7 +6,7 @@ from collections.abc import Generator
 from pathlib import Path
 from urllib.parse import unquote
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, inspect
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -58,9 +58,13 @@ def is_sqlite_engine(engine: Engine) -> bool:
     return engine.dialect.name == "sqlite"
 
 
-def _table_columns(conn, table: str) -> set[str]:
-    rows = conn.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
-    return {row[1] for row in rows}
+def _table_columns(conn, table: str, *, engine: Engine) -> set[str]:
+    if is_sqlite_engine(engine):
+        rows = conn.exec_driver_sql(f"PRAGMA table_info({table})").fetchall()
+        return {row[1] for row in rows}
+    if not inspect(engine).has_table(table):
+        return set()
+    return {column["name"] for column in inspect(engine).get_columns(table)}
 
 
 def _try_drop_column(conn, table: str, column: str) -> None:
@@ -71,29 +75,30 @@ def _try_drop_column(conn, table: str, column: str) -> None:
 
 
 def ensure_schema(engine: Engine) -> None:
-    """SQLite-only patches for upgrades without Alembic; create_all skips new columns."""
-    if not is_sqlite_engine(engine):
-        return
+    """Patches for upgrades without Alembic; create_all skips new columns on existing tables."""
+    sqlite = is_sqlite_engine(engine)
+    bool_false = "0" if sqlite else "false"
+    bool_true = "1" if sqlite else "true"
 
     with engine.begin() as conn:
-        user_cols = _table_columns(conn, "users")
+        user_cols = _table_columns(conn, "users", engine=engine)
         if user_cols and "default_route" not in user_cols:
             conn.exec_driver_sql(
                 "ALTER TABLE users ADD COLUMN default_route VARCHAR(32) NOT NULL DEFAULT 'library/audio'"
             )
-        user_cols = _table_columns(conn, "users")
+        user_cols = _table_columns(conn, "users", engine=engine)
         if user_cols and "default_route" in user_cols:
             conn.exec_driver_sql(
                 "UPDATE users SET default_route='library/audio' WHERE default_route='library'"
             )
 
-        summary_cols = _table_columns(conn, "summaries")
+        summary_cols = _table_columns(conn, "summaries", engine=engine)
         if summary_cols and "edited" not in summary_cols:
             conn.exec_driver_sql(
-                "ALTER TABLE summaries ADD COLUMN edited BOOLEAN NOT NULL DEFAULT 0"
+                f"ALTER TABLE summaries ADD COLUMN edited BOOLEAN NOT NULL DEFAULT {bool_false}"
             )
 
-        tariff_cols = _table_columns(conn, "tariffs")
+        tariff_cols = _table_columns(conn, "tariffs", engine=engine)
         if tariff_cols:
             if "price_per_1k_summary_chars" not in tariff_cols:
                 conn.exec_driver_sql(
@@ -110,16 +115,16 @@ def ensure_schema(engine: Engine) -> None:
                 )
             if "api_enabled" not in tariff_cols:
                 conn.exec_driver_sql(
-                    "ALTER TABLE tariffs ADD COLUMN api_enabled BOOLEAN NOT NULL DEFAULT 1"
+                    f"ALTER TABLE tariffs ADD COLUMN api_enabled BOOLEAN NOT NULL DEFAULT {bool_true}"
                 )
             if "signup_credit" not in tariff_cols:
                 conn.exec_driver_sql(
                     "ALTER TABLE tariffs ADD COLUMN signup_credit NUMERIC(12, 2) NOT NULL DEFAULT 0"
                 )
-            if "price_per_generated_text" in _table_columns(conn, "tariffs"):
+            if "price_per_generated_text" in _table_columns(conn, "tariffs", engine=engine):
                 _try_drop_column(conn, "tariffs", "price_per_generated_text")
 
-        task_cols = _table_columns(conn, "tasks")
+        task_cols = _table_columns(conn, "tasks", engine=engine)
         if task_cols:
             if "snap_price_per_1k_summary_chars" not in task_cols:
                 conn.exec_driver_sql(
@@ -130,37 +135,41 @@ def ensure_schema(engine: Engine) -> None:
                     conn.exec_driver_sql(
                         "UPDATE tasks SET snap_price_per_1k_summary_chars = snap_price_per_generated_text"
                     )
-            if "snap_price_per_generated_text" in _table_columns(conn, "tasks"):
+            if "snap_price_per_generated_text" in _table_columns(conn, "tasks", engine=engine):
                 _try_drop_column(conn, "tasks", "snap_price_per_generated_text")
 
-        usage_cols = _table_columns(conn, "usage_events")
+        usage_cols = _table_columns(conn, "usage_events", engine=engine)
         if usage_cols and "summary_chars" not in usage_cols:
             conn.exec_driver_sql("ALTER TABLE usage_events ADD COLUMN summary_chars INTEGER")
 
-        settings_cols = _table_columns(conn, "instance_settings")
+        settings_cols = _table_columns(conn, "instance_settings", engine=engine)
         if settings_cols:
-            _instance_rate_limit_patches(conn, settings_cols)
+            _instance_rate_limit_patches(conn, settings_cols, engine=engine)
 
 
-def _add_int_column(conn, table: str, column: str, default: int) -> None:
-    cols = _table_columns(conn, table)
+def _add_int_column(conn, table: str, column: str, default: int, *, engine: Engine) -> None:
+    cols = _table_columns(conn, table, engine=engine)
     if column not in cols:
         conn.exec_driver_sql(
             f"ALTER TABLE {table} ADD COLUMN {column} INTEGER NOT NULL DEFAULT {default}"
         )
 
 
-def _add_bool_column(conn, table: str, column: str, default: int) -> None:
-    cols = _table_columns(conn, table)
+def _add_bool_column(conn, table: str, column: str, default: int, *, engine: Engine) -> None:
+    cols = _table_columns(conn, table, engine=engine)
     if column not in cols:
+        if is_sqlite_engine(engine):
+            sql_default = str(default)
+        else:
+            sql_default = "true" if default else "false"
         conn.exec_driver_sql(
-            f"ALTER TABLE {table} ADD COLUMN {column} BOOLEAN NOT NULL DEFAULT {default}"
+            f"ALTER TABLE {table} ADD COLUMN {column} BOOLEAN NOT NULL DEFAULT {sql_default}"
         )
 
 
-def _instance_rate_limit_patches(conn, settings_cols: set[str]) -> None:
+def _instance_rate_limit_patches(conn, settings_cols: set[str], *, engine: Engine) -> None:
     if "rate_limit_enabled" not in settings_cols:
-        _add_bool_column(conn, "instance_settings", "rate_limit_enabled", 1)
+        _add_bool_column(conn, "instance_settings", "rate_limit_enabled", 1, engine=engine)
     patches = (
         ("rate_limit_login_email", 30),
         ("rate_limit_login_ip", 0),
@@ -182,7 +191,33 @@ def _instance_rate_limit_patches(conn, settings_cols: set[str]) -> None:
         ("rate_limit_api_tasks_ip", 0),
     )
     for column, default in patches:
-        _add_int_column(conn, "instance_settings", column, default)
+        _add_int_column(conn, "instance_settings", column, default, engine=engine)
+
+
+def run_alembic_upgrade() -> None:
+    from alembic import command
+    from alembic.config import Config
+
+    root = Path(__file__).resolve().parent.parent
+    cfg = Config(str(root / "alembic.ini"))
+    cfg.set_main_option("sqlalchemy.url", database_url())
+    command.upgrade(cfg, "head")
+
+
+def init_database(engine: Engine) -> None:
+    """Create tables and apply incremental schema updates."""
+    from app.models import Base
+
+    if is_sqlite_engine(engine):
+        Base.metadata.create_all(engine)
+        ensure_schema(engine)
+        return
+
+    inspector = inspect(engine)
+    if inspector.has_table("alembic_version"):
+        run_alembic_upgrade()
+    Base.metadata.create_all(engine)
+    ensure_schema(engine)
 
 
 def get_engine() -> Engine:

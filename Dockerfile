@@ -24,6 +24,8 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY version.txt ./
+COPY alembic.ini ./
+COPY alembic ./alembic
 COPY app ./app
 COPY --from=web /web/dist ./web/dist
 
