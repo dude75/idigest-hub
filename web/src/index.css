@@ -282,32 +282,147 @@ button.icon-btn {
 }
 button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 
-.org-item-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-button.org-item-open {
-  flex: 1;
-  min-width: 0;
+.org-cards {
   display: grid;
-  gap: 0.15rem;
-  padding: 0;
+  gap: 0.5rem;
+}
+.org-card {
+  display: grid;
+  grid-template-columns: minmax(0, 11.5rem) minmax(0, 1fr);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.org-tile {
+  padding: 0.65rem 0.8rem;
+  min-width: 0;
+}
+.org-tile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: linear-gradient(180deg, #f8fafc 0%, var(--card) 100%);
+  border-right: 1px solid var(--line);
+}
+.org-tile-ops {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  justify-content: center;
+}
+.org-card-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.org-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+}
+.org-balance {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.org-member-count { font-size: 0.75rem; }
+button.org-ledger-btn {
+  align-self: flex-start;
+  margin-top: auto;
+  padding: 0.2rem 0;
   border: 0;
   background: none;
-  text-align: left;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 550;
   cursor: pointer;
-  color: inherit;
 }
-button.org-item-open:hover .org-item-name { color: var(--accent); }
-.org-item-name {
-  font-weight: 650;
-  font-size: 0.98rem;
-  transition: color 0.12s ease;
+button.org-ledger-btn:hover { text-decoration: underline; }
+.org-ops-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: flex-end;
 }
-.org-item-hint { font-size: 0.78rem; }
-.org-item-balance { white-space: nowrap; font-size: 0.88rem; }
+.org-ops-field {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.org-ops-field select,
+.org-ops-field input {
+  padding: 0.35rem 0.5rem;
+  font-size: 0.88rem;
+}
+.org-wallet-field { flex: 1.35; min-width: 11rem; }
+.org-wallet-inline {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+.org-wallet-inline input {
+  flex: 1;
+  min-width: 0;
+}
+.org-wallet-inline button {
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+}
+.org-users {
+  margin: 0;
+  border-top: 1px dashed var(--line);
+  padding-top: 0.35rem;
+}
+.org-users > summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--muted);
+  user-select: none;
+}
+.org-users[open] > summary { color: var(--ink); }
+.org-users-list {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+.org-user {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+}
+.org-user-email {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.org-user button {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.75rem;
+}
+@media (max-width: 640px) {
+  .org-card { grid-template-columns: 1fr; }
+  .org-tile-info {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  button.org-ledger-btn { margin-top: 0.15rem; }
+}
 
 .org-ledger-back { padding: 1.25rem; }
 .org-ledger-modal {

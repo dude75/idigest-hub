@@ -6,7 +6,7 @@ import { isInstanceAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
 import { detectLedgerPreset, OrgLedgerModal } from '../components/OrgLedgerModal'
 import type { InstanceSettings, InstanceSnapshot, InstanceStats, Org, OrgLedger, Skill, Tariff, Worker } from '../types'
-import { formatAudioTime, fmtDate, showError, WalletLabel } from '../util'
+import { formatAudioTime, fmtDate, showError } from '../util'
 
 const MAX_UPLOAD = 1073741824
 type Tab = 'workers' | 'tariffs' | 'orgs' | 'settings' | 'baseSkills' | 'stats'
@@ -558,61 +558,81 @@ export function InstancePage() {
       )}
 
       {tab === 'orgs' && (
-        <div className="list">
+        <div className="org-cards">
+          {orgs.length === 0 && <p className="muted">{t('common.empty')}</p>}
           {orgs.map((o) => (
-            <div className="item org-item stack" key={o.id}>
-              <div className="org-item-head">
-                <button type="button" className="org-item-open" onClick={() => openOrgCard(o)}>
-                  <span className="org-item-name">{o.name}</span>
-                  <span className="org-item-hint">{t('instance.openLedger')}</span>
-                </button>
-                <div className="org-item-balance">
-                  <WalletLabel unlimited={o.unlimited} balance={o.balance} />
+            <article className="org-card" key={o.id}>
+              <section className="org-tile org-tile-info">
+                <h3 className="org-card-title">{o.name}</h3>
+                <div className="org-card-meta">
+                  <span className="badge">{o.tariff.name}</span>
+                  {o.unlimited ? (
+                    <span className="badge out">{t('wallet.unlimited')}</span>
+                  ) : (
+                    <span className="org-balance">{o.balance}</span>
+                  )}
+                  <span className="muted org-member-count">
+                    {t('instance.users')} · {(o.members || []).length}
+                  </span>
                 </div>
-              </div>
-              <label>
-                {t('org.tariff')}
-                <select
-                  value={o.tariff.id}
-                  onChange={(e) => void api(`/orgs/${o.id}/tariff`, { method: 'PATCH', body: JSON.stringify({ tariff_id: e.target.value }) }).then(load)}
-                >
-                  {tariffs.map((tr) => (
-                    <option key={tr.id} value={tr.id}>{tr.name}</option>
-                  ))}
-                </select>
-              </label>
-              <div className="row">
-                <input
-                  placeholder={t('instance.walletDelta')}
-                  value={deltas[o.id] || ''}
-                  onChange={(e) => setDeltas((d) => ({ ...d, [o.id]: e.target.value }))}
-                />
-                <button type="button" onClick={() => void api(`/orgs/${o.id}/wallet`, { method: 'POST', body: JSON.stringify({ delta: deltas[o.id] }) }).then(load)}>
-                  {t('instance.apply')}
+                <button type="button" className="org-ledger-btn" onClick={() => openOrgCard(o)}>
+                  {t('instance.ledger')} →
                 </button>
-              </div>
-              <details className="fold">
-                <summary>
-                  {t('instance.users')} · {(o.members || []).length}
-                </summary>
-                <div className="stack fold-body">
-                  {(o.members || []).length === 0 && <p className="muted">{t('common.empty')}</p>}
-                  {(o.members || []).map((u) => (
-                    <div className="row" key={u.id}>
-                      <span>{u.email} · {u.role}</span>
-                      {!u.is_instance_admin && (
-                        <button
-                          type="button"
-                          onClick={() => void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) }).then(() => refresh())}
-                        >
-                          {t('instance.impersonate')}
-                        </button>
-                      )}
+              </section>
+              <section className="org-tile org-tile-ops">
+                <div className="org-ops-toolbar">
+                  <label className="org-ops-field">
+                    <span>{t('org.tariff')}</span>
+                    <select
+                      value={o.tariff.id}
+                      onChange={(e) => void api(`/orgs/${o.id}/tariff`, { method: 'PATCH', body: JSON.stringify({ tariff_id: e.target.value }) }).then(load)}
+                    >
+                      {tariffs.map((tr) => (
+                        <option key={tr.id} value={tr.id}>{tr.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="org-ops-field org-wallet-field">
+                    <span>{t('instance.walletDelta')}</span>
+                    <div className="org-wallet-inline">
+                      <input
+                        placeholder="+100"
+                        value={deltas[o.id] || ''}
+                        onChange={(e) => setDeltas((d) => ({ ...d, [o.id]: e.target.value }))}
+                      />
+                      <button
+                        type="button"
+                        className="primary"
+                        onClick={() => void api(`/orgs/${o.id}/wallet`, { method: 'POST', body: JSON.stringify({ delta: deltas[o.id] }) }).then(load)}
+                      >
+                        {t('instance.apply')}
+                      </button>
                     </div>
-                  ))}
+                  </div>
                 </div>
-              </details>
-            </div>
+                {(o.members || []).length > 0 && (
+                  <details className="org-users">
+                    <summary>{t('instance.users')}</summary>
+                    <ul className="org-users-list">
+                      {(o.members || []).map((u) => (
+                        <li className="org-user" key={u.id}>
+                          <span className="org-user-email" title={u.email}>{u.email}</span>
+                          <span className="badge">{u.role}</span>
+                          {!u.is_instance_admin && (
+                            <button
+                              type="button"
+                              onClick={() => void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) }).then(() => refresh())}
+                            >
+                              {t('instance.impersonate')}
+                            </button>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </section>
+            </article>
           ))}
         </div>
       )}
