@@ -7,6 +7,13 @@ import re
 from fastapi.responses import Response
 
 _SAFE_CHARS = re.compile(r"[^\w\s.-]", re.UNICODE)
+_MARKDOWN_FENCE = re.compile(r"^```(?:markdown|md)?\r?\n([\s\S]*?)\r?\n```$", re.UNICODE)
+
+
+def unwrap_markdown_fence(text: str) -> str:
+    trimmed = text.strip()
+    match = _MARKDOWN_FENCE.match(trimmed)
+    return match.group(1) if match else text
 
 
 def safe_filename(name: str, fallback: str = "download") -> str:

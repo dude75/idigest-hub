@@ -14,7 +14,7 @@ from app.crypto import decrypt_str
 from app.deps import AuthContext
 from app.models import Summary, Transcript
 from app.presenters import summary_display_title, transcript_display_title
-from app.services.export import safe_filename
+from app.services.export import safe_filename, unwrap_markdown_fence
 
 ARCHIVE_MEDIA = {
     "zip": "application/zip",
@@ -70,7 +70,7 @@ def build_backup(
 
         rows = _list_filter(ctx, db, Summary, "summary", include_hidden=True)
         for row in rows:
-            body = decrypt_str(row.body_encrypted)
+            body = unwrap_markdown_fence(decrypt_str(row.body_encrypted))
             display = summary_display_title(row)
             stem = safe_filename(f"{row.id}_{display}")
             files[f"summaries/{stem}.md"] = body

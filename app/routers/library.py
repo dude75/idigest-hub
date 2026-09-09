@@ -28,7 +28,7 @@ from app.presenters import (
 from app.services.access import can_read_object, is_hidden, is_shared_with, outgoing_shares
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 from app.services.dispatcher import utterances_to_text
-from app.services.export import attachment_response, safe_filename
+from app.services.export import attachment_response, safe_filename, unwrap_markdown_fence
 from app.services.audit import write_audit
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
@@ -432,7 +432,7 @@ def export_summary(
     row = db.get(Summary, summary_id)
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
-    body = decrypt_str(row.body_encrypted)
+    body = unwrap_markdown_fence(decrypt_str(row.body_encrypted))
     ext = "md" if format == "md" else "txt"
     media = "text/markdown; charset=utf-8" if format == "md" else "text/plain; charset=utf-8"
     return attachment_response(body, f"{safe_filename(summary_display_title(row))}.{ext}", media)

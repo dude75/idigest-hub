@@ -342,6 +342,23 @@ def test_export_audio_transcript_summary(client):
     assert summary.text == "kept summary"
     assert "markdown" in summary.headers["content-type"]
 
+    from app.crypto import encrypt_str
+    from app.models import Summary
+
+    fenced_body = "```markdown\n# Title\n\nBody text\n```"
+    db = open_db()
+    try:
+        row = db.get(Summary, summary_id)
+        row.body_encrypted = encrypt_str(fenced_body)
+        db.commit()
+    finally:
+        db.close()
+
+    exported = client.get(f"/api/v1/summaries/{summary_id}/export?format=md")
+    assert exported.status_code == 200, exported.text
+    assert exported.text == "# Title\n\nBody text"
+    assert "```" not in exported.text
+
 
 def test_rename_transcript_and_summary(client):
     setup_admin(client)
