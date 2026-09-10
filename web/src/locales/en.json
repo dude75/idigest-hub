@@ -365,6 +365,12 @@
     "conflict": "Conflict.",
     "pipeline_error": "The worker failed to process the task.",
     "engine_unavailable": "Required ASR or diarization engine is not available.",
+    "account_disabled": "Your account has been disabled. Contact your organization admin.",
+    "sso_disabled": "Single sign-on is not enabled for this organization.",
+    "sso_misconfigured": "Single sign-on is not configured correctly.",
+    "sso_state_invalid": "Invalid or expired sign-on session. Try again.",
+    "sso_email_missing": "Your identity provider did not return an email address.",
+    "sso_user_wrong_org": "This account belongs to another organization.",
     "generic": "Something went wrong."
   }
 }

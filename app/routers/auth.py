@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import RedirectResponse
@@ -217,6 +218,11 @@ def _public_base_url(db: Session) -> str | None:
     settings = get_instance_settings(db)
     value = (settings.public_base_url or "").strip()
     return value or None
+
+
+def _sso_login_redirect(public_base: str, org_id: str, code: ErrorCode) -> RedirectResponse:
+    query = urlencode({"error": code.value})
+    return RedirectResponse(f"{public_base.rstrip('/')}/sso/{org_id}?{query}", status_code=302)
 
 
 def _me_payload(ctx: AuthContext, db: Session) -> dict:
@@ -442,35 +448,41 @@ def sso_callback(
     state: str | None = None,
 ) -> RedirectResponse:
     locale = locale_from_request(request)
+    public_base = _public_base_url(db)
+
+    def fail(error_code: ErrorCode) -> RedirectResponse:
+        if public_base:
+            return _sso_login_redirect(public_base, org_id, error_code)
+        abort(locale, error_code)
+
     org = db.get(Organization, org_id)
     if org is None:
-        abort(locale, ErrorCode.not_found)
+        return fail(ErrorCode.not_found)
     if not sso_configured(org) or not org.sso_enabled:
-        abort(locale, ErrorCode.sso_disabled)
-    public_base = _public_base_url(db)
+        return fail(ErrorCode.sso_disabled)
     if not public_base or not code or not state:
-        abort(locale, ErrorCode.sso_misconfigured)
+        return fail(ErrorCode.sso_misconfigured)
     try:
         nonce = verify_oauth_state(state, org_id)
         token_payload = exchange_code(org=org, public_base_url=public_base, code=code)
         id_token = token_payload.get("id_token")
         if not id_token:
-            abort(locale, ErrorCode.sso_misconfigured)
+            return fail(ErrorCode.sso_misconfigured)
         claims = validate_id_token(org=org, id_token=id_token, nonce=nonce)
         email = email_from_claims(claims)
         sub = str(claims.get("sub") or "")
         if not email or not sub:
-            abort(locale, ErrorCode.sso_email_missing)
+            return fail(ErrorCode.sso_email_missing)
         user = resolve_or_provision_user(db, org=org, email=email, sub=sub, locale=locale)
     except ValueError as exc:
         message = str(exc)
         if message == "user wrong org":
-            abort(locale, ErrorCode.sso_user_wrong_org)
+            return fail(ErrorCode.sso_user_wrong_org)
         if message == "user disabled":
-            abort(locale, ErrorCode.forbidden)
-        abort(locale, ErrorCode.sso_state_invalid)
+            return fail(ErrorCode.account_disabled)
+        return fail(ErrorCode.sso_state_invalid)
     except Exception:
-        abort(locale, ErrorCode.sso_misconfigured)
+        return fail(ErrorCode.sso_misconfigured)
     raw = create_session(db, user.id)
     redirect = RedirectResponse(f"{public_base.rstrip('/')}/app", status_code=302)
     set_session_cookie(redirect, raw)

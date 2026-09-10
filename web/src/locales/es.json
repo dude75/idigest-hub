@@ -365,6 +365,12 @@
     "conflict": "Conflicto.",
     "pipeline_error": "El worker no pudo procesar la tarea.",
     "engine_unavailable": "El motor ASR o de diarización no está disponible.",
+    "account_disabled": "Su cuenta está desactivada. Contacte al administrador de su organización.",
+    "sso_disabled": "El inicio de sesión único no está habilitado para esta organización.",
+    "sso_misconfigured": "El inicio de sesión único no está configurado correctamente.",
+    "sso_state_invalid": "Sesión de inicio de sesión no válida o caducada. Inténtelo de nuevo.",
+    "sso_email_missing": "El proveedor de identidad no devolvió un correo electrónico.",
+    "sso_user_wrong_org": "Esta cuenta pertenece a otra organización.",
     "generic": "Algo salió mal."
   }
 }

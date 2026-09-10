@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
+import { api, ApiError } from '../api'
 import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { resolveHomePath } from '../routes'
-import { showError } from '../util'
+import { errorText, showError } from '../util'
 
 type SsoInfo = {
   org_id: string
@@ -17,10 +17,12 @@ type SsoInfo = {
 
 export function SsoLoginPage() {
   const { orgId = '' } = useParams()
+  const [searchParams] = useSearchParams()
   const { t } = useTranslation()
   const { ready, bootstrapDone, me } = useAuth()
   const [info, setInfo] = useState<SsoInfo | null>(null)
   const [loading, setLoading] = useState(true)
+  const authError = searchParams.get('error')
 
   useEffect(() => {
     if (!orgId) return
@@ -46,6 +48,7 @@ export function SsoLoginPage() {
           <h1 className="grow">{t('sso.title')}</h1>
           <LanguageSwitcher />
         </div>
+        {authError && <p className="err">{errorText(new ApiError(authError, ''), t)}</p>}
         {loading && <p className="muted">{t('common.loading')}</p>}
         {!loading && info && (
           <>

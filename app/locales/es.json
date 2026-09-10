@@ -34,5 +34,6 @@
   "sso_email_missing": "El proveedor de identidad no devolvió un correo electrónico.",
   "sso_user_wrong_org": "Esta cuenta pertenece a otra organización.",
   "sso_login_required": "Inicie sesión con el SSO de su organización.",
+  "account_disabled": "Su cuenta está desactivada. Contacte al administrador de su organización.",
   "ok": "ok"
 }

@@ -155,6 +155,39 @@ def test_sso_callback_merges_existing_member(client, monkeypatch):
     assert payload["user"]["auth_provider"] == "oidc"
 
 
+def test_sso_callback_disabled_user_redirects(client, monkeypatch):
+    setup_admin(client)
+    _configure_public_url(client)
+    tariff_id = default_tariff_id(client)
+    signup(client, "orgadmin@example.com", "orgadminpass1", tariff_id)
+    login_ready(client, "orgadmin@example.com", "orgadminpass1")
+    org_id = _configure_sso(client, enabled=True)
+    _create_member(client, email="member@example.com")
+    users = client.get("/api/v1/org/users").json()["items"]
+    member_id = next(u["id"] for u in users if u["email"] == "member@example.com")
+    disable = client.post(f"/api/v1/org/users/{member_id}/disable")
+    assert disable.status_code == 200, disable.text
+    logout(client)
+
+    from app.services import sso as sso_service
+
+    monkeypatch.setattr("app.routers.auth.exchange_code", lambda **kwargs: {"id_token": "token"})
+    monkeypatch.setattr(
+        "app.routers.auth.validate_id_token",
+        lambda **kwargs: {"sub": "kc-member", "email": "member@example.com"},
+    )
+
+    state, _nonce = sso_service.make_oauth_state(org_id)
+    query = urlencode({"code": "abc", "state": state})
+    response = client.get(
+        f"/api/v1/auth/sso/{org_id}/callback?{query}",
+        follow_redirects=False,
+    )
+    assert response.status_code == 302, response.text
+    assert response.headers["location"] == f"https://hub.example/sso/{org_id}?error=account_disabled"
+    assert client.get("/api/v1/me").status_code == 401
+
+
 def _mock_validate_id_token_jwt(monkeypatch, *, claims: dict):
     from app.services import sso as sso_service
 

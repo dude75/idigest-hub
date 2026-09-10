@@ -47,6 +47,7 @@ class ErrorCode(str, Enum):
     sso_email_missing = "sso_email_missing"
     sso_user_wrong_org = "sso_user_wrong_org"
     sso_login_required = "sso_login_required"
+    account_disabled = "account_disabled"
 
 
 HTTP_STATUS: dict[ErrorCode, int] = {
@@ -79,6 +80,7 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.sso_email_missing: 400,
     ErrorCode.sso_user_wrong_org: 403,
     ErrorCode.sso_login_required: 403,
+    ErrorCode.account_disabled: 403,
 }
 
 

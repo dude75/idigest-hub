@@ -34,5 +34,6 @@
   "sso_email_missing": "Your identity provider did not return an email address.",
   "sso_user_wrong_org": "This account belongs to another organization.",
   "sso_login_required": "Sign in with your organization SSO.",
+  "account_disabled": "Your account has been disabled. Contact your organization admin.",
   "ok": "ok"
 }
