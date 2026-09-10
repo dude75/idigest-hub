@@ -10,10 +10,10 @@ const PAGE_SIZE = 3
 
 type Props = {
   tariffs: Tariff[]
-  popularIndex: number
+  popularTariffId: string | null
 }
 
-export function LandingTariffGrid({ tariffs, popularIndex }: Props) {
+export function LandingTariffGrid({ tariffs, popularTariffId }: Props) {
   const { t } = useTranslation()
   const [page, setPage] = useState(0)
   const pageCount = Math.ceil(tariffs.length / PAGE_SIZE)
@@ -34,7 +34,7 @@ export function LandingTariffGrid({ tariffs, popularIndex }: Props) {
             <LandingTariffCard
               key={tr.id}
               tariff={tr}
-              popular={index === popularIndex}
+              popular={tr.id === popularTariffId}
               subtitleKey={landingTariffSubtitleKey(index, tariffs.length)}
               to={`/signup?tariff=${encodeURIComponent(tr.id)}`}
             />

@@ -1,5 +1,6 @@
 from tests.conftest import (
     ADMIN_EMAIL,
+    create_tariff,
     default_tariff_id,
     err_code,
     login,
@@ -41,6 +42,25 @@ def test_signup_disabled_when_allow_new_orgs_false(client):
     response = signup(client, "bob@example.com", "bobpass1", tariff_id)
     assert response.status_code == 403
     assert err_code(response) == "signup_disabled"
+
+
+def test_signup_tariffs_include_org_count(client):
+    setup_admin(client)
+    default_id = default_tariff_id(client)
+    spare = create_tariff(client, name="Spare plan")
+
+    logout(client)
+    assert signup(client, "a@example.com", "apass1234", default_id).status_code == 200
+    logout(client)
+    assert signup(client, "b@example.com", "bpass1234", default_id).status_code == 200
+    logout(client)
+    assert signup(client, "c@example.com", "cpass1234", spare["id"]).status_code == 200
+
+    listed = client.get("/api/v1/auth/signup-tariffs")
+    assert listed.status_code == 200
+    items = {item["id"]: item for item in listed.json()["items"]}
+    assert items[default_id]["org_count"] == 2
+    assert items[spare["id"]]["org_count"] == 1
 
 
 def test_signup_disabled_without_signup_tariffs(client):

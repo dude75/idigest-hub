@@ -1,7 +1,10 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { landingTariffSubtitleKey } from '../landingTariffLayout'
 import type { Tariff } from '../types'
 import { formatBytes } from '../util'
+
+export { landingTariffSubtitleKey }
 
 type Props = {
   tariff: Tariff
@@ -115,17 +118,3 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
   )
 }
 
-export function landingTariffSubtitleKey(index: number, total: number): 'regular' | 'standard' | 'expert' {
-  if (total <= 1) return 'regular'
-  if (index === 0) return 'regular'
-  if (index === total - 1) return 'expert'
-  return 'standard'
-}
-
-export function sortTariffsForLanding(tariffs: Tariff[]): Tariff[] {
-  return [...tariffs].sort((a, b) => {
-    const creditDiff = Number(a.signup_credit) - Number(b.signup_credit)
-    if (creditDiff !== 0) return creditDiff
-    return a.name.localeCompare(b.name)
-  })
-}

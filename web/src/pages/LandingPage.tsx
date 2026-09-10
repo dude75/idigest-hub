@@ -7,7 +7,7 @@ import { AppBrand } from '../components/AppBrand'
 import { GitHubLink } from '../components/GitHubLink'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { resolveHomePath } from '../routes'
-import { sortTariffsForLanding } from '../components/LandingTariffCard'
+import { arrangeTariffsForLanding } from '../landingTariffLayout'
 import { LandingTariffGrid } from '../components/LandingTariffGrid'
 import type { Tariff } from '../types'
 
@@ -19,8 +19,10 @@ export function LandingPage() {
   const { t } = useTranslation()
   const { ready, bootstrapDone, me } = useAuth()
   const [tariffs, setTariffs] = useState<Tariff[]>([])
-  const sortedTariffs = useMemo(() => sortTariffsForLanding(tariffs), [tariffs])
-  const popularTariffIndex = sortedTariffs.length >= 2 ? Math.floor(sortedTariffs.length / 2) : -1
+  const { ordered: sortedTariffs, popularTariffId } = useMemo(
+    () => arrangeTariffsForLanding(tariffs),
+    [tariffs],
+  )
 
   useEffect(() => {
     api<{ items: Tariff[] }>('/auth/signup-tariffs')
@@ -148,7 +150,7 @@ export function LandingPage() {
             <h2>{t('landing.tariffsTitle')}</h2>
             <p className="muted">{t('landing.tariffsLead')}</p>
           </div>
-          <LandingTariffGrid tariffs={sortedTariffs} popularIndex={popularTariffIndex} />
+          <LandingTariffGrid tariffs={sortedTariffs} popularTariffId={popularTariffId} />
         </section>
       )}
 

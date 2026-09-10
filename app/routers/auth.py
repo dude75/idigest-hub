@@ -350,6 +350,12 @@ def signup(body: SignupBody, request: Request, response: Response, db: Session =
     return {"status": "ok", "user": user_public(user, "org_admin")}
 
 
+def _tariff_org_count(db: Session, tariff_id: str) -> int:
+    return int(
+        db.scalar(select(func.count()).select_from(Organization).where(Organization.tariff_id == tariff_id)) or 0
+    )
+
+
 @router.get("/auth/signup-tariffs")
 def signup_tariffs(request: Request, db: Session = Depends(get_session)) -> dict:
     locale = locale_from_request(request)
@@ -359,7 +365,7 @@ def signup_tariffs(request: Request, db: Session = Depends(get_session)) -> dict
     rows = db.scalars(
         select(Tariff).where(Tariff.archived_at.is_(None), Tariff.available_on_signup.is_(True))
     ).all()
-    return {"items": [tariff_public(row) for row in rows]}
+    return {"items": [tariff_public(row, _tariff_org_count(db, row.id)) for row in rows]}
 
 
 @router.get("/setup/status")
