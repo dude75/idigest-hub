@@ -7,6 +7,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Literal
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -38,6 +39,31 @@ from app.version import read_version
 
 log = logging.getLogger("app")
 WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
+
+SpaResolution = Literal["not_found", "index"] | Path
+
+
+def resolve_spa_path(web_dist: Path, full_path: str) -> SpaResolution:
+    if full_path.startswith("api/"):
+        return "not_found"
+    candidate = (web_dist / full_path).resolve()
+    if not candidate.is_relative_to(web_dist.resolve()):
+        return "not_found"
+    if full_path and candidate.is_file():
+        return candidate
+    return "index"
+
+
+def spa_response(web_dist: Path, full_path: str) -> FileResponse | JSONResponse:
+    resolved = resolve_spa_path(web_dist, full_path)
+    if resolved == "not_found":
+        return JSONResponse(
+            status_code=404,
+            content=error_payload(ErrorCode.not_found, t("en", "not_found")),
+        )
+    if resolved == "index":
+        return FileResponse(web_dist / "index.html", headers={"Cache-Control": "no-cache"})
+    return FileResponse(resolved)
 
 
 @asynccontextmanager
@@ -165,12 +191,4 @@ if WEB_DIST.is_dir():
 
     @app.get("/{full_path:path}")
     def spa(full_path: str):
-        if full_path.startswith("api/"):
-            return JSONResponse(
-                status_code=404,
-                content=error_payload(ErrorCode.not_found, t("en", "not_found")),
-            )
-        candidate = WEB_DIST / full_path
-        if full_path and candidate.is_file():
-            return FileResponse(candidate)
-        return FileResponse(WEB_DIST / "index.html", headers={"Cache-Control": "no-cache"})
+        return spa_response(WEB_DIST, full_path)
