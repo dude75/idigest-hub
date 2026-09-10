@@ -64,6 +64,12 @@ export function allowedDefaultRoutes(me: Me | null): DefaultRoute[] {
   return routes
 }
 
+export function resolveLoginPath(me: Me | null): string {
+  const org = me?.org
+  if (org?.sso?.enabled && org.id) return `/sso/${org.id}`
+  return '/login'
+}
+
 export function resolveHomePath(me: Me | null): string {
   const allowed = allowedDefaultRoutes(me)
   const stored = normalizeDefaultRoute(me?.user.default_route)

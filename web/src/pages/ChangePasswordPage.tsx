@@ -59,7 +59,7 @@ export function ChangePasswordPage() {
         <button
           type="button"
           onClick={() => {
-            void logout().then(() => nav('/login'))
+            void logout().then((path) => nav(path))
           }}
         >
           {t('nav.logout')}
