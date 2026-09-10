@@ -66,7 +66,9 @@ export function allowedDefaultRoutes(me: Me | null): DefaultRoute[] {
 
 export function resolveLoginPath(me: Me | null): string {
   const org = me?.org
-  if (org?.sso?.enabled && org.id) return `/sso/${org.id}`
+  if (org?.id && (org.sso?.enabled || me?.user.auth_provider === 'oidc')) {
+    return `/sso/${org.id}`
+  }
   return '/login'
 }
 

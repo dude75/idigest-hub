@@ -57,7 +57,7 @@ export function Shell() {
           <button
             type="button"
             onClick={() => {
-              void logout().then((path) => nav(path))
+              void logout()
             }}
           >
             {t('nav.logout')}

@@ -13,7 +13,7 @@ type AuthState = {
   refresh: () => Promise<void>
   setLocale: (locale: Locale) => Promise<void>
   setDefaultRoute: (route: DefaultRoute) => Promise<void>
-  logout: () => Promise<string>
+  logout: () => Promise<void>
 }
 
 const AuthCtx = createContext<AuthState | null>(null)
@@ -84,8 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     const redirect = resolveLoginPath(me)
     await api('/auth/logout', { method: 'POST' })
-    setMe(null)
-    return redirect
+    window.location.replace(redirect)
   }, [me])
 
   const value = useMemo(
