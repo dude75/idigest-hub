@@ -93,6 +93,8 @@ Auth required. Not allowed while impersonating.
 
 `current_password` optional when `must_change_password` is true.
 
+Revokes all other browser sessions and API tokens for the user, then issues a new session cookie for the current client.
+
 ### POST `/auth/password/reset/request`
 
 ```json
@@ -111,6 +113,8 @@ Always returns `{ "status": "ok" }` (no email enumeration). Sends mail if user e
 ```
 
 Invalid/expired token → `not_found`.
+
+Revokes all browser sessions and API tokens for the user. No new session is created — log in again after reset.
 
 ## Current user
 

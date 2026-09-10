@@ -12,7 +12,7 @@ from app.deps import AuthContext, get_instance_settings, require_auth
 from app.errors import ErrorCode
 from app.models import Membership, Tariff, UsageEvent, User, new_id
 from app.presenters import org_public, user_public
-from app.routers.auth import invalidate_user_sessions, revoke_user_tokens
+from app.routers.auth import revoke_user_auth
 from app.security import hash_password, random_password
 from app.services.access import guard_last_org_admin
 from app.services.audit import write_audit
@@ -280,8 +280,7 @@ def disable_user(
         guard_last_org_admin(db, org.id, user_id, ctx.locale)
     user.disabled_at = utcnow()
     user.updated_at = utcnow()
-    invalidate_user_sessions(db, user.id)
-    revoke_user_tokens(db, user.id)
+    revoke_user_auth(db, user.id)
     write_audit(db, "user.disable", ctx, {"user_id": user.id})
     return user_public(user, membership.role)
 
@@ -319,7 +318,7 @@ def reset_user_password(
     user.must_change_password = True
     user.password_changed_at = utcnow()
     user.updated_at = utcnow()
-    invalidate_user_sessions(db, user.id)
+    revoke_user_auth(db, user.id)
     return {"status": "ok", "password": password}
 
 

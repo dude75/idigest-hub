@@ -58,6 +58,7 @@ Logout удаляет строку session и очищает cookie.
 ## Password policy
 
 - Минимум 8 символов на setup, signup, change, reset
+- Смена пароля, подтверждение email reset и org admin reset-password отзывают все browser sessions и API tokens пользователя
 - Org может задать `password_ttl_days` — после дедлайна разрешены только смена пароля (+ `/me`, logout)
 - Org admin может принудительно сбросить (`must_change_password`) через reset-password endpoint
 

@@ -208,6 +208,11 @@ def revoke_user_tokens(db: Session, user_id: str) -> None:
         token.revoked_at = now
 
 
+def revoke_user_auth(db: Session, user_id: str) -> None:
+    invalidate_user_sessions(db, user_id)
+    revoke_user_tokens(db, user_id)
+
+
 def _public_base_url(db: Session) -> str | None:
     settings = get_instance_settings(db)
     value = (settings.public_base_url or "").strip()
@@ -506,7 +511,7 @@ def change_password(
     user.password_changed_at = utcnow()
     user.must_change_password = False
     user.updated_at = utcnow()
-    invalidate_user_sessions(db, user.id)
+    revoke_user_auth(db, user.id)
     raw = create_session(db, user.id)
     set_session_cookie(response, raw)
     return {"status": "ok"}
@@ -574,7 +579,7 @@ def reset_confirm(body: ResetConfirmBody, request: Request, db: Session = Depend
     user.must_change_password = False
     user.updated_at = utcnow()
     row.used_at = utcnow()
-    invalidate_user_sessions(db, user.id)
+    revoke_user_auth(db, user.id)
     return {"status": "ok"}
 
 

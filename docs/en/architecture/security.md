@@ -58,6 +58,7 @@ Users with `must_change_password` or expired org password TTL cannot use API tok
 ## Password policy
 
 - Minimum 8 characters on setup, signup, change, reset
+- Password change, email reset confirm, and org admin reset-password revoke all browser sessions and API tokens for that user
 - Org can set `password_ttl_days` — after deadline, only password change (+ `/me`, logout) allowed
 - Org admin can force reset (`must_change_password`) via reset-password endpoint
 

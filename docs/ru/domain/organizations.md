@@ -43,7 +43,7 @@ GET `/org` возвращает org + вложенный tariff + итог ис�
 | Смена роли | `PATCH /org/users/{id}` | Нельзя понизить последнего org admin |
 | Отключение | `POST /org/users/{id}/disable` | Инвалидирует сессии + API-токены |
 | Включение | `POST /org/users/{id}/enable` | |
-| Сброс пароля админом | `POST /org/users/{id}/reset-password` | Случайный пароль, `must_change_password=true` |
+| Сброс пароля админом | `POST /org/users/{id}/reset-password` | Случайный пароль, `must_change_password=true`, отзывает sessions + API tokens |
 | Offboarding | `POST /org/users/{id}/offboard` | См. ниже |
 
 ## Offboarding

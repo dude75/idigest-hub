@@ -93,6 +93,8 @@ Auto-provision: первый SSO-вход с неизвестным email соз
 
 `current_password` опционален, когда `must_change_password` равен true.
 
+Отзывает все остальные browser sessions и API tokens пользователя, затем выдаёт новую session cookie текущему клиенту.
+
 ### POST `/auth/password/reset/request`
 
 ```json
@@ -111,6 +113,8 @@ Auto-provision: первый SSO-вход с неизвестным email соз
 ```
 
 Недействительный или просроченный token → `not_found`.
+
+Отзывает все browser sessions и API tokens пользователя. Новая session не создаётся — после сброса нужен повторный login.
 
 ## Текущий пользователь
 

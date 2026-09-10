@@ -43,7 +43,7 @@ Changing tariff does **not** alter snapshotted prices on existing tasks.
 | Change role | `PATCH /org/users/{id}` | Cannot demote last org admin |
 | Disable | `POST /org/users/{id}/disable` | Invalidates sessions + API tokens |
 | Enable | `POST /org/users/{id}/enable` | |
-| Admin reset password | `POST /org/users/{id}/reset-password` | Sets random password, `must_change_password=true` |
+| Admin reset password | `POST /org/users/{id}/reset-password` | Sets random password, `must_change_password=true`, revokes sessions + API tokens |
 | Offboard | `POST /org/users/{id}/offboard` | See below |
 
 ## Offboarding

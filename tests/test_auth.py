@@ -145,6 +145,32 @@ def test_disable_kills_cookie_and_tokens_enable_does_not_resurrect(client):
     assert client.get("/api/v1/me", headers={"Authorization": f"Bearer {fresh.json()['token']}"}).status_code == 200
 
 
+def test_password_change_revokes_other_sessions_and_tokens(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "user@example.com", "userpass1", tariff_id).status_code == 200
+    login(client, "user@example.com", "userpass1")
+    old_cookie = client.cookies.get("hub_session")
+    token_resp = client.post("/api/v1/auth/tokens", json={"name": "cli"})
+    assert token_resp.status_code == 200, token_resp.text
+    api_token = token_resp.json()["token"]
+
+    changed = client.post(
+        "/api/v1/auth/password/change",
+        json={"current_password": "userpass1", "new_password": "newpass12"},
+    )
+    assert changed.status_code == 200, changed.text
+    assert client.get("/api/v1/me").status_code == 200
+
+    stale_session = client.get("/api/v1/me", cookies={"hub_session": old_cookie})
+    assert stale_session.status_code == 401
+    assert err_code(stale_session) == "unauthorized"
+
+    stale_token = client.get("/api/v1/me", headers={"Authorization": f"Bearer {api_token}"})
+    assert stale_token.status_code == 401
+    assert err_code(stale_token) == "unauthorized"
+
+
 def test_must_change_password_blocks_api_until_changed(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)
