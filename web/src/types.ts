@@ -54,6 +54,7 @@ export type Org = {
   usage?: { total_amount: string }
   members?: User[]
   sso?: OrgSso
+  hidden?: boolean
 }
 
 export type Me = {

@@ -291,6 +291,7 @@
     "rateLimitTasksPerUserMin": "Создание task на user / мин",
     "rateLimitTasksPerIpMin": "Создание task на IP / мин (0 = выкл.)",
     "ledger": "Операции по кошельку",
+    "orgHideHint": "Скрывает только у вас. Организация остаётся в инстансе.",
     "ledgerDate": "Дата",
     "ledgerType": "Тип",
     "ledgerAmount": "Сумма",

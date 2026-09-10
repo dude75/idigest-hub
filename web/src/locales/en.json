@@ -291,6 +291,7 @@
     "rateLimitTasksPerUserMin": "Task create per user / min",
     "rateLimitTasksPerIpMin": "Task create per IP / min (0 = off)",
     "ledger": "Wallet operations",
+    "orgHideHint": "Hides this only for you. The organization stays in the instance.",
     "ledgerDate": "Date",
     "ledgerType": "Type",
     "ledgerAmount": "Amount",

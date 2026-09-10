@@ -126,6 +126,35 @@ def test_instance_org_ledger_forbidden_for_non_admin(client):
     assert err_code(response) == "forbidden"
 
 
+def test_instance_org_hide_and_include_hidden(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "hideorg@example.com", "hideorgp1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+    assert client.post(f"/api/v1/orgs/{org_id}/hide").status_code == 200
+
+    hidden = client.get("/api/v1/orgs")
+    assert hidden.status_code == 200, hidden.text
+    assert all(item["id"] != org_id for item in hidden.json()["items"])
+    assert hidden.json()["hidden_count"] == 1
+
+    shown = client.get("/api/v1/orgs?include_hidden=true")
+    assert shown.status_code == 200, shown.text
+    match = next(item for item in shown.json()["items"] if item["id"] == org_id)
+    assert match["hidden"] is True
+    assert shown.json()["hidden_count"] == 1
+
+    assert client.post(f"/api/v1/orgs/{org_id}/unhide").status_code == 200
+    restored = client.get("/api/v1/orgs")
+    assert restored.status_code == 200, restored.text
+    assert any(item["id"] == org_id for item in restored.json()["items"])
+    assert restored.json()["hidden_count"] == 0
+
+
 def test_instance_stats_forbidden_for_non_admin(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

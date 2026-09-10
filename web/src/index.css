@@ -332,18 +332,30 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
   font-variant-numeric: tabular-nums;
 }
 .org-member-count { font-size: 0.75rem; }
-button.org-ledger-btn {
-  align-self: flex-start;
+.org-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
   margin-top: auto;
+}
+button.org-ledger-btn,
+button.org-hide-btn {
   padding: 0.2rem 0;
   border: 0;
   background: none;
-  color: var(--accent);
   font-size: 0.78rem;
   font-weight: 550;
   cursor: pointer;
 }
+button.org-ledger-btn {
+  color: var(--accent);
+}
 button.org-ledger-btn:hover { text-decoration: underline; }
+button.org-hide-btn {
+  color: var(--muted);
+}
+button.org-hide-btn:hover { color: var(--ink); text-decoration: underline; }
 .org-ops-toolbar {
   display: flex;
   flex-wrap: wrap;

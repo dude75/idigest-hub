@@ -88,6 +88,8 @@ export function InstancePage() {
   const [statsUserId, setStatsUserId] = useState('')
   const [statsKind, setStatsKind] = useState('')
   const [deltas, setDeltas] = useState<Record<string, string>>({})
+  const [showHiddenOrgs, setShowHiddenOrgs] = useState(false)
+  const [hiddenOrgCount, setHiddenOrgCount] = useState(0)
   const [orgCard, setOrgCard] = useState<Org | null>(null)
   const [orgLedger, setOrgLedger] = useState<OrgLedger | null>(null)
   const [orgFromDay, setOrgFromDay] = useState(() => statsRangeForDays(7).from)
@@ -135,11 +137,13 @@ export function InstancePage() {
       } else if (tab === 'tariffs') {
         setTariffs((await api<{ items: Tariff[] }>('/tariffs')).items)
       } else if (tab === 'orgs') {
+        const orgQuery = showHiddenOrgs ? '?include_hidden=true' : ''
         const [o, tr] = await Promise.all([
-          api<{ items: Org[] }>('/orgs'),
+          api<{ items: Org[]; hidden_count: number }>(`/orgs${orgQuery}`),
           api<{ items: Tariff[] }>('/tariffs'),
         ])
         setOrgs(o.items)
+        setHiddenOrgCount(o.hidden_count ?? 0)
         setTariffs(tr.items)
       } else if (tab === 'settings') {
         setSettings(await api<InstanceSettings>('/instance/settings'))
@@ -155,11 +159,11 @@ export function InstancePage() {
     if (!allowed) return
     if (tab === 'stats') return
     void load()
-  }, [tab, allowed])
+  }, [tab, allowed, showHiddenOrgs])
 
   useEffect(() => {
     if (!allowed || tab !== 'stats') return
-    api<{ items: Org[] }>('/orgs').then((r) => setStatsOrgs(r.items)).catch(showError)
+    api<{ items: Org[] }>('/orgs?include_hidden=true').then((r) => setStatsOrgs(r.items)).catch(showError)
   }, [allowed, tab])
 
   useEffect(() => {
@@ -258,6 +262,15 @@ export function InstancePage() {
     setTform(emptyTariff)
     setEditT(null)
     await load()
+  }
+
+  async function toggleOrgHidden(org: Org) {
+    try {
+      await api(`/orgs/${org.id}/${org.hidden ? 'unhide' : 'hide'}`, { method: 'POST' })
+      await load()
+    } catch (e) {
+      showError(e)
+    }
   }
 
   async function saveSettings() {
@@ -558,7 +571,12 @@ export function InstancePage() {
       )}
 
       {tab === 'orgs' && (
-        <div className="org-cards">
+        <>
+          <label className="row" style={{ marginBottom: 12 }}>
+            <input type="checkbox" checked={showHiddenOrgs} onChange={(e) => setShowHiddenOrgs(e.target.checked)} />
+            {t('library.showHidden', { count: hiddenOrgCount })}
+          </label>
+          <div className="org-cards">
           {orgs.length === 0 && <p className="muted">{t('common.empty')}</p>}
           {orgs.map((o) => (
             <article className="org-card" key={o.id}>
@@ -571,13 +589,24 @@ export function InstancePage() {
                   ) : (
                     <span className="org-balance">{o.balance}</span>
                   )}
+                  {o.hidden && <span className="badge">{t('library.hidden')}</span>}
                   <span className="muted org-member-count">
                     {t('instance.users')} · {(o.members || []).length}
                   </span>
                 </div>
-                <button type="button" className="org-ledger-btn" onClick={() => openOrgCard(o)}>
-                  {t('instance.ledger')} →
-                </button>
+                <div className="org-card-foot">
+                  <button type="button" className="org-ledger-btn" onClick={() => openOrgCard(o)}>
+                    {t('instance.ledger')} →
+                  </button>
+                  <button
+                    type="button"
+                    className="org-hide-btn"
+                    title={t('instance.orgHideHint')}
+                    onClick={() => void toggleOrgHidden(o)}
+                  >
+                    {o.hidden ? t('common.unhide') : t('common.hide')}
+                  </button>
+                </div>
               </section>
               <section className="org-tile org-tile-ops">
                 <div className="org-ops-toolbar">
@@ -634,7 +663,8 @@ export function InstancePage() {
               </section>
             </article>
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       {tab === 'settings' && settings && (

@@ -291,6 +291,7 @@
     "rateLimitTasksPerUserMin": "Crear task por usuario / min",
     "rateLimitTasksPerIpMin": "Crear task por IP / min (0 = off)",
     "ledger": "Operaciones de saldo",
+    "orgHideHint": "Oculta solo para usted. La organización permanece en la instancia.",
     "ledgerDate": "Fecha",
     "ledgerType": "Tipo",
     "ledgerAmount": "Importe",

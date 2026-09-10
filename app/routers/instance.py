@@ -14,7 +14,8 @@ from app.crypto import encrypt_str
 from app.db import get_session
 from app.deps import AuthContext, get_instance_settings, load_org_bundle, require_auth
 from app.errors import ErrorCode
-from app.models import Membership, Organization, Task, Tariff, UsageEvent, User, WorkerNode, new_id
+from app.models import HiddenItem, Membership, Organization, Task, Tariff, UsageEvent, User, WorkerNode, new_id
+from app.services.access import is_hidden
 from app.money import parse_money
 from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.routers.auth import seed_default_tariff
@@ -342,13 +343,26 @@ def patch_settings(
     return get_settings_ep(db, ctx)
 
 
+def _count_hidden_orgs(ctx: AuthContext, db: Session) -> int:
+    rows = db.scalars(select(Organization.id)).all()
+    return sum(1 for org_id in rows if is_hidden(db, ctx.user.id, "org", org_id))
+
+
 @router.get("/orgs")
-def list_orgs(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def list_orgs(
+    include_hidden: bool = False,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
     _admin(ctx)
     rows = db.scalars(select(Organization).options(joinedload(Organization.tariff)).order_by(Organization.created_at)).all()
     items = []
     for org in rows:
+        hidden = is_hidden(db, ctx.user.id, "org", org.id)
+        if not include_hidden and hidden:
+            continue
         payload = org_public(org)
+        payload["hidden"] = hidden
         members = db.scalars(select(Membership).where(Membership.org_id == org.id)).all()
         payload["members"] = []
         for membership in members:
@@ -356,7 +370,40 @@ def list_orgs(db: Session = Depends(get_session), ctx: AuthContext = Depends(req
             if user:
                 payload["members"].append(user_public(user, membership.role))
         items.append(payload)
-    return {"items": items}
+    return {"items": items, "hidden_count": _count_hidden_orgs(ctx, db)}
+
+
+@router.post("/orgs/{org_id}/hide")
+def hide_org(
+    org_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    _admin(ctx)
+    org = db.get(Organization, org_id)
+    if org is None:
+        ctx.raise_error(ErrorCode.not_found)
+    if not is_hidden(db, ctx.user.id, "org", org.id):
+        db.add(HiddenItem(id=new_id(), user_id=ctx.user.id, object_type="org", object_id=org.id))
+    return {"status": "ok"}
+
+
+@router.post("/orgs/{org_id}/unhide")
+def unhide_org(
+    org_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    _admin(ctx)
+    org = db.get(Organization, org_id)
+    if org is None:
+        ctx.raise_error(ErrorCode.not_found)
+    hidden = db.scalar(
+        select(HiddenItem).where(
+            HiddenItem.user_id == ctx.user.id,
+            HiddenItem.object_type == "org",
+            HiddenItem.object_id == org.id,
+        )
+    )
+    if hidden:
+        db.delete(hidden)
+    return {"status": "ok"}
 
 
 @router.get("/orgs/{org_id}/ledger")
