@@ -152,7 +152,6 @@ export function SummaryPage() {
               </button>
             )}
           </div>
-          <h2>{t('summary.body')}</h2>
           {editing ? (
             <div className="stack">
               <textarea
