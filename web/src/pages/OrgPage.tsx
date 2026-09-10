@@ -191,7 +191,7 @@ export function OrgPage() {
     <div>
       <h1>{t('org.title')}</h1>
       {org && (
-        <div className="org-settings-grid">
+        <div className="org-settings-stack">
           <div className="card stack">
             <h2 className="org-settings-heading">{t('org.profile')}</h2>
             <label>
@@ -213,66 +213,81 @@ export function OrgPage() {
               </button>
             )}
           </div>
-          <div className="card stack">
-            <h2 className="org-settings-heading">{t('org.tariff')}</h2>
-            <WalletLabel unlimited={org.unlimited} balance={org.balance} />
-            {!admin && currentTariff && (
-              <>
-                <div className="row">
-                  <strong className="grow">{t('org.tariff')}: {currentTariff.name}</strong>
-                  {currentTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
+          <details className="fold org-fold org-tariff-fold card">
+            <summary className="org-fold-summary">
+              <span>{t('org.tariff')}</span>
+              {currentTariff && (
+                <span className="row">
+                  <span className="badge">{currentTariff.name}</span>
+                  {org.unlimited ? (
+                    <span className="badge out">{t('wallet.unlimited')}</span>
+                  ) : (
+                    <span className="org-balance">{org.balance}</span>
+                  )}
                   {currentTariff.archived && <span className="badge warn">{t('instance.archived')}</span>}
-                </div>
-                <TariffDetails tariff={currentTariff} />
-              </>
-            )}
-            {admin && currentTariff && !currentSelectable && (
-              <>
-                <div className="row">
-                  <strong className="grow">{t('org.tariffCurrent')}: {currentTariff.name}</strong>
-                  {currentTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
-                  {currentTariff.archived && <span className="badge warn">{t('instance.archived')}</span>}
-                </div>
-                <TariffDetails tariff={currentTariff} />
-                <p className="muted">{t('org.tariffLegacy')}</p>
-              </>
-            )}
-            {admin && tariffs.length > 0 && (
-              <label>
-                {currentSelectable ? t('org.tariff') : t('org.tariffSwitch')}
-                <select value={tariffId} onChange={(e) => setTariffId(e.target.value)}>
-                  {!currentSelectable && <option value="">—</option>}
-                  {tariffs.map((tr) => (
-                    <option key={tr.id} value={tr.id}>
-                      {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {admin && selectedTariff && currentSelectable && (
-              <TariffDetails tariff={selectedTariff} />
-            )}
-            {admin && selectedTariff && currentTariff && !currentSelectable && selectedTariff.id !== currentTariff.id && (
-              <>
-                <div className="row">
-                  <strong className="grow">{t('org.tariffSwitch')}: {selectedTariff.name}</strong>
-                  {selectedTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
-                </div>
+                </span>
+              )}
+            </summary>
+            <div className="stack fold-body">
+              <WalletLabel unlimited={org.unlimited} balance={org.balance} />
+              {!admin && currentTariff && (
+                <>
+                  <div className="row">
+                    <strong className="grow">{t('org.tariffCurrent')}: {currentTariff.name}</strong>
+                    {currentTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
+                    {currentTariff.archived && <span className="badge warn">{t('instance.archived')}</span>}
+                  </div>
+                  <TariffDetails tariff={currentTariff} />
+                </>
+              )}
+              {admin && currentTariff && !currentSelectable && (
+                <>
+                  <div className="row">
+                    <strong className="grow">{t('org.tariffCurrent')}: {currentTariff.name}</strong>
+                    {currentTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
+                    {currentTariff.archived && <span className="badge warn">{t('instance.archived')}</span>}
+                  </div>
+                  <TariffDetails tariff={currentTariff} />
+                  <p className="muted">{t('org.tariffLegacy')}</p>
+                </>
+              )}
+              {admin && tariffs.length > 0 && (
+                <label>
+                  {currentSelectable ? t('org.tariff') : t('org.tariffSwitch')}
+                  <select value={tariffId} onChange={(e) => setTariffId(e.target.value)}>
+                    {!currentSelectable && <option value="">—</option>}
+                    {tariffs.map((tr) => (
+                      <option key={tr.id} value={tr.id}>
+                        {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {admin && selectedTariff && currentSelectable && (
                 <TariffDetails tariff={selectedTariff} />
-              </>
-            )}
-            {admin && (
-              <button type="button" disabled={!canSaveTariff} onClick={() => void saveTariff()}>
-                {t('common.save')}
-              </button>
-            )}
-          </div>
+              )}
+              {admin && selectedTariff && currentTariff && !currentSelectable && selectedTariff.id !== currentTariff.id && (
+                <>
+                  <div className="row">
+                    <strong className="grow">{t('org.tariffSwitch')}: {selectedTariff.name}</strong>
+                    {selectedTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
+                  </div>
+                  <TariffDetails tariff={selectedTariff} />
+                </>
+              )}
+              {admin && (
+                <button className="primary" type="button" disabled={!canSaveTariff} onClick={() => void saveTariff()}>
+                  {t('common.save')}
+                </button>
+              )}
+            </div>
+          </details>
         </div>
       )}
       {canConfigureSso && (
-        <details className="fold org-sso-fold card">
-          <summary className="org-sso-summary">
+        <details className="fold org-fold org-sso-fold card">
+          <summary className="org-fold-summary">
             <span>{t('sso.settingsTitle')}</span>
             {sso && (
               <span className="row">

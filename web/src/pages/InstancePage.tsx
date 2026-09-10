@@ -96,6 +96,7 @@ export function InstancePage() {
   const [orgToDay, setOrgToDay] = useState(() => statsRangeForDays(7).to)
   const [orgUserId, setOrgUserId] = useState('')
   const [orgKind, setOrgKind] = useState('')
+  const [tempPw, setTempPw] = useState<{ email: string; password: string } | null>(null)
 
   const allowed = isInstanceAdmin(me)
 
@@ -572,6 +573,11 @@ export function InstancePage() {
 
       {tab === 'orgs' && (
         <>
+          {tempPw && (
+            <p className="ok" style={{ marginBottom: 12 }}>
+              {t('org.newPassword')} ({tempPw.email}): <code className="secret">{tempPw.password}</code>
+            </p>
+          )}
           <label className="row" style={{ marginBottom: 12 }}>
             <input type="checkbox" checked={showHiddenOrgs} onChange={(e) => setShowHiddenOrgs(e.target.checked)} />
             {t('library.showHidden', { count: hiddenOrgCount })}
@@ -653,6 +659,18 @@ export function InstancePage() {
                               onClick={() => void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) }).then(() => refresh())}
                             >
                               {t('instance.impersonate')}
+                            </button>
+                          )}
+                          {u.role === 'org_admin' && !u.is_instance_admin && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void api<{ password: string }>(`/orgs/${o.id}/users/${u.id}/reset-password`, { method: 'POST' })
+                                  .then((r) => setTempPw({ email: u.email, password: r.password }))
+                                  .catch(showError)
+                              }
+                            >
+                              {t('org.resetPassword')}
                             </button>
                           )}
                         </li>

@@ -63,6 +63,10 @@
 
 Назначение любого неархивного tariff.
 
+### POST `/orgs/{org_id}/users/{user_id}/reset-password`
+
+Только instance admin. Сброс пароля активного `org_admin` в этой org. Возвращает временный пароль; ставит `must_change_password=true`, отзывает sessions и API tokens. `403 forbidden` для `org_member` и отключённых пользователей.
+
 ### POST `/orgs/{org_id}/wallet`
 
 ```json

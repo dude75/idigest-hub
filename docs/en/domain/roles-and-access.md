@@ -6,6 +6,7 @@
 | ---------- | -------------- | --------- | ---------- |
 | Instance settings, workers, tariffs | Yes | No | No |
 | Impersonate users | Yes (not while impersonating) | No | No |
+| Reset `org_admin` password | Yes (per org) | Yes (own org members) | No |
 | View all orgs / all tasks | Yes | No | No |
 | Org user management, stats | No | Yes | No |
 | Org skills CRUD | No | Yes | Read-only catalog |

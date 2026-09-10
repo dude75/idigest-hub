@@ -163,3 +163,35 @@ def test_instance_stats_forbidden_for_non_admin(client):
     response = client.get("/api/v1/instance/stats")
     assert response.status_code == 403
     assert err_code(response) == "forbidden"
+
+
+def test_instance_admin_can_reset_org_admin_password(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    lead_id = me(client)["user"]["id"]
+    created = client.post(
+        "/api/v1/org/users",
+        json={"email": "member@example.com", "password": "memberpass", "role": "org_member"},
+    )
+    assert created.status_code == 200, created.text
+    member_id = created.json()["id"]
+
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    reset = client.post(f"/api/v1/orgs/{org_id}/users/{lead_id}/reset-password")
+    assert reset.status_code == 200, reset.text
+    temp = reset.json()["password"]
+    assert len(temp) >= 8
+
+    denied_member = client.post(f"/api/v1/orgs/{org_id}/users/{member_id}/reset-password")
+    assert denied_member.status_code == 403
+    assert err_code(denied_member) == "forbidden"
+
+    logout(client)
+    old_login = client.post("/api/v1/auth/login", json={"email": "lead@example.com", "password": "leadpass1"})
+    assert old_login.status_code == 401
+    assert login(client, "lead@example.com", temp).status_code == 200
+    assert me(client)["must_change_password"] is True

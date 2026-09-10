@@ -63,6 +63,10 @@ List all orgs with embedded tariff and member list.
 
 Assign any non-archived tariff.
 
+### POST `/orgs/{org_id}/users/{user_id}/reset-password`
+
+Instance admin only. Resets password for an active `org_admin` in that org. Returns a temporary password; sets `must_change_password=true` and revokes sessions + API tokens. `403 forbidden` for `org_member` or disabled users.
+
 ### POST `/orgs/{org_id}/wallet`
 
 ```json

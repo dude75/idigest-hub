@@ -18,7 +18,8 @@ from app.models import HiddenItem, Membership, Organization, Task, Tariff, Usage
 from app.services.access import is_hidden
 from app.money import parse_money
 from app.presenters import org_public, tariff_public, user_public, worker_public
-from app.routers.auth import seed_default_tariff
+from app.routers.auth import revoke_user_auth, seed_default_tariff
+from app.security import hash_password, random_password
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
 from app.services.audit import write_audit
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
@@ -432,6 +433,33 @@ def org_ledger_ep(
         user_id=(user_id or "").strip() or None,
         kind=(kind or "").strip() or None,
     )
+
+
+@router.post("/orgs/{org_id}/users/{user_id}/reset-password")
+def reset_org_admin_password(
+    org_id: str,
+    user_id: str,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _admin(ctx)
+    org = db.get(Organization, org_id)
+    membership = db.scalar(
+        select(Membership).where(Membership.org_id == org_id, Membership.user_id == user_id)
+    )
+    user = db.get(User, user_id)
+    if org is None or membership is None or user is None:
+        ctx.raise_error(ErrorCode.not_found)
+    if user.is_instance_admin or user.disabled_at is not None or membership.role != "org_admin":
+        ctx.raise_error(ErrorCode.forbidden)
+    password = random_password()
+    user.password_hash = hash_password(password)
+    user.must_change_password = True
+    user.password_changed_at = utcnow()
+    user.updated_at = utcnow()
+    revoke_user_auth(db, user.id)
+    write_audit(db, "user.password_reset", ctx, {"user_id": user.id, "org_id": org.id})
+    return {"status": "ok", "password": password}
 
 
 @router.patch("/orgs/{org_id}/tariff")
