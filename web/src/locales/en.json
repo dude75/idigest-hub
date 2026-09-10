@@ -49,14 +49,86 @@
     "download": "Download",
     "downloadTxt": "Download TXT",
     "downloadJson": "Download JSON",
-    "downloadMd": "Download Markdown"
+    "downloadMd": "Download Markdown",
+    "github": "GitHub"
   },
   "landing": {
-    "headline": "Audio in. Transcripts and summaries out.",
-    "lead": "A hub for your organization: upload recordings, run transcription and summarization, keep everything in one library. Workers stay on your side.",
-    "step1": "Upload audio",
-    "step2": "Get a transcript",
-    "step3": "Summarize with a skill",
+    "navHow": "How it works",
+    "navFeatures": "Features",
+    "navPricing": "Pricing",
+    "navFaq": "FAQ",
+    "eyebrow": "On-premise hub for transcription and summaries",
+    "headline": "Audio in — transcripts and reports out",
+    "lead": "Upload recordings, get text and AI summaries. Workers run on your infrastructure; data stays with you.",
+    "previewTabAudio": "Audio",
+    "previewTabTranscript": "Transcript",
+    "previewTabSummary": "Summary",
+    "previewLine1": "Let's capture sprint decisions and tasks for next week.",
+    "previewLine2": "We should add Markdown export and set up SSO for the second team.",
+    "previewSummary": "• Decisions: MD export, SSO for team B\n• Tasks: @Ivan — API docs by Friday",
+    "trustTitle": "For teams that need control and security",
+    "trust": {
+      "onPrem": "On-premise",
+      "sso": "SSO / OIDC",
+      "multiTenant": "Multi-tenant",
+      "workers": "Your own workers"
+    },
+    "howTitle": "From recording to ready text in three steps",
+    "howLead": "A simple flow: upload → transcript → skill-based summary.",
+    "step1Title": "Upload audio",
+    "step1Desc": "Drag and drop a file or send it via API. MP3, WAV, M4A, and more are supported.",
+    "step2Title": "Get a transcript",
+    "step2Desc": "The hub enqueues a job; a worker transcribes speech. Track status in real time.",
+    "step3Title": "Build a summary",
+    "step3Desc": "Run a skill — AI extracts key points, decisions, and action items for your workflow.",
+    "featuresTitle": "Everything for audio and text workflows",
+    "featuresLead": "One hub instead of scattered services and scripts.",
+    "features": {
+      "transcription": {
+        "title": "Transcription",
+        "desc": "Connect itranscribe-worker — users never see worker URLs or tokens."
+      },
+      "summaries": {
+        "title": "AI summaries",
+        "desc": "Configurable skills for meeting notes, reports, and long-recording digests."
+      },
+      "library": {
+        "title": "Library",
+        "desc": "Audio, transcripts, and summaries in one place — search, share, and export."
+      },
+      "orgs": {
+        "title": "Organizations and roles",
+        "desc": "org_admin and org_member, separate wallets and access per team."
+      },
+      "billing": {
+        "title": "Billing",
+        "desc": "Plans, upload limits, audio retention, and pay-as-you-go usage."
+      },
+      "sso": {
+        "title": "Single Sign-On",
+        "desc": "OIDC-compatible login via Keycloak and other providers at the org level."
+      }
+    },
+    "audienceTitle": "Who it's for",
+    "audienceLead": "From IT to content teams — one hub for every use case.",
+    "audiences": {
+      "it": {
+        "title": "IT teams",
+        "desc": "Deploy on-prem: Docker, your PostgreSQL, Prometheus metrics, full data control."
+      },
+      "managers": {
+        "title": "Managers",
+        "desc": "Automatic meeting notes: decisions and tasks without manual transcription."
+      },
+      "research": {
+        "title": "Researchers",
+        "desc": "Interviews, lectures, and focus groups — text for analysis in minutes."
+      },
+      "content": {
+        "title": "Content teams",
+        "desc": "Podcasts and webinars into draft posts, articles, and scripts."
+      }
+    },
     "tariffsTitle": "Plans",
     "tariffsLead": "Pick a plan to create an organization. You can change it later.",
     "priceAudio": "{{price}} per audio second",
@@ -68,7 +140,39 @@
     "apiNo": "API tokens disabled",
     "credit": "{{amount}} starting credit",
     "uploadCap": "Max upload {{size}}",
-    "choose": "Sign up with this plan"
+    "choose": "Sign up with this plan",
+    "tariffPopular": "Popular",
+    "tariffChoose": "Get started",
+    "tariffPage": "{{current}} / {{total}}",
+    "tariffSubtitle": {
+      "regular": "for regular workloads",
+      "standard": "for most teams",
+      "expert": "for high volume"
+    },
+    "tariffQuotaMinutes": "{{minutes}} minutes of audio",
+    "tariffQuotaCredit": "{{amount}} starting balance",
+    "tariffOverageAudio": "over quota — {{price}}/sec",
+    "tariffPayAsYouGo": "Pay as you go",
+    "tariffUnlimitedNote": "No balance limits",
+    "tariffFeatureApi": "API tokens",
+    "tariffFeatureUpload": "Uploads up to {{size}}",
+    "tariffFeatureSummaries": "AI summaries and skills",
+    "tariffFeatureUnlimited": "Unlimited balance",
+    "faqTitle": "FAQ",
+    "faqLead": "For IT, security, and process owners in large organizations.",
+    "faq1q": "Is this built for enterprise and on-premise?",
+    "faq1a": "Yes. idigest-hub is a self-hosted control plane: it runs inside your perimeter (Docker, your PostgreSQL), with no SaaS data egress. Users only touch the hub; the instance admin connects transcription and summarization workers that stay on your infrastructure.",
+    "faq2q": "How do you ensure data sovereignty and control?",
+    "faq2a": "Audio, transcripts, and summaries live on your disk (./data volume) or attached storage. Retention is governed by each org's plan. Employees never see worker URLs or tokens — access goes through the hub with role-based permissions.",
+    "faq3q": "Can we integrate corporate SSO?",
+    "faq3a": "Yes. Each organization can enable OIDC — compatible with Keycloak and other OpenID Connect IdPs. Org admins turn on SSO in settings; employees sign in through the corporate provider without separate service passwords.",
+    "faq4q": "How are departments and teams isolated?",
+    "faq4a": "Each organization is a separate tenant: its own plan, wallet, members, and roles (org_admin / org_member). The instance admin manages plans and quotas centrally; org admins run users, SSO, and stats for their unit. Artifact sharing stays within the org.",
+    "faq5q": "Is there audit, billing, and an API for integrations?",
+    "faq5a": "Every org has a wallet and operation ledger; the instance admin can credit or debit balances with audit logging. Usage is metered per plan for transcription and summarization. API tokens are plan-gated; jobs can be submitted via REST to fit enterprise workflows.",
+    "faq6q": "How do we monitor and run it in production?",
+    "faq6a": "The hub exposes Prometheus metrics (/metrics) and ships a Grafana dashboard. Rate limits, health checks, and HTTPS at the instance level are supported. For production resilience, use PostgreSQL instead of SQLite and dedicated workers balanced by the instance admin.",
+    "footer": "Self-hosted hub for transcription and summarization."
   },
   "auth": {
     "login": "Sign in",

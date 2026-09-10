@@ -49,14 +49,86 @@
     "download": "Descargar",
     "downloadTxt": "Descargar TXT",
     "downloadJson": "Descargar JSON",
-    "downloadMd": "Descargar Markdown"
+    "downloadMd": "Descargar Markdown",
+    "github": "GitHub"
   },
   "landing": {
-    "headline": "Audio de entrada. Transcripciones y resúmenes de salida.",
-    "lead": "Un hub para su organización: suba grabaciones, transcriba y resuma, y guarde todo en una biblioteca. Los workers se quedan de su lado.",
-    "step1": "Subir audio",
-    "step2": "Obtener la transcripción",
-    "step3": "Resumir con un skill",
+    "navHow": "Cómo funciona",
+    "navFeatures": "Funciones",
+    "navPricing": "Planes",
+    "navFaq": "FAQ",
+    "eyebrow": "Hub on-premise para transcripción y resúmenes",
+    "headline": "Audio de entrada — transcripciones e informes de salida",
+    "lead": "Suba grabaciones, obtenga texto y resúmenes con IA. Los workers en su infraestructura; los datos se quedan con usted.",
+    "previewTabAudio": "Audio",
+    "previewTabTranscript": "Transcripción",
+    "previewTabSummary": "Resumen",
+    "previewLine1": "Registremos las decisiones del sprint y las tareas para la próxima semana.",
+    "previewLine2": "Hay que añadir exportación Markdown y configurar SSO para el segundo equipo.",
+    "previewSummary": "• Decisiones: export MD, SSO para equipo B\n• Tareas: @Iván — docs API para el viernes",
+    "trustTitle": "Para equipos que necesitan control y seguridad",
+    "trust": {
+      "onPrem": "On-premise",
+      "sso": "SSO / OIDC",
+      "multiTenant": "Multi-tenant",
+      "workers": "Workers propios"
+    },
+    "howTitle": "De la grabación al texto listo en tres pasos",
+    "howLead": "Flujo simple: subida → transcripción → resumen con skill.",
+    "step1Title": "Subir audio",
+    "step1Desc": "Arrastre un archivo o envíelo por API. MP3, WAV, M4A y más.",
+    "step2Title": "Obtener transcripción",
+    "step2Desc": "El hub encola la tarea; un worker transcribe. Siga el estado en tiempo real.",
+    "step3Title": "Generar resumen",
+    "step3Desc": "Ejecute un skill — la IA extrae conclusiones, decisiones y tareas.",
+    "featuresTitle": "Todo para flujos de audio y texto",
+    "featuresLead": "Un hub en lugar de servicios y scripts dispersos.",
+    "features": {
+      "transcription": {
+        "title": "Transcripción",
+        "desc": "Conecte itranscribe-worker — los usuarios no ven URLs ni tokens de workers."
+      },
+      "summaries": {
+        "title": "Resúmenes IA",
+        "desc": "Skills configurables para actas, informes y síntesis de grabaciones largas."
+      },
+      "library": {
+        "title": "Biblioteca",
+        "desc": "Audio, transcripciones y resúmenes en un solo lugar — buscar, compartir, exportar."
+      },
+      "orgs": {
+        "title": "Organizaciones y roles",
+        "desc": "org_admin y org_member, carteras y accesos separados por equipo."
+      },
+      "billing": {
+        "title": "Facturación",
+        "desc": "Planes, límites de subida, retención de audio y pago por uso."
+      },
+      "sso": {
+        "title": "Single Sign-On",
+        "desc": "Inicio OIDC (Keycloak, etc.) a nivel de organización."
+      }
+    },
+    "audienceTitle": "Para quién es",
+    "audienceLead": "De IT a equipos de contenido — un hub para cada caso.",
+    "audiences": {
+      "it": {
+        "title": "Equipos IT",
+        "desc": "Despliegue on-prem: Docker, PostgreSQL propio, métricas Prometheus, control total."
+      },
+      "managers": {
+        "title": "Directivos",
+        "desc": "Actas automáticas: decisiones y tareas sin transcribir a mano."
+      },
+      "research": {
+        "title": "Investigadores",
+        "desc": "Entrevistas, clases y focus groups — texto para análisis en minutos."
+      },
+      "content": {
+        "title": "Equipos de contenido",
+        "desc": "Podcasts y webinars en borradores de posts, artículos y guiones."
+      }
+    },
     "tariffsTitle": "Planes",
     "tariffsLead": "Elija un plan para crear una organización. Podrá cambiarlo después.",
     "priceAudio": "{{price}} por segundo de audio",
@@ -68,7 +140,39 @@
     "apiNo": "Tokens API deshabilitados",
     "credit": "{{amount}} de crédito inicial",
     "uploadCap": "Subida máxima {{size}}",
-    "choose": "Registrarse con este plan"
+    "choose": "Registrarse con este plan",
+    "tariffPopular": "Popular",
+    "tariffChoose": "Empezar",
+    "tariffPage": "{{current}} / {{total}}",
+    "tariffSubtitle": {
+      "regular": "para tareas regulares",
+      "standard": "para la mayoría de equipos",
+      "expert": "para grandes volúmenes"
+    },
+    "tariffQuotaMinutes": "{{minutes}} minutos de audio",
+    "tariffQuotaCredit": "{{amount}} de saldo inicial",
+    "tariffOverageAudio": "fuera de cuota — {{price}}/seg",
+    "tariffPayAsYouGo": "Pago por uso",
+    "tariffUnlimitedNote": "Sin límite de saldo",
+    "tariffFeatureApi": "Tokens API",
+    "tariffFeatureUpload": "Subida hasta {{size}}",
+    "tariffFeatureSummaries": "Resúmenes IA y skills",
+    "tariffFeatureUnlimited": "Saldo ilimitado",
+    "faqTitle": "Preguntas frecuentes",
+    "faqLead": "Para IT, seguridad y responsables de procesos en grandes empresas.",
+    "faq1q": "¿Es adecuado para enterprise y on-premise?",
+    "faq1a": "Sí. idigest-hub es un control plane self-hosted: se despliega en su perímetro (Docker, PostgreSQL propio), sin enviar datos a SaaS. Los usuarios solo usan el hub; el instance admin conecta workers de transcripción y resumen dentro de su infraestructura.",
+    "faq2q": "¿Cómo se garantiza la soberanía y el control de datos?",
+    "faq2a": "Audio, transcripciones y resúmenes se guardan en su disco (volume ./data) o almacenamiento conectado. La retención la define el plan de cada org. Los empleados no ven URLs ni tokens de workers — el acceso pasa por el hub con roles.",
+    "faq3q": "¿Se puede integrar SSO corporativo?",
+    "faq3a": "Sí. Cada organización puede habilitar OIDC — compatible con Keycloak y otros IdP OpenID Connect. El org admin activa SSO en ajustes; los empleados entran con el proveedor corporativo, sin contraseñas separadas del servicio.",
+    "faq4q": "¿Cómo se aíslan departamentos y equipos?",
+    "faq4a": "Cada organización es un tenant: plan, cartera, miembros y roles propios (org_admin / org_member). El instance admin gestiona planes y cuotas de forma centralizada; el org admin — usuarios, SSO y estadísticas de su unidad. Compartir artefactos solo dentro de la org.",
+    "faq5q": "¿Hay auditoría, facturación y API para integraciones?",
+    "faq5a": "Cada org tiene cartera y ledger de operaciones; el instance admin puede cargar o debitar saldo con registro de auditoría. El uso se factura según el plan por transcripción y resumen. Los tokens API dependen del plan; las tareas se envían por REST para flujos enterprise.",
+    "faq6q": "¿Cómo monitorizar y operar en producción?",
+    "faq6a": "El hub expone métricas Prometheus (/metrics) y un dashboard Grafana. Soporta rate limits, health checks y HTTPS a nivel de instancia. Para producción se recomienda PostgreSQL en lugar de SQLite y workers dedicados balanceados por el instance admin.",
+    "footer": "Hub self-hosted para transcripción y resúmenes."
   },
   "auth": {
     "login": "Entrar",

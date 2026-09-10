@@ -5,6 +5,7 @@ import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
 import { showError, WalletLabel } from '../util'
 import { AppBrand } from './AppBrand'
+import { GitHubLink } from './GitHubLink'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
 export function Shell() {
@@ -53,6 +54,7 @@ export function Shell() {
         </nav>
         <div className="right row">
           <WalletLabel unlimited={me?.org?.unlimited} balance={me?.org?.balance} />
+          <GitHubLink />
           <LanguageSwitcher />
           <button
             type="button"
