@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import time
 from decimal import Decimal
 from typing import Any
 
@@ -162,6 +163,9 @@ def _fail(task: Task, code: str) -> None:
     task.updated_at = utcnow()
     task.worker_id = None
     task.worker_task_id = None
+    from app.prometheus_metrics import observe_task_terminal
+
+    observe_task_terminal(task)
 
 
 def _maybe_timeout(task: Task, pool: str, timeout_sec: int) -> bool:
@@ -202,6 +206,9 @@ def _persist_transcript(db: Session, task: Task, utterances: list[dict[str, Any]
     task.status = "success"
     task.error_code = None
     task.updated_at = utcnow()
+    from app.prometheus_metrics import observe_task_terminal
+
+    observe_task_terminal(task)
     return row
 
 
@@ -224,6 +231,9 @@ def _persist_summary(db: Session, task: Task, body: str) -> Summary | None:
     task.status = "success"
     task.error_code = None
     task.updated_at = utcnow()
+    from app.prometheus_metrics import observe_task_terminal
+
+    observe_task_terminal(task)
     return row
 
 
@@ -475,12 +485,20 @@ async def locked_tick(db: Session, task_id: str | None = None) -> None:
 
 async def dispatcher_loop(stop_event: asyncio.Event) -> None:
     from app.db import SessionLocal, get_engine
+    from app.prometheus_metrics import (
+        mark_dispatcher_started,
+        mark_dispatcher_tick_success,
+        observe_dispatcher_tick,
+        observe_dispatcher_tick_error,
+    )
 
     get_engine()
     assert SessionLocal is not None
     settings = get_settings()
+    mark_dispatcher_started()
     while not stop_event.is_set():
         session = SessionLocal()
+        tick_started = time.perf_counter()
         try:
             async with tick_lock():
                 await tick_once(session)
@@ -488,8 +506,11 @@ async def dispatcher_loop(stop_event: asyncio.Event) -> None:
 
                 purge_expired_audio(session)
             session.commit()
+            mark_dispatcher_tick_success()
+            observe_dispatcher_tick(time.perf_counter() - tick_started)
         except Exception:
             session.rollback()
+            observe_dispatcher_tick_error()
             log.exception("dispatcher tick failed")
         finally:
             session.close()

@@ -34,6 +34,7 @@
 ## Эксплуатация
 
 - [Деплой](operations/deployment.md)
+- [Мониторинг](operations/monitoring.md)
 - [Воркеры](operations/workers.md)
 - [База данных](operations/database.md)
 - [Troubleshooting](operations/troubleshooting.md)

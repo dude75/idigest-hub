@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     WORKER_HTTP_TIMEOUT_SEC: float = 30.0
     WORKER_UPLOAD_TIMEOUT_SEC: float = 300.0
 
+    # Prometheus GET /metrics. false / 0 / no = process collectors only; endpoint stays up.
+    METRICS_ENABLED: bool = True
+    # Bearer token for Prometheus scrape. Empty = no auth (set in production).
+    METRICS_TOKEN: str = ""
+
     @field_validator("LOG_MAX_BYTES")
     @classmethod
     def _positive_log_max_bytes(cls, value: int) -> int:

@@ -34,6 +34,7 @@ On-premise multi-tenant control plane for [itranscribe-worker](../../README.md#a
 ## Operations
 
 - [Deployment](operations/deployment.md)
+- [Monitoring](operations/monitoring.md)
 - [Workers](operations/workers.md)
 - [Database](operations/database.md)
 - [Troubleshooting](operations/troubleshooting.md)

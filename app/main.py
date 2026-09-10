@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -20,7 +21,16 @@ from app.db import get_engine, init_database
 from app.errors import ErrorCode, error_payload
 from app.i18n import negotiate_locale, t
 from app.logging_setup import setup_logging
+from app.metrics_auth import require_metrics_token
 from app.openapi import configure_openapi
+from app.prometheus_metrics import (
+    CONTENT_TYPE,
+    create_metrics,
+    http_path_template,
+    observe_http,
+    render,
+    set_active,
+)
 from app.routers import auth, instance, library, org, skills, tasks
 from app.services.dispatcher import dispatcher_loop
 from app.rate_limit import rate_limit_sweeper
@@ -37,6 +47,10 @@ async def lifespan(app: FastAPI):
     Path(settings.DATA_DIR).mkdir(parents=True, exist_ok=True)
     engine = get_engine()
     init_database(engine)
+    metrics = create_metrics(settings)
+    set_active(metrics)
+    metrics.bind(settings=settings)
+    app.state.metrics = metrics
     stop_event = asyncio.Event()
     task = asyncio.create_task(dispatcher_loop(stop_event))
     rate_limit_task = asyncio.create_task(rate_limit_sweeper(stop_event))
@@ -47,6 +61,7 @@ async def lifespan(app: FastAPI):
     try:
         yield
     finally:
+        set_active(None)
         stop_event.set()
         task.cancel()
         rate_limit_task.cancel()
@@ -94,6 +109,22 @@ async def validation_handler(request: Request, _exc: RequestValidationError) -> 
 
 
 @app.middleware("http")
+async def prometheus_http_middleware(request: Request, call_next):
+    path = request.url.path
+    if path == "/metrics":
+        return await call_next(request)
+    started = time.perf_counter()
+    status_code = 500
+    route = http_path_template(request)
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+    finally:
+        observe_http(request.method, route, status_code, time.perf_counter() - started)
+
+
+@app.middleware("http")
 async def slide_session_cookie(request: Request, call_next):
     response = await call_next(request)
     token = request.cookies.get(COOKIE_NAME)
@@ -112,6 +143,11 @@ async def slide_session_cookie(request: Request, call_next):
 @app.get("/api/v1/health")
 def health() -> dict:
     return {"status": "ok", "version": read_version()}
+
+
+@app.get("/metrics")
+def metrics(_: None = Depends(require_metrics_token)) -> Response:
+    return Response(content=render(), media_type=CONTENT_TYPE)
 
 
 app.include_router(auth.router, prefix="/api/v1")

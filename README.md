@@ -62,6 +62,21 @@ curl -s http://127.0.0.1:8080/api/v1/health
 
 JSON includes `version` (same as `version.txt`). Docker: [Docker Compose](#docker-compose).
 
+## Metrics (Prometheus / Grafana)
+
+`GET /metrics` — Prometheus text format. Process collectors plus application gauges/counters/histograms (task queue, registered workers as seen by the hub, dispatcher, HTTP). Workers are scraped **separately** from their own repos — not through the hub.
+
+```bash
+curl -s -H "Authorization: Bearer $METRICS_TOKEN" "http://127.0.0.1:8080/metrics"
+```
+
+| Variable | Meaning |
+| -------- | ------- |
+| `METRICS_ENABLED` | Application metrics. Default `true`. `false` / `0` / `no` = process collectors only; the endpoint stays up. |
+| `METRICS_TOKEN` | Bearer token for scrape. Empty = no auth (set a token in production). |
+
+Grafana: import [`grafana/dashboards/idigest-hub.json`](grafana/dashboards/idigest-hub.json) (Dashboards → New → Import) and pick the customer's Prometheus. Example scrape: [`deploy/prometheus/scrape.example.yml`](deploy/prometheus/scrape.example.yml). Details: [docs/en/operations/monitoring.md](docs/en/operations/monitoring.md).
+
 ## First-time setup
 
 Until bootstrap is done, open **`/setup`** in the UI (`http://127.0.0.1:8080/setup`) and create the instance admin with `INSTANCE_BOOTSTRAP_TOKEN` from `.env`.
@@ -129,6 +144,8 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `LOG_BACKUP_COUNT`           | How many rotated files to keep (`app.log.1` … `app.log.N`). Default `5`.                                                                                         |
 | `COOKIE_SECURE`              | Session cookie `Secure` flag. Default `false` (local HTTP). Set `true` behind HTTPS.                                                                             |
 | `TRUSTED_PROXIES`            | Comma-separated IPs/CIDRs of reverse proxies allowed to set `X-Forwarded-For` / `X-Real-IP` for per-IP rate limits. Empty = trust none (TCP peer only).        |
+| `METRICS_ENABLED`              | Application Prometheus metrics on `GET /metrics`. Default `true`. `false` / `0` / `no` = process collectors only.                                              |
+| `METRICS_TOKEN`                | Bearer token for Prometheus scrape. Empty = no auth on `/metrics`.                                                                                             |
 
 Everything that must survive a restart lives under `./data` (SQLite `hub.db` or `./data/pg` for Compose PostgreSQL, and logs). With the default **`STORAGE_BACKEND=local`**, audio uploads also live under `{DATA_DIR}/uploads/{audio_id}/` — mount `./data` in Docker. With **`STORAGE_BACKEND=s3`**, audio is in object storage (SSE at rest); the hub pod needs DB + logs only, not a volume for uploads. The Compose container writes `./data` as uid/gid **1001** (see [Docker Compose](#docker-compose)).
 

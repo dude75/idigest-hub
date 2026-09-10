@@ -53,6 +53,7 @@ Switch language by replacing `/en/` ↔ `/ru/` in any path.
 | EN | RU |
 | -- | -- |
 | [Deployment](en/operations/deployment.md) | [Деплой](ru/operations/deployment.md) |
+| [Monitoring](en/operations/monitoring.md) | [Мониторинг](ru/operations/monitoring.md) |
 | [Workers](en/operations/workers.md) | [Воркеры](ru/operations/workers.md) |
 | [Database](en/operations/database.md) | [База данных](ru/operations/database.md) |
 | [Troubleshooting](en/operations/troubleshooting.md) | [Troubleshooting](ru/operations/troubleshooting.md) |
