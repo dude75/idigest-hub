@@ -6,8 +6,15 @@
 #   COOKIE_SECURE=true
 # Set Public URL in Instance → Settings to https://hub.example.com
 #
-# Hub must listen only on localhost (default dev/prod behind nginx):
-#   uvicorn app.main:app --host 127.0.0.1 --port 8080 --workers 1
+# Hub on the same host (HTTP localhost; default):
+#   python -m app.serve   # HOST=127.0.0.1 PORT=8080 in .env
+#
+# Hub on another host (HTTPS over LAN; set on hub .env):
+#   PORT=8443
+#   SSL_CERTFILE=/data/certs/hub.crt
+#   SSL_KEYFILE=/data/certs/hub.key
+#   TRUSTED_PROXIES=<nginx LAN IP>
+#   COOKIE_SECURE=true
 #
 # Docker Compose: if nginx runs on the host and hub in a container on 8080,
 # TRUSTED_PROXIES=127.0.0.1,::1 still applies. If nginx is another container
@@ -17,6 +24,12 @@ upstream idigest_hub {
     server 127.0.0.1:8080;
     keepalive 8;
 }
+
+# Remote hub with TLS (uncomment and adjust IP/port; copy hub.crt for proxy_ssl_trusted_certificate):
+# upstream idigest_hub {
+#     server 10.0.1.50:8443;
+#     keepalive 8;
+# }
 
 # Redirect HTTP → HTTPS (adjust server_name and certificate paths).
 server {
@@ -49,6 +62,9 @@ server {
 
     location / {
         proxy_pass http://idigest_hub;
+        # For HTTPS upstream (remote hub): proxy_pass https://idigest_hub;
+        #   proxy_ssl_verify on;
+        #   proxy_ssl_trusted_certificate /etc/ssl/certs/hub.crt;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

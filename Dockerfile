@@ -40,4 +40,4 @@ VOLUME ["/data"]
 
 USER 1001
 
-CMD ["sh", "-c", "uvicorn app.main:app --host ${HOST:-0.0.0.0} --port ${PORT:-8080} --workers 1"]
+CMD ["python", "-m", "app.serve"]

@@ -19,6 +19,10 @@ class Settings(BaseSettings):
 
     HOST: str = "127.0.0.1"
     PORT: int = 8080
+    # Both paths required to enable HTTPS (self-signed or CA-signed PEM).
+    SSL_CERTFILE: str = ""
+    SSL_KEYFILE: str = ""
+    SSL_KEYFILE_PASSWORD: str = ""
 
     DATA_DIR: str = "./data"
     # Audio blobs: local filesystem under DATA_DIR/uploads or S3-compatible object storage.

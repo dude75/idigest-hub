@@ -39,10 +39,10 @@ cd ..
 Copy `.env.example` → `.env` and fill the secrets (see [`.env`](#env)). Do not commit `.env`. Then:
 
 ```bash
-./.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8080 --workers 1
+./.venv/bin/python -m app.serve
 ```
 
-Always keep **uvicorn** `--workers 1`. Production serves the SPA from `web/dist` on this same process.
+`HOST` and `PORT` come from `.env` (defaults `127.0.0.1:8080`). The launcher always runs **one** uvicorn worker. Production serves the SPA from `web/dist` on this same process. Optional HTTPS: set both `SSL_CERTFILE` and `SSL_KEYFILE` (PEM paths; self-signed is fine).
 
 For UI development, leave the API on `8080` and run Vite (proxies `/api` to the hub):
 
@@ -127,7 +127,10 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `INSTANCE_BOOTSTRAP_TOKEN`   | One-time secret for `POST /api/v1/setup` / UI `/setup`. Empty or wrong = `bootstrap_invalid`.                                                                    |
 | `SESSION_SECRET`             | Pepper for session and API-token hashes. Changing it invalidates existing cookies and tokens.                                                                    |
 | `HOST`                       | Bind address (`127.0.0.1` locally; Docker uses `0.0.0.0`).                                                                                                       |
-| `PORT`                       | HTTP port (default `8080`).                                                                                                                                      |
+| `PORT`                       | Listen port (default `8080`). HTTP when TLS is off; HTTPS when both `SSL_*` paths are set.                                                                       |
+| `SSL_CERTFILE`               | PEM certificate path. HTTPS only when **both** this and `SSL_KEYFILE` are set (self-signed or CA-signed).                                                          |
+| `SSL_KEYFILE`                | PEM private key path. Pair with `SSL_CERTFILE` to enable HTTPS.                                                                                                  |
+| `SSL_KEYFILE_PASSWORD`       | Optional password for an encrypted private key.                                                                                                                  |
 | `DATA_DIR`                   | Persistent root (default `./data`): logs and (with `STORAGE_BACKEND=local`) uploads at `{DATA_DIR}/uploads/{audio_id}/`. SQLite file lives under this tree when using the default URL. |
 | `STORAGE_BACKEND`            | Audio blob backend: `local` (default) or `s3`. Workers are unchanged — the hub still streams files to transcribe workers. |
 | `S3_ENDPOINT`                | S3-compatible API URL (empty for AWS). Required when `STORAGE_BACKEND=s3` unless using default AWS endpoints. |

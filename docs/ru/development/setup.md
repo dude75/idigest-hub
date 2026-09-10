@@ -27,7 +27,7 @@ DATA_DIR=./data
 
 ```bash
 mkdir -p data/uploads data/logs
-./.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8080 --workers 1
+./.venv/bin/python -m app.serve
 ```
 
 Bootstrap: откройте `http://127.0.0.1:8080/setup` или POST `/api/v1/setup`.

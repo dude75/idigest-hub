@@ -19,7 +19,7 @@ python3.12 -m venv .venv
 ./.venv/bin/pip install -r requirements.txt
 cd web && npm ci && npm run build && cd ..
 cp .env.example .env   # fill secrets
-./.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8080 --workers 1
+./.venv/bin/python -m app.serve
 ```
 
 SPA served from `web/dist` by the same process.
@@ -60,7 +60,40 @@ location / {
 }
 ```
 
-Hub does not terminate TLS itself in the default setup.
+By default the hub listens on HTTP. Edge TLS belongs on the reverse proxy (see the nginx example).
+
+### TLS on the hub (nginx → hub over LAN)
+
+When the hub runs on a separate host and traffic between nginx and the hub crosses the LAN, enable HTTPS on the hub via `.env` (both paths required; self-signed PEM is fine):
+
+```env
+PORT=8443
+SSL_CERTFILE=/data/certs/hub.crt
+SSL_KEYFILE=/data/certs/hub.key
+COOKIE_SECURE=true
+TRUSTED_PROXIES=10.0.1.10
+```
+
+`TRUSTED_PROXIES` is the nginx LAN IP (not `127.0.0.1` when the proxy is on another host). Mount the cert directory into the container, e.g. `./certs:/data/certs:ro`. The process starts via `python -m app.serve` (default Docker CMD).
+
+On nginx:
+
+```nginx
+upstream idigest_hub {
+    server 10.0.1.50:8443;
+}
+
+location / {
+    proxy_pass https://idigest_hub;
+    proxy_ssl_verify on;
+    proxy_ssl_trusted_certificate /etc/ssl/certs/hub.crt;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
+Set **Public URL** in Instance → Settings to the **external** nginx address (`https://hub.example.com`), not the internal `:8443`.
 
 ### Security headers (HSTS, CSP)
 

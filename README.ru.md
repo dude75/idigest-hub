@@ -39,10 +39,10 @@ cd ..
 Скопируйте `.env.example` → `.env` и заполните секреты (см. [`.env`](#env)). Файл не коммитить. Затем:
 
 ```bash
-./.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8080 --workers 1
+./.venv/bin/python -m app.serve
 ```
 
-Всегда **uvicorn** `--workers 1`. В проде SPA отдаётся из `web/dist` этим же процессом.
+`HOST` и `PORT` — из `.env` (по умолчанию `127.0.0.1:8080`). Launcher всегда поднимает **один** uvicorn worker. В проде SPA отдаётся из `web/dist` этим же процессом. Опциональный HTTPS: задайте оба `SSL_CERTFILE` и `SSL_KEYFILE` (пути к PEM; самоподписанный сертификат подходит).
 
 Для разработки UI оставьте API на `8080` и запустите Vite (проксирует `/api` на хаб):
 
@@ -127,7 +127,10 @@ URL должен совпадать с тем, как хаб видят поль
 | `INSTANCE_BOOTSTRAP_TOKEN`   | Одноразовый секрет для `POST /api/v1/setup` / UI `/setup`. Пустой или неверный — `bootstrap_invalid`.                                                            |
 | `SESSION_SECRET`             | Перец для хешей сессий и API-токенов. Смена инвалидирует уже выданные cookie и токены.                                                                           |
 | `HOST`                       | Интерфейс (`127.0.0.1` локально; в Docker — `0.0.0.0`).                                                                                                          |
-| `PORT`                       | HTTP-порт (по умолчанию `8080`).                                                                                                                                 |
+| `PORT`                       | Порт (по умолчанию `8080`). HTTP без TLS; HTTPS, если заданы оба `SSL_*`.                                                                                        |
+| `SSL_CERTFILE`               | Путь к PEM-сертификату. HTTPS только когда заданы **оба** пути (self-signed или CA).                                                                             |
+| `SSL_KEYFILE`                | Путь к PEM private key. В паре с `SSL_CERTFILE` включает HTTPS.                                                                                                   |
+| `SSL_KEYFILE_PASSWORD`       | Опциональный пароль зашифрованного private key.                                                                                                                  |
 | `DATA_DIR`                   | Корень персистентных данных (по умолчанию `./data`): логи и (при `STORAGE_BACKEND=local`) загрузки `{DATA_DIR}/uploads/{audio_id}/`. Файл SQLite — в этом дереве при URL по умолчанию. |
 | `STORAGE_BACKEND`            | Хранилище audio: `local` (по умолчанию) или `s3`. Воркеры не меняются — hub по-прежнему стримит файл на transcribe-воркер. |
 | `S3_ENDPOINT`                | URL S3-compatible API (пусто для AWS). |
