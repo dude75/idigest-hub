@@ -145,9 +145,13 @@
   },
   "org": {
     "title": "Organización",
+    "profile": "Perfil de la organización",
     "people": "Personas",
     "addUser": "Añadir usuario",
     "tariff": "Tarifa",
+    "tariffCurrent": "Plan actual",
+    "tariffSwitch": "Cambiar a plan",
+    "tariffLegacy": "Este plan ya no está disponible para nuevos registros. Puede cambiar a otro plan abajo.",
     "ttl": "TTL de contraseña (días, 0 = off)",
     "transfer": "Transferir contenido",
     "wipe": "Borrar contenido",
@@ -173,7 +177,8 @@
     "clientId": "ID de cliente",
     "clientSecret": "Secreto de cliente",
     "secretSaved": "Dejar en blanco para conservar el secreto guardado",
-    "enabled": "SSO habilitado"
+    "enabled": "SSO habilitado",
+    "configured": "Configurado, desactivado"
   },
   "stats": {
     "title": "Estadísticas",

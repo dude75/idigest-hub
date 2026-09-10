@@ -145,9 +145,13 @@
   },
   "org": {
     "title": "Organization",
+    "profile": "Organization profile",
     "people": "People",
     "addUser": "Add user",
     "tariff": "Tariff",
+    "tariffCurrent": "Current plan",
+    "tariffSwitch": "Switch to plan",
+    "tariffLegacy": "This plan is no longer available for new sign-ups. You can switch to another plan below.",
     "ttl": "Password TTL (days, 0 = off)",
     "transfer": "Transfer content",
     "wipe": "Wipe content",
@@ -173,7 +177,8 @@
     "clientId": "Client ID",
     "clientSecret": "Client secret",
     "secretSaved": "Leave blank to keep the saved secret",
-    "enabled": "SSO enabled"
+    "enabled": "SSO enabled",
+    "configured": "Configured, off"
   },
   "stats": {
     "title": "Statistics",

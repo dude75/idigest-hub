@@ -6,8 +6,8 @@ import { useAuth } from '../auth'
 import { AppBrand } from '../components/AppBrand'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { resolveHomePath } from '../routes'
+import { TariffDetails } from '../components/TariffDetails'
 import type { Tariff } from '../types'
-import { formatBytes } from '../util'
 
 export function LandingPage() {
   const { t } = useTranslation()
@@ -58,21 +58,7 @@ export function LandingPage() {
                     <strong className="grow">{tr.name}</strong>
                     {tr.unlimited && <span className="badge">{t('instance.unlimited')}</span>}
                   </div>
-                  <ul className="tariff-points">
-                    <li>{t('landing.priceAudio', { price: tr.price_per_audio_sec })}</li>
-                    <li>{t('landing.priceJob', { price: tr.price_per_summarize_job })}</li>
-                    <li>{t('landing.priceChars', { price: tr.price_per_1k_summary_chars })}</li>
-                    <li>
-                      {tr.audio_retention_days > 0
-                        ? t('landing.retention', { days: tr.audio_retention_days })
-                        : t('landing.retentionForever')}
-                    </li>
-                    <li>{tr.api_enabled ? t('landing.apiYes') : t('landing.apiNo')}</li>
-                    {!tr.unlimited && Number(tr.signup_credit) > 0 && (
-                      <li>{t('landing.credit', { amount: tr.signup_credit })}</li>
-                    )}
-                    <li>{t('landing.uploadCap', { size: formatBytes(tr.max_upload_bytes) })}</li>
-                  </ul>
+                  <TariffDetails tariff={tr} />
                   <span className="tariff-cta">{t('landing.choose')}</span>
                 </Link>
               ))}

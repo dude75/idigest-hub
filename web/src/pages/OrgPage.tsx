@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
+import { TariffDetails } from '../components/TariffDetails'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Org, OrgSsoAdmin, Tariff, User } from '../types'
 import { showError, WalletLabel } from '../util'
@@ -30,6 +31,10 @@ function SsoUrlRow({ label, value }: { label: string; value: string }) {
       </button>
     </div>
   )
+}
+
+function tariffSelectable(tariffs: Tariff[], current: Tariff): boolean {
+  return tariffs.some((tr) => tr.id === current.id)
 }
 
 export function OrgPage() {
@@ -74,7 +79,7 @@ export function OrgPage() {
     setOrg(o)
     setName(o.name)
     setTtl(o.password_ttl_days)
-    setTariffId(o.tariff.id)
+    setTariffId(tariffSelectable(tr.items, o.tariff) ? o.tariff.id : '')
     setUsers(u.items)
     setTariffs(tr.items)
     if (ssoConfig) {
@@ -93,14 +98,29 @@ export function OrgPage() {
 
   if (!hasOrg) return <Navigate to="/app/profile" replace />
 
-  async function saveName() {
-    await api('/org', { method: 'PATCH', body: JSON.stringify({ name }) })
-    await refresh()
-    await load()
-  }
+  const currentTariff = org?.tariff ?? null
+  const currentSelectable = currentTariff ? tariffSelectable(tariffs, currentTariff) : false
+  const selectedTariff = tariffId ? tariffs.find((tr) => tr.id === tariffId) ?? null : null
+  const canSaveTariff = Boolean(
+    admin && selectedTariff && currentTariff && tariffId !== currentTariff.id,
+  )
+  const profileDirty = Boolean(
+    org && (name.trim() !== org.name || ttl !== org.password_ttl_days),
+  )
 
-  async function saveTtl() {
-    await api('/org/settings', { method: 'PATCH', body: JSON.stringify({ password_ttl_days: ttl }) })
+  async function saveProfile() {
+    if (!org) return
+    const tasks: Promise<unknown>[] = []
+    const trimmed = name.trim()
+    if (trimmed && trimmed !== org.name) {
+      tasks.push(api('/org', { method: 'PATCH', body: JSON.stringify({ name: trimmed }) }))
+    }
+    if (ttl !== org.password_ttl_days) {
+      tasks.push(api('/org/settings', { method: 'PATCH', body: JSON.stringify({ password_ttl_days: ttl }) }))
+    }
+    if (tasks.length === 0) return
+    await Promise.all(tasks)
+    if (trimmed && trimmed !== org.name) await refresh()
     await load()
   }
 
@@ -117,9 +137,14 @@ export function OrgPage() {
   }
 
   async function saveTariff() {
-    await api('/org/tariff', { method: 'PATCH', body: JSON.stringify({ tariff_id: tariffId }) })
-    await refresh()
-    await load()
+    if (!canSaveTariff) return
+    try {
+      await api('/org/tariff', { method: 'PATCH', body: JSON.stringify({ tariff_id: tariffId }) })
+      await refresh()
+      await load()
+    } catch (e) {
+      showError(e)
+    }
   }
 
   async function addUser() {
@@ -166,34 +191,97 @@ export function OrgPage() {
     <div>
       <h1>{t('org.title')}</h1>
       {org && (
-        <div className="card stack">
-          <label>
-            {t('common.name')}
-            <input value={name} disabled={!admin} onChange={(e) => setName(e.target.value)} />
-          </label>
-          {admin && <button className="primary" type="button" onClick={() => void saveName()}>{t('common.save')}</button>}
-          <WalletLabel unlimited={org.unlimited} balance={org.balance} />
-          <label>
-            {t('org.tariff')}
-            <select value={tariffId} disabled={!admin} onChange={(e) => setTariffId(e.target.value)}>
-              {tariffs.map((tr) => (
-                <option key={tr.id} value={tr.id}>
-                  {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
-                </option>
-              ))}
-            </select>
-          </label>
-          {admin && <button type="button" onClick={() => void saveTariff()}>{t('common.save')}</button>}
-          <label>
-            {t('org.ttl')}
-            <input type="number" min={0} value={ttl} disabled={!admin} onChange={(e) => setTtl(Number(e.target.value))} />
-          </label>
-          {admin && <button type="button" onClick={() => void saveTtl()}>{t('common.save')}</button>}
+        <div className="org-settings-grid">
+          <div className="card stack">
+            <h2 className="org-settings-heading">{t('org.profile')}</h2>
+            <label>
+              {t('common.name')}
+              <input value={name} disabled={!admin} onChange={(e) => setName(e.target.value)} />
+            </label>
+            <label>
+              {t('org.ttl')}
+              <input type="number" min={0} value={ttl} disabled={!admin} onChange={(e) => setTtl(Number(e.target.value))} />
+            </label>
+            {admin && (
+              <button
+                className="primary"
+                type="button"
+                disabled={!profileDirty}
+                onClick={() => void saveProfile().catch(showError)}
+              >
+                {t('common.save')}
+              </button>
+            )}
+          </div>
+          <div className="card stack">
+            <h2 className="org-settings-heading">{t('org.tariff')}</h2>
+            <WalletLabel unlimited={org.unlimited} balance={org.balance} />
+            {!admin && currentTariff && (
+              <>
+                <div className="row">
+                  <strong className="grow">{t('org.tariff')}: {currentTariff.name}</strong>
+                  {currentTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
+                  {currentTariff.archived && <span className="badge warn">{t('instance.archived')}</span>}
+                </div>
+                <TariffDetails tariff={currentTariff} />
+              </>
+            )}
+            {admin && currentTariff && !currentSelectable && (
+              <>
+                <div className="row">
+                  <strong className="grow">{t('org.tariffCurrent')}: {currentTariff.name}</strong>
+                  {currentTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
+                  {currentTariff.archived && <span className="badge warn">{t('instance.archived')}</span>}
+                </div>
+                <TariffDetails tariff={currentTariff} />
+                <p className="muted">{t('org.tariffLegacy')}</p>
+              </>
+            )}
+            {admin && tariffs.length > 0 && (
+              <label>
+                {currentSelectable ? t('org.tariff') : t('org.tariffSwitch')}
+                <select value={tariffId} onChange={(e) => setTariffId(e.target.value)}>
+                  {!currentSelectable && <option value="">—</option>}
+                  {tariffs.map((tr) => (
+                    <option key={tr.id} value={tr.id}>
+                      {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {admin && selectedTariff && currentSelectable && (
+              <TariffDetails tariff={selectedTariff} />
+            )}
+            {admin && selectedTariff && currentTariff && !currentSelectable && selectedTariff.id !== currentTariff.id && (
+              <>
+                <div className="row">
+                  <strong className="grow">{t('org.tariffSwitch')}: {selectedTariff.name}</strong>
+                  {selectedTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
+                </div>
+                <TariffDetails tariff={selectedTariff} />
+              </>
+            )}
+            {admin && (
+              <button type="button" disabled={!canSaveTariff} onClick={() => void saveTariff()}>
+                {t('common.save')}
+              </button>
+            )}
+          </div>
         </div>
       )}
       {canConfigureSso && (
-        <div className="card sso-card" style={{ marginTop: 12 }}>
-          <h2 className="sso-title">{t('sso.settingsTitle')}</h2>
+        <details className="fold org-sso-fold card">
+          <summary className="org-sso-summary">
+            <span>{t('sso.settingsTitle')}</span>
+            {sso && (
+              <span className="row">
+                {sso.enabled && <span className="badge out">{t('sso.enabled')}</span>}
+                {!sso.enabled && sso.configured && <span className="badge">{t('sso.configured')}</span>}
+              </span>
+            )}
+          </summary>
+          <div className="sso-card stack fold-body">
           <p className="muted sso-lead">{t('sso.settingsLead')}</p>
           {sso && (
             sso.public_base_url_set && sso.login_url && sso.callback_url ? (
@@ -235,7 +323,8 @@ export function OrgPage() {
               {t('common.save')}
             </button>
           </div>
-        </div>
+          </div>
+        </details>
       )}
       <h2>{t('org.people')}</h2>
       {tempPw && (
