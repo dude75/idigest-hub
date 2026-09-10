@@ -77,7 +77,9 @@ export function TranscriptPage() {
   }
 
   async function wipe() {
-    if (!id) return
+    if (!id || !item) return
+    const title = item.display_title || item.title || item.id.slice(0, 8)
+    if (!window.confirm(t('library.wipeConfirm', { title }))) return
     await api(`/transcripts/${id}`, { method: 'DELETE' })
     nav(libraryPath('transcripts'))
   }
@@ -139,11 +141,27 @@ export function TranscriptPage() {
               {t('common.downloadJson')}
             </button>
             {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
-            <button type="button" onClick={() => void toggleHidden()}>
+            <button
+              type="button"
+              title={t('library.hideHint')}
+              onClick={() => void toggleHidden()}
+            >
               {item.hidden ? t('common.unhide') : t('common.hide')}
             </button>
-            {admin && <button type="button" className="danger" onClick={() => void wipe()}>{t('common.wipe')}</button>}
+            {admin && (
+              <button
+                type="button"
+                className="danger"
+                title={t('library.wipeHint')}
+                onClick={() => void wipe()}
+              >
+                {t('common.wipe')}
+              </button>
+            )}
           </div>
+          {!admin && (
+            <p className="muted" style={{ marginTop: 8 }}>{t('library.cannotDeleteHint')}</p>
+          )}
           <section className="item fold">
             <div className="row fold-head">
               <h2 className="grow">{t('transcript.utterances')}</h2>

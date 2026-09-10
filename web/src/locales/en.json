@@ -101,7 +101,14 @@
     "youShared": "you shared",
     "sharedWith": "shared with {{who}}",
     "sharedWithCount": "shared with {{count}} people",
-    "hidden": "hidden"
+    "hidden": "hidden",
+    "hideHint": "Hides this only for you. The item stays in the organization.",
+    "wipeHint": "Permanently removes this for the entire organization. Org admin only.",
+    "deleteOwnerHint": "Permanently removes this item.",
+    "deleteAdminHint": "Permanently removes this for the entire organization.",
+    "wipeConfirm": "Wipe \"{{title}}\" for the entire organization? This cannot be undone.",
+    "deleteConfirm": "Delete \"{{title}}\"? This cannot be undone.",
+    "cannotDeleteHint": "Only an org admin can wipe audio or transcripts. You can hide this item for yourself."
   },
   "audio": {
     "title": "Audio",

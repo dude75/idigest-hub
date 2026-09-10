@@ -21,7 +21,8 @@ export function SummaryPage() {
   const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
   const [busy, setBusy] = useState(false)
-  const canDelete = item && (item.owner_user_id === me?.user.id || isOrgAdmin(me))
+  const admin = isOrgAdmin(me)
+  const canDelete = item && (item.owner_user_id === me?.user.id || admin)
   const canEdit = Boolean(canDelete)
   const mine = item?.owner_user_id === me?.user.id
 
@@ -70,7 +71,9 @@ export function SummaryPage() {
   }
 
   async function remove() {
-    if (!id) return
+    if (!id || !item) return
+    const title = item.display_title || item.title || item.id.slice(0, 8)
+    if (!window.confirm(t('library.deleteConfirm', { title }))) return
     await api(`/summaries/${id}`, { method: 'DELETE' })
     nav(libraryPath('summaries'))
   }
@@ -126,7 +129,11 @@ export function SummaryPage() {
               {t('common.downloadMd')}
             </button>
             {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
-            <button type="button" onClick={() => void toggleHidden()}>
+            <button
+              type="button"
+              title={t('library.hideHint')}
+              onClick={() => void toggleHidden()}
+            >
               {item.hidden ? t('common.unhide') : t('common.hide')}
             </button>
             {canEdit && !editing && (
@@ -135,7 +142,14 @@ export function SummaryPage() {
               </button>
             )}
             {canDelete && (
-              <button type="button" className="danger" onClick={() => void remove()}>{t('common.delete')}</button>
+              <button
+                type="button"
+                className="danger"
+                title={admin && !mine ? t('library.deleteAdminHint') : t('library.deleteOwnerHint')}
+                onClick={() => void remove()}
+              >
+                {t('common.delete')}
+              </button>
             )}
           </div>
           <h2>{t('summary.body')}</h2>

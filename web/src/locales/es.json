@@ -101,7 +101,14 @@
     "youShared": "usted compartió",
     "sharedWith": "compartido con {{who}}",
     "sharedWithCount": "compartido con {{count}} personas",
-    "hidden": "oculto"
+    "hidden": "oculto",
+    "hideHint": "Oculta solo para usted. El objeto permanece en la organización.",
+    "wipeHint": "Elimina permanentemente para toda la organización. Solo admin org.",
+    "deleteOwnerHint": "Elimina permanentemente este objeto.",
+    "deleteAdminHint": "Elimina permanentemente para toda la organización.",
+    "wipeConfirm": "¿Borrar «{{title}}» para toda la organización? No se puede deshacer.",
+    "deleteConfirm": "¿Eliminar «{{title}}»? No se puede deshacer.",
+    "cannotDeleteHint": "Solo un admin org puede borrar audio o transcripciones. Puede ocultar el objeto para usted."
   },
   "audio": {
     "title": "Audio",

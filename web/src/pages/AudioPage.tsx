@@ -59,7 +59,9 @@ export function AudioPage() {
   }
 
   async function wipe() {
-    if (!id) return
+    if (!id || !item) return
+    const title = item.filename || item.id.slice(0, 8)
+    if (!window.confirm(t('library.wipeConfirm', { title }))) return
     await api(`/audios/${id}`, { method: 'DELETE' })
     await refresh()
     nav(LIBRARY_DEFAULT)
@@ -96,13 +98,27 @@ export function AudioPage() {
               <span className="muted">{t('audio.noFile')}</span>
             )}
             {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
-            <button type="button" onClick={() => void toggleHidden()}>
+            <button
+              type="button"
+              title={t('library.hideHint')}
+              onClick={() => void toggleHidden()}
+            >
               {item.hidden ? t('common.unhide') : t('common.hide')}
             </button>
             {admin && (
-              <button type="button" className="danger" onClick={() => void wipe()}>{t('common.wipe')}</button>
+              <button
+                type="button"
+                className="danger"
+                title={t('library.wipeHint')}
+                onClick={() => void wipe()}
+              >
+                {t('common.wipe')}
+              </button>
             )}
           </div>
+          {!admin && (
+            <p className="muted" style={{ marginTop: 8 }}>{t('library.cannotDeleteHint')}</p>
+          )}
           <h2>{t('audio.transcripts')}</h2>
           <div className="list">
             {(item.transcripts || []).length === 0 && <p className="muted">{t('common.empty')}</p>}
