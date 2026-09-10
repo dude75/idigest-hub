@@ -194,8 +194,7 @@ def validate_id_token(*, org: Organization, id_token: str, nonce: str) -> dict[s
         issuer=issuer,
         options={"require": ["exp", "iat", "sub"]},
     )
-    token_nonce = claims.get("nonce")
-    if token_nonce and token_nonce != nonce:
+    if claims.get("nonce") != nonce:
         raise ValueError("nonce mismatch")
     return claims
 

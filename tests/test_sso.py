@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from urllib.parse import urlencode
+
+import pytest
 
 from conftest import (
     default_tariff_id,
@@ -150,6 +153,81 @@ def test_sso_callback_merges_existing_member(client, monkeypatch):
     payload = me(client)
     assert payload["user"]["email"] == "member@example.com"
     assert payload["user"]["auth_provider"] == "oidc"
+
+
+def _mock_validate_id_token_jwt(monkeypatch, *, claims: dict):
+    from app.services import sso as sso_service
+
+    monkeypatch.setattr(
+        sso_service,
+        "fetch_oidc_config",
+        lambda issuer: {"issuer": issuer, "jwks_uri": "https://keycloak.example/jwks"},
+    )
+
+    class FakeSigningKey:
+        key = "fake"
+
+    class FakeJWKClient:
+        def get_signing_key_from_jwt(self, token):
+            return FakeSigningKey()
+
+    monkeypatch.setattr(sso_service, "PyJWKClient", lambda jwks_uri: FakeJWKClient())
+    monkeypatch.setattr(sso_service.jwt, "decode", lambda *args, **kwargs: claims)
+
+
+def test_validate_id_token_requires_nonce(monkeypatch):
+    from app.services import sso as sso_service
+
+    org = SimpleNamespace(
+        sso_issuer="https://keycloak.example/realms/demo",
+        sso_client_id="hub",
+    )
+    _mock_validate_id_token_jwt(
+        monkeypatch,
+        claims={"sub": "user-1", "exp": 9999999999, "iat": 1},
+    )
+
+    with pytest.raises(ValueError, match="nonce mismatch"):
+        sso_service.validate_id_token(org=org, id_token="token", nonce="expected-nonce")
+
+
+def test_validate_id_token_rejects_nonce_mismatch(monkeypatch):
+    from app.services import sso as sso_service
+
+    org = SimpleNamespace(
+        sso_issuer="https://keycloak.example/realms/demo",
+        sso_client_id="hub",
+    )
+    _mock_validate_id_token_jwt(
+        monkeypatch,
+        claims={"sub": "user-1", "exp": 9999999999, "iat": 1, "nonce": "other-nonce"},
+    )
+
+    with pytest.raises(ValueError, match="nonce mismatch"):
+        sso_service.validate_id_token(org=org, id_token="token", nonce="expected-nonce")
+
+
+def test_validate_id_token_accepts_matching_nonce(monkeypatch):
+    from app.services import sso as sso_service
+
+    org = SimpleNamespace(
+        sso_issuer="https://keycloak.example/realms/demo",
+        sso_client_id="hub",
+    )
+    _mock_validate_id_token_jwt(
+        monkeypatch,
+        claims={
+            "sub": "user-1",
+            "email": "member@example.com",
+            "exp": 9999999999,
+            "iat": 1,
+            "nonce": "expected-nonce",
+        },
+    )
+
+    claims = sso_service.validate_id_token(org=org, id_token="token", nonce="expected-nonce")
+    assert claims["sub"] == "user-1"
+    assert claims["nonce"] == "expected-nonce"
 
 
 def test_sso_info_public(client):

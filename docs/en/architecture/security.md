@@ -74,6 +74,7 @@ Per-organization OIDC (Keycloak-compatible). Client secrets stored encrypted (`s
 | Break-glass | `org_admin` and `instance_admin` keep password login |
 | Auto-provision | New email from IdP → `org_member` in that org |
 | Callback | `{public_base_url}/api/v1/auth/sso/{org_id}/callback` |
+| `id_token` nonce | Required; must match the nonce from the signed OAuth state (fail-closed) |
 
 Requires instance **Public URL** — same as password-reset links and SSO member login URL.
 
