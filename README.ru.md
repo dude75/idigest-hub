@@ -119,7 +119,8 @@ URL должен совпадать с тем, как хаб видят поль
 | `S3_BUCKET`                  | Имя bucket для audio. Обязателен при `STORAGE_BACKEND=s3`. |
 | `S3_REGION`                  | Регион (зависит от провайдера). |
 | `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Ключи доступа к object storage. |
-| `S3_SSE`                     | Server-side encryption для новых объектов (по умолчанию `AES256`). Пусто = только default encryption bucket. |
+| `S3_SSE`                     | SSE-заголовок при upload. Пусто (по умолчанию) = не отправлять; encryption на bucket (рекомендуется для Yandex). AWS: `AES256`. Yandex: `aws:kms` + `S3_SSE_KMS_KEY_ID`. |
+| `S3_SSE_KMS_KEY_ID`          | ID ключа KMS при `S3_SSE=aws:kms` (Yandex Object Storage). |
 | `DATABASE_URL`               | SQLAlchemy URL (по умолчанию `sqlite:///./data/hub.db`). Для PostgreSQL: `postgresql+psycopg://user:pass@host:5432/db`. **Смена URL — другая БД с другими данными**, автоматической миграции SQLite ↔ PostgreSQL нет. |
 | `SQLITE_PATH`                | Legacy fallback, если `DATABASE_URL` пуст (по умолчанию `./data/hub.db`). Лучше задавать `DATABASE_URL`. |
 | `LOG_DIR`                    | Каталог прикладных логов (по умолчанию `./data/logs`).                                                                                                           |

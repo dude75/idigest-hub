@@ -153,7 +153,8 @@ class S3StorageBackend(StorageBackend):
         if not settings.S3_BUCKET:
             raise RuntimeError("S3_BUCKET is required when STORAGE_BACKEND=s3")
         self._bucket = settings.S3_BUCKET
-        self._sse = settings.S3_SSE or None
+        self._sse = settings.S3_SSE.strip() or None
+        self._sse_kms_key_id = settings.S3_SSE_KMS_KEY_ID.strip() or None
         kwargs: dict = {
             "service_name": "s3",
             "aws_access_key_id": settings.S3_ACCESS_KEY or None,
@@ -178,6 +179,14 @@ class S3StorageBackend(StorageBackend):
     def _ref(self, key: str) -> str:
         return f"{S3_SCHEME}{self._bucket}/{key}"
 
+    def _upload_extra_args(self) -> dict[str, str] | None:
+        if not self._sse:
+            return None
+        extra: dict[str, str] = {"ServerSideEncryption": self._sse}
+        if self._sse == "aws:kms" and self._sse_kms_key_id:
+            extra["SSEKMSKeyId"] = self._sse_kms_key_id
+        return extra
+
     async def save_upload(
         self,
         audio_id: str,
@@ -187,9 +196,7 @@ class S3StorageBackend(StorageBackend):
         max_bytes: int,
     ) -> str:
         key = audio_object_key(audio_id, suffix)
-        extra_args: dict[str, str] = {}
-        if self._sse:
-            extra_args["ServerSideEncryption"] = self._sse
+        extra_args = self._upload_extra_args()
         size = 0
         with tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024) as buffer:
             while True:
@@ -201,7 +208,7 @@ class S3StorageBackend(StorageBackend):
                     raise PayloadTooLarge()
                 buffer.write(chunk)
             buffer.seek(0)
-            self._client.upload_fileobj(buffer, self._bucket, key, ExtraArgs=extra_args or None)
+            self._client.upload_fileobj(buffer, self._bucket, key, ExtraArgs=extra_args)
         return self._ref(key)
 
     def exists(self, storage_path: str) -> bool:

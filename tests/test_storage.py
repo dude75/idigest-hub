@@ -131,3 +131,53 @@ def test_get_storage_local_default(monkeypatch, tmp_path):
     assert isinstance(storage, LocalStorageBackend)
     get_settings.cache_clear()
     reset_storage()
+
+
+@pytest.mark.asyncio
+async def test_s3_upload_without_sse_header(monkeypatch):
+    monkeypatch.setenv("STORAGE_BACKEND", "s3")
+    monkeypatch.setenv("S3_BUCKET", "test-bucket")
+    monkeypatch.setenv("S3_SSE", "")
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    reset_storage()
+
+    client = MagicMock()
+    with patch("boto3.client", return_value=client):
+        backend = S3StorageBackend(get_settings())
+        upload = _Upload(b"plain")
+        await backend.save_upload("y1", ".wav", upload, max_bytes=1024)
+
+    _, kwargs = client.upload_fileobj.call_args
+    assert kwargs["ExtraArgs"] is None
+
+    get_settings.cache_clear()
+    reset_storage()
+
+
+@pytest.mark.asyncio
+async def test_s3_upload_aws_kms(monkeypatch):
+    monkeypatch.setenv("STORAGE_BACKEND", "s3")
+    monkeypatch.setenv("S3_BUCKET", "test-bucket")
+    monkeypatch.setenv("S3_SSE", "aws:kms")
+    monkeypatch.setenv("S3_SSE_KMS_KEY_ID", "abj123")
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    reset_storage()
+
+    client = MagicMock()
+    with patch("boto3.client", return_value=client):
+        backend = S3StorageBackend(get_settings())
+        upload = _Upload(b"kms")
+        await backend.save_upload("y2", ".mp3", upload, max_bytes=1024)
+
+    _, kwargs = client.upload_fileobj.call_args
+    assert kwargs["ExtraArgs"] == {
+        "ServerSideEncryption": "aws:kms",
+        "SSEKMSKeyId": "abj123",
+    }
+
+    get_settings.cache_clear()
+    reset_storage()

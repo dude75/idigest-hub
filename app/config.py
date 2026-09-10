@@ -28,8 +28,10 @@ class Settings(BaseSettings):
     S3_REGION: str = ""
     S3_ACCESS_KEY: str = ""
     S3_SECRET_KEY: str = ""
-    # Server-side encryption for new objects (e.g. AES256). Empty = bucket default only.
-    S3_SSE: str = "AES256"
+    # Per-upload SSE header. Empty = omit (use bucket default encryption).
+    # AWS S3: AES256. Yandex Object Storage: aws:kms + S3_SSE_KMS_KEY_ID, or empty + bucket KMS in console.
+    S3_SSE: str = ""
+    S3_SSE_KMS_KEY_ID: str = ""
     DATABASE_URL: str = "sqlite:///./data/hub.db"
     SQLITE_PATH: str = "./data/hub.db"
     LOG_DIR: str = "./data/logs"

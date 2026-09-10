@@ -119,7 +119,8 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `S3_BUCKET`                  | Bucket name for audio objects. Required when `STORAGE_BACKEND=s3`. |
 | `S3_REGION`                  | Region (provider-specific; may be empty for some on-prem MinIO setups). |
 | `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Credentials for the object storage API. |
-| `S3_SSE`                     | Server-side encryption for new uploads (default `AES256`). Set empty to rely on bucket default encryption only. |
+| `S3_SSE`                     | Per-upload SSE header. Empty (default) = omit; use bucket default encryption (recommended for Yandex). AWS: `AES256`. Yandex: `aws:kms` with `S3_SSE_KMS_KEY_ID`. |
+| `S3_SSE_KMS_KEY_ID`          | KMS key ID when `S3_SSE=aws:kms` (Yandex Object Storage). |
 | `DATABASE_URL`               | SQLAlchemy URL (default `sqlite:///./data/hub.db`). Use `postgresql+psycopg://user:pass@host:5432/db` for PostgreSQL. **Switching URL uses a different database with different data** — there is no automatic SQLite ↔ PostgreSQL migration. |
 | `SQLITE_PATH`                | Legacy fallback if `DATABASE_URL` is empty (default `./data/hub.db`). Prefer `DATABASE_URL`. |
 | `LOG_DIR`                    | Application log directory (default `./data/logs`).                                                                                                               |
