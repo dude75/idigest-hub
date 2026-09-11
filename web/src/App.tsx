@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from './auth'
@@ -6,7 +6,6 @@ import { Shell } from './components/Shell'
 import { AudioPage } from './pages/AudioPage'
 import { ChangePasswordPage } from './pages/ChangePasswordPage'
 import { ForgotPage } from './pages/ForgotPage'
-import { InstancePage } from './pages/InstancePage'
 import { LibraryPage } from './pages/LibraryPage'
 import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
@@ -24,6 +23,19 @@ import { TaskPage } from './pages/TaskPage'
 import { TasksPage } from './pages/TasksPage'
 import { TranscriptPage } from './pages/TranscriptPage'
 import { resolveHomePath, LIBRARY_DEFAULT } from './routes'
+
+const InstancePage = lazy(() =>
+  import('./pages/instance/InstancePage').then((m) => ({ default: m.InstancePage })),
+)
+
+function LazyInstancePage() {
+  const { t } = useTranslation()
+  return (
+    <Suspense fallback={<p className="page muted">{t('common.loading')}</p>}>
+      <InstancePage />
+    </Suspense>
+  )
+}
 
 function AppHomeRedirect() {
   const { me } = useAuth()
@@ -69,7 +81,7 @@ export default function App() {
         <Route path="org" element={<OrgPage />} />
         <Route path="stats" element={<StatsPage />} />
         <Route path="profile" element={<ProfilePage />} />
-        <Route path="instance" element={<InstancePage />} />
+        <Route path="instance" element={<LazyInstancePage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="task/:id" element={<TaskPage />} />
       </Route>
