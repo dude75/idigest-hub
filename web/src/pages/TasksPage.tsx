@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import type { Org, Task, User } from '../types'
-import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage } from '../util'
+import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage, taskIsRetriable } from '../util'
 
 const ACTIVE = new Set(['queued', 'running'])
 const PAGE_SIZES = [10, 50, 100] as const
@@ -132,6 +132,15 @@ export function TasksPage() {
     }
   }
 
+  async function retry(id: string) {
+    try {
+      await api(`/tasks/${id}/retry`, { method: 'POST' })
+      await load()
+    } catch (e) {
+      showError(e)
+    }
+  }
+
   const active = items.filter((item) => ACTIVE.has(item.status))
   const done = items.filter((item) => !ACTIVE.has(item.status))
   const pageCount = Math.max(1, Math.ceil(done.length / pageSize))
@@ -141,7 +150,9 @@ export function TasksPage() {
   const to = Math.min(done.length, (safePage + 1) * pageSize)
 
   function row(task: Task) {
-    const canCancel = task.status === 'queued' && (admin || task.user_id === me?.user.id)
+    const canManage = admin || task.user_id === me?.user.id
+    const canCancel = task.status === 'queued' && canManage
+    const canRetry = taskIsRetriable(task) && canManage
     const typeLabel = t(`task.type.${task.type}`, { defaultValue: task.type })
     const label = task.audio_filename || typeLabel
     return (
@@ -168,6 +179,9 @@ export function TasksPage() {
         </span>
         {canCancel && (
           <button type="button" onClick={() => void cancel(task.task_id)}>{t('task.cancel')}</button>
+        )}
+        {canRetry && (
+          <button type="button" onClick={() => void retry(task.task_id)}>{t('task.retry')}</button>
         )}
       </div>
     )

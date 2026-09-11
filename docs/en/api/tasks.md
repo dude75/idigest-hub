@@ -82,6 +82,18 @@ Success: task with `status: "error"`, `error.code: "canceled"`.
 
 Errors: `not_found`, `forbidden`, `task_running`.
 
+## POST `/tasks/{task_id}/retry`
+
+**202 Accepted**
+
+Re-queue a failed task (`status: "error"`). Resets worker refs and error state, then runs an immediate dispatcher tick.
+
+Not allowed for terminal errors such as `canceled`, `source_deleted`, `text_too_long`, `payload_too_large`, `invalid_file`, `invalid_url`.
+
+Source must still exist (audio, transcript, import URL). Balance is checked again.
+
+Errors: `not_found`, `forbidden`, `task_running`, `validation_error`, `insufficient_balance`, `import_disabled`.
+
 ## Example: transcribe pipeline
 
 ```bash

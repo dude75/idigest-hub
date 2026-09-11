@@ -20,6 +20,17 @@ from app.timeutil import utcnow
 
 router = APIRouter()
 
+NON_RETRIABLE_ERROR_CODES = frozenset(
+    {
+        "canceled",
+        "source_deleted",
+        "text_too_long",
+        "payload_too_large",
+        "invalid_file",
+        "invalid_url",
+    }
+)
+
 
 class TranscribeBody(BaseModel):
     audio_id: str
@@ -32,6 +43,14 @@ class SummarizeBody(BaseModel):
 
 class ImportBody(BaseModel):
     url: str = Field(min_length=8, max_length=2048)
+
+
+def _can_manage_task(ctx: AuthContext, task: Task) -> bool:
+    if ctx.org is None or task.org_id != ctx.org.id:
+        return False
+    if ctx.is_org_admin:
+        return True
+    return task.user_id == ctx.user.id
 
 
 def _can_see_task(ctx: AuthContext, task: Task) -> bool:
@@ -175,24 +194,7 @@ async def create_summarize(
     transcript = db.get(Transcript, body.transcript_id)
     if transcript is None or transcript.org_id != org.id or not can_use_transcript(ctx, db, transcript):
         ctx.raise_error(ErrorCode.not_found)
-    if not body.skill_ids:
-        ctx.raise_error(ErrorCode.validation_error)
-    for sid in body.skill_ids:
-        skill = db.get(Skill, sid)
-        if skill is None:
-            ctx.raise_error(ErrorCode.not_found)
-        if skill.scope == "base":
-            continue
-        if skill.scope == "org" and skill.org_id == org.id:
-            continue
-        if skill.scope == "self" and (
-            skill.owner_user_id == ctx.user.id
-            or __import__("app.services.access", fromlist=["is_shared_with"]).is_shared_with(
-                db, "skill", skill.id, ctx.user.id
-            )
-        ):
-            continue
-        ctx.raise_error(ErrorCode.forbidden)
+    _validate_summarize_skills(ctx, db, org, body.skill_ids)
     tariff = assert_can_accept_task(ctx, org, ctx.locale)
     now = utcnow()
     task = Task(
@@ -253,6 +255,99 @@ async def get_task(
     return task_public(task)
 
 
+def _validate_summarize_skills(ctx: AuthContext, db: Session, org: Organization, skill_ids: list[str]) -> None:
+    if not skill_ids:
+        ctx.raise_error(ErrorCode.validation_error)
+    for sid in skill_ids:
+        skill = db.get(Skill, sid)
+        if skill is None:
+            ctx.raise_error(ErrorCode.not_found)
+        if skill.scope == "base":
+            continue
+        if skill.scope == "org" and skill.org_id == org.id:
+            continue
+        if skill.scope == "self" and (
+            skill.owner_user_id == ctx.user.id
+            or __import__("app.services.access", fromlist=["is_shared_with"]).is_shared_with(
+                db, "skill", skill.id, ctx.user.id
+            )
+        ):
+            continue
+        ctx.raise_error(ErrorCode.forbidden)
+
+
+def _validate_task_source(ctx: AuthContext, db: Session, org: Organization, task: Task) -> None:
+    if task.type == "transcribe":
+        if not task.audio_id:
+            ctx.raise_error(ErrorCode.not_found)
+        audio = db.get(Audio, task.audio_id)
+        if audio is None or audio.org_id != org.id or not can_use_audio(ctx, db, audio):
+            ctx.raise_error(ErrorCode.not_found)
+        from app.services.storage import get_storage
+
+        if not get_storage().exists(audio.storage_path):
+            ctx.raise_error(ErrorCode.not_found)
+        return
+    if task.type == "summarize":
+        if not task.transcript_id:
+            ctx.raise_error(ErrorCode.not_found)
+        transcript = db.get(Transcript, task.transcript_id)
+        if transcript is None or transcript.org_id != org.id or not can_use_transcript(ctx, db, transcript):
+            ctx.raise_error(ErrorCode.not_found)
+        _validate_summarize_skills(ctx, db, org, list(task.skill_ids_json or []))
+        return
+    if task.type == "import":
+        settings = get_instance_settings(db)
+        if not settings.import_enabled:
+            ctx.raise_error(ErrorCode.import_disabled)
+        from app.services.url_import import UrlImportError, validate_import_url
+
+        url = (task.meta_json or {}).get("url")
+        if not isinstance(url, str) or not url.strip():
+            ctx.raise_error(ErrorCode.not_found)
+        try:
+            validate_import_url(url)
+        except UrlImportError as exc:
+            ctx.raise_error(ErrorCode(exc.code))
+
+
+@router.post("/tasks/{task_id}/retry", status_code=202)
+async def retry_task(
+    task_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    task = db.get(Task, task_id)
+    if task is None or not _can_see_task(ctx, task):
+        ctx.raise_error(ErrorCode.not_found)
+    if not _can_manage_task(ctx, task):
+        ctx.raise_error(ErrorCode.forbidden)
+    if task.status != "error":
+        ctx.raise_error(ErrorCode.task_running)
+    if task.error_code in NON_RETRIABLE_ERROR_CODES:
+        ctx.raise_error(ErrorCode.validation_error)
+    org, _ = ctx.require_org()
+    assert_can_accept_task(ctx, org, ctx.locale)
+    _validate_task_source(ctx, db, org, task)
+    now = utcnow()
+    meta = dict(task.meta_json or {})
+    meta["stage"] = "queued"
+    meta.pop("error_detail", None)
+    task.status = "queued"
+    task.error_code = None
+    task.worker_id = None
+    task.worker_task_id = None
+    task.produced_transcript_id = None
+    task.produced_summary_id = None
+    task.retry_without_timeout = False
+    task.skip_persist = False
+    task.skip_reason = None
+    task.queued_at = now
+    task.updated_at = now
+    task.meta_json = meta
+    await locked_tick(db, task.id)
+    db.refresh(task)
+    return task_public(task)
+
+
 @router.delete("/tasks/{task_id}")
 def cancel_task(
     task_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
@@ -260,10 +355,8 @@ def cancel_task(
     task = db.get(Task, task_id)
     if task is None:
         ctx.raise_error(ErrorCode.not_found)
-    if ctx.org is None or task.org_id != ctx.org.id:
-        ctx.raise_error(ErrorCode.not_found)
-    if not ctx.is_org_admin and task.user_id != ctx.user.id:
-        ctx.raise_error(ErrorCode.forbidden)
+    if not _can_manage_task(ctx, task):
+        ctx.raise_error(ErrorCode.not_found if ctx.org is None or task.org_id != ctx.org.id else ErrorCode.forbidden)
     if task.type == "import":
         if task.status not in {"queued", "running"}:
             ctx.raise_error(ErrorCode.task_running)

@@ -442,6 +442,7 @@
     "title": "Tareas",
     "working": "Tarea {{status}}…",
     "cancel": "Cancelar",
+    "retry": "Reintentar",
     "failed": "La tarea falló",
     "active": "En curso",
     "done": "Completadas",

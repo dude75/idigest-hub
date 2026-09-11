@@ -3,13 +3,16 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import type { Task } from '../types'
-import { showError, taskErrorDetail, taskErrorMessage, taskYoutubeClientsTried } from '../util'
+import { isOrgAdmin, useAuth } from '../auth'
+import { showError, taskErrorDetail, taskErrorMessage, taskIsRetriable, taskYoutubeClientsTried } from '../util'
 
 export function TaskPage() {
   const { id } = useParams<{ id: string }>()
   const { t } = useTranslation()
+  const { me } = useAuth()
   const nav = useNavigate()
   const [task, setTask] = useState<Task | null>(null)
+  const admin = isOrgAdmin(me)
 
   useEffect(() => {
     if (!id) return
@@ -52,6 +55,16 @@ export function TaskPage() {
     }
   }
 
+  async function retry() {
+    if (!id) return
+    try {
+      const next = await api<Task>(`/tasks/${id}/retry`, { method: 'POST' })
+      setTask(next)
+    } catch (e) {
+      showError(e)
+    }
+  }
+
   function importStageLabel(): string | null {
     if (task?.type !== 'import') return null
     const stage = typeof task.meta?.stage === 'string' ? task.meta.stage : task.status
@@ -89,6 +102,9 @@ export function TaskPage() {
       )}
       {task && (task.status === 'queued' || task.status === 'running') && (
         <button type="button" onClick={() => void cancel()}>{t('task.cancel')}</button>
+      )}
+      {task && taskIsRetriable(task) && (admin || task.user_id === me?.user.id) && (
+        <button type="button" onClick={() => void retry()}>{t('task.retry')}</button>
       )}
     </div>
   )

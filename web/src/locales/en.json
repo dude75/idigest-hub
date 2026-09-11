@@ -442,6 +442,7 @@
     "title": "Tasks",
     "working": "Task {{status}}…",
     "cancel": "Cancel",
+    "retry": "Retry",
     "failed": "Task failed",
     "active": "In progress",
     "done": "Completed",

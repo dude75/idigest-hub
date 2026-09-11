@@ -82,6 +82,18 @@ Query-параметры:
 
 Ошибки: `not_found`, `forbidden`, `task_running`.
 
+## POST `/tasks/{task_id}/retry`
+
+**202 Accepted**
+
+Повторная постановка упавшей задачи (`status: "error"`) в очередь. Сбрасывает worker refs и ошибку, затем сразу запускает tick диспетчера.
+
+Недоступно для терминальных ошибок: `canceled`, `source_deleted`, `text_too_long`, `payload_too_large`, `invalid_file`, `invalid_url`.
+
+Исходник должен существовать (audio, transcript, URL import). Баланс проверяется снова.
+
+Ошибки: `not_found`, `forbidden`, `task_running`, `validation_error`, `insufficient_balance`, `import_disabled`.
+
 ## Пример: pipeline transcribe
 
 ```bash

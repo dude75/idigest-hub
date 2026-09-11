@@ -159,6 +159,58 @@ def test_network_error_keeps_worker_task_and_does_not_open_second_node(client, f
     assert set(fake_workers.nodes_posted) == {first_node}
 
 
+def test_retry_failed_transcribe_then_success(client, fake_workers):
+    ctx = _org_user_with_audio(client)
+    fake_workers.transcribe_mode = "error"
+    fake_workers.error_code = "pipeline_error"
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
+    assert created.status_code == 202, created.text
+    task_id = created.json()["task_id"]
+    assert created.json()["status"] == "error"
+    assert created.json()["error"]["code"] == "pipeline_error"
+
+    fake_workers.transcribe_mode = "success"
+    retried = client.post(f"/api/v1/tasks/{task_id}/retry")
+    assert retried.status_code == 202, retried.text
+    assert retried.json()["status"] == "success"
+    assert retried.json()["error"] is None
+    assert retried.json()["transcript_id"]
+
+
+def test_retry_canceled_forbidden(client, fake_workers):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "retry@example.com", "retrypass1", tariff_id).status_code == 200
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert created.status_code == 202
+    task_id = created.json()["task_id"]
+    canceled = client.delete(f"/api/v1/tasks/{task_id}")
+    assert canceled.status_code == 200
+    assert canceled.json()["error"]["code"] == "canceled"
+
+    blocked = client.post(f"/api/v1/tasks/{task_id}/retry")
+    assert blocked.status_code == 400
+    assert err_code(blocked) == "validation_error"
+
+
+def test_retry_forbidden_for_other_user(client, fake_workers):
+    ctx = _org_user_with_audio(client, email="owner@example.com")
+    fake_workers.transcribe_mode = "error"
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
+    assert created.status_code == 202, created.text
+    task_id = created.json()["task_id"]
+    assert created.json()["status"] == "error"
+
+    logout(client)
+    assert signup(client, "other@example.com", "otherpass1", ctx["tariff_id"]).status_code == 200
+    blocked = client.post(f"/api/v1/tasks/{task_id}/retry")
+    assert blocked.status_code == 404
+    assert err_code(blocked) == "not_found"
+
+
 def test_cancel_only_queued_without_worker_task(client, fake_workers):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

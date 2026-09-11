@@ -38,6 +38,19 @@ export function fmtDate(iso: string): string {
   }
 }
 
+const NON_RETRIABLE_TASK_ERRORS = new Set([
+  'canceled',
+  'source_deleted',
+  'text_too_long',
+  'payload_too_large',
+  'invalid_file',
+  'invalid_url',
+])
+
+export function taskIsRetriable(task: Task): boolean {
+  return task.status === 'error' && !!task.error?.code && !NON_RETRIABLE_TASK_ERRORS.has(task.error.code)
+}
+
 export function taskErrorMessage(task: Task, t: TaskTranslate): string | null {
   if (!task.error) return null
   const code = task.error.code
