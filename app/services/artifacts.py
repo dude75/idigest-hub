@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.models import Audio, HiddenItem, Share, Summary, Task, Transcript
+from app.presenters import summary_display_title
 from app.services.storage import get_storage
 
 
@@ -49,6 +52,11 @@ def wipe_object_shares(db: Session, object_type: str, object_id: str) -> None:
 def hard_delete_audio(db: Session, audio: Audio) -> None:
     cancel_queued_for_source(db, audio_id=audio.id)
     wipe_object_shares(db, "audio", audio.id)
+    stem = Path(audio.original_filename).stem if audio.original_filename else None
+    if stem:
+        for transcript in db.scalars(select(Transcript).where(Transcript.source_audio_id == audio.id)):
+            if not (transcript.title and transcript.title.strip()):
+                transcript.title = stem
     get_storage().delete(audio.storage_path)
     db.delete(audio)
     db.flush()
@@ -58,6 +66,18 @@ def hard_delete_transcript(db: Session, transcript: Transcript) -> None:
     cancel_queued_for_source(db, transcript_id=transcript.id)
     wipe_object_shares(db, "transcript", transcript.id)
     _clear_task_produced_refs(db, transcript_id=transcript.id)
+    source_filename: str | None = None
+    if transcript.source_audio_id:
+        audio = db.get(Audio, transcript.source_audio_id)
+        if audio:
+            source_filename = audio.original_filename
+    for summary in db.scalars(select(Summary).where(Summary.source_transcript_id == transcript.id)):
+        if not (summary.title and summary.title.strip()):
+            summary.title = summary_display_title(
+                summary,
+                source_transcript=transcript,
+                source_filename=source_filename,
+            )
     db.delete(transcript)
 
 

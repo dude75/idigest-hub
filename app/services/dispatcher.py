@@ -7,6 +7,7 @@ import json
 import logging
 import time
 from decimal import Decimal
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import select
@@ -16,6 +17,7 @@ from app.config import get_settings
 from app.constants import MAX_SUMMARIZE_PAYLOAD_BYTES
 from app.crypto import encrypt_str
 from app.models import Audio, Organization, Skill, Summary, Task, Transcript, WorkerNode, new_id
+from app.presenters import transcript_display_title
 from app.services.billing import apply_success_charge, summarize_amount, transcribe_amount
 from app.services.workers import (
     WorkerClientError,
@@ -192,11 +194,17 @@ def _persist_transcript(db: Session, task: Task, utterances: list[dict[str, Any]
     if task.skip_persist:
         _fail(task, task.skip_reason or "source_deleted")
         return None
+    title: str | None = None
+    if task.audio_id:
+        audio = db.get(Audio, task.audio_id)
+        if audio and audio.original_filename:
+            title = Path(audio.original_filename).stem or None
     row = Transcript(
         id=new_id(),
         org_id=task.org_id,
         owner_user_id=task.user_id,
         source_audio_id=task.audio_id,
+        title=title,
         utterances_encrypted=encrypt_str(json.dumps(utterances, ensure_ascii=False)),
         created_at=utcnow(),
     )
@@ -216,12 +224,24 @@ def _persist_summary(db: Session, task: Task, body: str) -> Summary | None:
     if task.skip_persist:
         _fail(task, task.skip_reason or "source_deleted")
         return None
+    summary_id = new_id()
+    transcript = db.get(Transcript, task.transcript_id) if task.transcript_id else None
+    source_filename: str | None = None
+    if transcript and transcript.source_audio_id:
+        audio = db.get(Audio, transcript.source_audio_id)
+        if audio:
+            source_filename = audio.original_filename
+    if transcript:
+        title = f"{transcript_display_title(transcript, source_filename=source_filename)}-{summary_id[:8]}"
+    else:
+        title = summary_id[:8]
     row = Summary(
-        id=new_id(),
+        id=summary_id,
         org_id=task.org_id,
         owner_user_id=task.user_id,
         source_transcript_id=task.transcript_id,
         skill_ids_json=list(task.skill_ids_json or []),
+        title=title,
         body_encrypted=encrypt_str(body),
         created_at=utcnow(),
     )

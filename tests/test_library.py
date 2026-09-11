@@ -178,6 +178,34 @@ def test_org_admin_can_hide_member_summary(client):
     assert hidden.json()["hidden_count"] == 1
 
 
+def test_titles_preserved_after_audio_delete(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    audio_id = audio.json()["id"]
+    transcript_id, summary_id = _insert_transcript_and_summary(org_id, user_id, audio_id)
+
+    wiped = client.delete(f"/api/v1/audios/{audio_id}")
+    assert wiped.status_code == 200, wiped.text
+
+    tr_list = client.get("/api/v1/transcripts")
+    assert tr_list.status_code == 200, tr_list.text
+    tr = next(item for item in tr_list.json()["items"] if item["id"] == transcript_id)
+    assert tr["display_title"] == "clip"
+    assert tr["title"] == "clip"
+    assert tr["source_audio_id"] is None
+
+    sum_list = client.get("/api/v1/summaries")
+    assert sum_list.status_code == 200, sum_list.text
+    s = next(item for item in sum_list.json()["items"] if item["id"] == summary_id)
+    assert s["display_title"] == f"clip-{summary_id[:8]}"
+    assert s["source_transcript_title"] == "clip"
+
+
 def test_list_transcripts_includes_source_filename(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)
@@ -219,6 +247,8 @@ def test_delete_transcript_does_not_cascade_summaries(client):
     assert summary.json()["body"] == "kept summary"
     assert summary.json()["edited"] is False
     assert summary.json()["source_transcript_id"] in {None, transcript_id}
+    assert summary.json()["display_title"] == f"clip-{summary_id[:8]}"
+    assert summary.json()["title"] == f"clip-{summary_id[:8]}"
 
     patched = client.patch(f"/api/v1/summaries/{summary_id}", json={"body": "## Edited\n\nnew body"})
     assert patched.status_code == 200, patched.text
@@ -267,9 +297,21 @@ def test_delete_artifacts_after_task_produced_refs(client, fake_workers):
     wiped_audio = client.delete(f"/api/v1/audios/{audio_id}")
     assert wiped_audio.status_code == 200, wiped_audio.text
 
+    tr_list = client.get("/api/v1/transcripts")
+    assert tr_list.status_code == 200, tr_list.text
+    tr = next(item for item in tr_list.json()["items"] if item["id"] == transcript_id)
+    assert tr["display_title"] == "clip"
+    sum_list = client.get("/api/v1/summaries")
+    assert sum_list.status_code == 200, sum_list.text
+    s = next(item for item in sum_list.json()["items"] if item["id"] == summary_id)
+    assert s["display_title"] == f"clip-{summary_id[:8]}"
+
     deleted_transcript = client.delete(f"/api/v1/transcripts/{transcript_id}")
     assert deleted_transcript.status_code == 200, deleted_transcript.text
     assert client.get(f"/api/v1/transcripts/{transcript_id}").status_code == 404
+    sum_after_tr = client.get(f"/api/v1/summaries/{summary_id}")
+    assert sum_after_tr.status_code == 200, sum_after_tr.text
+    assert sum_after_tr.json()["display_title"] == f"clip-{summary_id[:8]}"
 
     deleted_summary = client.delete(f"/api/v1/summaries/{summary_id}")
     assert deleted_summary.status_code == 200, deleted_summary.text
