@@ -200,6 +200,7 @@
     "summaries": "Саммари",
     "upload": "Загрузить аудио",
     "chooseFile": "Выбрать файл",
+    "uploadFile": "Загрузить файл",
     "or": "или",
     "importUrl": "Импорт по URL",
     "importPlaceholder": "https://youtube.com/watch?v=…",

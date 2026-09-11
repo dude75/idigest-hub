@@ -186,6 +186,9 @@ export function LibraryPage() {
                 </span>
               </>
             )}
+            {!importEnabled && (
+              <span className="library-ingest-upload-label">{t('library.uploadFile')}</span>
+            )}
             <label className="btn library-file-btn">
               {t('library.chooseFile')}
               <input
@@ -200,15 +203,12 @@ export function LibraryPage() {
               />
             </label>
           </div>
-          {importEnabled && importPlatforms.platforms.length > 0 && (
+          {importEnabled && importPlatforms && importPlatforms.platforms.length > 0 && (
             <p className="muted library-ingest-hint">
               {t('library.importHint', {
                 platforms: importPlatforms.platforms.map((p) => p.label).join(' · '),
               })}
             </p>
-          )}
-          {importPlatforms && !importEnabled && (
-            <p className="muted library-ingest-hint">{t('library.importDisabled')}</p>
           )}
         </section>
       )}

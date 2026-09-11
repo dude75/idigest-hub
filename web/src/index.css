@@ -192,6 +192,11 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   color: var(--muted);
   padding: 0 0.15rem;
 }
+.library-ingest-upload-label {
+  flex-shrink: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
 .library-ingest-hint {
   margin: 0.15rem 0 0;
   font-size: 0.8rem;
