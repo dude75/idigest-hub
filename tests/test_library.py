@@ -524,8 +524,10 @@ def test_backup_zip_and_tgz(client):
     with zipfile.ZipFile(io.BytesIO(zip_resp.content)) as zf:
         names = set(zf.namelist())
         assert "manifest.json" in names
-        assert f"transcripts/{transcript_id}.json" in names
-        transcript_payload = json.loads(zf.read(f"transcripts/{transcript_id}.json"))
+        transcript_json = [name for name in names if name.startswith("transcripts/") and name.endswith(".json")]
+        assert len(transcript_json) == 1
+        assert transcript_json[0] == f"transcripts/{transcript_id}_clip.json"
+        transcript_payload = json.loads(zf.read(transcript_json[0]))
         assert transcript_payload["utterances"][0]["text"] == "hi"
         summary_md = [name for name in names if name.startswith("summaries/") and name.endswith(".md")]
         assert len(summary_md) == 1

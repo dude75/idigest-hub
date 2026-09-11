@@ -53,6 +53,7 @@ def build_backup(
             utterances = json.loads(decrypt_str(row.utterances_encrypted))
             source_filename = filenames.get(row.source_audio_id) if row.source_audio_id else None
             display = transcript_display_title(row, source_filename=source_filename)
+            stem = safe_filename(f"{row.id}_{display}")
             payload = {
                 "id": row.id,
                 "title": row.title,
@@ -61,7 +62,7 @@ def build_backup(
                 "source_audio_id": row.source_audio_id,
                 "utterances": utterances,
             }
-            files[f"transcripts/{row.id}.json"] = json.dumps(payload, ensure_ascii=False, indent=2)
+            files[f"transcripts/{stem}.json"] = json.dumps(payload, ensure_ascii=False, indent=2)
         included.append("transcripts")
         manifest["transcript_count"] = len(rows)
 
