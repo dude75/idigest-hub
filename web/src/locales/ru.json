@@ -203,7 +203,7 @@
     "uploadFile": "Загрузить файл",
     "or": "или",
     "importUrl": "Импорт по URL",
-    "importPlaceholder": "https://youtube.com/watch?v=…",
+    "importPlaceholder": "URL",
     "importSubmit": "Импорт",
     "importHint": "На этом инстансе: {{platforms}}",
     "importDisabled": "Импорт по URL отключён администратором инстанса.",

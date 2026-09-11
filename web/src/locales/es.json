@@ -203,7 +203,7 @@
     "uploadFile": "Subir archivo",
     "or": "o",
     "importUrl": "Importar URL",
-    "importPlaceholder": "https://youtube.com/watch?v=…",
+    "importPlaceholder": "URL",
     "importSubmit": "Importar",
     "importHint": "Soportado en esta instancia: {{platforms}}",
     "importDisabled": "La importación por URL está desactivada por el administrador.",

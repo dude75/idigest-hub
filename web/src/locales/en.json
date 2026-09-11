@@ -203,7 +203,7 @@
     "uploadFile": "Upload file",
     "or": "or",
     "importUrl": "Import URL",
-    "importPlaceholder": "https://youtube.com/watch?v=…",
+    "importPlaceholder": "URL",
     "importSubmit": "Import",
     "importHint": "Supported on this instance: {{platforms}}",
     "importDisabled": "URL import is disabled by the instance admin.",
