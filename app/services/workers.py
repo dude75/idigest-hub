@@ -6,7 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-import httpx
+import httpx2
 
 from app.config import get_settings
 from app.crypto import decrypt_str
@@ -49,10 +49,10 @@ def _auth_header(node: WorkerNode) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _timeout(upload: bool = False) -> httpx.Timeout:
+def _timeout(upload: bool = False) -> httpx2.Timeout:
     settings = get_settings()
     read = settings.WORKER_UPLOAD_TIMEOUT_SEC if upload else settings.WORKER_HTTP_TIMEOUT_SEC
-    return httpx.Timeout(connect=10.0, read=read, write=read, pool=10.0)
+    return httpx2.Timeout(connect=10.0, read=read, write=read, pool=10.0)
 
 
 class WorkerClientError(Exception):
@@ -70,7 +70,7 @@ class WorkerClientError(Exception):
         return None
 
 
-def _parse_json(response: httpx.Response) -> dict[str, Any]:
+def _parse_json(response: httpx2.Response) -> dict[str, Any]:
     try:
         data = response.json()
         return data if isinstance(data, dict) else {}
@@ -80,14 +80,14 @@ def _parse_json(response: httpx.Response) -> dict[str, Any]:
 
 async def get_health(node: WorkerNode) -> tuple[int, dict[str, Any]]:
     url = node.base_url.rstrip("/") + "/health"
-    async with httpx.AsyncClient(timeout=_timeout()) as client:
+    async with httpx2.AsyncClient(timeout=_timeout()) as client:
         response = await client.get(url)
     return response.status_code, _parse_json(response)
 
 
 async def get_ready(node: WorkerNode) -> int:
     url = node.base_url.rstrip("/") + "/ready"
-    async with httpx.AsyncClient(timeout=_timeout()) as client:
+    async with httpx2.AsyncClient(timeout=_timeout()) as client:
         response = await client.get(url)
     return response.status_code
 
@@ -105,7 +105,7 @@ async def post_transcribe(
     mime = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".m4a": "audio/mp4"}.get(suffix, "application/octet-stream")
     data = {"asr_model": asr_model, "diarization_model": diarization_model or ""}
     try:
-        async with httpx.AsyncClient(timeout=_timeout(upload=True)) as client:
+        async with httpx2.AsyncClient(timeout=_timeout(upload=True)) as client:
             with path.open("rb") as handle:
                 response = await client.post(
                     url,
@@ -113,9 +113,9 @@ async def post_transcribe(
                     data=data,
                     files={"file": (filename, handle, mime)},
                 )
-    except httpx.TimeoutException as exc:
+    except httpx2.TimeoutException as exc:
         raise WorkerClientError("timeout") from exc
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         raise WorkerClientError("http") from exc
     body = _parse_json(response)
     if response.status_code == 503:
@@ -133,11 +133,11 @@ async def post_summarize(node: WorkerNode, text: str, skill: str) -> dict[str, A
     url = node.base_url.rstrip("/") + "/summarize"
     headers = {**_auth_header(node), "Content-Type": "application/json"}
     try:
-        async with httpx.AsyncClient(timeout=_timeout(upload=True)) as client:
+        async with httpx2.AsyncClient(timeout=_timeout(upload=True)) as client:
             response = await client.post(url, headers=headers, json={"text": text, "skill": skill})
-    except httpx.TimeoutException as exc:
+    except httpx2.TimeoutException as exc:
         raise WorkerClientError("timeout") from exc
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         raise WorkerClientError("http") from exc
     body = _parse_json(response)
     if response.status_code == 503:
@@ -154,11 +154,11 @@ async def post_summarize(node: WorkerNode, text: str, skill: str) -> dict[str, A
 async def get_task(node: WorkerNode, worker_task_id: str) -> tuple[int, dict[str, Any]]:
     url = node.base_url.rstrip("/") + f"/tasks/{worker_task_id}"
     try:
-        async with httpx.AsyncClient(timeout=_timeout()) as client:
+        async with httpx2.AsyncClient(timeout=_timeout()) as client:
             response = await client.get(url, headers=_auth_header(node))
-    except httpx.TimeoutException as exc:
+    except httpx2.TimeoutException as exc:
         raise WorkerClientError("timeout") from exc
-    except httpx.HTTPError as exc:
+    except httpx2.HTTPError as exc:
         raise WorkerClientError("http") from exc
     return response.status_code, _parse_json(response)
 
@@ -166,9 +166,9 @@ async def get_task(node: WorkerNode, worker_task_id: str) -> tuple[int, dict[str
 async def delete_task(node: WorkerNode, worker_task_id: str) -> int:
     url = node.base_url.rstrip("/") + f"/tasks/{worker_task_id}"
     try:
-        async with httpx.AsyncClient(timeout=_timeout()) as client:
+        async with httpx2.AsyncClient(timeout=_timeout()) as client:
             response = await client.delete(url, headers=_auth_header(node))
-    except httpx.HTTPError:
+    except httpx2.HTTPError:
         log.info("worker delete failed node=%s task=%s", node.id, worker_task_id)
         return 0
     return response.status_code

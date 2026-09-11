@@ -28,7 +28,7 @@ Each test gets:
 | `signup(client, email, password, tariff_id)` | New org user |
 | `login(client, email, password)` | Session cookie |
 | `err_code(response)` | Parse `error.code` |
-| Worker mocks | Patch httpx worker calls |
+| Worker mocks | Patch httpx2 worker calls |
 
 ## Test modules
 

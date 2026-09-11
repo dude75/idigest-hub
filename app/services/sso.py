@@ -13,7 +13,7 @@ import time
 from typing import Any
 from urllib.parse import urlencode, urlparse
 
-import httpx
+import httpx2
 import jwt
 from jwt import PyJWKClient
 from sqlalchemy import select
@@ -84,10 +84,13 @@ def _discovery_url(issuer: str) -> str:
 
 def fetch_oidc_config(issuer: str) -> dict[str, Any]:
     url = _discovery_url(issuer)
-    with httpx.Client(timeout=15.0) as client:
+    with httpx2.Client(timeout=15.0) as client:
         response = client.get(url)
         response.raise_for_status()
         return response.json()
+
+
+_STATE_SIG_LEN = 32  # HMAC-SHA256 digest length; fixed suffix avoids '.' collisions in rsplit.
 
 
 def _sign_state(payload: dict[str, Any]) -> str:
@@ -95,7 +98,7 @@ def _sign_state(payload: dict[str, Any]) -> str:
 
     raw = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode()
     sig = hmac.new(get_settings().SESSION_SECRET.encode(), raw, hashlib.sha256).digest()
-    return base64.urlsafe_b64encode(raw + b"." + sig).decode()
+    return base64.urlsafe_b64encode(raw + sig).decode()
 
 
 def _verify_state(state: str) -> dict[str, Any]:
@@ -103,7 +106,9 @@ def _verify_state(state: str) -> dict[str, Any]:
 
     try:
         blob = base64.urlsafe_b64decode(state.encode())
-        raw, sig = blob.rsplit(b".", 1)
+        if len(blob) <= _STATE_SIG_LEN:
+            raise ValueError("invalid state")
+        raw, sig = blob[:-_STATE_SIG_LEN], blob[-_STATE_SIG_LEN:]
     except (ValueError, binascii.Error):
         raise ValueError("invalid state") from None
     expected = hmac.new(get_settings().SESSION_SECRET.encode(), raw, hashlib.sha256).digest()
@@ -174,7 +179,7 @@ def exchange_code(*, org: Organization, public_base_url: str, code: str) -> dict
     auth = None
     if secret:
         auth = (org.sso_client_id or "", secret)
-    with httpx.Client(timeout=15.0) as client:
+    with httpx2.Client(timeout=15.0) as client:
         response = client.post(token_endpoint, data=data, auth=auth)
         response.raise_for_status()
         return response.json()

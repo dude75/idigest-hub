@@ -240,6 +240,15 @@ def test_validate_id_token_rejects_nonce_mismatch(monkeypatch):
         sso_service.validate_id_token(org=org, id_token="token", nonce="expected-nonce")
 
 
+def test_oauth_state_roundtrip(client):
+    from app.services import sso as sso_service
+
+    org_id = "org-roundtrip"
+    for _ in range(200):
+        state, nonce = sso_service.make_oauth_state(org_id)
+        assert sso_service.verify_oauth_state(state, org_id) == nonce
+
+
 def test_validate_id_token_accepts_matching_nonce(monkeypatch):
     from app.services import sso as sso_service
 

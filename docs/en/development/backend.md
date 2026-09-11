@@ -27,7 +27,7 @@ app/
 │   └── skills.py
 └── services/
     ├── dispatcher.py   # Task queue loop
-    ├── workers.py      # httpx client to workers
+    ├── workers.py      # httpx2 client to workers
     ├── billing.py
     ├── access.py
     ├── artifacts.py    # Hard delete
