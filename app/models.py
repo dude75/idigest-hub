@@ -72,6 +72,7 @@ class InstanceSettings(Base):
     download_proxy_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     download_cookies_path: Mapped[str | None] = mapped_column(String(512))
     import_audio_bitrate_kbps: Mapped[int] = mapped_column(Integer, default=64, nullable=False)
+    session_ttl_hours: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
 
 
 class User(Base):

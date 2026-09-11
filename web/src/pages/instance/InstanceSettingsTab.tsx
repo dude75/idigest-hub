@@ -66,6 +66,7 @@ export function InstanceSettingsTab() {
         download_proxy_enabled: settings.download_proxy_enabled,
         download_cookies_path: settings.download_cookies_path,
         import_audio_bitrate_kbps: settings.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
+        session_ttl_hours: settings.session_ttl_hours,
         ...(smtpPassword ? { smtp_password: smtpPassword } : {}),
         ...(proxyPassword ? { download_proxy_password: proxyPassword } : {}),
       }),
@@ -224,6 +225,18 @@ export function InstanceSettingsTab() {
           </div>
         </div>
       </details>
+
+      <label>
+        {t('instance.sessionTtlHours')}
+        <input
+          type="number"
+          min={1}
+          max={336}
+          value={settings.session_ttl_hours}
+          onChange={(e) => setSettings({ ...settings, session_ttl_hours: Number(e.target.value) || 1 })}
+        />
+      </label>
+      <p className="muted">{t('instance.sessionTtlHint')}</p>
 
       <details className="fold">
         <summary>{t('instance.rateLimitTitle')}</summary>

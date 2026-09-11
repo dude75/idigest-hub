@@ -404,6 +404,8 @@
     "durationS": "{{s}} s",
     "users": "Users",
     "usage": "Usage total",
+    "sessionTtlHours": "Session TTL (hours)",
+    "sessionTtlHint": "Sliding browser session lifetime. Each authenticated request extends expiry. Enterprise deployments typically use 8–24 hours (default 24). Max 336 hours (14 days).",
     "rateLimitTitle": "Rate limiting",
     "rateLimitHint": "0 disables a rule. Per-IP uses the client address (TCP peer, or X-Forwarded-For when TRUSTED_PROXIES is set in .env). Browser sessions are not API-rate-limited; Bearer tokens are.",
     "rateLimitEnabled": "Enable rate limiting",

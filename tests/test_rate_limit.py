@@ -169,6 +169,23 @@ def test_instance_settings_patch_rate_limits(client: TestClient):
     assert payload["rate_limit_login_ip"] == 0
 
 
+def test_instance_settings_patch_session_ttl(client: TestClient):
+    setup_admin(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+    response = client.get("/api/v1/instance/settings")
+    assert response.status_code == 200, response.text
+    assert response.json()["session_ttl_hours"] == 24
+
+    response = client.patch("/api/v1/instance/settings", json={"session_ttl_hours": 8})
+    assert response.status_code == 200, response.text
+    assert response.json()["session_ttl_hours"] == 8
+
+    bad = client.patch("/api/v1/instance/settings", json={"session_ttl_hours": 0})
+    assert bad.status_code == 400
+    assert err_code(bad) == "validation_error"
+
+
 def test_bucket_expires():
     reset_rate_limiter()
     allowed, _ = _hit("test:key", 1, 0.05)

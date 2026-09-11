@@ -203,6 +203,8 @@ def ensure_schema(engine: Engine) -> None:
                     "ALTER TABLE instance_settings ADD COLUMN import_audio_bitrate_kbps "
                     "INTEGER NOT NULL DEFAULT 64"
                 )
+            if "session_ttl_hours" not in settings_cols:
+                _add_int_column(conn, "instance_settings", "session_ttl_hours", 24, engine=engine)
 
 
 def _add_int_column(conn, table: str, column: str, default: int, *, engine: Engine) -> None:

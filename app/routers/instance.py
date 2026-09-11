@@ -12,7 +12,14 @@ from sqlalchemy.orm import Session, joinedload
 from app.constants import MAX_UPLOAD_BYTES_CAP
 from app.crypto import encrypt_str
 from app.db import get_session
-from app.deps import AuthContext, get_instance_settings, load_org_bundle, require_auth
+from app.deps import (
+    AuthContext,
+    get_instance_settings,
+    invalidate_session_ttl_cache,
+    load_org_bundle,
+    normalize_session_ttl_hours,
+    require_auth,
+)
 from app.errors import ErrorCode
 from app.models import HiddenItem, Membership, Organization, Task, Tariff, UsageEvent, User, WorkerNode, new_id
 from app.services.access import is_hidden
@@ -91,6 +98,7 @@ class SettingsPatch(BaseModel):
     download_proxy_enabled: bool | None = None
     download_cookies_path: str | None = None
     import_audio_bitrate_kbps: int | None = None
+    session_ttl_hours: int | None = None
 
 
 class OrgTariffBody(BaseModel):
@@ -339,6 +347,7 @@ def get_settings_ep(db: Session = Depends(get_session), ctx: AuthContext = Depen
         "download_proxy_enabled": s.download_proxy_enabled,
         "download_cookies_path": s.download_cookies_path,
         "import_audio_bitrate_kbps": bitrate,
+        "session_ttl_hours": s.session_ttl_hours,
         **rate_limits_public(s),
     }
 
@@ -392,9 +401,15 @@ def patch_settings(
             s.import_allowed_extractors_json = validate_allowed_extractors(list(raw or []))
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
+    if "session_ttl_hours" in data:
+        try:
+            s.session_ttl_hours = normalize_session_ttl_hours(data.pop("session_ttl_hours"))
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
     for key, value in data.items():
         setattr(s, key, value)
     invalidate_rate_limit_cache()
+    invalidate_session_ttl_cache()
     return get_settings_ep(db, ctx)
 
 

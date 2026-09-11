@@ -9,11 +9,11 @@ from fastapi import Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
-from app.constants import COOKIE_NAME, SESSION_TTL_SEC
+from app.constants import COOKIE_NAME, DEFAULT_SESSION_TTL_HOURS, MAX_SESSION_TTL_HOURS, MIN_SESSION_TTL_HOURS
 from app.db import get_session
 from app.errors import ApiError, ErrorCode
 from app.i18n import negotiate_locale, t
-from app.models import Membership, Organization, Session as AuthSession, Tariff, User
+from app.models import InstanceSettings, Membership, Organization, Session as AuthSession, Tariff, User
 from app.security import hash_secret
 from app.timeutil import utcnow, as_utc
 
@@ -167,7 +167,7 @@ def resolve_auth(request: Request, db: Session = Depends(get_session)) -> AuthCo
         org, membership = load_org_bundle(db, effective)
         now = utcnow()
         session_row.last_seen_at = now
-        session_row.expires_at = now + timedelta(seconds=SESSION_TTL_SEC)
+        session_row.expires_at = now + timedelta(seconds=session_ttl_sec(get_instance_settings(db)))
         return AuthContext(
             user=effective,
             actor=login_user,
@@ -207,9 +207,43 @@ def optional_auth(
     return resolve_auth(request, db)
 
 
-def get_instance_settings(db: Session):
-    from app.models import InstanceSettings
+_cached_session_ttl_sec: int | None = None
 
+
+def normalize_session_ttl_hours(value: int) -> int:
+    hours = int(value)
+    if hours < MIN_SESSION_TTL_HOURS or hours > MAX_SESSION_TTL_HOURS:
+        raise ValueError("session_ttl_hours out of range")
+    return hours
+
+
+def session_ttl_sec(settings: InstanceSettings) -> int:
+    hours = settings.session_ttl_hours
+    if hours is None:
+        hours = DEFAULT_SESSION_TTL_HOURS
+    return normalize_session_ttl_hours(hours) * 3600
+
+
+def session_ttl_sec_from_db(db: Session) -> int:
+    return session_ttl_sec(get_instance_settings(db))
+
+
+def invalidate_session_ttl_cache() -> None:
+    global _cached_session_ttl_sec
+    _cached_session_ttl_sec = None
+
+
+def cached_session_ttl_sec() -> int:
+    global _cached_session_ttl_sec
+    if _cached_session_ttl_sec is None:
+        from app.db import SessionLocal
+
+        with SessionLocal() as db:
+            _cached_session_ttl_sec = session_ttl_sec_from_db(db)
+    return _cached_session_ttl_sec
+
+
+def get_instance_settings(db: Session):
     row = db.get(InstanceSettings, 1)
     if row is None:
         from app.services.import_platforms import default_allowed_extractors
@@ -222,6 +256,7 @@ def get_instance_settings(db: Session):
             diarization_model="pyannote",
             import_enabled=True,
             import_allowed_extractors_json=default_allowed_extractors(),
+            session_ttl_hours=DEFAULT_SESSION_TTL_HOURS,
         )
         db.add(row)
         db.flush()

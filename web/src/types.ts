@@ -217,6 +217,7 @@ export type InstanceSettings = {
   download_proxy_enabled: boolean
   download_cookies_path: string | null
   import_audio_bitrate_kbps: number
+  session_ttl_hours: number
   rate_limit_enabled: boolean
   rate_limit_login_email: number
   rate_limit_login_ip: number

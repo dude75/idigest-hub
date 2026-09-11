@@ -41,7 +41,7 @@
 | Name | `hub_session` |
 | Flags | `HttpOnly`, `SameSite=Lax`, `Secure` если `COOKIE_SECURE=true` |
 | Storage | Raw token никогда не хранится; в DB — `SHA-256` hash с pepper `SESSION_SECRET` |
-| TTL | 14 days, sliding при каждом запросе |
+| TTL | Настраивается в Instance → Settings (`session_ttl_hours`, по умолчанию 24 ч, макс. 336 ч); sliding при каждом запросе |
 
 Logout удаляет строку session и очищает cookie.
 

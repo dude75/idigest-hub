@@ -14,7 +14,7 @@ sequenceDiagram
     C->>H: Cookie hub_session=...
     H->>DB: Lookup sessions.token_hash
     H->>DB: Load user, membership, org
-    H->>H: Slide expires_at (+14 days)
+    H->>H: Slide expires_at (+session_ttl_hours)
   else Bearer API token
     C->>H: Authorization: Bearer ...
     H->>DB: Lookup api_tokens.token_hash
@@ -27,7 +27,7 @@ Resolution lives in `app/deps.py` → `resolve_auth()`. Failures return HTTP **4
 
 ### Session sliding
 
-Middleware in `app/main.py` re-issues the session cookie on successful responses if the browser did not already receive a new `Set-Cookie`. Each authenticated request extends `expires_at` by `SESSION_TTL_SEC` (14 days).
+Middleware in `app/main.py` re-issues the session cookie on successful responses if the browser did not already receive a new `Set-Cookie`. Each authenticated request extends `expires_at` by `session_ttl_hours` from instance settings (default 24 h, configurable in Instance → Settings).
 
 ## Transcribe task flow
 

@@ -21,12 +21,11 @@ from app.constants import (
     LEGACY_DEFAULT_ROUTE,
     MAX_UPLOAD_BYTES_CAP,
     PASSWORD_RESET_TTL_SEC,
-    SESSION_TTL_SEC,
     SUPPORTED_LOCALES,
 )
 from app.cookies import clear_session_cookie, set_session_cookie
 from app.db import get_session
-from app.deps import AuthContext, abort, get_instance_settings, locale_from_request, optional_auth, require_auth
+from app.deps import AuthContext, abort, get_instance_settings, locale_from_request, optional_auth, require_auth, session_ttl_sec_from_db
 from app.errors import ErrorCode
 from app.i18n import t
 from app.models import (
@@ -184,13 +183,14 @@ def seed_default_tariff(db: Session) -> Tariff:
 def create_session(db: Session, user_id: str) -> str:
     raw = new_session_token()
     now = utcnow()
+    ttl_sec = session_ttl_sec_from_db(db)
     db.add(
         AuthSession(
             id=new_id(),
             user_id=user_id,
             token_hash=hash_secret(raw),
             impersonate_user_id=None,
-            expires_at=now + timedelta(seconds=SESSION_TTL_SEC),
+            expires_at=now + timedelta(seconds=ttl_sec),
             created_at=now,
             last_seen_at=now,
         )
@@ -287,7 +287,7 @@ def setup(body: SetupBody, request: Request, response: Response, db: Session = D
     settings.allow_new_orgs = True
     write_audit(db, "instance.setup", actor_id=user.id, payload={"email": email})
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw)
+    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok", "user": user_public(user, "instance_admin")}
 
 
@@ -346,7 +346,7 @@ def signup(body: SignupBody, request: Request, response: Response, db: Session =
     db.flush()
     db.add(Membership(id=new_id(), user_id=user.id, org_id=org.id, role="org_admin"))
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw)
+    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok", "user": user_public(user, "org_admin")}
 
 
@@ -401,7 +401,7 @@ def login(body: LoginBody, request: Request, response: Response, db: Session = D
     if not verify_password(body.password, user.password_hash):
         abort(locale, ErrorCode.invalid_credentials)
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw)
+    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok"}
 
 
@@ -491,7 +491,7 @@ def sso_callback(
         return fail(ErrorCode.sso_misconfigured)
     raw = create_session(db, user.id)
     redirect = RedirectResponse(f"{public_base.rstrip('/')}/app", status_code=302)
-    set_session_cookie(redirect, raw)
+    set_session_cookie(redirect, raw, max_age=session_ttl_sec_from_db(db))
     return redirect
 
 
@@ -531,7 +531,7 @@ def change_password(
     user.updated_at = utcnow()
     revoke_user_auth(db, user.id)
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw)
+    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok"}
 
 

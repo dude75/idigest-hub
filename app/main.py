@@ -18,6 +18,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
 from app.cookies import set_session_cookie
 from app.constants import COOKIE_NAME
+from app.deps import cached_session_ttl_sec
 from app.db import get_engine, init_database
 from app.errors import ErrorCode, error_payload
 from app.i18n import negotiate_locale, t
@@ -162,7 +163,7 @@ async def slide_session_cookie(request: Request, call_next):
             set_cookie_already = True
             break
     if not set_cookie_already:
-        set_session_cookie(response, token)
+        set_session_cookie(response, token, max_age=cached_session_ttl_sec())
     return response
 
 

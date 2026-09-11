@@ -41,7 +41,7 @@ Authorized API responses decrypt on the fly — clients receive plaintext JSON. 
 | Name | `hub_session` |
 | Flags | `HttpOnly`, `SameSite=Lax`, `Secure` if `COOKIE_SECURE=true` |
 | Storage | Raw token never stored; DB holds `SHA-256` hash with `SESSION_SECRET` pepper |
-| TTL | 14 days, sliding on each request |
+| TTL | Configurable in Instance → Settings (`session_ttl_hours`, default 24 h, max 336 h); sliding on each request |
 
 Logout deletes the session row and clears the cookie.
 

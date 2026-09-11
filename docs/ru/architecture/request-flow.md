@@ -14,7 +14,7 @@ sequenceDiagram
     C->>H: Cookie hub_session=...
     H->>DB: Lookup sessions.token_hash
     H->>DB: Load user, membership, org
-    H->>H: Slide expires_at (+14 days)
+    H->>H: Slide expires_at (+session_ttl_hours)
   else Bearer API token
     C->>H: Authorization: Bearer ...
     H->>DB: Lookup api_tokens.token_hash
@@ -27,7 +27,7 @@ sequenceDiagram
 
 ### Session sliding
 
-Middleware в `app/main.py` повторно выставляет session cookie при успешных ответах, если браузер ещё не получил новый `Set-Cookie`. Каждый аутентифицированный запрос продлевает `expires_at` на `SESSION_TTL_SEC` (14 days).
+Middleware в `app/main.py` повторно выставляет session cookie при успешных ответах, если браузер ещё не получил новый `Set-Cookie`. Каждый аутентифицированный запрос продлевает `expires_at` на `session_ttl_hours` из настроек инстанса (по умолчанию 24 ч, настраивается в Instance → Settings).
 
 ## Поток задачи transcribe
 
