@@ -13,16 +13,17 @@ Set via `DATABASE_URL` in `.env`. Empty legacy fallback: `SQLITE_PATH`.
 
 ## Schema management
 
-1. **SQLAlchemy models** — `app/models.py`; `Base.metadata.create_all()` on startup
-2. **Alembic migrations** — `alembic/versions/` for incremental changes; `ensure_schema()` in `app/db.py` applies lightweight patches
+1. **SQLAlchemy models** — `app/models.py` (source of truth for new revisions)
+2. **Alembic migrations** — `alembic/versions/`; applied automatically on startup via `init_database()` in `app/db.py` (`alembic upgrade head`)
 
-Production workflow:
+Existing databases created before Alembic tracking (via the old `ensure_schema()` path) are detected on first startup and stamped to `head` before upgrade.
+
+Local development after model changes:
 
 ```bash
-./.venv/bin/alembic upgrade head
+./.venv/bin/alembic revision --autogenerate -m "description"
+./.venv/bin/alembic upgrade head   # optional; also runs on next app start
 ```
-
-Always run migrations before starting a new version.
 
 ## Core tables
 

@@ -8,6 +8,8 @@ from collections.abc import Generator
 from pathlib import Path
 from urllib.parse import unquote
 
+from alembic import command
+from alembic.config import Config
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
@@ -17,6 +19,7 @@ from app.config import Settings, get_settings
 log = logging.getLogger("app")
 _engine: Engine | None = None
 SessionLocal: sessionmaker[Session] | None = None
+_ALEMBIC_INI = Path(__file__).resolve().parent.parent / "alembic.ini"
 _SQLITE_BUSY_TIMEOUT_SEC = 30.0
 _POSTGRES_CONNECT_TIMEOUT_SEC = 10
 _POSTGRES_STARTUP_RETRIES = 60
@@ -78,180 +81,132 @@ def _table_columns(conn, table: str, *, engine: Engine) -> set[str]:
     return {column["name"] for column in table_insp.get_columns(table)}
 
 
-def _try_drop_column(conn, table: str, column: str) -> None:
-    try:
-        conn.exec_driver_sql(f"ALTER TABLE {table} DROP COLUMN {column}")
-    except Exception:
-        pass
+def _alembic_config() -> Config:
+    return Config(str(_ALEMBIC_INI))
 
 
-def ensure_schema(engine: Engine) -> None:
-    """Patches for upgrades without Alembic; create_all skips new columns on existing tables."""
-    sqlite = is_sqlite_engine(engine)
-    bool_false = "0" if sqlite else "false"
-    bool_true = "1" if sqlite else "true"
-
-    with engine.begin() as conn:
-        user_cols = _table_columns(conn, "users", engine=engine)
-        if user_cols and "default_route" not in user_cols:
-            conn.exec_driver_sql(
-                "ALTER TABLE users ADD COLUMN default_route VARCHAR(32) NOT NULL DEFAULT 'library/audio'"
-            )
-        user_cols = _table_columns(conn, "users", engine=engine)
-        if user_cols and "default_route" in user_cols:
-            conn.exec_driver_sql(
-                "UPDATE users SET default_route='library/audio' WHERE default_route='library'"
-            )
-
-        summary_cols = _table_columns(conn, "summaries", engine=engine)
-        if summary_cols and "edited" not in summary_cols:
-            conn.exec_driver_sql(
-                f"ALTER TABLE summaries ADD COLUMN edited BOOLEAN NOT NULL DEFAULT {bool_false}"
-            )
-        summary_cols = _table_columns(conn, "summaries", engine=engine)
-        if summary_cols and "title" not in summary_cols:
-            conn.exec_driver_sql("ALTER TABLE summaries ADD COLUMN title VARCHAR(255)")
-
-        transcript_cols = _table_columns(conn, "transcripts", engine=engine)
-        if transcript_cols and "title" not in transcript_cols:
-            conn.exec_driver_sql("ALTER TABLE transcripts ADD COLUMN title VARCHAR(255)")
-
-        tariff_cols = _table_columns(conn, "tariffs", engine=engine)
-        if tariff_cols:
-            if "price_per_1k_summary_chars" not in tariff_cols:
-                conn.exec_driver_sql(
-                    "ALTER TABLE tariffs ADD COLUMN price_per_1k_summary_chars "
-                    "NUMERIC(12, 6) NOT NULL DEFAULT 0"
-                )
-                if "price_per_generated_text" in tariff_cols:
-                    conn.exec_driver_sql(
-                        "UPDATE tariffs SET price_per_1k_summary_chars = price_per_generated_text"
-                    )
-            if "audio_retention_days" not in tariff_cols:
-                conn.exec_driver_sql(
-                    "ALTER TABLE tariffs ADD COLUMN audio_retention_days INTEGER NOT NULL DEFAULT 0"
-                )
-            if "api_enabled" not in tariff_cols:
-                conn.exec_driver_sql(
-                    f"ALTER TABLE tariffs ADD COLUMN api_enabled BOOLEAN NOT NULL DEFAULT {bool_true}"
-                )
-            if "signup_credit" not in tariff_cols:
-                conn.exec_driver_sql(
-                    "ALTER TABLE tariffs ADD COLUMN signup_credit NUMERIC(12, 2) NOT NULL DEFAULT 0"
-                )
-            if "price_per_generated_text" in _table_columns(conn, "tariffs", engine=engine):
-                _try_drop_column(conn, "tariffs", "price_per_generated_text")
-
-        task_cols = _table_columns(conn, "tasks", engine=engine)
-        if task_cols:
-            if "snap_price_per_1k_summary_chars" not in task_cols:
-                conn.exec_driver_sql(
-                    "ALTER TABLE tasks ADD COLUMN snap_price_per_1k_summary_chars "
-                    "NUMERIC(12, 6) NOT NULL DEFAULT 0"
-                )
-                if "snap_price_per_generated_text" in task_cols:
-                    conn.exec_driver_sql(
-                        "UPDATE tasks SET snap_price_per_1k_summary_chars = snap_price_per_generated_text"
-                    )
-            if "snap_price_per_generated_text" in _table_columns(conn, "tasks", engine=engine):
-                _try_drop_column(conn, "tasks", "snap_price_per_generated_text")
-
-        usage_cols = _table_columns(conn, "usage_events", engine=engine)
-        if usage_cols and "summary_chars" not in usage_cols:
-            conn.exec_driver_sql("ALTER TABLE usage_events ADD COLUMN summary_chars INTEGER")
-
-        org_cols = _table_columns(conn, "organizations", engine=engine)
-        if org_cols:
-            if "sso_enabled" not in org_cols:
-                _add_bool_column(conn, "organizations", "sso_enabled", 0, engine=engine)
-            if "sso_issuer" not in org_cols:
-                conn.exec_driver_sql("ALTER TABLE organizations ADD COLUMN sso_issuer VARCHAR(512)")
-            if "sso_client_id" not in org_cols:
-                conn.exec_driver_sql("ALTER TABLE organizations ADD COLUMN sso_client_id VARCHAR(255)")
-            if "sso_client_secret_encrypted" not in org_cols:
-                conn.exec_driver_sql("ALTER TABLE organizations ADD COLUMN sso_client_secret_encrypted TEXT")
-
-        user_cols = _table_columns(conn, "users", engine=engine)
-        if user_cols and "sso_sub" not in user_cols:
-            conn.exec_driver_sql("ALTER TABLE users ADD COLUMN sso_sub VARCHAR(255)")
-
-        settings_cols = _table_columns(conn, "instance_settings", engine=engine)
-        if settings_cols:
-            _instance_rate_limit_patches(conn, settings_cols, engine=engine)
-            if "import_enabled" not in settings_cols:
-                _add_bool_column(conn, "instance_settings", "import_enabled", 1, engine=engine)
-            if "import_allowed_extractors_json" not in settings_cols:
-                conn.exec_driver_sql(
-                    "ALTER TABLE instance_settings ADD COLUMN import_allowed_extractors_json JSON"
-                )
-            if "download_proxy_url" not in settings_cols:
-                conn.exec_driver_sql(
-                    "ALTER TABLE instance_settings ADD COLUMN download_proxy_url VARCHAR(512)"
-                )
-            if "download_proxy_password_encrypted" not in settings_cols:
-                conn.exec_driver_sql(
-                    "ALTER TABLE instance_settings ADD COLUMN download_proxy_password_encrypted TEXT"
-                )
-            if "download_proxy_enabled" not in settings_cols:
-                _add_bool_column(conn, "instance_settings", "download_proxy_enabled", 0, engine=engine)
-            if "download_cookies_path" not in settings_cols:
-                conn.exec_driver_sql(
-                    "ALTER TABLE instance_settings ADD COLUMN download_cookies_path VARCHAR(512)"
-                )
-            if "import_audio_bitrate_kbps" not in settings_cols:
-                conn.exec_driver_sql(
-                    "ALTER TABLE instance_settings ADD COLUMN import_audio_bitrate_kbps "
-                    "INTEGER NOT NULL DEFAULT 64"
-                )
-            if "session_ttl_hours" not in settings_cols:
-                _add_int_column(conn, "instance_settings", "session_ttl_hours", 24, engine=engine)
+def _has_alembic_version(engine: Engine) -> bool:
+    return inspect(engine).has_table("alembic_version")
 
 
-def _add_int_column(conn, table: str, column: str, default: int, *, engine: Engine) -> None:
-    cols = _table_columns(conn, table, engine=engine)
-    if column not in cols:
-        conn.exec_driver_sql(
-            f"ALTER TABLE {table} ADD COLUMN {column} INTEGER NOT NULL DEFAULT {default}"
-        )
+def _has_app_schema(engine: Engine) -> bool:
+    return inspect(engine).has_table("users")
 
 
-def _add_bool_column(conn, table: str, column: str, default: int, *, engine: Engine) -> None:
-    cols = _table_columns(conn, table, engine=engine)
-    if column not in cols:
-        if is_sqlite_engine(engine):
-            sql_default = str(default)
-        else:
-            sql_default = "true" if default else "false"
-        conn.exec_driver_sql(
-            f"ALTER TABLE {table} ADD COLUMN {column} BOOLEAN NOT NULL DEFAULT {sql_default}"
-        )
+def _bootstrap_alembic(engine: Engine) -> None:
+    if _has_alembic_version(engine):
+        return
+    if _has_app_schema(engine):
+        _startup_log("database init: legacy schema without alembic_version, stamping head")
+        command.stamp(_alembic_config(), "head")
 
 
-def _instance_rate_limit_patches(conn, settings_cols: set[str], *, engine: Engine) -> None:
-    if "rate_limit_enabled" not in settings_cols:
-        _add_bool_column(conn, "instance_settings", "rate_limit_enabled", 1, engine=engine)
-    patches = (
-        ("rate_limit_login_email", 30),
-        ("rate_limit_login_ip", 0),
-        ("rate_limit_login_global", 500),
-        ("rate_limit_signup_email", 10),
-        ("rate_limit_signup_ip", 0),
-        ("rate_limit_signup_global", 100),
-        ("rate_limit_reset_email", 10),
-        ("rate_limit_reset_ip", 0),
-        ("rate_limit_reset_global", 50),
-        ("rate_limit_reset_confirm_ip", 0),
-        ("rate_limit_reset_confirm_global", 100),
-        ("rate_limit_setup_ip", 0),
-        ("rate_limit_setup_global", 10),
-        ("rate_limit_api_user", 120),
-        ("rate_limit_api_ip", 0),
-        ("rate_limit_api_global", 2000),
-        ("rate_limit_api_tasks_user", 30),
-        ("rate_limit_api_tasks_ip", 0),
+def _run_alembic_upgrade() -> None:
+    command.upgrade(_alembic_config(), "head")
+
+
+def _fk_on_delete(conn, table: str, column: str, *, engine: Engine) -> str | None:
+    if is_sqlite_engine(engine):
+        rows = conn.exec_driver_sql(f"PRAGMA foreign_key_list({table})").fetchall()
+        for row in rows:
+            if row[3] == column:
+                return (row[6] or "").upper()
+        return None
+
+    table_insp = inspect(conn)
+    for fk in table_insp.get_foreign_keys(table):
+        if column in fk["constrained_columns"]:
+            ondelete = (fk.get("options") or {}).get("ondelete")
+            return (ondelete or "").upper() if ondelete else None
+    return None
+
+
+def _task_produced_fks_ok(conn, *, engine: Engine) -> bool:
+    for column in ("produced_transcript_id", "produced_summary_id"):
+        if _fk_on_delete(conn, "tasks", column, engine=engine) != "SET NULL":
+            return False
+    return True
+
+
+def _usage_events_references_tasks_old(conn) -> bool:
+    table_insp = inspect(conn)
+    if not table_insp.has_table("usage_events"):
+        return False
+    rows = conn.exec_driver_sql("PRAGMA foreign_key_list(usage_events)").fetchall()
+    return any(row[2] == "tasks_old" for row in rows)
+
+
+def _sqlite_recreate_table_from_model(conn, model_cls) -> None:
+    table = model_cls.__table__
+    bind = conn.get_bind()
+    name = table.name
+    columns = [col["name"] for col in inspect(conn).get_columns(name)]
+    quoted = ", ".join(columns)
+    conn.exec_driver_sql(f"ALTER TABLE {name} RENAME TO {name}_old")
+    for index in table.indexes:
+        conn.exec_driver_sql(f"DROP INDEX IF EXISTS {index.name}")
+    table.create(bind)
+    conn.exec_driver_sql(f"INSERT INTO {name} ({quoted}) SELECT {quoted} FROM {name}_old")
+    conn.exec_driver_sql(f"DROP TABLE {name}_old")
+
+
+def _sqlite_fix_task_produced_fks(conn) -> None:
+    """Recreate tasks and usage_events; renaming tasks breaks usage_events.task_id FK on SQLite."""
+    from app.models import Task, UsageEvent
+
+    conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+    _sqlite_recreate_table_from_model(conn, Task)
+    if inspect(conn).has_table("usage_events"):
+        _sqlite_recreate_table_from_model(conn, UsageEvent)
+    conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+
+
+def _apply_task_produced_fk_patch(conn, *, engine: Engine) -> None:
+    if not _table_columns(conn, "tasks", engine=engine):
+        return
+
+    if is_sqlite_engine(engine):
+        needs_task_fix = not _task_produced_fks_ok(conn, engine=engine)
+        needs_usage_fix = _usage_events_references_tasks_old(conn)
+        if not needs_task_fix and not needs_usage_fix:
+            return
+        if needs_task_fix:
+            _sqlite_fix_task_produced_fks(conn)
+            return
+        from app.models import UsageEvent
+
+        conn.exec_driver_sql("PRAGMA foreign_keys=OFF")
+        _sqlite_recreate_table_from_model(conn, UsageEvent)
+        conn.exec_driver_sql("PRAGMA foreign_keys=ON")
+        return
+
+    if _task_produced_fks_ok(conn, engine=engine):
+        return
+
+    conn.exec_driver_sql(
+        "ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_produced_transcript_id_fkey"
     )
-    for column, default in patches:
-        _add_int_column(conn, "instance_settings", column, default, engine=engine)
+    conn.exec_driver_sql(
+        "ALTER TABLE tasks ADD CONSTRAINT tasks_produced_transcript_id_fkey "
+        "FOREIGN KEY (produced_transcript_id) REFERENCES transcripts (id) ON DELETE SET NULL"
+    )
+    conn.exec_driver_sql(
+        "ALTER TABLE tasks DROP CONSTRAINT IF EXISTS tasks_produced_summary_id_fkey"
+    )
+    conn.exec_driver_sql(
+        "ALTER TABLE tasks ADD CONSTRAINT tasks_produced_summary_id_fkey "
+        "FOREIGN KEY (produced_summary_id) REFERENCES summaries (id) ON DELETE SET NULL"
+    )
+
+
+def _ensure_task_produced_fk_on_delete_set_null(engine: Engine) -> None:
+    with engine.begin() as conn:
+        _apply_task_produced_fk_patch(conn, engine=engine)
+
+
+def _apply_idempotent_patches(engine: Engine) -> None:
+    """Non-column fixes that legacy ensure_schema() never applied."""
+    _ensure_task_produced_fk_on_delete_set_null(engine)
 
 
 def _startup_log(message: str) -> None:
@@ -280,15 +235,14 @@ def _wait_for_database(engine: Engine) -> None:
 
 
 def init_database(engine: Engine) -> None:
-    """Create tables and apply incremental schema updates."""
-    from app.models import Base
-
+    """Wait for DB, run Alembic migrations, apply idempotent schema patches."""
     _startup_log("database init: begin")
     _wait_for_database(engine)
-    _startup_log("database init: create_all")
-    Base.metadata.create_all(engine)
-    _startup_log("database init: ensure_schema")
-    ensure_schema(engine)
+    _bootstrap_alembic(engine)
+    _startup_log("database init: alembic upgrade")
+    _run_alembic_upgrade()
+    _startup_log("database init: schema patches")
+    _apply_idempotent_patches(engine)
     _startup_log("database init: done")
 
 

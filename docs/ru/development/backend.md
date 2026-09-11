@@ -8,7 +8,7 @@ app/
 ├── config.py         # pydantic-settings from .env
 ├── constants.py      # TTLs, limits, locales
 ├── models.py         # SQLAlchemy ORM
-├── db.py             # Engine, session, ensure_schema
+├── db.py             # Engine, session, init_database (Alembic)
 ├── deps.py           # AuthContext, require_auth
 ├── errors.py         # ErrorCode enum, ApiError
 ├── presenters.py     # Entity → JSON

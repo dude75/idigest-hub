@@ -13,16 +13,17 @@
 
 ## Управление схемой
 
-1. **SQLAlchemy models** — `app/models.py`; `Base.metadata.create_all()` при старте
-2. **Alembic migrations** — `alembic/versions/` для инкрементальных изменений; `ensure_schema()` в `app/db.py` применяет лёгкие патчи
+1. **SQLAlchemy models** — `app/models.py` (источник правды для новых ревизий)
+2. **Alembic migrations** — `alembic/versions/`; применяются автоматически при старте через `init_database()` в `app/db.py` (`alembic upgrade head`)
 
-Production workflow:
+Существующие базы, созданные до Alembic (через старый путь `ensure_schema()`), при первом старте определяются автоматически и получают `stamp head` перед upgrade.
+
+Локальная разработка после изменения моделей:
 
 ```bash
-./.venv/bin/alembic upgrade head
+./.venv/bin/alembic revision --autogenerate -m "description"
+./.venv/bin/alembic upgrade head   # опционально; также выполнится при следующем старте
 ```
-
-Всегда выполняйте миграции перед запуском новой версии.
 
 ## Основные таблицы
 

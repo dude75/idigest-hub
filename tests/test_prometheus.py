@@ -48,8 +48,7 @@ def metrics_client(tmp_path, monkeypatch):
     monkeypatch.setenv("METRICS_TOKEN", "metrics-secret")
 
     from app.config import get_settings
-    from app.db import get_engine, reset_engine
-    from app.models import Base
+    from app.db import reset_engine
     from app.rate_limit import reset_rate_limiter
     from app.services.storage import reset_storage
     import app.services.dispatcher as dispatcher
@@ -57,7 +56,6 @@ def metrics_client(tmp_path, monkeypatch):
     get_settings.cache_clear()
     reset_storage()
     reset_engine()
-    Base.metadata.create_all(get_engine())
     reset_rate_limiter()
     dispatcher._tick_lock = None
 
@@ -95,13 +93,11 @@ def test_metrics_denied_when_token_unconfigured(tmp_path, monkeypatch):
     monkeypatch.setenv("METRICS_TOKEN", "")
 
     from app.config import get_settings
-    from app.db import get_engine, reset_engine
-    from app.models import Base
+    from app.db import reset_engine
     import app.services.dispatcher as dispatcher
 
     get_settings.cache_clear()
     reset_engine()
-    Base.metadata.create_all(get_engine())
     dispatcher._tick_lock = None
 
     from app.main import app
@@ -127,13 +123,11 @@ def test_metrics_disabled_keeps_process_collectors(tmp_path, monkeypatch):
     monkeypatch.setenv("METRICS_TOKEN", "metrics-secret")
 
     from app.config import get_settings
-    from app.db import get_engine, reset_engine
-    from app.models import Base
+    from app.db import reset_engine
     import app.services.dispatcher as dispatcher
 
     get_settings.cache_clear()
     reset_engine()
-    Base.metadata.create_all(get_engine())
     dispatcher._tick_lock = None
 
     from app.main import app

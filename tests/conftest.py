@@ -35,15 +35,13 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setenv("DISPATCH_POLL_SEC", "3600")
 
     from app.config import get_settings
-    from app.db import get_engine, reset_engine
-    from app.models import Base
+    from app.db import reset_engine
 
     from app.services.storage import reset_storage
 
     get_settings.cache_clear()
     reset_storage()
     reset_engine()
-    Base.metadata.create_all(get_engine())
 
     from app.rate_limit import reset_rate_limiter
 

@@ -56,7 +56,7 @@ flowchart TB
 При старте (lifespan в `app/main.py`):
 
 1. Загрузка настроек из `.env`
-2. Создание `{DATA_DIR}`, запуск SQLAlchemy `create_all` + Alembic-style `ensure_schema`
+2. Создание `{DATA_DIR}`, запуск Alembic-миграций (`init_database` → `alembic upgrade head`)
 3. Запуск `dispatcher_loop` (async background task, опрос каждые `DISPATCH_POLL_SEC`, по умолчанию 1s)
 4. Запуск `rate_limit_sweeper` (очистка in-memory buckets)
 
