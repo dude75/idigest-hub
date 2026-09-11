@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import re
 import tempfile
@@ -309,6 +310,44 @@ def validate_import_url(url: str) -> str:
     return cleaned
 
 
+def assert_import_fetch_allowed(url: str, *, settings_allowed: list[str]) -> str:
+    """Reject internal/metadata URLs and non-catalog hosts before yt-dlp runs."""
+    cleaned = validate_import_url(url)
+    host = host_from_url(cleaned)
+
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise UrlImportError(
+                "unsupported_host",
+                meta={"host": host, "reason": "blocked_address"},
+            )
+
+    platform = catalog_platform_for_host(host)
+    if platform is None:
+        raise UrlImportError(
+            "unsupported_host",
+            meta={"host": host, "reason": "not_in_catalog"},
+        )
+
+    extractor_id = platform["id"]
+    if extractor_id not in settings_allowed:
+        raise UrlImportError(
+            "unsupported_host",
+            meta={
+                "host": host,
+                "platform": platform["label"],
+                "extractor": extractor_id,
+                "reason": "disabled_by_admin",
+            },
+        )
+
+    return cleaned
+
+
 def _check_extractor(
     extractor_key: str | None,
     *,
@@ -356,7 +395,7 @@ def probe_url(
     max_audio_bitrate_kbps: int = 0,
     on_progress: ProgressCallback | None = None,
 ) -> dict[str, Any]:
-    cleaned = validate_import_url(url)
+    cleaned = assert_import_fetch_allowed(url, settings_allowed=settings_allowed)
     host = host_from_url(cleaned)
     if on_progress:
         on_progress("probing", {"host": host})

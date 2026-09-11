@@ -65,6 +65,58 @@ def test_import_disabled(client):
     assert err_code(response) == "import_disabled"
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "http://169.254.169.254/latest/meta-data/",
+        "http://127.0.0.1/",
+        "http://10.0.0.1/",
+        "https://evil.example.com/video/1",
+    ],
+)
+def test_assert_import_fetch_allowed_blocks_unsafe(url):
+    from app.services.url_import import UrlImportError, assert_import_fetch_allowed
+
+    with pytest.raises(UrlImportError) as exc_info:
+        assert_import_fetch_allowed(url, settings_allowed=["Youtube", "Rutube", "TikTok"])
+    assert exc_info.value.code == "unsupported_host"
+
+
+def test_assert_import_fetch_allowed_accepts_catalog_host():
+    from app.services.url_import import assert_import_fetch_allowed
+
+    cleaned = assert_import_fetch_allowed(
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        settings_allowed=["Youtube"],
+    )
+    assert cleaned.startswith("https://")
+
+
+def test_assert_import_fetch_allowed_respects_admin_whitelist():
+    from app.services.url_import import UrlImportError, assert_import_fetch_allowed
+
+    with pytest.raises(UrlImportError) as exc_info:
+        assert_import_fetch_allowed(
+            "https://www.tiktok.com/@user/video/1",
+            settings_allowed=["Youtube"],
+        )
+    assert exc_info.value.code == "unsupported_host"
+    assert exc_info.value.meta["reason"] == "disabled_by_admin"
+
+
+def test_import_rejects_blocked_url_at_api(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "ssrf@example.com", "ssrfpass1234", tariff_id).status_code == 200
+    login_ready(client, "ssrf@example.com", "ssrfpass1234")
+    response = client.post(
+        "/api/v1/tasks/import",
+        json={"url": "http://169.254.169.254/latest/meta-data/"},
+    )
+    assert response.status_code == 400
+    assert err_code(response) == "unsupported_host"
+
+
 def test_import_invalid_url(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)
@@ -282,7 +334,7 @@ def test_import_task_success(client, tmp_path, monkeypatch):
     assert audio.json()["filename"] == "Sample Video.mp3"
 
 
-def test_import_unsupported_extractor(client, monkeypatch):
+def test_import_unsupported_extractor(client):
     setup_admin(client)
     client.patch(
         "/api/v1/instance/settings",
@@ -292,39 +344,9 @@ def test_import_unsupported_extractor(client, monkeypatch):
     assert signup(client, "tiktok@example.com", "tiktokpass1", tariff_id).status_code == 200
     login_ready(client, "tiktok@example.com", "tiktokpass1")
 
-    from app.services.url_import import UrlImportError
-
-    def fake_download(url, **kwargs):
-        raise UrlImportError(
-            "unsupported_host",
-            meta={
-                "host": "tiktok.com",
-                "platform": "TikTok",
-                "reason": "disabled_by_admin",
-            },
-        )
-
-    monkeypatch.setattr("app.services.import_runner.download_audio", fake_download)
-
-    created = client.post(
+    response = client.post(
         "/api/v1/tasks/import",
         json={"url": "https://www.tiktok.com/@user/video/1"},
     )
-    assert created.status_code == 202
-    task_id = created.json()["task_id"]
-
-    import time
-
-    body = None
-    for _ in range(100):
-        polled = client.get(f"/api/v1/tasks/{task_id}")
-        assert polled.status_code == 200
-        body = polled.json()
-        if body["status"] in {"success", "error"}:
-            break
-        time.sleep(0.05)
-
-    assert body is not None
-    assert body["status"] == "error"
-    assert body["error"]["code"] == "unsupported_host"
-    assert body["meta"]["reason"] == "disabled_by_admin"
+    assert response.status_code == 400
+    assert err_code(response) == "unsupported_host"

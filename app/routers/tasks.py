@@ -155,10 +155,13 @@ async def create_import(
     settings = get_instance_settings(db)
     if not settings.import_enabled:
         ctx.raise_error(ErrorCode.import_disabled)
-    from app.services.url_import import UrlImportError, validate_import_url
+    from app.services.import_platforms import allowed_extractors
+    from app.services.url_import import UrlImportError, assert_import_fetch_allowed
 
     try:
-        url = validate_import_url(body.url)
+        url = assert_import_fetch_allowed(
+            body.url, settings_allowed=allowed_extractors(settings)
+        )
     except UrlImportError as exc:
         ctx.raise_error(ErrorCode(exc.code))
     tariff = org.tariff
@@ -300,13 +303,14 @@ def _validate_task_source(ctx: AuthContext, db: Session, org: Organization, task
         settings = get_instance_settings(db)
         if not settings.import_enabled:
             ctx.raise_error(ErrorCode.import_disabled)
-        from app.services.url_import import UrlImportError, validate_import_url
+        from app.services.import_platforms import allowed_extractors
+        from app.services.url_import import UrlImportError, assert_import_fetch_allowed
 
         url = (task.meta_json or {}).get("url")
         if not isinstance(url, str) or not url.strip():
             ctx.raise_error(ErrorCode.not_found)
         try:
-            validate_import_url(url)
+            assert_import_fetch_allowed(url, settings_allowed=allowed_extractors(settings))
         except UrlImportError as exc:
             ctx.raise_error(ErrorCode(exc.code))
 
