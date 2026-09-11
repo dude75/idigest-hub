@@ -66,12 +66,26 @@ def build_backup(
         manifest["transcript_count"] = len(rows)
 
     if include_summaries:
-        from app.routers.library import _list_filter
+        from app.routers.library import (
+            _audio_filenames,
+            _list_filter,
+            _summary_source_context,
+            _transcripts_by_id,
+        )
 
         rows = _list_filter(ctx, db, Summary, "summary", include_hidden=True)
+        transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})
+        audio_filenames = _audio_filenames(
+            db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
+        )
         for row in rows:
             body = unwrap_markdown_fence(decrypt_str(row.body_encrypted))
-            display = summary_display_title(row)
+            source_transcript, source_filename = _summary_source_context(row, transcripts, audio_filenames)
+            display = summary_display_title(
+                row,
+                source_transcript=source_transcript,
+                source_filename=source_filename,
+            )
             stem = safe_filename(f"{row.id}_{display}")
             files[f"summaries/{stem}.md"] = body
             meta = {

@@ -446,6 +446,23 @@ def test_export_audio_transcript_summary(client):
     assert "```" not in exported.text
 
 
+def test_summary_display_title_uses_transcript_name(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    transcript_id, summary_id = _insert_transcript_and_summary(org_id, user_id, audio.json()["id"])
+
+    listed = client.get("/api/v1/summaries")
+    assert listed.status_code == 200, listed.text
+    match = next(item for item in listed.json()["items"] if item["id"] == summary_id)
+    assert match["source_transcript_title"] == "clip"
+    assert match["display_title"] == f"clip-{summary_id[:8]}"
+
+
 def test_rename_transcript_and_summary(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

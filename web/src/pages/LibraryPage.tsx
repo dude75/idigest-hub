@@ -267,7 +267,7 @@ export function LibraryPage() {
               <div className="group-title">
                 {g.sourceId ? (
                   <Link to={`/app/transcript/${g.sourceId}`}>
-                    {t('summary.sourceTranscript', { id: g.sourceId.slice(0, 8) })}
+                    {g.items[0]?.source_transcript_title || t('summary.sourceTranscript', { id: g.sourceId.slice(0, 8) })}
                   </Link>
                 ) : (
                   <span className="muted">{t('summary.noSource')}</span>

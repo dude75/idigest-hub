@@ -118,6 +118,7 @@ export type Summary = ShareBadge & {
   org_id: string
   owner_user_id: string
   source_transcript_id: string | null
+  source_transcript_title?: string | null
   skill_ids: string[]
   title?: string | null
   display_title?: string

@@ -295,6 +295,30 @@ def _audio_filenames(db: Session, audio_ids: set[str | None]) -> dict[str, str]:
     }
 
 
+def _transcripts_by_id(db: Session, transcript_ids: set[str | None]) -> dict[str, Transcript]:
+    ids = [transcript_id for transcript_id in transcript_ids if transcript_id]
+    if not ids:
+        return {}
+    return {
+        transcript.id: transcript
+        for transcript in db.scalars(select(Transcript).where(Transcript.id.in_(ids))).all()
+    }
+
+
+def _summary_source_context(
+    summary: Summary,
+    transcripts: dict[str, Transcript],
+    audio_filenames: dict[str, str],
+) -> tuple[Transcript | None, str | None]:
+    transcript = transcripts.get(summary.source_transcript_id) if summary.source_transcript_id else None
+    source_filename = (
+        audio_filenames.get(transcript.source_audio_id)
+        if transcript and transcript.source_audio_id
+        else None
+    )
+    return transcript, source_filename
+
+
 @router.get("/transcripts")
 def list_transcripts(
     include_hidden: bool = False,
@@ -335,7 +359,12 @@ def get_transcript(
         source_filename=source_audio.original_filename if source_audio else None,
     )
     payload["summaries"] = [
-        summary_public(item, extra=_share_badge(db, "summary", item.id, item.owner_user_id, ctx))
+        summary_public(
+            item,
+            extra=_share_badge(db, "summary", item.id, item.owner_user_id, ctx),
+            source_transcript=row,
+            source_filename=source_audio.original_filename if source_audio else None,
+        )
         for item in summaries
         if (
             can_read_object(ctx, db, "summary", item.owner_user_id, item.org_id, item.id)
@@ -423,11 +452,23 @@ def list_summaries(
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     rows = _list_filter(ctx, db, Summary, "summary", include_hidden)
+    transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})
+    audio_filenames = _audio_filenames(
+        db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
+    )
+    items = []
+    for row in rows:
+        source_transcript, source_filename = _summary_source_context(row, transcripts, audio_filenames)
+        items.append(
+            summary_public(
+                row,
+                extra=_share_badge(db, "summary", row.id, row.owner_user_id, ctx),
+                source_transcript=source_transcript,
+                source_filename=source_filename,
+            )
+        )
     return {
-        "items": [
-            summary_public(row, extra=_share_badge(db, "summary", row.id, row.owner_user_id, ctx))
-            for row in rows
-        ],
+        "items": items,
         "hidden_count": _count_hidden_for_user(ctx, db, Summary, "summary"),
     }
 
@@ -440,7 +481,19 @@ def get_summary(
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
     body = decrypt_str(row.body_encrypted)
-    return summary_public(row, body, _share_badge(db, "summary", row.id, row.owner_user_id, ctx))
+    source_transcript = db.get(Transcript, row.source_transcript_id) if row.source_transcript_id else None
+    source_audio = (
+        db.get(Audio, source_transcript.source_audio_id)
+        if source_transcript and source_transcript.source_audio_id
+        else None
+    )
+    return summary_public(
+        row,
+        body,
+        _share_badge(db, "summary", row.id, row.owner_user_id, ctx),
+        source_transcript=source_transcript,
+        source_filename=source_audio.original_filename if source_audio else None,
+    )
 
 
 @router.get("/summaries/{summary_id}/export")
@@ -453,10 +506,20 @@ def export_summary(
     row = db.get(Summary, summary_id)
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
+    source_transcript = db.get(Transcript, row.source_transcript_id) if row.source_transcript_id else None
+    source_audio = (
+        db.get(Audio, source_transcript.source_audio_id)
+        if source_transcript and source_transcript.source_audio_id
+        else None
+    )
     body = unwrap_markdown_fence(decrypt_str(row.body_encrypted))
     ext = "md" if format == "md" else "txt"
     media = "text/markdown; charset=utf-8" if format == "md" else "text/plain; charset=utf-8"
-    return attachment_response(body, f"{safe_filename(summary_display_title(row))}.{ext}", media)
+    return attachment_response(
+        body,
+        f"{safe_filename(summary_display_title(row, source_transcript=source_transcript, source_filename=source_audio.original_filename if source_audio else None))}.{ext}",
+        media,
+    )
 
 
 @router.post("/summaries/{summary_id}/hide")
@@ -542,7 +605,19 @@ def patch_summary(
         changed = True
     if changed:
         write_audit(db, "summary.update", ctx, {"summary_id": row.id})
-    return summary_public(row, body_text, _share_badge(db, "summary", row.id, row.owner_user_id, ctx))
+    source_transcript = db.get(Transcript, row.source_transcript_id) if row.source_transcript_id else None
+    source_audio = (
+        db.get(Audio, source_transcript.source_audio_id)
+        if source_transcript and source_transcript.source_audio_id
+        else None
+    )
+    return summary_public(
+        row,
+        body_text,
+        _share_badge(db, "summary", row.id, row.owner_user_id, ctx),
+        source_transcript=source_transcript,
+        source_filename=source_audio.original_filename if source_audio else None,
+    )
 
 
 @router.delete("/summaries/{summary_id}")

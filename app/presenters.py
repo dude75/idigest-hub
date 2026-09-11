@@ -130,10 +130,18 @@ def transcript_display_title(transcript: Transcript, *, source_filename: str | N
     return f"transcript-{transcript.id[:8]}"
 
 
-def summary_display_title(summary: Summary) -> str:
+def summary_display_title(
+    summary: Summary,
+    *,
+    source_transcript: Transcript | None = None,
+    source_filename: str | None = None,
+) -> str:
     if summary.title and summary.title.strip():
         return summary.title.strip()
-    return f"summary-{summary.id[:8]}"
+    if source_transcript is not None:
+        tr_name = transcript_display_title(source_transcript, source_filename=source_filename)
+        return f"{tr_name}-{summary.id[:8]}"
+    return summary.id[:8]
 
 
 def transcript_public(
@@ -161,16 +169,31 @@ def transcript_public(
 
 
 def summary_public(
-    summary: Summary, body_text: str | None = None, extra: dict[str, Any] | None = None
+    summary: Summary,
+    body_text: str | None = None,
+    extra: dict[str, Any] | None = None,
+    *,
+    source_transcript: Transcript | None = None,
+    source_filename: str | None = None,
 ) -> dict[str, Any]:
+    source_transcript_title = (
+        transcript_display_title(source_transcript, source_filename=source_filename)
+        if source_transcript is not None
+        else None
+    )
     payload: dict[str, Any] = {
         "id": summary.id,
         "org_id": summary.org_id,
         "owner_user_id": summary.owner_user_id,
         "source_transcript_id": summary.source_transcript_id,
+        "source_transcript_title": source_transcript_title,
         "skill_ids": summary.skill_ids_json,
         "title": summary.title,
-        "display_title": summary_display_title(summary),
+        "display_title": summary_display_title(
+            summary,
+            source_transcript=source_transcript,
+            source_filename=source_filename,
+        ),
         "edited": summary.edited,
         "created_at": summary.created_at.isoformat(),
     }
