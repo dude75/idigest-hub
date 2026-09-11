@@ -1,3 +1,5 @@
+import pytest
+
 from tests.conftest import (
     ADMIN_EMAIL,
     ADMIN_PASSWORD,
@@ -10,6 +12,7 @@ from tests.conftest import (
     login_ready,
     logout,
     me,
+    open_db,
     seed_node_health,
     set_task_queued_at_past,
     setup_admin,
@@ -458,4 +461,105 @@ def test_list_tasks_admin_filters(client, fake_workers):
     assert {item["task_id"] for item in by_user.json()["items"]} == {other_id}
     other_org_list = client.get(f"/api/v1/tasks?org_id={other_org}")
     assert {item["task_id"] for item in other_org_list.json()["items"]} == {other_id}
+
+
+@pytest.mark.asyncio
+async def test_recover_import_running_after_restart(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "recover@example.com", "recoverpass", tariff_id).status_code == 200
+    user = me(client)
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Organization, Task, new_id
+        from app.services.billing import snapshot_fields
+        from app.services.dispatcher import recover_orphaned_tasks
+        from app.timeutil import utcnow
+
+        org = db.get(Organization, user["org"]["id"])
+        assert org is not None
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="import",
+            status="running",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={
+                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "stage": "downloading",
+            },
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+
+        await recover_orphaned_tasks(db)
+        db.expire_all()
+        recovered = db.get(Task, task.id)
+        assert recovered is not None
+        assert recovered.status == "queued"
+        assert recovered.meta_json["stage"] == "queued"
+    finally:
+        db.close()
+
+
+@pytest.mark.asyncio
+async def test_recover_transcribe_unreachable_requeues(client, fake_workers):
+    ctx = _org_user_with_audio(client)
+    fake_workers.transcribe_mode = "queued"
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
+    assert created.status_code == 202, created.text
+    task_id = created.json()["task_id"]
+    assert get_task_row(task_id).status == "running"
+
+    db = open_db()
+    try:
+        from app.services.dispatcher import recover_orphaned_tasks
+
+        fake_workers.poll_mode = "network"
+        await recover_orphaned_tasks(db)
+        db.expire_all()
+        from app.models import Task
+
+        recovered = db.get(Task, task_id)
+        assert recovered is not None
+        assert recovered.status == "queued"
+        assert recovered.worker_id is None
+        assert recovered.worker_task_id is None
+    finally:
+        db.close()
+
+
+@pytest.mark.asyncio
+async def test_recover_transcribe_worker_still_running_keeps_status(client, fake_workers):
+    ctx = _org_user_with_audio(client)
+    fake_workers.transcribe_mode = "queued"
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
+    assert created.status_code == 202, created.text
+    task_id = created.json()["task_id"]
+    before = get_task_row(task_id)
+
+    db = open_db()
+    try:
+        from app.services.dispatcher import recover_orphaned_tasks
+
+        fake_workers.poll_mode = "running"
+        await recover_orphaned_tasks(db)
+        db.expire_all()
+        from app.models import Task
+
+        recovered = db.get(Task, task_id)
+        assert recovered is not None
+        assert recovered.status == "running"
+        assert recovered.worker_id == before.worker_id
+        assert recovered.worker_task_id == before.worker_task_id
+    finally:
+        db.close()
 

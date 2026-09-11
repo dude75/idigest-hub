@@ -297,6 +297,104 @@ async def _on_worker_terminal_error(
     await _finish_worker_cleanup(node, worker_task_id)
 
 
+async def recover_orphaned_tasks(db: Session) -> None:
+    """Reconcile running tasks after hub process restart."""
+    nodes = list(db.scalars(select(WorkerNode)).all())
+    for node in nodes:
+        await refresh_node_health(db, node)
+
+    running = list(db.scalars(select(Task).where(Task.status == "running")).all())
+    if not running:
+        return
+
+    log.info("recover orphaned tasks count=%d", len(running))
+    for task in running:
+        if task.type == "import":
+            task.status = "queued"
+            meta = dict(task.meta_json or {})
+            meta["stage"] = "queued"
+            task.meta_json = meta
+            task.updated_at = utcnow()
+            log.info("recover task=%s type=import running->queued", task.id)
+            continue
+        await _recover_worker_task(db, task, nodes)
+
+    _commit(db)
+
+
+async def _recover_worker_task(db: Session, task: Task, nodes: list[WorkerNode]) -> None:
+    if task.type not in {"transcribe", "summarize"}:
+        return
+
+    if not task.worker_task_id:
+        task.worker_id = None
+        task.status = "queued"
+        task.updated_at = utcnow()
+        log.info("recover task=%s running->queued (no worker_task_id)", task.id)
+        return
+
+    node = next((n for n in nodes if n.id == task.worker_id), None)
+    if node is None:
+        task.worker_id = None
+        task.worker_task_id = None
+        task.status = "queued"
+        task.updated_at = utcnow()
+        log.info("recover task=%s running->queued (worker node missing)", task.id)
+        return
+
+    try:
+        status_code, body = await get_task(node, task.worker_task_id)
+    except WorkerClientError:
+        log.info("recover task=%s running->queued (worker unreachable)", task.id)
+        task.worker_id = None
+        task.worker_task_id = None
+        task.status = "queued"
+        task.updated_at = utcnow()
+        return
+
+    if status_code == 404:
+        if task.produced_transcript_id or task.produced_summary_id:
+            task.worker_id = None
+            task.worker_task_id = None
+            return
+        task.worker_id = None
+        task.worker_task_id = None
+        task.status = "queued"
+        task.updated_at = utcnow()
+        log.info("recover task=%s running->queued (worker 404)", task.id)
+        return
+
+    if status_code >= 500:
+        log.info("recover task=%s running->queued (worker http %s)", task.id, status_code)
+        task.worker_id = None
+        task.worker_task_id = None
+        task.status = "queued"
+        task.updated_at = utcnow()
+        return
+
+    worker_status = body.get("status")
+    if worker_status == "success":
+        if task.type == "transcribe":
+            await _on_transcribe_success(db, task, node, body)
+        else:
+            await _on_summarize_success(db, task, node, body)
+        return
+    if worker_status == "error":
+        await _on_worker_terminal_error(db, task, node, body)
+        return
+    if worker_status in {"queued", "running"}:
+        task.status = "running"
+        task.meta_json = {"stage": worker_status}
+        task.updated_at = utcnow()
+        return
+
+    log.info("recover task=%s running->queued (unknown worker status %s)", task.id, worker_status)
+    task.worker_id = None
+    task.worker_task_id = None
+    task.status = "queued"
+    task.updated_at = utcnow()
+
+
 async def poll_running_task(db: Session, task: Task, nodes: list[WorkerNode]) -> None:
     node = next((n for n in nodes if n.id == task.worker_id), None)
     if node is None or not task.worker_task_id:
@@ -504,6 +602,16 @@ async def dispatcher_loop(stop_event: asyncio.Event) -> None:
     assert SessionLocal is not None
     settings = get_settings()
     mark_dispatcher_started()
+    session = SessionLocal()
+    try:
+        async with tick_lock():
+            await recover_orphaned_tasks(session)
+        session.commit()
+    except Exception:
+        session.rollback()
+        log.exception("task recovery failed")
+    finally:
+        session.close()
     while not stop_event.is_set():
         session = SessionLocal()
         tick_started = time.perf_counter()
