@@ -178,6 +178,31 @@ def ensure_schema(engine: Engine) -> None:
         settings_cols = _table_columns(conn, "instance_settings", engine=engine)
         if settings_cols:
             _instance_rate_limit_patches(conn, settings_cols, engine=engine)
+            if "import_enabled" not in settings_cols:
+                _add_bool_column(conn, "instance_settings", "import_enabled", 1, engine=engine)
+            if "import_allowed_extractors_json" not in settings_cols:
+                conn.exec_driver_sql(
+                    "ALTER TABLE instance_settings ADD COLUMN import_allowed_extractors_json JSON"
+                )
+            if "download_proxy_url" not in settings_cols:
+                conn.exec_driver_sql(
+                    "ALTER TABLE instance_settings ADD COLUMN download_proxy_url VARCHAR(512)"
+                )
+            if "download_proxy_password_encrypted" not in settings_cols:
+                conn.exec_driver_sql(
+                    "ALTER TABLE instance_settings ADD COLUMN download_proxy_password_encrypted TEXT"
+                )
+            if "download_proxy_enabled" not in settings_cols:
+                _add_bool_column(conn, "instance_settings", "download_proxy_enabled", 0, engine=engine)
+            if "download_cookies_path" not in settings_cols:
+                conn.exec_driver_sql(
+                    "ALTER TABLE instance_settings ADD COLUMN download_cookies_path VARCHAR(512)"
+                )
+            if "import_audio_bitrate_kbps" not in settings_cols:
+                conn.exec_driver_sql(
+                    "ALTER TABLE instance_settings ADD COLUMN import_audio_bitrate_kbps "
+                    "INTEGER NOT NULL DEFAULT 64"
+                )
 
 
 def _add_int_column(conn, table: str, column: str, default: int, *, engine: Engine) -> None:

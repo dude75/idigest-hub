@@ -9,6 +9,7 @@ import type { InstanceSettings, InstanceSnapshot, InstanceStats, Org, OrgLedger,
 import { formatAudioTime, fmtDate, showError } from '../util'
 
 const MAX_UPLOAD = 1073741824
+const DEFAULT_IMPORT_AUDIO_BITRATE_KBPS = 64
 type Tab = 'workers' | 'tariffs' | 'orgs' | 'settings' | 'baseSkills' | 'stats'
 const TABS: Tab[] = ['stats', 'workers', 'tariffs', 'orgs', 'settings', 'baseSkills']
 
@@ -76,6 +77,7 @@ export function InstancePage() {
   const [orgs, setOrgs] = useState<Org[]>([])
   const [settings, setSettings] = useState<InstanceSettings | null>(null)
   const [smtpPassword, setSmtpPassword] = useState('')
+  const [proxyPassword, setProxyPassword] = useState('')
   const [skills, setSkills] = useState<Skill[]>([])
   const [sname, setSname] = useState('')
   const [sbody, setSbody] = useState('')
@@ -147,7 +149,11 @@ export function InstancePage() {
         setHiddenOrgCount(o.hidden_count ?? 0)
         setTariffs(tr.items)
       } else if (tab === 'settings') {
-        setSettings(await api<InstanceSettings>('/instance/settings'))
+        const data = await api<InstanceSettings>('/instance/settings')
+        setSettings({
+          ...data,
+          import_audio_bitrate_kbps: data.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
+        })
       } else if (tab === 'baseSkills') {
         setSkills((await api<{ items: Skill[] }>('/skills/base')).items)
       }
@@ -307,10 +313,18 @@ export function InstancePage() {
         rate_limit_api_global: settings.rate_limit_api_global,
         rate_limit_api_tasks_user: settings.rate_limit_api_tasks_user,
         rate_limit_api_tasks_ip: settings.rate_limit_api_tasks_ip,
+        import_enabled: settings.import_enabled,
+        import_allowed_extractors: settings.import_platforms.filter((p) => p.enabled).map((p) => p.id),
+        download_proxy_url: settings.download_proxy_url,
+        download_proxy_enabled: settings.download_proxy_enabled,
+        download_cookies_path: settings.download_cookies_path,
+        import_audio_bitrate_kbps: settings.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
         ...(smtpPassword ? { smtp_password: smtpPassword } : {}),
+        ...(proxyPassword ? { download_proxy_password: proxyPassword } : {}),
       }),
     })
     setSmtpPassword('')
+    setProxyPassword('')
     await load()
   }
 
@@ -703,6 +717,135 @@ export function InstancePage() {
             <input type="checkbox" checked={settings.smtp_tls} onChange={(e) => setSettings({ ...settings, smtp_tls: e.target.checked })} />
             {t('instance.smtpTls')}
           </label>
+
+          <details className="fold">
+            <summary>{t('instance.importTitle')}</summary>
+            <div className="stack">
+              <label className="row">
+                <input
+                  type="checkbox"
+                  checked={settings.import_enabled}
+                  onChange={(e) => setSettings({ ...settings, import_enabled: e.target.checked })}
+                />
+                {t('instance.importEnabled')}
+              </label>
+              <label>
+                {t('instance.downloadProxyUrl')}
+                <input
+                  value={settings.download_proxy_url || ''}
+                  onChange={(e) => {
+                    const url = e.target.value || null
+                    setSettings({
+                      ...settings,
+                      download_proxy_url: url,
+                      download_proxy_enabled: url ? settings.download_proxy_enabled : false,
+                    })
+                  }}
+                  placeholder="socks5://host:1080 or http://host:8080"
+                />
+              </label>
+              <p className="muted">{t('instance.downloadProxyHint')}</p>
+              <label className="row">
+                <input
+                  type="checkbox"
+                  checked={settings.download_proxy_enabled}
+                  disabled={
+                    !settings.import_enabled ||
+                    !(settings.download_proxy_configured || (settings.download_proxy_url || '').trim())
+                  }
+                  onChange={(e) => setSettings({ ...settings, download_proxy_enabled: e.target.checked })}
+                />
+                {t('instance.downloadProxyEnabled')}
+              </label>
+              <p className="muted">{t('instance.downloadProxyEnabledHint')}</p>
+              <label>
+                {t('instance.downloadProxyPassword')}
+                <input type="password" value={proxyPassword} onChange={(e) => setProxyPassword(e.target.value)} />
+              </label>
+              <label>
+                {t('instance.downloadCookiesPath')}
+                <input
+                  value={settings.download_cookies_path || ''}
+                  onChange={(e) => setSettings({ ...settings, download_cookies_path: e.target.value || null })}
+                  placeholder="/data/youtube-cookies.txt"
+                />
+              </label>
+              <p className="muted">{t('instance.downloadCookiesHint')}</p>
+              <label>
+                {t('instance.importAudioBitrate')}
+                <input
+                  type="number"
+                  min={0}
+                  max={320}
+                  placeholder={String(DEFAULT_IMPORT_AUDIO_BITRATE_KBPS)}
+                  value={settings.import_audio_bitrate_kbps ?? ''}
+                  disabled={!settings.import_enabled}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    setSettings({
+                      ...settings,
+                      import_audio_bitrate_kbps:
+                        raw === '' ? (undefined as unknown as number) : Math.max(0, Number(raw) || 0),
+                    })
+                  }}
+                />
+              </label>
+              <p className="muted">{t('instance.importAudioBitrateHint')}</p>
+              <p className="muted">{t('instance.importPlatformsHint')}</p>
+              <div className="stack">
+                {settings.import_platforms.map((platform) => (
+                  <label className="row" key={platform.id}>
+                    <input
+                      type="checkbox"
+                      checked={platform.enabled}
+                      disabled={!settings.import_enabled}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          import_platforms: settings.import_platforms.map((item) =>
+                            item.id === platform.id ? { ...item, enabled: e.target.checked } : item,
+                          ),
+                        })
+                      }
+                    />
+                    <span className="grow">
+                      <strong>{platform.label}</strong>
+                      <span className="muted"> — {platform.domains.join(', ')}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div className="row">
+                <button
+                  type="button"
+                  disabled={!settings.import_enabled}
+                  onClick={() =>
+                    setSettings({
+                      ...settings,
+                      import_platforms: settings.import_platforms.map((item) => ({ ...item, enabled: true })),
+                    })
+                  }
+                >
+                  {t('instance.importSelectAll')}
+                </button>
+                <button
+                  type="button"
+                  disabled={!settings.import_enabled}
+                  onClick={() =>
+                    setSettings({
+                      ...settings,
+                      import_platforms: settings.import_platforms.map((item) => ({
+                        ...item,
+                        enabled: ['Youtube', 'Rutube', 'TikTok'].includes(item.id),
+                      })),
+                    })
+                  }
+                >
+                  {t('instance.importResetDefaults')}
+                </button>
+              </div>
+            </div>
+          </details>
 
           <details className="fold">
             <summary>{t('instance.rateLimitTitle')}</summary>

@@ -53,6 +53,17 @@ class StorageBackend(ABC):
         """Persist upload; return opaque storage_path reference."""
 
     @abstractmethod
+    async def save_file_path(
+        self,
+        audio_id: str,
+        suffix: str,
+        source: Path,
+        *,
+        max_bytes: int,
+    ) -> str:
+        """Copy a local file into storage; return opaque storage_path reference."""
+
+    @abstractmethod
     def exists(self, storage_path: str) -> bool:
         ...
 
@@ -111,6 +122,23 @@ class LocalStorageBackend(StorageBackend):
         except Exception:
             dest.unlink(missing_ok=True)
             raise
+        return str(dest)
+
+    async def save_file_path(
+        self,
+        audio_id: str,
+        suffix: str,
+        source: Path,
+        *,
+        max_bytes: int,
+    ) -> str:
+        dest_dir = self._root / "uploads" / audio_id
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / f"original{suffix}"
+        size = source.stat().st_size
+        if size > max_bytes:
+            raise PayloadTooLarge()
+        dest.write_bytes(source.read_bytes())
         return str(dest)
 
     def exists(self, storage_path: str) -> bool:
@@ -209,6 +237,23 @@ class S3StorageBackend(StorageBackend):
                 buffer.write(chunk)
             buffer.seek(0)
             self._client.upload_fileobj(buffer, self._bucket, key, ExtraArgs=extra_args)
+        return self._ref(key)
+
+    async def save_file_path(
+        self,
+        audio_id: str,
+        suffix: str,
+        source: Path,
+        *,
+        max_bytes: int,
+    ) -> str:
+        key = audio_object_key(audio_id, suffix)
+        size = source.stat().st_size
+        if size > max_bytes:
+            raise PayloadTooLarge()
+        extra_args = self._upload_extra_args()
+        with source.open("rb") as handle:
+            self._client.upload_fileobj(handle, self._bucket, key, ExtraArgs=extra_args)
         return self._ref(key)
 
     def exists(self, storage_path: str) -> bool:

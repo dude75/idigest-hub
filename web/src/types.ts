@@ -181,6 +181,23 @@ export type Worker = {
   last_health_at: string | null
 }
 
+export type ImportPlatform = {
+  id: string
+  label: string
+  domains: string[]
+  enabled: boolean
+}
+
+export type PublicImportPlatform = {
+  label: string
+  domains: string[]
+}
+
+export type ImportPlatformsResponse = {
+  enabled: boolean
+  platforms: PublicImportPlatform[]
+}
+
 export type InstanceSettings = {
   allow_new_orgs: boolean
   public_base_url: string | null
@@ -192,6 +209,13 @@ export type InstanceSettings = {
   smtp_tls: boolean
   asr_model: string
   diarization_model: string | null
+  import_enabled: boolean
+  import_platforms: ImportPlatform[]
+  download_proxy_url: string | null
+  download_proxy_configured: boolean
+  download_proxy_enabled: boolean
+  download_cookies_path: string | null
+  import_audio_bitrate_kbps: number
   rate_limit_enabled: boolean
   rate_limit_login_email: number
   rate_limit_login_ip: number

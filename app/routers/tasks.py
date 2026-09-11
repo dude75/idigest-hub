@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -28,6 +28,10 @@ class TranscribeBody(BaseModel):
 class SummarizeBody(BaseModel):
     transcript_id: str
     skill_ids: list[str]
+
+
+class ImportBody(BaseModel):
+    url: str = Field(min_length=8, max_length=2048)
 
 
 def _can_see_task(ctx: AuthContext, task: Task) -> bool:
@@ -111,6 +115,45 @@ async def create_transcribe(
         queued_at=now,
         created_at=now,
         updated_at=now,
+        **snapshot_fields(tariff, settings.asr_model, settings.diarization_model),
+    )
+    db.add(task)
+    db.flush()
+    await locked_tick(db, task.id)
+    db.refresh(task)
+    return task_public(task)
+
+
+@router.post("/tasks/import", status_code=202)
+async def create_import(
+    body: ImportBody,
+    request: Request,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    org, _ = ctx.require_org()
+    enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
+    settings = get_instance_settings(db)
+    if not settings.import_enabled:
+        ctx.raise_error(ErrorCode.import_disabled)
+    from app.services.url_import import UrlImportError, validate_import_url
+
+    try:
+        url = validate_import_url(body.url)
+    except UrlImportError as exc:
+        ctx.raise_error(ErrorCode(exc.code))
+    tariff = org.tariff
+    now = utcnow()
+    task = Task(
+        id=new_id(),
+        type="import",
+        status="queued",
+        org_id=org.id,
+        user_id=ctx.user.id,
+        queued_at=now,
+        created_at=now,
+        updated_at=now,
+        meta_json={"url": url, "stage": "queued"},
         **snapshot_fields(tariff, settings.asr_model, settings.diarization_model),
     )
     db.add(task)
@@ -221,6 +264,16 @@ def cancel_task(
         ctx.raise_error(ErrorCode.not_found)
     if not ctx.is_org_admin and task.user_id != ctx.user.id:
         ctx.raise_error(ErrorCode.forbidden)
+    if task.type == "import":
+        if task.status not in {"queued", "running"}:
+            ctx.raise_error(ErrorCode.task_running)
+        from app.services.import_runner import request_import_cancel
+
+        request_import_cancel(task.id)
+        task.status = "error"
+        task.error_code = "canceled"
+        task.updated_at = utcnow()
+        return task_public(task)
     if task.status != "queued" or task.worker_task_id:
         ctx.raise_error(ErrorCode.task_running)
     task.status = "error"

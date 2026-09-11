@@ -36,6 +36,22 @@ from app.timeutil import utcnow
 router = APIRouter()
 
 
+@router.get("/import/platforms")
+def import_platforms(
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    ctx.require_org()
+    from app.deps import get_instance_settings
+    from app.services.import_platforms import public_platforms
+
+    settings = get_instance_settings(db)
+    return {
+        "enabled": settings.import_enabled,
+        "platforms": public_platforms(settings),
+    }
+
+
 class ShareBody(BaseModel):
     object_type: str
     object_id: str

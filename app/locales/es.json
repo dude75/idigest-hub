@@ -35,5 +35,10 @@
   "sso_user_wrong_org": "Esta cuenta pertenece a otra organización.",
   "sso_login_required": "Inicie sesión con el SSO de su organización.",
   "account_disabled": "Su cuenta está desactivada. Contacte al administrador de su organización.",
+  "invalid_url": "Introduzca una URL válida de vídeo o audio.",
+  "unsupported_host": "Esta plataforma de alojamiento no está soportada.",
+  "download_failed": "No se pudo descargar el audio desde la URL.",
+  "video_unavailable": "El vídeo no está disponible (privado, eliminado o bloqueado).",
+  "import_disabled": "La importación por URL está desactivada en esta instancia.",
   "ok": "ok"
 }

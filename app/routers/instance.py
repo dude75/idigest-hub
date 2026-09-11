@@ -84,6 +84,13 @@ class SettingsPatch(BaseModel):
     rate_limit_api_global: int | None = None
     rate_limit_api_tasks_user: int | None = None
     rate_limit_api_tasks_ip: int | None = None
+    import_enabled: bool | None = None
+    import_allowed_extractors: list[str] | None = None
+    download_proxy_url: str | None = None
+    download_proxy_password: str | None = None
+    download_proxy_enabled: bool | None = None
+    download_cookies_path: str | None = None
+    import_audio_bitrate_kbps: int | None = None
 
 
 class OrgTariffBody(BaseModel):
@@ -308,6 +315,12 @@ def wallet_delta(
 def get_settings_ep(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
     s = get_instance_settings(db)
+    from app.services.import_platforms import DEFAULT_IMPORT_AUDIO_BITRATE_KBPS, admin_platforms
+
+    proxy_url = s.download_proxy_url or ""
+    bitrate = s.import_audio_bitrate_kbps
+    if bitrate is None:
+        bitrate = DEFAULT_IMPORT_AUDIO_BITRATE_KBPS
     return {
         "allow_new_orgs": s.allow_new_orgs,
         "public_base_url": s.public_base_url,
@@ -319,6 +332,13 @@ def get_settings_ep(db: Session = Depends(get_session), ctx: AuthContext = Depen
         "smtp_tls": s.smtp_tls,
         "asr_model": s.asr_model,
         "diarization_model": s.diarization_model,
+        "import_enabled": s.import_enabled,
+        "import_platforms": admin_platforms(s),
+        "download_proxy_url": s.download_proxy_url,
+        "download_proxy_configured": bool(proxy_url.strip()),
+        "download_proxy_enabled": s.download_proxy_enabled,
+        "download_cookies_path": s.download_cookies_path,
+        "import_audio_bitrate_kbps": bitrate,
         **rate_limits_public(s),
     }
 
@@ -338,6 +358,40 @@ def patch_settings(
         password = data.pop("smtp_password")
         if password:
             s.smtp_password_encrypted = encrypt_str(password)
+    if "download_proxy_url" in data:
+        from app.services.import_platforms import normalize_download_proxy_url
+
+        raw_proxy = data.get("download_proxy_url")
+        if raw_proxy is None or not str(raw_proxy).strip():
+            s.download_proxy_url = None
+            s.download_proxy_enabled = False
+        else:
+            try:
+                s.download_proxy_url = normalize_download_proxy_url(str(raw_proxy))
+            except ValueError:
+                ctx.raise_error(ErrorCode.validation_error)
+        data.pop("download_proxy_url", None)
+    if "download_proxy_enabled" in data:
+        enabled = bool(data.pop("download_proxy_enabled"))
+        if enabled and not (s.download_proxy_url or "").strip():
+            ctx.raise_error(ErrorCode.validation_error)
+        s.download_proxy_enabled = enabled
+    if "download_proxy_password" in data:
+        proxy_password = data.pop("download_proxy_password")
+        if proxy_password:
+            s.download_proxy_password_encrypted = encrypt_str(proxy_password)
+    if "import_audio_bitrate_kbps" in data:
+        from app.services.import_platforms import normalize_import_audio_bitrate_kbps
+
+        s.import_audio_bitrate_kbps = normalize_import_audio_bitrate_kbps(data.pop("import_audio_bitrate_kbps"))
+    if "import_allowed_extractors" in data:
+        from app.services.import_platforms import validate_allowed_extractors
+
+        raw = data.pop("import_allowed_extractors")
+        try:
+            s.import_allowed_extractors_json = validate_allowed_extractors(list(raw or []))
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
     for key, value in data.items():
         setattr(s, key, value)
     invalidate_rate_limit_cache()

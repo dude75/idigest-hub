@@ -212,12 +212,16 @@ def get_instance_settings(db: Session):
 
     row = db.get(InstanceSettings, 1)
     if row is None:
+        from app.services.import_platforms import default_allowed_extractors
+
         row = InstanceSettings(
             id=1,
             bootstrap_done=False,
             allow_new_orgs=True,
             asr_model="whisper",
             diarization_model="pyannote",
+            import_enabled=True,
+            import_allowed_extractors_json=default_allowed_extractors(),
         )
         db.add(row)
         db.flush()

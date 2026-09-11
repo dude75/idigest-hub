@@ -48,6 +48,11 @@ class ErrorCode(str, Enum):
     sso_user_wrong_org = "sso_user_wrong_org"
     sso_login_required = "sso_login_required"
     account_disabled = "account_disabled"
+    invalid_url = "invalid_url"
+    unsupported_host = "unsupported_host"
+    download_failed = "download_failed"
+    video_unavailable = "video_unavailable"
+    import_disabled = "import_disabled"
 
 
 HTTP_STATUS: dict[ErrorCode, int] = {
@@ -81,6 +86,11 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.sso_user_wrong_org: 403,
     ErrorCode.sso_login_required: 403,
     ErrorCode.account_disabled: 403,
+    ErrorCode.invalid_url: 400,
+    ErrorCode.unsupported_host: 400,
+    ErrorCode.download_failed: 502,
+    ErrorCode.video_unavailable: 404,
+    ErrorCode.import_disabled: 403,
 }
 
 

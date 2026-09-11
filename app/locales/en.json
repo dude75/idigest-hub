@@ -35,5 +35,10 @@
   "sso_user_wrong_org": "This account belongs to another organization.",
   "sso_login_required": "Sign in with your organization SSO.",
   "account_disabled": "Your account has been disabled. Contact your organization admin.",
+  "invalid_url": "Enter a valid video or audio URL.",
+  "unsupported_host": "This hosting platform is not supported.",
+  "download_failed": "Could not download audio from the URL.",
+  "video_unavailable": "Video is unavailable (private, deleted, or blocked).",
+  "import_disabled": "URL import is disabled on this instance.",
   "ok": "ok"
 }

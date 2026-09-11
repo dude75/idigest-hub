@@ -2,7 +2,12 @@ import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from './api'
 import i18n from './i18n'
-import type { ShareBadge } from './types'
+import type { ShareBadge, Task } from './types'
+
+type TaskTranslate = (
+  key: string,
+  opts?: Record<string, unknown> & { defaultValue?: string },
+) => string
 
 export function formatAudioTime(
   sec: number,
@@ -31,6 +36,55 @@ export function fmtDate(iso: string): string {
   } catch {
     return iso
   }
+}
+
+export function taskErrorMessage(task: Task, t: TaskTranslate): string | null {
+  if (!task.error) return null
+  const code = task.error.code
+  const meta = task.meta || {}
+  if (code === 'video_unavailable' && meta.reason === 'blocked_403') {
+    return t('task.blocked403')
+  }
+  if (code === 'video_unavailable' && meta.reason === 'proxy_misconfigured') {
+    return t('task.proxyMisconfigured')
+  }
+  if (code === 'unsupported_host') {
+    if (meta.reason === 'disabled_by_admin' && typeof meta.platform === 'string') {
+      return t('task.unsupportedHostAdmin', { platform: meta.platform })
+    }
+    const host = typeof meta.host === 'string'
+      ? meta.host
+      : typeof meta.platform === 'string'
+        ? meta.platform
+        : ''
+    return t('task.unsupportedHostUnknown', { host })
+  }
+  const key = `errors.${code}`
+  const translated = t(key, { defaultValue: '' })
+  return translated || t('task.failed')
+}
+
+export function taskErrorDetail(task: Task): string | null {
+  const detail = task.meta?.error_detail
+  return typeof detail === 'string' && detail.trim() ? detail.trim() : null
+}
+
+export function taskErrorDetailBrief(task: Task, maxLen = 120): string | null {
+  const detail = taskErrorDetail(task)
+  if (!detail) return null
+  if (detail.length <= maxLen) return detail
+  return `${detail.slice(0, maxLen - 3)}...`
+}
+
+export function taskYoutubeClientsTried(task: Task): string | null {
+  const raw = task.meta?.youtube_clients_tried
+  if (!Array.isArray(raw) || raw.length === 0) return null
+  const labels = raw.map((item) => {
+    if (item === null || item === undefined) return 'default'
+    if (Array.isArray(item)) return item.join('+') || 'default'
+    return String(item)
+  })
+  return labels.join(', ')
 }
 
 export function errorText(err: unknown, t: (key: string) => string): string {

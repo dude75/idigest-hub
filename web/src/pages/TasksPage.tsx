@@ -4,13 +4,14 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import type { Org, Task, User } from '../types'
-import { fmtDate, showError } from '../util'
+import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage } from '../util'
 
 const ACTIVE = new Set(['queued', 'running'])
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
 
 function taskHref(task: Task): string {
+  if (task.status === 'success' && task.type === 'import' && task.audio_id) return `/app/audio/${task.audio_id}`
   if (task.status === 'success' && task.transcript_id) return `/app/transcript/${task.transcript_id}`
   if (task.status === 'success' && task.summary_id) return `/app/summary/${task.summary_id}`
   return `/app/task/${task.task_id}`
@@ -154,7 +155,12 @@ export function TasksPage() {
             {showOrg && task.org_name && ` · ${task.org_name}`}
           </div>
           {task.error && (
-            <p className="err">{t(`errors.${task.error.code}`, { defaultValue: t('task.failed') })}</p>
+            <div className="task-row-error">
+              <p className="err">{taskErrorMessage(task, t)}</p>
+              {taskErrorDetailBrief(task) && (
+                <p className="muted import-error-meta">{taskErrorDetailBrief(task)}</p>
+              )}
+            </div>
           )}
         </div>
         <span className={statusClass(task.status)}>

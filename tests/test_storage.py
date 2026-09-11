@@ -45,6 +45,14 @@ async def test_local_save_exists_delete_download(local_backend, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_local_save_file_path(local_backend, tmp_path):
+    source = tmp_path / "source.mp3"
+    source.write_bytes(b"ID3" + b"\x00" * 16)
+    ref = await local_backend.save_file_path("a2", ".mp3", source, max_bytes=1024)
+    assert local_backend.exists(ref)
+
+
+@pytest.mark.asyncio
 async def test_local_payload_too_large(local_backend):
     upload = _Upload(b"x" * 32)
     with pytest.raises(PayloadTooLarge):

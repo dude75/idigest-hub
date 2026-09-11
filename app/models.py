@@ -65,6 +65,13 @@ class InstanceSettings(Base):
     rate_limit_api_global: Mapped[int] = mapped_column(Integer, default=2000, nullable=False)
     rate_limit_api_tasks_user: Mapped[int] = mapped_column(Integer, default=30, nullable=False)
     rate_limit_api_tasks_ip: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    import_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    import_allowed_extractors_json: Mapped[list[Any] | None] = mapped_column(JSON)
+    download_proxy_url: Mapped[str | None] = mapped_column(String(512))
+    download_proxy_password_encrypted: Mapped[str | None] = mapped_column(Text)
+    download_proxy_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    download_cookies_path: Mapped[str | None] = mapped_column(String(512))
+    import_audio_bitrate_kbps: Mapped[int] = mapped_column(Integer, default=64, nullable=False)
 
 
 class User(Base):

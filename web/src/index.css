@@ -96,6 +96,25 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 .muted { color: var(--muted); }
 .err { color: var(--danger); font-size: 0.9rem; }
+.import-error-meta { font-size: 0.85rem; margin: 0; }
+.task-row-error { margin-top: 0.25rem; }
+.task-row-error .err { margin: 0; }
+.import-error-detail {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.import-error-detail summary { cursor: pointer; }
+.import-error-detail pre {
+  margin: 0.5rem 0 0;
+  padding: 0.65rem 0.75rem;
+  background: #f4f6f9;
+  border-radius: 6px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
 .ok { color: var(--ok); font-size: 0.9rem; }
 .banner {
   background: var(--banner);
@@ -138,6 +157,56 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .lang { display: flex; gap: 0.15rem; }
 .lang button { padding: 0.2rem 0.4rem; font-size: 0.75rem; }
 .lang button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.library-ingest {
+  margin-bottom: 0.85rem;
+  padding: 0.85rem 1rem;
+}
+.library-ingest-progress {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.library-ingest-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.library-ingest-toolbar.upload-only {
+  justify-content: flex-start;
+}
+.library-ingest-url {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+.library-ingest-toolbar button.primary {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.library-ingest-or {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  padding: 0 0.15rem;
+}
+.library-ingest-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+.library-file-btn {
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin: 0;
+  white-space: nowrap;
+}
+.library-file-btn input[type="file"] {
+  display: none;
+}
 
 .upload-progress {
   margin: 0 0 0.85rem;

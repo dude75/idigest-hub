@@ -340,6 +340,8 @@ async def poll_running_task(db: Session, task: Task, nodes: list[WorkerNode]) ->
 
 
 async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode], timeout_sec: int) -> None:
+    if task.type == "import":
+        return
     if task.type == "transcribe":
         pool = transcribe_pool_state(nodes, task.snap_asr_model or "whisper", task.snap_diarization_model)
         candidates = transcribe_candidates(
@@ -470,7 +472,13 @@ async def tick_once(db: Session, task_id: str | None = None, *, refresh_health: 
     if task_id:
         query = query.where(Task.id == task_id)
     tasks = list(db.scalars(query).all())
+    from app.services.import_runner import maybe_start_import
+
     for task in tasks:
+        if task.type == "import":
+            if task.status == "queued":
+                maybe_start_import(db, task)
+            continue
         if task.status == "running" and task.worker_task_id:
             await poll_running_task(db, task, nodes)
         if task.status == "queued":
