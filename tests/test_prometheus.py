@@ -83,7 +83,7 @@ def test_metrics_requires_token(metrics_client: TestClient):
     assert "python_info" in body.text
 
 
-def test_metrics_without_token_when_unconfigured(tmp_path, monkeypatch):
+def test_metrics_denied_when_token_unconfigured(tmp_path, monkeypatch):
     monkeypatch.setenv("HUB_SECRET", "test-secret")
     monkeypatch.setenv("INSTANCE_BOOTSTRAP_TOKEN", "boot")
     monkeypatch.setenv("SESSION_SECRET", "sess")
@@ -108,8 +108,7 @@ def test_metrics_without_token_when_unconfigured(tmp_path, monkeypatch):
 
     with TestClient(app) as client:
         response = client.get("/metrics")
-        assert response.status_code == 200
-        assert "idigest_hub_up" in response.text
+        assert response.status_code == 401
 
     get_settings.cache_clear()
     reset_engine()

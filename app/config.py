@@ -54,7 +54,7 @@ class Settings(BaseSettings):
 
     # Prometheus GET /metrics. false / 0 / no = process collectors only; endpoint stays up.
     METRICS_ENABLED: bool = True
-    # Bearer token for Prometheus scrape. Empty = no auth (set in production).
+    # Bearer token for Prometheus scrape. Required; empty = /metrics returns 401.
     METRICS_TOKEN: str = ""
 
     @field_validator("LOG_MAX_BYTES")

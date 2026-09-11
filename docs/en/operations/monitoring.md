@@ -8,13 +8,13 @@ Workers (`itranscribe-worker`, `isummarize-worker`) are monitored from **their o
 
 ```
 GET /metrics
-Authorization: Bearer <METRICS_TOKEN>   # when METRICS_TOKEN is set
+Authorization: Bearer <METRICS_TOKEN>   # required
 ```
 
 | Variable | Default | Meaning |
 | -------- | ------- | ------- |
 | `METRICS_ENABLED` | `true` | Application metrics. `false` / `0` / `no` = process collectors only. |
-| `METRICS_TOKEN` | empty | Bearer for scrape. Empty = no auth (set in production). |
+| `METRICS_TOKEN` | empty | Bearer for scrape. Required; empty = `/metrics` returns 401. |
 
 ## Metric prefix
 

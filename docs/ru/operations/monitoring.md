@@ -8,13 +8,13 @@ On-prem заказчик поднимает свой Prometheus и Grafana. В �
 
 ```
 GET /metrics
-Authorization: Bearer <METRICS_TOKEN>   # если задан METRICS_TOKEN
+Authorization: Bearer <METRICS_TOKEN>   # обязателен
 ```
 
 | Переменная | По умолчанию | Смысл |
 | ---------- | ------------ | ----- |
 | `METRICS_ENABLED` | `true` | Прикладные метрики. `false` / `0` / `no` — только process collectors. |
-| `METRICS_TOKEN` | пусто | Bearer для scrape. Пусто — без auth (в production задайте). |
+| `METRICS_TOKEN` | пусто | Bearer для scrape. Обязателен; пусто — `/metrics` отвечает 401. |
 
 ## Префикс метрик
 

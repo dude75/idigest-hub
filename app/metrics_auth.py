@@ -11,7 +11,7 @@ def metrics_token_is_valid(authorization: str | None) -> bool:
     settings = get_settings()
     expected = settings.METRICS_TOKEN.strip()
     if not expected:
-        return True
+        return False
     if not authorization or not authorization.lower().startswith("bearer "):
         return False
     return authorization[7:].strip() == expected

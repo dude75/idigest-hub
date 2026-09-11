@@ -73,7 +73,7 @@ curl -s -H "Authorization: Bearer $METRICS_TOKEN" "http://127.0.0.1:8080/metrics
 | Переменная | Смысл |
 | ---------- | ----- |
 | `METRICS_ENABLED` | Прикладные метрики. По умолчанию `true`. `false` / `0` / `no` — только process collectors; endpoint остаётся. |
-| `METRICS_TOKEN` | Bearer для scrape. Пусто — без auth (в production задайте токен). |
+| `METRICS_TOKEN` | Bearer для scrape. Обязателен; пусто — `/metrics` отвечает 401. |
 
 Grafana: импорт [`grafana/dashboards/idigest-hub.json`](grafana/dashboards/idigest-hub.json) (Dashboards → New → Import), datasource — Prometheus заказчика. Пример scrape: [`deploy/prometheus/scrape.example.yml`](deploy/prometheus/scrape.example.yml). Подробнее: [docs/ru/operations/monitoring.md](docs/ru/operations/monitoring.md).
 
@@ -148,7 +148,7 @@ URL должен совпадать с тем, как хаб видят поль
 | `COOKIE_SECURE`              | Флаг `Secure` у session cookie. По умолчанию `false` (локальный HTTP). За HTTPS ставьте `true`.                                                                  |
 | `TRUSTED_PROXIES`            | IP/CIDR reverse proxy через запятую; им доверяют заголовки `X-Forwarded-For` / `X-Real-IP` для per-IP лимитов. Пусто = не доверять (только TCP peer).          |
 | `METRICS_ENABLED`              | Прикладные метрики на `GET /metrics`. По умолчанию `true`. `false` / `0` / `no` — только process collectors.                                                     |
-| `METRICS_TOKEN`                | Bearer для Prometheus scrape. Пусто — endpoint без auth.                                                                                                         |
+| `METRICS_TOKEN`                | Bearer для Prometheus scrape. Обязателен; пусто — `/metrics` отвечает 401.                                                                                     |
 
 Всё, что должно пережить рестарт, лежит в `./data` (SQLite `hub.db` или `./data/pg` для PostgreSQL в Compose, логи). При **`STORAGE_BACKEND=local`** (по умолчанию) загрузки audio — в `{DATA_DIR}/uploads/{audio_id}/`; монтируйте `./data` в Docker. При **`STORAGE_BACKEND=s3`** audio в object storage (SSE at rest); hub-поду volume для uploads не нужен — только БД и логи. Контейнер Compose пишет `./data` от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
 
