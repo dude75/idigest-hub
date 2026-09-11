@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { InlineRename } from '../components/InlineRename'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
 import { libraryPath } from '../routes'
@@ -20,6 +21,7 @@ export function SummaryPage() {
   const [editing, setEditing] = useState(false)
   const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
   const admin = isOrgAdmin(me)
   const canDelete = item && (item.owner_user_id === me?.user.id || admin)
@@ -70,12 +72,16 @@ export function SummaryPage() {
     }
   }
 
-  async function remove() {
-    if (!id || !item) return
-    const title = item.display_title || item.title || item.id.slice(0, 8)
-    if (!window.confirm(t('library.deleteConfirm', { title }))) return
-    await api(`/summaries/${id}`, { method: 'DELETE' })
-    nav(libraryPath('summaries'))
+  async function doRemove() {
+    if (!id) return
+    setBusy(true)
+    try {
+      await api(`/summaries/${id}`, { method: 'DELETE' })
+      nav(libraryPath('summaries'))
+    } catch (e) {
+      showError(e)
+      setBusy(false)
+    }
   }
 
   async function renameTitle(title: string) {
@@ -146,7 +152,7 @@ export function SummaryPage() {
                 type="button"
                 className="danger"
                 title={admin && !mine ? t('library.deleteAdminHint') : t('library.deleteOwnerHint')}
-                onClick={() => void remove()}
+                onClick={() => setConfirmDelete(true)}
               >
                 {t('common.delete')}
               </button>
@@ -180,6 +186,16 @@ export function SummaryPage() {
         </>
       )}
       {share && id && <ShareDialog objectType="summary" objectId={id} onClose={() => { setShare(false); void load() }} />}
+      {confirmDelete && item && (
+        <ConfirmDialog
+          message={t('library.deleteConfirm', { title: item.display_title || item.title || item.id.slice(0, 8) })}
+          confirmLabel={t('common.delete')}
+          danger
+          busy={busy}
+          onConfirm={() => void doRemove()}
+          onClose={() => setConfirmDelete(false)}
+        />
+      )}
     </div>
   )
 }

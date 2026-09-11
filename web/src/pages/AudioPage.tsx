@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ShareDialog } from '../components/ShareDialog'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Audio, Task } from '../types'
@@ -16,6 +17,7 @@ export function AudioPage() {
   const [item, setItem] = useState<Audio | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
+  const [confirmWipe, setConfirmWipe] = useState(false)
   const [busy, setBusy] = useState(false)
   const admin = isOrgAdmin(me)
   const mine = item?.owner_user_id === me?.user.id
@@ -58,13 +60,17 @@ export function AudioPage() {
     }
   }
 
-  async function wipe() {
-    if (!id || !item) return
-    const title = item.filename || item.id.slice(0, 8)
-    if (!window.confirm(t('library.wipeConfirm', { title }))) return
-    await api(`/audios/${id}`, { method: 'DELETE' })
-    await refresh()
-    nav(LIBRARY_DEFAULT)
+  async function doWipe() {
+    if (!id) return
+    setBusy(true)
+    try {
+      await api(`/audios/${id}`, { method: 'DELETE' })
+      await refresh()
+      nav(LIBRARY_DEFAULT)
+    } catch (e) {
+      showError(e)
+      setBusy(false)
+    }
   }
 
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
@@ -110,7 +116,7 @@ export function AudioPage() {
                 type="button"
                 className="danger"
                 title={t('library.wipeHint')}
-                onClick={() => void wipe()}
+                onClick={() => setConfirmWipe(true)}
               >
                 {t('common.wipe')}
               </button>
@@ -134,6 +140,16 @@ export function AudioPage() {
         </>
       )}
       {share && id && <ShareDialog objectType="audio" objectId={id} onClose={() => { setShare(false); void load() }} />}
+      {confirmWipe && item && (
+        <ConfirmDialog
+          message={t('library.wipeConfirm', { title: item.filename || item.id.slice(0, 8) })}
+          confirmLabel={t('common.wipe')}
+          danger
+          busy={busy}
+          onConfirm={() => void doWipe()}
+          onClose={() => setConfirmWipe(false)}
+        />
+      )}
     </div>
   )
 }

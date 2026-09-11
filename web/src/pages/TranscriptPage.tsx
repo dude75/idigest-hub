@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { InlineRename } from '../components/InlineRename'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { ShareDialog } from '../components/ShareDialog'
 import { libraryPath } from '../routes'
 import type { Skill, Task, Transcript } from '../types'
@@ -19,6 +20,7 @@ export function TranscriptPage() {
   const [picked, setPicked] = useState<Record<string, boolean>>({})
   const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
+  const [confirmWipe, setConfirmWipe] = useState(false)
   const [busy, setBusy] = useState(false)
   const [openText, setOpenText] = useState(false)
   const admin = isOrgAdmin(me)
@@ -76,12 +78,16 @@ export function TranscriptPage() {
     }
   }
 
-  async function wipe() {
-    if (!id || !item) return
-    const title = item.display_title || item.title || item.id.slice(0, 8)
-    if (!window.confirm(t('library.wipeConfirm', { title }))) return
-    await api(`/transcripts/${id}`, { method: 'DELETE' })
-    nav(libraryPath('transcripts'))
+  async function doWipe() {
+    if (!id) return
+    setBusy(true)
+    try {
+      await api(`/transcripts/${id}`, { method: 'DELETE' })
+      nav(libraryPath('transcripts'))
+    } catch (e) {
+      showError(e)
+      setBusy(false)
+    }
   }
 
   async function renameTitle(title: string) {
@@ -153,7 +159,7 @@ export function TranscriptPage() {
                 type="button"
                 className="danger"
                 title={t('library.wipeHint')}
-                onClick={() => void wipe()}
+                onClick={() => setConfirmWipe(true)}
               >
                 {t('common.wipe')}
               </button>
@@ -212,6 +218,16 @@ export function TranscriptPage() {
         </>
       )}
       {share && id && <ShareDialog objectType="transcript" objectId={id} onClose={() => { setShare(false); void load() }} />}
+      {confirmWipe && item && (
+        <ConfirmDialog
+          message={t('library.wipeConfirm', { title: item.display_title || item.title || item.id.slice(0, 8) })}
+          confirmLabel={t('common.wipe')}
+          danger
+          busy={busy}
+          onConfirm={() => void doWipe()}
+          onClose={() => setConfirmWipe(false)}
+        />
+      )}
     </div>
   )
 }
