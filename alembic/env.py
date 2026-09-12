@@ -16,7 +16,9 @@ from app.models import Base
 
 config = context.config
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Hub configures the "app" logger before programmatic upgrades; do not
+    # disable loggers that alembic.ini does not declare.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 _url = database_url(get_settings())
