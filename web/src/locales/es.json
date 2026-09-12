@@ -9,6 +9,7 @@
     "profile": "Perfil",
     "tasks": "Tareas",
     "instance": "Instancia",
+    "audit": "Auditoría",
     "logout": "Salir"
   },
   "wallet": { "unlimited": "Ilimitado", "balance": "Saldo" },
@@ -310,6 +311,14 @@
     "allTime": "Todo",
     "calendar": "Por día (UTC)",
     "day": "Día"
+  },
+  "audit": {
+    "title": "Auditoría",
+    "time": "Hora",
+    "action": "Acción",
+    "actor": "Actor",
+    "onBehalfOf": "En nombre de",
+    "payload": "Datos"
   },
   "profile": {
     "title": "Perfil",

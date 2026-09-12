@@ -9,6 +9,7 @@
     "profile": "Профиль",
     "tasks": "Задачи",
     "instance": "Инстанс",
+    "audit": "Аудит",
     "logout": "Выйти"
   },
   "wallet": { "unlimited": "Безлимит", "balance": "Баланс" },
@@ -310,6 +311,14 @@
     "allTime": "Всё время",
     "calendar": "По дням (UTC)",
     "day": "День"
+  },
+  "audit": {
+    "title": "Аудит",
+    "time": "Время",
+    "action": "Действие",
+    "actor": "Актор",
+    "onBehalfOf": "От имени",
+    "payload": "Данные"
   },
   "profile": {
     "title": "Профиль",

@@ -9,6 +9,7 @@
     "profile": "Profile",
     "tasks": "Tasks",
     "instance": "Instance",
+    "audit": "Audit log",
     "logout": "Log out"
   },
   "wallet": { "unlimited": "Unlimited", "balance": "Balance" },
@@ -310,6 +311,14 @@
     "allTime": "All time",
     "calendar": "By day (UTC)",
     "day": "Day"
+  },
+  "audit": {
+    "title": "Audit log",
+    "time": "Time",
+    "action": "Action",
+    "actor": "Actor",
+    "onBehalfOf": "On behalf of",
+    "payload": "Payload"
   },
   "profile": {
     "title": "Profile",

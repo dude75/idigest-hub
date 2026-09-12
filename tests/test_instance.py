@@ -195,3 +195,35 @@ def test_instance_admin_can_reset_org_admin_password(client):
     assert old_login.status_code == 401
     assert login(client, "lead@example.com", temp).status_code == 200
     assert me(client)["must_change_password"] is True
+
+
+def test_instance_audit_lists_entries_with_filters(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "audit@example.com", "auditpass", tariff_id).status_code == 200
+    user_id = me(client)["user"]["id"]
+    logout(client)
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    start = client.post("/api/v1/impersonate", json={"user_id": user_id})
+    assert start.status_code == 200, start.text
+    stop = client.delete("/api/v1/impersonate")
+    assert stop.status_code == 200, stop.text
+
+    audit = client.get("/api/v1/instance/audit")
+    assert audit.status_code == 200, audit.text
+    actions = {item["action"] for item in audit.json()["items"]}
+    assert "impersonate.start" in actions
+    assert "impersonate.stop" in actions
+    assert all("actor_email" in item for item in audit.json()["items"])
+
+    filtered = client.get("/api/v1/instance/audit", params={"action": "impersonate.start"})
+    assert filtered.status_code == 200, filtered.text
+    assert filtered.json()["items"]
+    assert all(item["action"] == "impersonate.start" for item in filtered.json()["items"])
+
+    logout(client)
+    login(client, "audit@example.com", "auditpass")
+    denied = client.get("/api/v1/instance/audit")
+    assert denied.status_code == 403

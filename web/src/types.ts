@@ -274,6 +274,15 @@ export type InstanceStats = JobStats &
     days: OrgStatsDay[]
   }
 
+export type AuditLogEntry = {
+  id: string
+  action: string
+  actor_email: string | null
+  on_behalf_of_email: string | null
+  payload: Record<string, unknown> | null
+  created_at: string
+}
+
 export type OrgLedgerEntry = {
   id: string
   entry_type: 'charge' | 'wallet'

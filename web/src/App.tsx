@@ -17,6 +17,7 @@ import { SetupPage } from './pages/SetupPage'
 import { SignupPage } from './pages/SignupPage'
 import { SkillPage } from './pages/SkillPage'
 import { SkillsPage } from './pages/SkillsPage'
+import { AuditLogPage } from './pages/AuditLogPage'
 import { StatsPage } from './pages/StatsPage'
 import { SummaryPage } from './pages/SummaryPage'
 import { TaskPage } from './pages/TaskPage'
@@ -82,6 +83,7 @@ export default function App() {
         <Route path="stats" element={<StatsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="instance" element={<LazyInstancePage />} />
+        <Route path="audit" element={<AuditLogPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="task/:id" element={<TaskPage />} />
       </Route>

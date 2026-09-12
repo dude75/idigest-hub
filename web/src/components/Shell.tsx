@@ -51,6 +51,7 @@ export function Shell() {
           <NavLink to="/app/tasks">{t('nav.tasks')}</NavLink>
           <NavLink to="/app/profile">{t('nav.profile')}</NavLink>
           {instance && <NavLink to="/app/instance">{t('nav.instance')}</NavLink>}
+          {instance && <NavLink to="/app/audit">{t('nav.audit')}</NavLink>}
         </nav>
         <div className="right row">
           <WalletLabel unlimited={me?.org?.unlimited} balance={me?.org?.balance} />

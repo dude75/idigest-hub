@@ -28,7 +28,7 @@ from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.routers.auth import revoke_user_auth, seed_default_tariff
 from app.security import hash_password, random_password
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
-from app.services.audit import write_audit
+from app.services.audit import list_audit, write_audit
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
 from app.timeutil import utcnow
 
@@ -598,6 +598,38 @@ def stop_impersonate(
     write_audit(db, "impersonate.stop", ctx)
     ctx.session.impersonate_user_id = None
     return {"status": "ok"}
+
+
+@router.get("/instance/audit")
+def audit_log(
+    from_day: str | None = Query(None, alias="from"),
+    to_day: str | None = Query(None, alias="to"),
+    org_id: str | None = None,
+    user_id: str | None = None,
+    action: str | None = None,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _admin(ctx)
+    try:
+        start, end = parse_org_stats_range(from_day, to_day)
+    except ValueError:
+        ctx.raise_error(ErrorCode.validation_error)
+    org_filter = (org_id or "").strip() or None
+    if org_filter and db.get(Organization, org_filter) is None:
+        ctx.raise_error(ErrorCode.not_found)
+    user_filter = (user_id or "").strip() or None
+    if user_filter and db.get(User, user_filter) is None:
+        ctx.raise_error(ErrorCode.not_found)
+    items = list_audit(
+        db,
+        start=start,
+        end=end,
+        org_id=org_filter,
+        user_id=user_filter,
+        action=(action or "").strip() or None,
+    )
+    return {"items": items}
 
 
 @router.get("/instance/stats")
