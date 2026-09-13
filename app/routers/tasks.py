@@ -34,6 +34,7 @@ NON_RETRIABLE_ERROR_CODES = frozenset(
 
 class TranscribeBody(BaseModel):
     audio_id: str
+    skill_ids: list[str] = Field(default_factory=list)
 
 
 class SummarizeBody(BaseModel):
@@ -123,6 +124,9 @@ async def create_transcribe(
         ctx.raise_error(ErrorCode.not_found)
     tariff = assert_can_accept_task(ctx, org, ctx.locale)
     settings = get_instance_settings(db)
+    skill_ids = list(body.skill_ids or [])
+    if skill_ids:
+        _validate_summarize_skills(ctx, db, org, skill_ids)
     now = utcnow()
     task = Task(
         id=new_id(),
@@ -131,6 +135,7 @@ async def create_transcribe(
         org_id=org.id,
         user_id=ctx.user.id,
         audio_id=audio.id,
+        skill_ids_json=skill_ids or None,
         queued_at=now,
         created_at=now,
         updated_at=now,

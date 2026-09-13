@@ -260,6 +260,40 @@ def test_delete_transcript_does_not_cascade_summaries(client):
     assert match["edited"] is True
 
 
+def test_transcribe_with_skill_ids_chains_summarize(client, fake_workers):
+    setup_admin(client)
+    transcribe_worker = add_worker(client, type="transcribe", name="asr", base_url="http://transcribe.test")
+    summarize_worker = add_worker(
+        client, type="summarize", name="llm", base_url="http://summarize.test"
+    )
+    seed_node_health(transcribe_worker["id"])
+    seed_node_health(summarize_worker["id"], ready_http=200)
+    skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "Sum it up"})
+    assert skill.status_code == 200, skill.text
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "pipe@example.com", "pipepass1", tariff_id).status_code == 200
+
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    fake_workers.transcribe_mode = "success"
+    fake_workers.summarize_mode = "success"
+    transcribed = client.post(
+        "/api/v1/tasks/transcribe",
+        json={"audio_id": audio.json()["id"], "skill_ids": [skill.json()["id"]]},
+    )
+    assert transcribed.status_code == 202, transcribed.text
+    body = transcribed.json()
+    assert body["status"] == "success"
+    assert body["transcript_id"]
+    follow_up_id = body["meta"]["follow_up_task_id"]
+    assert follow_up_id
+    follow_up = client.get(f"/api/v1/tasks/{follow_up_id}")
+    assert follow_up.status_code == 200, follow_up.text
+    assert follow_up.json()["status"] == "success"
+    assert follow_up.json()["summary_id"]
+
+
 def test_delete_artifacts_after_task_produced_refs(client, fake_workers):
     setup_admin(client)
     worker = add_worker(client)

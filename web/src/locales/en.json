@@ -222,7 +222,15 @@
     "deleteAdminHint": "Permanently removes this for the entire organization.",
     "wipeConfirm": "Wipe \"{{title}}\" for the entire organization? This cannot be undone.",
     "deleteConfirm": "Delete \"{{title}}\"? This cannot be undone.",
-    "cannotDeleteHint": "Only an org admin can wipe audio or transcripts. You can hide this item for yourself."
+    "cannotDeleteHint": "Only an org admin can wipe audio or transcripts. You can hide this item for yourself.",
+    "pipeline": {
+      "title": "Post-upload pipeline",
+      "transcribe": "Transcribe",
+      "summarizeSkills": "Summarize: skills",
+      "summaryOff": "upload only",
+      "summaryTranscribe": "transcription",
+      "summaryFull": "transcription → summary ({{count}})"
+    }
   },
   "audio": {
     "title": "Audio",
@@ -488,6 +496,11 @@
       "transcribe": "Transcribe",
       "summarize": "Summarize",
       "import": "Import"
+    },
+    "pipeline": {
+      "title": "Pipeline progress",
+      "transcribing": "Transcribing…",
+      "summarizing": "Summarizing…"
     },
     "importStage": {
       "queued": "Waiting in queue…",

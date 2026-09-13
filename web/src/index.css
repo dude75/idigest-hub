@@ -217,6 +217,101 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .library-file-btn input[type="file"] {
   display: none;
 }
+.library-pipeline {
+  margin: 0.65rem 0 0;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--line);
+}
+.library-pipeline > summary {
+  font-size: 0.85rem;
+}
+.library-pipeline-summary {
+  color: var(--muted);
+  font-weight: 400;
+}
+.fold[open] .library-pipeline-summary {
+  color: var(--ink);
+}
+.library-pipeline-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.15rem;
+}
+.library-pipeline-step {
+  margin: 0;
+  font-size: 0.9rem;
+}
+.library-pipeline-step.disabled {
+  opacity: 0.55;
+}
+.library-pipeline-summarize {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.library-pipeline-skills {
+  margin: 0 0 0 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.library-pipeline-skills-label {
+  font-size: 0.85rem;
+  margin-bottom: 0.15rem;
+}
+.library-pipeline-skill {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.library-pipeline-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.8rem;
+}
+
+.pipeline-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0;
+  margin: 0 0 0.85rem;
+  padding: 0;
+  list-style: none;
+}
+.pipeline-step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.pipeline-step-has-next::after {
+  content: "→";
+  margin: 0 0.35rem;
+  color: var(--line);
+}
+.pipeline-step-marker {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--card);
+  flex-shrink: 0;
+}
+.pipeline-step-active {
+  color: var(--ink);
+  font-weight: 600;
+}
+.pipeline-step-active .pipeline-step-marker {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.pipeline-step-done {
+  color: var(--ink);
+}
+.pipeline-step-done .pipeline-step-marker {
+  border-color: var(--accent);
+  background: var(--accent);
+}
 
 .upload-progress {
   margin: 0 0 0.85rem;

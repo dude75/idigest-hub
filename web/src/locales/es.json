@@ -222,7 +222,15 @@
     "deleteAdminHint": "Elimina permanentemente para toda la organización.",
     "wipeConfirm": "¿Borrar «{{title}}» para toda la organización? No se puede deshacer.",
     "deleteConfirm": "¿Eliminar «{{title}}»? No se puede deshacer.",
-    "cannotDeleteHint": "Solo un admin org puede borrar audio o transcripciones. Puede ocultar el objeto para usted."
+    "cannotDeleteHint": "Solo un admin org puede borrar audio o transcripciones. Puede ocultar el objeto para usted.",
+    "pipeline": {
+      "title": "Pipeline tras la subida",
+      "transcribe": "Transcribir",
+      "summarizeSkills": "Resumir: skills",
+      "summaryOff": "solo subida",
+      "summaryTranscribe": "transcripción",
+      "summaryFull": "transcripción → resumen ({{count}})"
+    }
   },
   "audio": {
     "title": "Audio",
@@ -488,6 +496,11 @@
       "transcribe": "Transcribir",
       "summarize": "Resumir",
       "import": "Importar"
+    },
+    "pipeline": {
+      "title": "Progreso del pipeline",
+      "transcribing": "Transcribiendo…",
+      "summarizing": "Resumiendo…"
     },
     "importStage": {
       "queued": "En cola…",

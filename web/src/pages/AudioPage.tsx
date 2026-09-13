@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
 import { ShareDialog } from '../components/ShareDialog'
+import { beginPipelineRun, pipelineNavState, transcribeRequest } from '../pipeline'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Audio, Task } from '../types'
 import { ShareBadges, fmtDate, showError } from '../util'
@@ -41,8 +43,12 @@ export function AudioPage() {
     if (!id) return
     setBusy(true)
     try {
-      const task = await api<Task>('/tasks/transcribe', { method: 'POST', body: JSON.stringify({ audio_id: id }) })
-      nav(`/app/task/${task.task_id}`)
+      const pipeline = beginPipelineRun()
+      const task = await api<Task>('/tasks/transcribe', {
+        method: 'POST',
+        body: JSON.stringify(transcribeRequest(id, pipeline)),
+      })
+      nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline) })
     } catch (e) {
       showError(e)
     } finally {
@@ -87,6 +93,7 @@ export function AudioPage() {
           </div>
           <h2>{t('audio.play')}</h2>
           <audio controls src={`/api/v1/audios/${item.id}/file`} />
+          {item.can_transcribe && <IngestPipelinePanel />}
           <div className="row" style={{ marginTop: 12 }}>
             {item.can_transcribe && (
               <button

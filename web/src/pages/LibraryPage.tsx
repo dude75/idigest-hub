@@ -5,6 +5,8 @@ import { api, apiUpload } from '../api'
 import { useAuth } from '../auth'
 import { isLibraryTab, libraryPath, type LibraryTab } from '../routes'
 import type { Audio, ImportPlatformsResponse, Summary, Task, Transcript } from '../types'
+import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
+import { beginPipelineRun, endPipelineRun, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
 import { ShareBadges, fmtDate, showError } from '../util'
 
 type SourceGroup<T> = {
@@ -98,12 +100,13 @@ export function LibraryPage() {
     if (!url) return
     setBusy(true)
     try {
+      const pipeline = beginPipelineRun()
       const task = await api<Task>('/tasks/import', {
         method: 'POST',
         body: JSON.stringify({ url }),
       })
       setImportUrl('')
-      nav(`/app/task/${task.task_id}`)
+      nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline) })
     } catch (e) {
       showError(e)
     } finally {
@@ -112,6 +115,7 @@ export function LibraryPage() {
   }
 
   async function upload(file: File) {
+    const pipeline = beginPipelineRun()
     setBusy(true)
     setUploadProgress({ name: file.name, percent: 0 })
     try {
@@ -120,6 +124,15 @@ export function LibraryPage() {
       const item = await apiUpload<Audio>('/audios', body, (loaded, total) => {
         setUploadProgress({ name: file.name, percent: total ? Math.round((loaded / total) * 100) : 0 })
       })
+      if (pipelineShouldTranscribe(pipeline)) {
+        const task = await api<Task>('/tasks/transcribe', {
+          method: 'POST',
+          body: JSON.stringify(transcribeRequest(item.id, pipeline)),
+        })
+        nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline) })
+        return
+      }
+      endPipelineRun()
       nav(libraryPath('audio'))
       setAudios((prev) => [item, ...prev.filter((a) => a.id !== item.id)])
       await load('audio')
@@ -210,6 +223,7 @@ export function LibraryPage() {
               })}
             </p>
           )}
+          <IngestPipelinePanel />
         </section>
       )}
       <label className="row" style={{ marginBottom: 12 }}>

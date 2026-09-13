@@ -220,6 +220,38 @@ def _persist_transcript(db: Session, task: Task, utterances: list[dict[str, Any]
     return row
 
 
+def _enqueue_summarize_after_transcribe(db: Session, task: Task) -> Task | None:
+    skill_ids = list(task.skill_ids_json or [])
+    if not skill_ids or not task.produced_transcript_id:
+        return None
+    now = utcnow()
+    follow_up = Task(
+        id=new_id(),
+        type="summarize",
+        status="queued",
+        org_id=task.org_id,
+        user_id=task.user_id,
+        transcript_id=task.produced_transcript_id,
+        skill_ids_json=skill_ids,
+        queued_at=now,
+        created_at=now,
+        updated_at=now,
+        snap_unlimited=task.snap_unlimited,
+        snap_price_per_audio_sec=task.snap_price_per_audio_sec,
+        snap_price_per_summarize_job=task.snap_price_per_summarize_job,
+        snap_price_per_1k_summary_chars=task.snap_price_per_1k_summary_chars,
+        snap_max_upload_bytes=task.snap_max_upload_bytes,
+        snap_asr_model=None,
+        snap_diarization_model=None,
+    )
+    db.add(follow_up)
+    db.flush()
+    meta = dict(task.meta_json or {})
+    meta["follow_up_task_id"] = follow_up.id
+    task.meta_json = meta
+    return follow_up
+
+
 def _persist_summary(db: Session, task: Task, body: str) -> Summary | None:
     if task.skip_persist:
         _fail(task, task.skip_reason or "source_deleted")
@@ -272,8 +304,8 @@ async def _on_transcribe_success(
     utterances = body.get("transcript") or []
     if not isinstance(utterances, list):
         utterances = []
-    meta = body.get("meta") if isinstance(body.get("meta"), dict) else {}
-    duration = meta.get("audio_duration_sec")
+    worker_meta = body.get("meta") if isinstance(body.get("meta"), dict) else {}
+    duration = worker_meta.get("audio_duration_sec")
     audio_sec = float(duration) if duration is not None else 0.0
     if task.audio_id and audio_sec:
         audio = db.get(Audio, task.audio_id)
@@ -283,11 +315,20 @@ async def _on_transcribe_success(
     worker_task_id = task.worker_task_id
     _persist_transcript(db, task, utterances)
     _charge(db, task, audio_sec, amount)
-    task.meta_json = {"stage": "done", **{k: meta.get(k) for k in ("audio_duration_sec", "asr_model")}}
+    follow_up = _enqueue_summarize_after_transcribe(db, task)
+    meta = dict(task.meta_json or {})
+    meta["stage"] = "done"
+    for key in ("audio_duration_sec", "asr_model"):
+        val = worker_meta.get(key)
+        if val is not None:
+            meta[key] = val
+    task.meta_json = meta
     task.worker_task_id = None
     task.worker_id = None
     _commit(db)
     await _finish_worker_cleanup(db, node, worker_task_id)
+    if follow_up is not None:
+        await _dispatch_follow_up_task(db, follow_up.id)
 
 
 async def _on_summarize_success(
@@ -560,6 +601,16 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
         return
     if tried_payload_too_large and tried_payload_too_large >= len(candidates):
         _fail(task, "payload_too_large")
+
+
+async def _dispatch_follow_up_task(db: Session, follow_up_id: str) -> None:
+    """Dispatch a chained task without re-acquiring tick_lock (caller already holds it)."""
+    follow_up = db.get(Task, follow_up_id)
+    if follow_up is None or follow_up.status != "queued":
+        return
+    settings = get_settings()
+    nodes = list(db.scalars(select(WorkerNode)).all())
+    await dispatch_queued_task(db, follow_up, nodes, settings.DISPATCH_NO_CANDIDATE_SEC)
 
 
 _tick_lock: asyncio.Lock | None = None
