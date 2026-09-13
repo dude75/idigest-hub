@@ -238,9 +238,22 @@ def test_patch_default_route(client):
     assert tasks.status_code == 200, tasks.text
     assert tasks.json()["user"]["default_route"] == "tasks"
 
-    blocked = client.patch("/api/v1/me", json={"default_route": "instance"})
+    blocked = client.patch("/api/v1/me", json={"default_route": "instance/workers"})
     assert blocked.status_code == 400
     assert err_code(blocked) == "validation_error"
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    workers = client.patch("/api/v1/me", json={"default_route": "instance/workers"})
+    assert workers.status_code == 200, workers.text
+    assert workers.json()["user"]["default_route"] == "instance/workers"
+
+    legacy_instance = client.patch("/api/v1/me", json={"default_route": "instance"})
+    assert legacy_instance.status_code == 200, legacy_instance.text
+    assert legacy_instance.json()["user"]["default_route"] == "instance/stats"
+
+    encryption = client.patch("/api/v1/me", json={"default_route": "security/encryption"})
+    assert encryption.status_code == 200, encryption.text
+    assert encryption.json()["user"]["default_route"] == "security/encryption"
 
 
 def test_password_reset_routes_recovery_disabled_without_smtp(client):

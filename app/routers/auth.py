@@ -18,9 +18,12 @@ from app.constants import (
     DEFAULT_ROUTE,
     DEFAULT_ROUTES,
     DEFAULT_TARIFF_NAME,
+    INSTANCE_TABS,
     LEGACY_DEFAULT_ROUTE,
+    LEGACY_INSTANCE_ROUTE,
     MAX_UPLOAD_BYTES_CAP,
     PASSWORD_RESET_TTL_SEC,
+    SECURITY_TABS,
     SUPPORTED_LOCALES,
 )
 from app.cookies import clear_session_cookie, set_session_cookie
@@ -144,13 +147,16 @@ def _allowed_default_routes(ctx: AuthContext) -> set[str]:
         if ctx.membership and ctx.membership.role == "org_admin":
             routes.add("stats")
     if ctx.user.is_instance_admin and not ctx.impersonating:
-        routes.add("instance")
+        routes.update(f"instance/{tab}" for tab in INSTANCE_TABS)
+        routes.update(f"security/{tab}" for tab in SECURITY_TABS)
     return routes
 
 
 def _default_route(value: str) -> str:
     if value == LEGACY_DEFAULT_ROUTE:
         value = DEFAULT_ROUTE
+    if value == LEGACY_INSTANCE_ROUTE:
+        value = "instance/stats"
     return value if value in DEFAULT_ROUTES else DEFAULT_ROUTE
 
 

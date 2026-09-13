@@ -13,6 +13,8 @@ COOKIE_NAME = "hub_session"
 DEFAULT_TARIFF_NAME = "Default"
 SUPPORTED_LOCALES = ("en", "ru", "es")
 DEFAULT_LOCALE = "en"
+INSTANCE_TABS = ("stats", "workers", "tariffs", "orgs", "settings", "baseSkills")
+SECURITY_TABS = ("audit", "encryption")
 DEFAULT_ROUTES = (
     "library/audio",
     "library/transcripts",
@@ -21,7 +23,10 @@ DEFAULT_ROUTES = (
     "org",
     "stats",
     "tasks",
+    *(f"instance/{tab}" for tab in INSTANCE_TABS),
     "instance",
+    *(f"security/{tab}" for tab in SECURITY_TABS),
 )
 DEFAULT_ROUTE = "library/audio"
 LEGACY_DEFAULT_ROUTE = "library"
+LEGACY_INSTANCE_ROUTE = "instance"
