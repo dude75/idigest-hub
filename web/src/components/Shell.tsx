@@ -14,6 +14,7 @@ export function Shell() {
   const nav = useNavigate()
   const loc = useLocation()
   const libraryActive = loc.pathname.startsWith('/app/library')
+  const securityActive = loc.pathname.startsWith('/app/security') || loc.pathname.startsWith('/app/audit')
   const member = Boolean(me?.org)
   const orgAdmin = isOrgAdmin(me)
   const instance = isInstanceAdmin(me)
@@ -51,7 +52,11 @@ export function Shell() {
           <NavLink to="/app/tasks">{t('nav.tasks')}</NavLink>
           <NavLink to="/app/profile">{t('nav.profile')}</NavLink>
           {instance && <NavLink to="/app/instance">{t('nav.instance')}</NavLink>}
-          {instance && <NavLink to="/app/audit">{t('nav.audit')}</NavLink>}
+          {instance && (
+            <NavLink to="/app/security" className={() => (securityActive ? 'active' : '')}>
+              {t('nav.security')}
+            </NavLink>
+          )}
         </nav>
         <div className="right row">
           <WalletLabel unlimited={me?.org?.unlimited} balance={me?.org?.balance} />

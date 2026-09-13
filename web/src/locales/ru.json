@@ -9,7 +9,7 @@
     "profile": "Профиль",
     "tasks": "Задачи",
     "instance": "Инстанс",
-    "audit": "Аудит",
+    "security": "Безопасность",
     "logout": "Выйти"
   },
   "wallet": { "unlimited": "Безлимит", "balance": "Баланс" },
@@ -311,6 +311,10 @@
     "allTime": "Всё время",
     "calendar": "По дням (UTC)",
     "day": "День"
+  },
+  "security": {
+    "title": "Безопасность",
+    "audit": "Аудит"
   },
   "audit": {
     "title": "Аудит",

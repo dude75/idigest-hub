@@ -9,7 +9,7 @@
     "profile": "Profile",
     "tasks": "Tasks",
     "instance": "Instance",
-    "audit": "Audit log",
+    "security": "Security",
     "logout": "Log out"
   },
   "wallet": { "unlimited": "Unlimited", "balance": "Balance" },
@@ -311,6 +311,10 @@
     "allTime": "All time",
     "calendar": "By day (UTC)",
     "day": "Day"
+  },
+  "security": {
+    "title": "Security",
+    "audit": "Audit log"
   },
   "audit": {
     "title": "Audit log",

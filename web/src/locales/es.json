@@ -9,7 +9,7 @@
     "profile": "Perfil",
     "tasks": "Tareas",
     "instance": "Instancia",
-    "audit": "Auditoría",
+    "security": "Seguridad",
     "logout": "Salir"
   },
   "wallet": { "unlimited": "Ilimitado", "balance": "Saldo" },
@@ -311,6 +311,10 @@
     "allTime": "Todo",
     "calendar": "Por día (UTC)",
     "day": "Día"
+  },
+  "security": {
+    "title": "Seguridad",
+    "audit": "Auditoría"
   },
   "audit": {
     "title": "Auditoría",

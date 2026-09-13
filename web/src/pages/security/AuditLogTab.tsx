@@ -1,12 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
-import { isInstanceAdmin, useAuth } from '../auth'
-import { LIBRARY_DEFAULT } from '../routes'
-import type { AuditLogEntry, Org } from '../types'
-import { datePreset, statsRangeForDays } from '../util/date'
-import { fmtDate, showError } from '../util'
+import { api } from '../../api'
+import type { AuditLogEntry, Org } from '../../types'
+import { datePreset, statsRangeForDays } from '../../util/date'
+import { fmtDate, showError } from '../../util'
 
 const AUDIT_ACTIONS = [
   'instance.setup',
@@ -41,9 +38,8 @@ function formatPayload(payload: Record<string, unknown> | null): string {
   }
 }
 
-export function AuditLogPage() {
+export function AuditLogTab() {
   const { t } = useTranslation()
-  const { me } = useAuth()
   const [items, setItems] = useState<AuditLogEntry[]>([])
   const [orgs, setOrgs] = useState<Org[]>([])
   const [fromDay, setFromDay] = useState(() => statsRangeForDays(7).from)
@@ -78,12 +74,8 @@ export function AuditLogPage() {
       .catch(showError)
   }, [query])
 
-  if (!isInstanceAdmin(me)) return <Navigate to={LIBRARY_DEFAULT} replace />
-
   return (
     <div>
-      <h1>{t('audit.title')}</h1>
-
       <div className="card stack stats-filters">
         <div className="row wrap">
           <label>{t('stats.from')}<input type="date" value={fromDay} onChange={(e) => setFromDay(e.target.value)} /></label>
