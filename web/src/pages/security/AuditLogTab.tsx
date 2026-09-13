@@ -42,8 +42,8 @@ export function AuditLogTab() {
   const { t } = useTranslation()
   const [items, setItems] = useState<AuditLogEntry[]>([])
   const [orgs, setOrgs] = useState<Org[]>([])
-  const [fromDay, setFromDay] = useState(() => statsRangeForDays(7).from)
-  const [toDay, setToDay] = useState(() => statsRangeForDays(7).to)
+  const [fromDay, setFromDay] = useState(() => statsRangeForDays(1).from)
+  const [toDay, setToDay] = useState(() => statsRangeForDays(1).to)
   const [orgId, setOrgId] = useState('')
   const [userId, setUserId] = useState('')
   const [action, setAction] = useState('')
@@ -119,6 +119,7 @@ export function AuditLogTab() {
           </label>
         </div>
         <div className="row wrap">
+          <button type="button" onClick={() => datePreset(1, setFromDay, setToDay)}>{t('stats.today')}</button>
           <button type="button" onClick={() => datePreset(7, setFromDay, setToDay)}>{t('stats.days7')}</button>
           <button type="button" onClick={() => datePreset(30, setFromDay, setToDay)}>{t('stats.days30')}</button>
           <button type="button" onClick={() => datePreset('month', setFromDay, setToDay)}>{t('stats.month')}</button>
