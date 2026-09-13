@@ -337,6 +337,14 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   border-radius: 999px;
   transition: width 0.15s ease;
 }
+.progress-bar-indeterminate {
+  width: 40% !important;
+  animation: progress-indeterminate 1.2s ease-in-out infinite;
+}
+@keyframes progress-indeterminate {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
 
 .tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--line); margin-bottom: 0.85rem; }
 .tabs button, .tabs a { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; text-decoration: none; color: inherit; padding: 0.35rem 0.6rem; }

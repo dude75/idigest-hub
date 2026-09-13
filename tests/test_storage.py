@@ -165,6 +165,41 @@ async def test_s3_upload_without_sse_header(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_s3_multipart_upload(monkeypatch):
+    monkeypatch.setenv("STORAGE_BACKEND", "s3")
+    monkeypatch.setenv("S3_BUCKET", "test-bucket")
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+    reset_storage()
+
+    client = MagicMock()
+    client.create_multipart_upload.return_value = {"UploadId": "mpu-1"}
+    client.upload_part.side_effect = lambda **kwargs: {
+        "ETag": f"etag-{kwargs['PartNumber']}"
+    }
+
+    with patch("boto3.client", return_value=client):
+        backend = S3StorageBackend(get_settings())
+        payload = b"x" * (5 * 1024 * 1024 + 1024)
+        upload = _Upload(payload)
+        ref = await backend.save_upload("mp1", ".wav", upload, max_bytes=len(payload) + 1)
+
+    assert ref == "s3://test-bucket/uploads/mp1/original.wav"
+    client.create_multipart_upload.assert_called_once()
+    assert client.upload_part.call_count == 2
+    client.complete_multipart_upload.assert_called_once()
+    client.upload_fileobj.assert_not_called()
+    parts = client.complete_multipart_upload.call_args.kwargs["MultipartUpload"]["Parts"]
+    assert len(parts) == 2
+    assert parts[0]["PartNumber"] == 1
+    assert parts[1]["PartNumber"] == 2
+
+    get_settings.cache_clear()
+    reset_storage()
+
+
+@pytest.mark.asyncio
 async def test_s3_upload_aws_kms(monkeypatch):
     monkeypatch.setenv("STORAGE_BACKEND", "s3")
     monkeypatch.setenv("S3_BUCKET", "test-bucket")

@@ -210,6 +210,7 @@
     "importDisabled": "Импорт по URL отключён администратором инстанса.",
     "importing": "Импорт…",
     "uploading": "Загрузка {{name}} — {{percent}}%",
+    "uploadProcessing": "Сохранение {{name}} на сервере…",
     "showHidden": "Показать скрытые ({{count}})",
     "sharedBy": "поделился {{who}}",
     "youShared": "вы поделились",

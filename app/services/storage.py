@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import tempfile
 from abc import ABC, abstractmethod
+from io import BytesIO
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import AsyncIterator
@@ -18,6 +20,8 @@ from app.services.export import safe_filename
 log = logging.getLogger("app")
 
 S3_SCHEME = "s3://"
+# S3 multipart minimum part size (except the trailing part).
+_S3_PART_SIZE = 5 * 1024 * 1024
 _AUDIO_MIME = {
     ".wav": "audio/wav",
     ".mp3": "audio/mpeg",
@@ -215,6 +219,50 @@ class S3StorageBackend(StorageBackend):
             extra["SSEKMSKeyId"] = self._sse_kms_key_id
         return extra
 
+    def _create_multipart_upload(self, key: str) -> str:
+        kwargs: dict = {"Bucket": self._bucket, "Key": key}
+        extra = self._upload_extra_args()
+        if extra:
+            kwargs.update(extra)
+        return self._client.create_multipart_upload(**kwargs)["UploadId"]
+
+    def _upload_part_sync(
+        self, key: str, upload_id: str, part_number: int, data: bytes
+    ) -> dict:
+        resp = self._client.upload_part(
+            Bucket=self._bucket,
+            Key=key,
+            PartNumber=part_number,
+            UploadId=upload_id,
+            Body=data,
+        )
+        return {"PartNumber": part_number, "ETag": resp["ETag"]}
+
+    def _complete_multipart_sync(
+        self, key: str, upload_id: str, parts: list[dict]
+    ) -> None:
+        self._client.complete_multipart_upload(
+            Bucket=self._bucket,
+            Key=key,
+            UploadId=upload_id,
+            MultipartUpload={"Parts": sorted(parts, key=lambda part: part["PartNumber"])},
+        )
+
+    def _abort_multipart_sync(self, key: str, upload_id: str) -> None:
+        try:
+            self._client.abort_multipart_upload(
+                Bucket=self._bucket, Key=key, UploadId=upload_id
+            )
+        except Exception:
+            log.exception(
+                "abort_multipart_upload failed key=%s upload_id=%s", key, upload_id
+            )
+
+    def _upload_fileobj_sync(self, fileobj, key: str) -> None:
+        self._client.upload_fileobj(
+            fileobj, self._bucket, key, ExtraArgs=self._upload_extra_args()
+        )
+
     async def save_upload(
         self,
         audio_id: str,
@@ -224,19 +272,63 @@ class S3StorageBackend(StorageBackend):
         max_bytes: int,
     ) -> str:
         key = audio_object_key(audio_id, suffix)
-        extra_args = self._upload_extra_args()
         size = 0
-        with tempfile.SpooledTemporaryFile(max_size=8 * 1024 * 1024) as buffer:
+        pending = bytearray()
+        upload_id: str | None = None
+        parts: list[dict] = []
+        part_number = 1
+
+        async def abort_if_needed() -> None:
+            if upload_id:
+                await asyncio.to_thread(self._abort_multipart_sync, key, upload_id)
+
+        try:
             while True:
                 chunk = await file.read(1024 * 1024)
                 if not chunk:
                     break
                 size += len(chunk)
                 if size > max_bytes:
+                    await abort_if_needed()
                     raise PayloadTooLarge()
-                buffer.write(chunk)
-            buffer.seek(0)
-            self._client.upload_fileobj(buffer, self._bucket, key, ExtraArgs=extra_args)
+                pending.extend(chunk)
+
+                while len(pending) >= _S3_PART_SIZE:
+                    if upload_id is None:
+                        upload_id = await asyncio.to_thread(
+                            self._create_multipart_upload, key
+                        )
+                    part_data = bytes(pending[:_S3_PART_SIZE])
+                    del pending[:_S3_PART_SIZE]
+                    part = await asyncio.to_thread(
+                        self._upload_part_sync, key, upload_id, part_number, part_data
+                    )
+                    parts.append(part)
+                    part_number += 1
+
+            if upload_id is None:
+                await asyncio.to_thread(
+                    self._upload_fileobj_sync, BytesIO(bytes(pending)), key
+                )
+            else:
+                if pending:
+                    part = await asyncio.to_thread(
+                        self._upload_part_sync,
+                        key,
+                        upload_id,
+                        part_number,
+                        bytes(pending),
+                    )
+                    parts.append(part)
+                await asyncio.to_thread(
+                    self._complete_multipart_sync, key, upload_id, parts
+                )
+        except PayloadTooLarge:
+            raise
+        except Exception:
+            await abort_if_needed()
+            raise
+
         return self._ref(key)
 
     async def save_file_path(
@@ -251,9 +343,14 @@ class S3StorageBackend(StorageBackend):
         size = source.stat().st_size
         if size > max_bytes:
             raise PayloadTooLarge()
-        extra_args = self._upload_extra_args()
-        with source.open("rb") as handle:
-            self._client.upload_fileobj(handle, self._bucket, key, ExtraArgs=extra_args)
+
+        def _upload() -> None:
+            with source.open("rb") as handle:
+                self._client.upload_fileobj(
+                    handle, self._bucket, key, ExtraArgs=self._upload_extra_args()
+                )
+
+        await asyncio.to_thread(_upload)
         return self._ref(key)
 
     def exists(self, storage_path: str) -> bool:

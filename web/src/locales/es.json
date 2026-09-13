@@ -210,6 +210,7 @@
     "importDisabled": "La importación por URL está desactivada por el administrador.",
     "importing": "Importando…",
     "uploading": "Subiendo {{name}} — {{percent}}%",
+    "uploadProcessing": "Guardando {{name}} en el servidor…",
     "showHidden": "Mostrar ocultos ({{count}})",
     "sharedBy": "compartido por {{who}}",
     "youShared": "usted compartió",

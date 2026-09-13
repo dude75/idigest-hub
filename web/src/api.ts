@@ -109,8 +109,15 @@ export function apiUpload<T>(
     xhr.setRequestHeader('Accept-Language', locale)
 
     if (onProgress) {
+      let lastTotal = 0
       xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) onProgress(e.loaded, e.total)
+        if (e.lengthComputable) {
+          lastTotal = e.total
+          onProgress(e.loaded, e.total)
+        }
+      })
+      xhr.upload.addEventListener('load', () => {
+        if (lastTotal > 0) onProgress(lastTotal, lastTotal)
       })
     }
 

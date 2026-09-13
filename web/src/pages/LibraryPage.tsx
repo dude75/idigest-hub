@@ -52,7 +52,11 @@ export function LibraryPage() {
   const [transcripts, setTranscripts] = useState<Transcript[]>([])
   const [summaries, setSummaries] = useState<Summary[]>([])
   const [busy, setBusy] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<{ name: string; percent: number } | null>(null)
+  const [uploadProgress, setUploadProgress] = useState<{
+    name: string
+    percent: number
+    phase: 'uploading' | 'processing'
+  } | null>(null)
   const [importUrl, setImportUrl] = useState('')
   const [importPlatforms, setImportPlatforms] = useState<ImportPlatformsResponse | null>(null)
   const hasOrg = Boolean(me?.org)
@@ -117,12 +121,17 @@ export function LibraryPage() {
   async function upload(file: File) {
     const pipeline = beginPipelineRun()
     setBusy(true)
-    setUploadProgress({ name: file.name, percent: 0 })
+    setUploadProgress({ name: file.name, percent: 0, phase: 'uploading' })
     try {
       const body = new FormData()
       body.append('file', file)
       const item = await apiUpload<Audio>('/audios', body, (loaded, total) => {
-        setUploadProgress({ name: file.name, percent: total ? Math.round((loaded / total) * 100) : 0 })
+        const percent = total ? Math.round((loaded / total) * 100) : 0
+        setUploadProgress({
+          name: file.name,
+          percent,
+          phase: percent >= 100 ? 'processing' : 'uploading',
+        })
       })
       if (pipelineShouldTranscribe(pipeline)) {
         const task = await api<Task>('/tasks/transcribe', {
@@ -161,10 +170,15 @@ export function LibraryPage() {
           {uploadProgress && (
             <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
               <div className="upload-progress-label">
-                {t('library.uploading', { name: uploadProgress.name, percent: uploadProgress.percent })}
+                {uploadProgress.phase === 'processing'
+                  ? t('library.uploadProcessing', { name: uploadProgress.name })
+                  : t('library.uploading', { name: uploadProgress.name, percent: uploadProgress.percent })}
               </div>
               <div className="progress-bar" aria-hidden="true">
-                <div className="progress-bar-fill" style={{ width: `${uploadProgress.percent}%` }} />
+                <div
+                  className={`progress-bar-fill${uploadProgress.phase === 'processing' ? ' progress-bar-indeterminate' : ''}`}
+                  style={uploadProgress.phase === 'processing' ? undefined : { width: `${uploadProgress.percent}%` }}
+                />
               </div>
             </div>
           )}

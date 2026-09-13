@@ -210,6 +210,7 @@
     "importDisabled": "URL import is disabled by the instance admin.",
     "importing": "Importing…",
     "uploading": "Uploading {{name}} — {{percent}}%",
+    "uploadProcessing": "Saving {{name}} on server…",
     "showHidden": "Show hidden ({{count}})",
     "sharedBy": "shared by {{who}}",
     "youShared": "you shared",
