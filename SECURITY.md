@@ -5,7 +5,28 @@ Application threat model and protection mechanisms: [docs/en/architecture/securi
 
 **Language:** [English](SECURITY.md) · [Русский](SECURITY.ru.md)
 
-**Document version:** 1.0 · **Date:** 2026-09-10
+**Document version:** 1.1 · **Date:** 2026-09-13
+
+**Enterprise security brief (auditors):** [docs/en/compliance/auditor-brief.md](docs/en/compliance/auditor-brief.md) (EN) · [docs/ru/compliance/auditor-brief.md](docs/ru/compliance/auditor-brief.md) (RU) — control domains, evidence index, framework mapping, shared responsibility.
+
+---
+
+## Enterprise security highlights
+
+idigest-hub implements defense-in-depth controls for **on-premise enterprise** deployment:
+
+| Domain | Key controls |
+| ------ | ------------ |
+| **Cryptography** | Envelope encryption (KEK/DEK), fail-closed startup, dual key rotation with audited re-encrypt |
+| **Identity** | RBAC (3 roles), per-org OIDC SSO, break-glass admin login, hashed sessions & API tokens |
+| **Tenant isolation** | Org boundary enforcement, automated cross-org tests (`tests/test_abuse.py`) |
+| **Audit & accountability** | Persistent `audit_log`, impersonation trail, wallet ledger correlation |
+| **Abuse prevention** | Configurable rate limits, trusted-proxy IP handling, upload validation |
+| **Data lifecycle** | User offboarding, retention purge, personal data export (`GET /me/backup`) |
+| **Observability** | Health checks, Bearer-protected Prometheus metrics, Grafana dashboard |
+| **Secure SDLC** | CI: pytest + SAST + dependency scan + secret detection; non-root container (uid 1001) |
+
+Full control catalog, ISO/SOC mapping, and audit evidence checklist: [auditor brief](docs/en/compliance/auditor-brief.md).
 
 ---
 
@@ -192,6 +213,9 @@ To report a product vulnerability: contact the maintainer / instance admin of th
 
 ## 9. Related documents
 
+- [Enterprise security brief for auditors (EN)](docs/en/compliance/auditor-brief.md)
+- [Architecture security (EN)](docs/en/architecture/security.md)
+- [Roles and access (EN)](docs/en/domain/roles-and-access.md)
 - [Deployment (EN)](docs/en/operations/deployment.md)
 - [Testing (EN)](docs/en/development/testing.md)
 - [README — Docker Compose](README.md#docker-compose)

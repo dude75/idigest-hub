@@ -5,7 +5,28 @@
 
 **Язык:** [English](SECURITY.md) · [Русский](SECURITY.ru.md)
 
-**Версия документа:** 1.0 · **Дата:** 2026-09-10
+**Версия документа:** 1.1 · **Дата:** 2026-09-13
+
+**Краткий обзор enterprise-безопасности (аудиторы):** [docs/ru/compliance/auditor-brief.md](docs/ru/compliance/auditor-brief.md) (RU) · [docs/en/compliance/auditor-brief.md](docs/en/compliance/auditor-brief.md) (EN) — домены контроля, индекс доказательств, mapping фреймворков, shared responsibility.
+
+---
+
+## Ключевые сильные стороны безопасности
+
+idigest-hub реализует многоуровневую защиту для **on-premise enterprise** развёртывания:
+
+| Домен | Ключевые контроли |
+| ----- | ----------------- |
+| **Криптография** | Envelope encryption (KEK/DEK), fail-closed при старте, двойная ротация ключей с аудируемым re-encrypt |
+| **Идентификация** | RBAC (3 роли), OIDC SSO per org, break-glass для админов, хешированные sessions & API tokens |
+| **Изоляция tenant** | Граница org, автотесты cross-org (`tests/test_abuse.py`) |
+| **Аудит** | Персистентный `audit_log`, trail impersonation, корреляция с wallet ledger |
+| **Защита от злоупотреблений** | Настраиваемые rate limits, trusted-proxy IP, валидация upload |
+| **Жизненный цикл данных** | Offboarding, retention purge, экспорт данных (`GET /me/backup`) |
+| **Observability** | Health checks, Bearer-protected Prometheus, Grafana dashboard |
+| **Secure SDLC** | CI: pytest + SAST + dependency scan + secret detection; non-root container (uid 1001) |
+
+Полный каталог контролей, mapping ISO/SOC и чек-лист доказательств: [auditor brief](docs/ru/compliance/auditor-brief.md).
 
 ---
 
@@ -192,6 +213,9 @@ Job `deploy:kubernetes` зарезервирован. После появлен�
 
 ## 9. Связанные документы
 
+- [Краткий обзор для аудиторов (RU)](docs/ru/compliance/auditor-brief.md)
+- [Архитектура безопасности (RU)](docs/ru/architecture/security.md)
+- [Роли и доступ (RU)](docs/ru/domain/roles-and-access.md)
 - [Развёртывание (RU)](docs/ru/operations/deployment.md)
 - [Тестирование (RU)](docs/ru/development/testing.md)
 - [README — Docker Compose](README.ru.md#docker-compose)

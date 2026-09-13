@@ -6,6 +6,11 @@ On-premise multi-tenant control plane for [itranscribe-worker](../../README.md#a
 
 **Quick start:** [Project README](../../README.md)
 
+## Compliance (auditors)
+
+- [Enterprise security brief](compliance/auditor-brief.md) — control domains, evidence index, ISO/SOC mapping, shared responsibility
+- [SECURITY.md](../../SECURITY.md) — CI/CD policy and vulnerability management
+
 ## Architecture
 
 - [Overview](architecture/overview.md) — components, tenancy, data flow

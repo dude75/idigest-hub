@@ -6,6 +6,11 @@
 
 **Быстрый старт:** [README проекта](../../README.ru.md)
 
+## Compliance (аудиторы)
+
+- [Краткий обзор enterprise-безопасности](compliance/auditor-brief.md) — домены контроля, индекс доказательств, mapping ISO/SOC, shared responsibility
+- [SECURITY.ru.md](../../SECURITY.ru.md) — политика CI/CD и управление уязвимостями
+
 ## Архитектура
 
 - [Обзор](architecture/overview.md) — компоненты, tenancy, поток данных

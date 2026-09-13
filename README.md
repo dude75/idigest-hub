@@ -4,7 +4,7 @@ On-premise **multi-tenant control plane** over [itranscribe-worker](#attach-work
 
 **Language:** [English](README.md) · [Русский](README.ru.md)
 
-**Documentation:** [docs/](docs/README.md) (English · Русский)
+**Documentation:** [docs/](docs/README.md) (English · Русский) · **Security (auditors):** [SECURITY.md](SECURITY.md) · [Enterprise brief](docs/en/compliance/auditor-brief.md)
 
 ## What it does
 

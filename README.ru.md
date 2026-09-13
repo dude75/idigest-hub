@@ -4,7 +4,7 @@
 
 **Язык:** [English](README.md) · [Русский](README.ru.md)
 
-**Документация:** [docs/](docs/README.md) (English · Русский)
+**Документация:** [docs/](docs/README.md) (English · Русский) · **Безопасность (аудиторы):** [SECURITY.ru.md](SECURITY.ru.md) · [Краткий обзор](docs/ru/compliance/auditor-brief.md)
 
 ## Что это
 

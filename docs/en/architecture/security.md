@@ -149,5 +149,7 @@ Instance admin: **Security → Encryption** — list DEKs (id, status, usage cou
 
 ## Related pages
 
+- [Enterprise security brief for auditors](../compliance/auditor-brief.md) — control catalog, evidence index, framework mapping
+- [SECURITY.md](../../../SECURITY.md) — CI/CD policy and audit checklist
 - [Roles and access](../domain/roles-and-access.md)
 - [Deployment](../operations/deployment.md)

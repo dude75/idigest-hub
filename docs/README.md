@@ -17,6 +17,14 @@ Switch language by replacing `/en/` ↔ `/ru/` in any path.
 
 ## Table of contents
 
+### Compliance (auditors)
+
+| EN | RU |
+| -- | -- |
+| [Enterprise security brief](en/compliance/auditor-brief.md) | [Краткий обзор для аудиторов](ru/compliance/auditor-brief.md) |
+
+Policy documents (repository root): [SECURITY.md](../SECURITY.md) (EN) · [SECURITY.ru.md](../SECURITY.ru.md) (RU).
+
 ### Architecture
 
 | EN | RU |

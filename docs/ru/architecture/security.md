@@ -149,5 +149,7 @@ In-memory token buckets (один процесс). Настраивается в
 
 ## Связанные страницы
 
-- [Roles and access](../domain/roles-and-access.md)
-- [Deployment](../operations/deployment.md)
+- [Краткий обзор для аудиторов](../compliance/auditor-brief.md) — каталог контролей, индекс доказательств, mapping фреймворков
+- [SECURITY.ru.md](../../../SECURITY.ru.md) — политика CI/CD и чек-лист аудита
+- [Роли и доступ](../domain/roles-and-access.md)
+- [Деплой](../operations/deployment.md)
