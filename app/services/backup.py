@@ -50,7 +50,7 @@ def build_backup(
         rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden=True)
         filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
         for row in rows:
-            utterances = json.loads(decrypt_str(row.utterances_encrypted))
+            utterances = json.loads(decrypt_str(row.utterances_encrypted, db))
             source_filename = filenames.get(row.source_audio_id) if row.source_audio_id else None
             display = transcript_display_title(row, source_filename=source_filename)
             stem = safe_filename(f"{row.id}_{display}")
@@ -80,7 +80,7 @@ def build_backup(
             db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
         )
         for row in rows:
-            body = unwrap_markdown_fence(decrypt_str(row.body_encrypted))
+            body = unwrap_markdown_fence(decrypt_str(row.body_encrypted, db))
             source_transcript, source_filename = _summary_source_context(row, transcripts, audio_filenames)
             display = summary_display_title(
                 row,

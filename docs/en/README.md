@@ -10,7 +10,7 @@ On-premise multi-tenant control plane for [itranscribe-worker](../../README.md#a
 
 - [Overview](architecture/overview.md) — components, tenancy, data flow
 - [Request flow](architecture/request-flow.md) — auth, tasks, dispatcher sequences
-- [Security](architecture/security.md) — secrets, encryption, sessions, rate limits
+- [Security](architecture/security.md) — envelope encryption, KEK/DEK rotation, sessions, rate limits
 
 ## Domain model
 

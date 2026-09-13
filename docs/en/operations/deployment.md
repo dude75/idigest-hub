@@ -121,7 +121,8 @@ Set **Public URL** in Instance → Settings to the external base URL users and K
 
 Full table in [README — `.env`](../../../README.md#env). Critical secrets:
 
-- `HUB_SECRET` — set once; backup `.env`
+- `HUB_SECRET` — KEK for envelope encryption; backup `.env`; wrong value blocks startup when DEKs/data exist
+- `HUB_SECRET_PREV` — previous KEK during rotation only; remove after DEK re-wrap completes
 - `SESSION_SECRET` — rotation logs everyone out
 - `INSTANCE_BOOTSTRAP_TOKEN` — one-time setup only
 

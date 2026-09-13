@@ -3,12 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { isInstanceAdmin, useAuth } from '../../auth'
 import { LIBRARY_DEFAULT } from '../../routes'
 import { AuditLogTab } from './AuditLogTab'
+import { EncryptionTab } from './EncryptionTab'
 import { SECURITY_TABS, resolveSecurityTab, type SecurityTab } from './constants'
 
 function SecurityTabContent({ tab }: { tab: SecurityTab }) {
   switch (tab) {
     case 'audit':
       return <AuditLogTab />
+    case 'encryption':
+      return <EncryptionTab />
   }
 }
 

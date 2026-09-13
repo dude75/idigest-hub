@@ -19,6 +19,7 @@ Edit `.env` — minimal local values:
 
 ```env
 HUB_SECRET=dev-secret
+# HUB_SECRET_PREV=   # only during KEK rotation in production
 INSTANCE_BOOTSTRAP_TOKEN=dev-bootstrap
 SESSION_SECRET=dev-session
 DATABASE_URL=sqlite:///./data/hub.db

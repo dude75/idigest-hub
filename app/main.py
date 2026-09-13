@@ -33,7 +33,7 @@ from app.prometheus_metrics import (
     render,
     set_active,
 )
-from app.routers import auth, instance, library, org, skills, tasks
+from app.routers import auth, crypto, instance, library, org, skills, tasks
 from app.services.dispatcher import dispatcher_loop
 from app.rate_limit import rate_limit_sweeper
 from app.version import read_version
@@ -179,6 +179,7 @@ def metrics(_: None = Depends(require_metrics_token)) -> Response:
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(instance.router, prefix="/api/v1")
+app.include_router(crypto.router, prefix="/api/v1")
 app.include_router(org.router, prefix="/api/v1")
 app.include_router(library.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")

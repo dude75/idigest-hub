@@ -314,7 +314,25 @@
   },
   "security": {
     "title": "Seguridad",
-    "audit": "Auditoría"
+    "audit": "Auditoría",
+    "encryption": "Cifrado"
+  },
+  "encryption": {
+    "lead": "Claves DEK. Tras cambiar HUB_SECRET, defina HUB_SECRET_PREV con el valor anterior y reinicie — el re-wrap de DEK es automático al arrancar.",
+    "hubSecretPrevHint": "HUB_SECRET_PREV está definido. Manténgalo hasta que todos los DEK estén re-envueltos.",
+    "rewrapPending": "Quedan {{count}} DEK por re-envolver — revise HUB_SECRET / HUB_SECRET_PREV y reinicie.",
+    "addDek": "Añadir DEK",
+    "reencrypt": "Re-cifrar y eliminar DEK antiguas",
+    "jobTitle": "Trabajo de re-cifrado",
+    "jobStarted": "Inicio",
+    "jobFinished": "Fin",
+    "cancel": "Cancelar",
+    "dekId": "Clave",
+    "status": "Estado",
+    "usage": "Uso",
+    "created": "Creado",
+    "active": "activa",
+    "noDeks": "Aún no hay claves DEK."
   },
   "audit": {
     "title": "Auditoría",

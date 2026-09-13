@@ -140,7 +140,7 @@ Full description: [docs/en/architecture/security.md](docs/en/architecture/securi
 
 | Area | Measure |
 | ---- | ------- |
-| Database data | Fernet encryption of sensitive fields (`HUB_SECRET`) |
+| Database data | Envelope encryption: DEK + KEK (`HUB_SECRET`); DEK rotation via Security → Encryption |
 | Sessions | HttpOnly cookie, token hash with `SESSION_SECRET` |
 | API tokens | Shown once; rate limits |
 | SSO | OIDC per org; client secret encrypted |
@@ -159,7 +159,7 @@ Full description: [docs/en/architecture/security.md](docs/en/architecture/securi
 | Audio uploads | `./data/uploads/` (local) or S3 bucket (`STORAGE_BACKEND=s3`) | Local: with `./data`. S3: bucket backup/replication per provider |
 | Logs | `./data/logs/` | Per customer policy |
 
-Changing `HUB_SECRET` without a backup makes encrypted DB rows unreadable. Changing `SESSION_SECRET` logs out all users.
+**KEK rotation:** change `HUB_SECRET`, set `HUB_SECRET_PREV` to the old value, restart — DEKs re-wrap on startup (keep both until re-wrap completes). **DEK rotation:** instance admin UI (re-encrypt job). Wrong or empty `HUB_SECRET` with existing encrypted data prevents startup (fail-closed). Changing `SESSION_SECRET` logs out all users.
 
 ---
 

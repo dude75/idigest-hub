@@ -144,7 +144,7 @@ def create_worker(
         type=body.type,
         name=body.name.strip(),
         base_url=body.base_url.rstrip("/"),
-        api_token_encrypted=encrypt_str(body.api_token),
+        api_token_encrypted=encrypt_str(body.api_token, db),
         weight=max(body.weight, 1),
         enabled=body.enabled,
         created_at=now,
@@ -172,7 +172,7 @@ def patch_worker(
     node.name = body.name.strip()
     node.base_url = body.base_url.rstrip("/")
     if body.api_token:
-        node.api_token_encrypted = encrypt_str(body.api_token)
+        node.api_token_encrypted = encrypt_str(body.api_token, db)
     node.weight = max(body.weight, 1)
     node.enabled = body.enabled
     node.updated_at = utcnow()
@@ -366,7 +366,7 @@ def patch_settings(
     if "smtp_password" in data:
         password = data.pop("smtp_password")
         if password:
-            s.smtp_password_encrypted = encrypt_str(password)
+            s.smtp_password_encrypted = encrypt_str(password, db)
     if "download_proxy_url" in data:
         from app.services.import_platforms import normalize_download_proxy_url
 
@@ -388,7 +388,7 @@ def patch_settings(
     if "download_proxy_password" in data:
         proxy_password = data.pop("download_proxy_password")
         if proxy_password:
-            s.download_proxy_password_encrypted = encrypt_str(proxy_password)
+            s.download_proxy_password_encrypted = encrypt_str(proxy_password, db)
     if "import_audio_bitrate_kbps" in data:
         from app.services.import_platforms import normalize_import_audio_bitrate_kbps
 

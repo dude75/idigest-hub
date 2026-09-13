@@ -12,7 +12,7 @@ app/
 ├── deps.py           # AuthContext, require_auth
 ├── errors.py         # ErrorCode enum, ApiError
 ├── presenters.py     # Entity → JSON
-├── crypto.py         # Fernet encrypt/decrypt
+├── crypto.py         # Envelope encryption (KEK/DEK)
 ├── security.py       # Passwords, token hashing
 ├── cookies.py        # Session cookie helpers
 ├── i18n.py           # Locale negotiation + translations
@@ -24,6 +24,7 @@ app/
 │   ├── library.py
 │   ├── org.py
 │   ├── instance.py
+│   ├── crypto.py     # DEK management API (instance_admin)
 │   └── skills.py
 └── services/
     ├── dispatcher.py   # Task queue loop
@@ -36,6 +37,8 @@ app/
     ├── audit.py
     ├── mail.py
     ├── stats.py
+    ├── crypto_bootstrap.py  # Startup validate + initial DEK + KEK re-wrap
+    ├── crypto_reencrypt.py  # Background DEK rotation job
     ├── sso.py          # OIDC login, state, token exchange
     ├── backup.py       # Profile ZIP/TGZ archives
     ├── export.py       # Download filenames, markdown fence unwrap

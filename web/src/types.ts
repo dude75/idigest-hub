@@ -305,3 +305,22 @@ export type OrgLedger = {
   total_topup: string
   net: string
 }
+
+export type DataEncryptionKey = {
+  id: string
+  status: string
+  created_at: string
+  retired_at: string | null
+  usage_count: number
+}
+
+export type EncryptionJob = {
+  id: string
+  target_dek_id: string
+  status: string
+  progress: Record<string, unknown>
+  error: string | null
+  started_at: string | null
+  completed_at: string | null
+  created_at: string
+}

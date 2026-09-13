@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from collections.abc import Generator
 from pathlib import Path
@@ -243,6 +244,14 @@ def init_database(engine: Engine) -> None:
     _run_alembic_upgrade()
     _startup_log("database init: schema patches")
     _apply_idempotent_patches(engine)
+    _startup_log("database init: crypto bootstrap and DEK re-wrap")
+    from app.services.crypto_bootstrap import CryptoConfigError, bootstrap_encryption
+
+    try:
+        bootstrap_encryption()
+    except CryptoConfigError as exc:
+        _startup_log(f"FATAL: {exc}")
+        os._exit(1)
     _startup_log("database init: done")
 
 

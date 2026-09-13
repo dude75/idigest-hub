@@ -45,13 +45,15 @@
 | `shares` / `hidden_items` | Sharing и per-user hide |
 | `usage_events` | Billing ledger |
 | `audit_log` | Действия админов |
+| `data_encryption_keys` | DEK (обёрнуты KEK) |
+| `encryption_jobs` | Фоновые job перешифровки DEK |
 | `password_reset_tokens` | Восстановление по email |
 
 UUID хранятся как 36-символьные строки. Колонок soft-delete (`deleted_at`) нет.
 
 ## Зашифрованные колонки
 
-Требуют валидный `HUB_SECRET`. См. [Security](../architecture/security.md).
+Envelope encryption (`v1:{dek_id}:…`). Таблицы: `data_encryption_keys`, `encryption_jobs`, `instance_settings.active_dek_id`. Нужен валидный `HUB_SECRET` (и `HUB_SECRET_PREV` при ротации KEK). Старт падает, если KEK не unwrap'ит DEK. См. [Security](../architecture/security.md).
 
 ## Заметки по SQLite
 

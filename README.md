@@ -123,7 +123,8 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 
 | Variable                     | Meaning                                                                                                                                                          |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `HUB_SECRET`                 | At-rest encryption key material (see below). Empty = encrypt/decrypt fails.                                                                                      |
+| `HUB_SECRET`                 | KEK for envelope encryption (see below). Operator-only; not editable in UI. Wrong/empty value **blocks startup** once encrypted data or DEKs exist.           |
+| `HUB_SECRET_PREV`            | Previous `HUB_SECRET` during KEK rotation only. Startup re-wraps DEKs automatically. Remove after Security → Encryption shows no pending re-wrap.              |
 | `INSTANCE_BOOTSTRAP_TOKEN`   | One-time secret for `POST /api/v1/setup` / UI `/setup`. Empty or wrong = `bootstrap_invalid`.                                                                    |
 | `SESSION_SECRET`             | Pepper for session and API-token hashes. Changing it invalidates existing cookies and tokens.                                                                    |
 | `HOST`                       | Bind address (`127.0.0.1` locally; Docker uses `0.0.0.0`).                                                                                                       |
@@ -152,9 +153,9 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 
 Everything that must survive a restart lives under `./data` (SQLite `hub.db` or `./data/pg` for Compose PostgreSQL, and logs). With the default **`STORAGE_BACKEND=local`**, audio uploads also live under `{DATA_DIR}/uploads/{audio_id}/` — mount `./data` in Docker. With **`STORAGE_BACKEND=s3`**, audio is in object storage (SSE at rest); the hub pod needs DB + logs only, not a volume for uploads. The Compose container writes `./data` as uid/gid **1001** (see [Docker Compose](#docker-compose)).
 
-Worker `api_token`s, transcript JSON, summary bodies, and SMTP passwords in the hub database are Fernet-encrypted (AES-128-CBC + HMAC). The key is `SHA-256(HUB_SECRET)`, not the raw secret — same idea as `API_TOKEN` on the workers. The API still returns plaintext to authorized callers. **Audio blobs** use `STORAGE_BACKEND`: local files are plain on disk; with `s3`, rely on **server-side encryption** (SSE) on the bucket — the hub does not app-level encrypt audio. DB encryption only helps if the database leaks without `.env`.
+Sensitive fields in the hub database use **envelope encryption** (Fernet): a **DEK** (data encryption key) encrypts rows; **KEK** = `SHA-256(HUB_SECRET)` wraps DEKs in `data_encryption_keys`. Ciphertext format: `v1:{dek_id}:…`. The API still returns plaintext to authorized callers. **Audio blobs** use `STORAGE_BACKEND`: local files are plain on disk; with `s3`, rely on **server-side encryption** (SSE) on the bucket — the hub does not app-level encrypt audio. DB encryption only helps if the database leaks without `.env`.
 
-**Changing `HUB_SECRET` makes existing encrypted rows unreadable** (worker tokens, transcripts, summaries, SMTP password). There is no automatic re-encrypt. Set the secret once and keep a backup of `.env`. Same warning the workers give for rotating `API_TOKEN`.
+**KEK rotation** (`HUB_SECRET`): set new secret + `HUB_SECRET_PREV` (old), restart — DEKs re-wrap on startup; data columns are not re-encrypted. **DEK rotation** (compromised key): instance admin → **Security → Encryption** → Add DEK → Re-encrypt and remove old DEKs. Keep a backup of `.env`; wrong secrets prevent startup once the instance has encrypted data.
 
 ## Attach workers
 
@@ -289,6 +290,7 @@ Coarse IP flood protection can also be configured on the **reverse proxy**; the 
 | HTTP **401**, `error.code = bootstrap_invalid`                       | Missing/wrong `INSTANCE_BOOTSTRAP_TOKEN` on `/setup`.                                            |
 | HTTP **409**, `error.code = setup_already_done`                      | Instance admin already exists. Use login.                                                        |
 | HTTP **403**, `error.code = signup_disabled`                         | Instance admin turned off new orgs, or no non-archived signup tariff.                            |
-| Transcripts / worker tokens unreadable after changing `HUB_SECRET`   | Fernet key is `SHA-256` of the previous secret. Restore the old `.env` or re-enter worker tokens and accept lost ciphertext. |
+| Hub exits on start with `FATAL: HUB_SECRET…`                         | Empty or wrong KEK with existing DEKs/data. Restore correct `HUB_SECRET` and/or set `HUB_SECRET_PREV` during rotation. See [Security](docs/en/architecture/security.md#key-rotation). |
+| Re-encrypt job failed / old DEKs remain                              | Check job error in Security → Encryption. Retry re-encrypt; retiring DEKs with `usage_count = 0` can be cleaned up by a completed job. |
 | `Permission denied` on `/data/...` (`hub.db`, `logs`, `uploads`)     | Host `./data` is not writable by uid 1001. Run `sudo chown -R 1001:1001 ./data` and restart. Do not chmod `777`. |
 | HTTP **429**, `error.code = rate_limited`                            | Too many requests; wait for `Retry-After` or raise limits in Instance → Settings.                                |

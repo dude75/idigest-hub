@@ -143,6 +143,30 @@ Returns org/user counts, queued/running tasks, daily breakdown, totals (`transcr
 
 Same CRUD as [skills API](skills.md) under `/skills/base`.
 
+## Encryption (DEK)
+
+Instance admin: **Security → Encryption** UI, or API:
+
+### GET `/instance/crypto/deks`
+
+List DEKs with `usage_count`, `active_dek_id`, `deks_pending_rewrap`, `hub_secret_prev_configured`.
+
+### POST `/instance/crypto/deks`
+
+Create new DEK (becomes `active`); previous active → `retiring`. Audit: `crypto.dek.create`.
+
+### POST `/instance/crypto/reencrypt`
+
+Start background job: re-encrypt all `retiring` DEK ciphertext to active DEK, delete unused retiring DEKs. Returns job with `started_at`, `progress.tables`.
+
+### GET `/instance/crypto/reencrypt/latest`
+
+### GET `/instance/crypto/reencrypt/{job_id}`
+
+### POST `/instance/crypto/reencrypt/{job_id}/cancel`
+
+KEK rotation (`HUB_SECRET`) is **not** an API — operator changes `.env` only; DEK re-wrap runs on hub restart. See [Security — Key rotation](../architecture/security.md#key-rotation).
+
 ## Related pages
 
 - [Billing domain](../domain/billing.md)

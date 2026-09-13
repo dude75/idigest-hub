@@ -19,6 +19,7 @@ cp .env.example .env
 
 ```env
 HUB_SECRET=dev-secret
+# HUB_SECRET_PREV=   # только при ротации KEK в production
 INSTANCE_BOOTSTRAP_TOKEN=dev-bootstrap
 SESSION_SECRET=dev-session
 DATABASE_URL=sqlite:///./data/hub.db

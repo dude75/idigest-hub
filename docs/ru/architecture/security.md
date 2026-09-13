@@ -14,25 +14,63 @@
 
 | Variable | Назначение |
 | -------- | ---------- |
-| `HUB_SECRET` | Материал Fernet key: `SHA-256(secret)` → AES-128-CBC + HMAC для at-rest ciphertext в DB |
+| `HUB_SECRET` | **KEK** (key-encryption key): `SHA-256(secret)` оборачивает DEK в `data_encryption_keys`. Только оператор — не через UI. |
+| `HUB_SECRET_PREV` | Прежний `HUB_SECRET` только на время **ротации KEK**. Unwrap: сначала current, затем `PREV`. Удалить из `.env` после переобёртки всех DEK. |
 | `SESSION_SECRET` | Pepper для хеширования session tokens и raw значений API token |
 | `INSTANCE_BOOTSTRAP_TOKEN` | Одноразовый gate для `POST /setup` |
 
-**Ротация `HUB_SECRET`** делает существующие зашифрованные строки нечитаемыми (worker tokens, transcript JSON, summary bodies, SMTP password). Автоматического re-encryption нет.
-
 **Ротация `SESSION_SECRET`** инвалидирует все session cookies и API tokens (хеши перестают совпадать).
 
-## At-rest encryption
+## At-rest encryption (envelope)
 
-Зашифрованные колонки (через `app/crypto.py`):
+Чувствительные поля БД — **envelope encryption** (`app/crypto.py`):
+
+1. **KEK** — из `HUB_SECRET` (только `.env` оператора).
+2. **DEK** — случайный Fernet-ключ в `data_encryption_keys`; `wrapped_key` = KEK(DEK).
+3. **Ciphertext** — формат `v1:{dek_id}:{fernet_token}` в колонках приложения.
+
+Зашифрованные колонки:
 
 - `worker_nodes.api_token_encrypted`
 - `transcripts.utterances_encrypted`
 - `summaries.body_encrypted`
 - `instance_settings.smtp_password_encrypted`
+- `instance_settings.download_proxy_password_encrypted`
 - `organizations.sso_client_secret_encrypted`
 
-Авторизованные API-ответы расшифровываются на лету — клиенты получают plaintext JSON. Шифрование защищает от утечек только DB.
+API расшифровывает на лету — клиенты получают plaintext JSON. Без `.env` дамп БД бесполезен для ciphertext.
+
+При первом старте после апгрейда создаётся первый DEK и мигрируется legacy ciphertext. **Fail-closed при старте:** если инстанс настроен или есть DEK / зашифрованные данные, пустой или неверный `HUB_SECRET` (и при необходимости `HUB_SECRET_PREV`) не даёт поднять процесс (`FATAL` в логах, exit 1).
+
+## Ротация ключей
+
+Две независимые операции:
+
+### Ротация KEK (`HUB_SECRET` — только оператор)
+
+Переоборачивает DEK в БД. **Не** перешифровывает transcripts, summaries, worker tokens.
+
+1. Задать новый `HUB_SECRET` в `.env`.
+2. Задать `HUB_SECRET_PREV` = **старый** секрет.
+3. Перезапустить hub — переобёртка DEK автоматически при старте (commit после каждого DEK; рестарт посреди процесса безопасен).
+4. **Security → Encryption** — убедиться, что `deks_pending_rewrap` = 0 (нет предупреждения).
+5. Удалить `HUB_SECRET_PREV` из `.env` и перезапустить.
+
+Держите оба секрета, пока re-wrap не завершён. При падении сервиса — тот же `.env` и рестарт; оставшиеся DEK догонятся.
+
+### Ротация DEK (компрометация data key — UI instance admin)
+
+Перешифровывает все ciphertext на новый DEK. **`HUB_SECRET` менять не нужно.**
+
+1. **Security → Encryption → Добавить DEK** — новый active; прежние active → `retiring`.
+2. **Перешифровать и удалить старые DEK** — фоновый job переписывает `v1:{old_dek_id}:…` на active DEK и удаляет неиспользуемые retiring DEK.
+3. Следить за job (время запуска/завершения, прогресс по таблицам).
+
+DEK rotation — при компрометации DEK. KEK rotation — при смене мастер-секрета в `.env`.
+
+## Encryption UI
+
+Instance admin: **Security → Encryption** — список DEK, добавление DEK, запуск/отмена re-encrypt job, подсказки про `HUB_SECRET_PREV` / pending KEK re-wrap.
 
 ## Session cookies
 
@@ -107,7 +145,7 @@ In-memory token buckets (один процесс). Настраивается в
 
 ## Audit log
 
-Таблица `audit_log` записывает чувствительные действия (setup, wallet changes, wipes, impersonation, summary edits). В текущей версии не экспонируется через public API — для forensics запрашивайте DB напрямую.
+Таблица `audit_log` — setup, wallet, wipes, impersonation, summary edits, `crypto.dek.create`, `crypto.reencrypt.*`. Instance admin: **Security → Audit** через API; старые строки — в DB.
 
 ## Связанные страницы
 

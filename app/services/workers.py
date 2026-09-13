@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx2
+from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.crypto import decrypt_str
@@ -44,8 +45,8 @@ def map_worker_error(code: str | None) -> str:
     return WORKER_ERROR_MAP.get(code, "pipeline_error")
 
 
-def _auth_header(node: WorkerNode) -> dict[str, str]:
-    token = decrypt_str(node.api_token_encrypted)
+def _auth_header(db: Session, node: WorkerNode) -> dict[str, str]:
+    token = decrypt_str(node.api_token_encrypted, db)
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -78,14 +79,14 @@ def _parse_json(response: httpx2.Response) -> dict[str, Any]:
         return {}
 
 
-async def get_health(node: WorkerNode) -> tuple[int, dict[str, Any]]:
+async def get_health(db: Session, node: WorkerNode) -> tuple[int, dict[str, Any]]:
     url = node.base_url.rstrip("/") + "/health"
     async with httpx2.AsyncClient(timeout=_timeout()) as client:
         response = await client.get(url)
     return response.status_code, _parse_json(response)
 
 
-async def get_ready(node: WorkerNode) -> int:
+async def get_ready(_db: Session, node: WorkerNode) -> int:
     url = node.base_url.rstrip("/") + "/ready"
     async with httpx2.AsyncClient(timeout=_timeout()) as client:
         response = await client.get(url)
@@ -93,6 +94,7 @@ async def get_ready(node: WorkerNode) -> int:
 
 
 async def post_transcribe(
+    db: Session,
     node: WorkerNode,
     path: Path,
     filename: str,
@@ -100,7 +102,7 @@ async def post_transcribe(
     diarization_model: str | None,
 ) -> dict[str, Any]:
     url = node.base_url.rstrip("/") + "/transcribe"
-    headers = _auth_header(node)
+    headers = _auth_header(db, node)
     suffix = path.suffix.lower()
     mime = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".m4a": "audio/mp4"}.get(suffix, "application/octet-stream")
     data = {"asr_model": asr_model, "diarization_model": diarization_model or ""}
@@ -129,9 +131,9 @@ async def post_transcribe(
     return body
 
 
-async def post_summarize(node: WorkerNode, text: str, skill: str) -> dict[str, Any]:
+async def post_summarize(db: Session, node: WorkerNode, text: str, skill: str) -> dict[str, Any]:
     url = node.base_url.rstrip("/") + "/summarize"
-    headers = {**_auth_header(node), "Content-Type": "application/json"}
+    headers = {**_auth_header(db, node), "Content-Type": "application/json"}
     try:
         async with httpx2.AsyncClient(timeout=_timeout(upload=True)) as client:
             response = await client.post(url, headers=headers, json={"text": text, "skill": skill})
@@ -151,11 +153,11 @@ async def post_summarize(node: WorkerNode, text: str, skill: str) -> dict[str, A
     return body
 
 
-async def get_task(node: WorkerNode, worker_task_id: str) -> tuple[int, dict[str, Any]]:
+async def get_task(db: Session, node: WorkerNode, worker_task_id: str) -> tuple[int, dict[str, Any]]:
     url = node.base_url.rstrip("/") + f"/tasks/{worker_task_id}"
     try:
         async with httpx2.AsyncClient(timeout=_timeout()) as client:
-            response = await client.get(url, headers=_auth_header(node))
+            response = await client.get(url, headers=_auth_header(db, node))
     except httpx2.TimeoutException as exc:
         raise WorkerClientError("timeout") from exc
     except httpx2.HTTPError as exc:
@@ -163,11 +165,11 @@ async def get_task(node: WorkerNode, worker_task_id: str) -> tuple[int, dict[str
     return response.status_code, _parse_json(response)
 
 
-async def delete_task(node: WorkerNode, worker_task_id: str) -> int:
+async def delete_task(db: Session, node: WorkerNode, worker_task_id: str) -> int:
     url = node.base_url.rstrip("/") + f"/tasks/{worker_task_id}"
     try:
         async with httpx2.AsyncClient(timeout=_timeout()) as client:
-            response = await client.delete(url, headers=_auth_header(node))
+            response = await client.delete(url, headers=_auth_header(db, node))
     except httpx2.HTTPError:
         log.info("worker delete failed node=%s task=%s", node.id, worker_task_id)
         return 0

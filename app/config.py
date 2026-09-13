@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     )
 
     HUB_SECRET: str = ""
+    # Previous HUB_SECRET kept during KEK rotation; unwrap tries current then PREV.
+    # Startup re-wraps DEKs onto current KEK (one DEK per commit, safe to restart).
+    HUB_SECRET_PREV: str = ""
     INSTANCE_BOOTSTRAP_TOKEN: str = ""
     SESSION_SECRET: str = ""
 

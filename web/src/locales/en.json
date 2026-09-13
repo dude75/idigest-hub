@@ -314,7 +314,25 @@
   },
   "security": {
     "title": "Security",
-    "audit": "Audit log"
+    "audit": "Audit log",
+    "encryption": "Encryption"
+  },
+  "encryption": {
+    "lead": "Data encryption keys (DEK). Add a new DEK if a key may be compromised, then re-encrypt to retire old keys. After changing HUB_SECRET, set HUB_SECRET_PREV to the old value and restart — DEK re-wrap runs automatically on startup.",
+    "hubSecretPrevHint": "HUB_SECRET_PREV is set. Keep it until all DEKs show as re-wrapped (restart is safe mid-rotation).",
+    "rewrapPending": "{{count}} DEK(s) still need re-wrap — check HUB_SECRET / HUB_SECRET_PREV and restart.",
+    "addDek": "Add DEK",
+    "reencrypt": "Re-encrypt and remove old DEKs",
+    "jobTitle": "Re-encryption job",
+    "jobStarted": "Started",
+    "jobFinished": "Finished",
+    "cancel": "Cancel",
+    "dekId": "Key",
+    "status": "Status",
+    "usage": "Usage",
+    "created": "Created",
+    "active": "active",
+    "noDeks": "No encryption keys yet."
   },
   "audit": {
     "title": "Audit log",

@@ -73,6 +73,32 @@ class InstanceSettings(Base):
     download_cookies_path: Mapped[str | None] = mapped_column(String(512))
     import_audio_bitrate_kbps: Mapped[int] = mapped_column(Integer, default=64, nullable=False)
     session_ttl_hours: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
+    active_dek_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("data_encryption_keys.id"))
+
+
+class DataEncryptionKey(Base):
+    __tablename__ = "data_encryption_keys"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    wrapped_key: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    retired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class EncryptionJob(Base):
+    __tablename__ = "encryption_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    target_dek_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("data_encryption_keys.id", ondelete="SET NULL"), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="queued")
+    progress_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    error: Mapped[str | None] = mapped_column(Text)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class User(Base):

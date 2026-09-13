@@ -161,11 +161,11 @@ def build_authorization_url(
     return f"{auth_endpoint}?{urlencode(params)}"
 
 
-def _client_secret(org: Organization) -> str | None:
-    return try_decrypt_str(org.sso_client_secret_encrypted)
+def _client_secret(org: Organization, db: Session) -> str | None:
+    return try_decrypt_str(org.sso_client_secret_encrypted, db)
 
 
-def exchange_code(*, org: Organization, public_base_url: str, code: str) -> dict[str, Any]:
+def exchange_code(*, db: Session, org: Organization, public_base_url: str, code: str) -> dict[str, Any]:
     config = fetch_oidc_config(org.sso_issuer or "")
     token_endpoint = config["token_endpoint"]
     redirect_uri = callback_url(public_base_url, org.id)
@@ -175,7 +175,7 @@ def exchange_code(*, org: Organization, public_base_url: str, code: str) -> dict
         "redirect_uri": redirect_uri,
         "client_id": org.sso_client_id,
     }
-    secret = _client_secret(org)
+    secret = _client_secret(org, db)
     auth = None
     if secret:
         auth = (org.sso_client_id or "", secret)
@@ -271,14 +271,14 @@ def validate_sso_config(*, issuer: str | None, client_id: str | None) -> None:
         raise ValueError("issuer must be http(s) URL")
 
 
-def store_client_secret(org: Organization, secret: str | None) -> None:
+def store_client_secret(org: Organization, secret: str | None, db: Session) -> None:
     if secret is None:
         return
     trimmed = secret.strip()
     if not trimmed:
         org.sso_client_secret_encrypted = None
         return
-    org.sso_client_secret_encrypted = encrypt_str(trimmed)
+    org.sso_client_secret_encrypted = encrypt_str(trimmed, db)
 
 
 def clear_client_secret(org: Organization) -> None:

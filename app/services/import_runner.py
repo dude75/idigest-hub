@@ -110,7 +110,7 @@ async def _run_import_task(task_id: str) -> None:
             return
 
         max_bytes = int(task.snap_max_upload_bytes)
-        proxy = effective_download_proxy(settings)
+        proxy = effective_download_proxy(settings, db)
         allowed = allowed_extractors(settings)
         max_bitrate = normalize_import_audio_bitrate_kbps(settings.import_audio_bitrate_kbps)
 

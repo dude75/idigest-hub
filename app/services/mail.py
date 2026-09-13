@@ -22,7 +22,7 @@ def send_mail(db: Session, to_email: str, subject: str, body: str) -> None:
     settings = db.get(InstanceSettings, 1)
     if settings is None or not smtp_configured(settings):
         raise RuntimeError("smtp not configured")
-    password = try_decrypt_str(settings.smtp_password_encrypted) or ""
+    password = try_decrypt_str(settings.smtp_password_encrypted, db) or ""
     msg = EmailMessage()
     msg["From"] = settings.smtp_from
     msg["To"] = to_email

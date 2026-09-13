@@ -470,7 +470,7 @@ def sso_callback(
         return fail(ErrorCode.sso_misconfigured)
     try:
         nonce = verify_oauth_state(state, org_id)
-        token_payload = exchange_code(org=org, public_base_url=public_base, code=code)
+        token_payload = exchange_code(db=db, org=org, public_base_url=public_base, code=code)
         id_token = token_payload.get("id_token")
         if not id_token:
             return fail(ErrorCode.sso_misconfigured)

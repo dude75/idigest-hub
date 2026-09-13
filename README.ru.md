@@ -123,7 +123,8 @@ URL должен совпадать с тем, как хаб видят поль
 
 | Переменная                   | Смысл                                                                                                                                                            |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `HUB_SECRET`                 | Материал ключа шифрования at-rest (см. ниже). Пустой — encrypt/decrypt падает.                                                                                   |
+| `HUB_SECRET`                 | KEK для envelope encryption (см. ниже). Только оператор; не через UI. Неверный/пустой секрет **блокирует старт**, если есть DEK или зашифрованные данные.         |
+| `HUB_SECRET_PREV`            | Прежний `HUB_SECRET` только при ротации KEK. Переобёртка DEK при старте. Удалить после Security → Encryption, когда нет pending re-wrap.                       |
 | `INSTANCE_BOOTSTRAP_TOKEN`   | Одноразовый секрет для `POST /api/v1/setup` / UI `/setup`. Пустой или неверный — `bootstrap_invalid`.                                                            |
 | `SESSION_SECRET`             | Перец для хешей сессий и API-токенов. Смена инвалидирует уже выданные cookie и токены.                                                                           |
 | `HOST`                       | Интерфейс (`127.0.0.1` локально; в Docker — `0.0.0.0`).                                                                                                          |
@@ -152,9 +153,9 @@ URL должен совпадать с тем, как хаб видят поль
 
 Всё, что должно пережить рестарт, лежит в `./data` (SQLite `hub.db` или `./data/pg` для PostgreSQL в Compose, логи). При **`STORAGE_BACKEND=local`** (по умолчанию) загрузки audio — в `{DATA_DIR}/uploads/{audio_id}/`; монтируйте `./data` в Docker. При **`STORAGE_BACKEND=s3`** audio в object storage (SSE at rest); hub-поду volume для uploads не нужен — только БД и логи. Контейнер Compose пишет `./data` от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
 
-`api_token` воркеров, JSON транскриптов, тела саммари и SMTP-пароль в БД хаба хранятся в Fernet (AES-128-CBC + HMAC). Ключ — `SHA-256(HUB_SECRET)`, не сырой секрет — та же идея, что `API_TOKEN` у воркеров. API по-прежнему отдаёт открытый текст авторизованным клиентам. **Audio** — через `STORAGE_BACKEND`: на диске plain; при `s3` — **server-side encryption** на bucket, без app-level шифрования в hub. Защита БД актуальна при утечке дампа без `.env`.
+Чувствительные поля БД — **envelope encryption** (Fernet): **DEK** шифрует строки; **KEK** = `SHA-256(HUB_SECRET)` оборачивает DEK в `data_encryption_keys`. Формат: `v1:{dek_id}:…`. API отдаёт plaintext авторизованным клиентам. **Audio** — `STORAGE_BACKEND`: local plain; `s3` — SSE на bucket. Защита БД при утечке дампа без `.env`.
 
-**Смена `HUB_SECRET` делает уже зашифрованные строки нечитаемыми** (токены воркеров, транскрипты, саммари, SMTP-пароль). Автоматической перешифровки нет. Задайте секрет один раз и храните запасную копию `.env`. То же предупреждение, что у воркеров про ротацию `API_TOKEN`.
+**Ротация KEK** (`HUB_SECRET`): новый секрет + `HUB_SECRET_PREV` (старый), рестарт — переобёртка DEK при старте; колонки данных не перешифровываются. **Ротация DEK** (компрометация): instance admin → **Security → Encryption** → добавить DEK → перешифровать и удалить старые. Храните backup `.env`; неверные секреты не дают стартовать hub с зашифрованными данными.
 
 ## Подключить воркеры
 
@@ -289,6 +290,7 @@ Per-IP лимиты тогда считают реальный IP клиента
 | HTTP **401**, `error.code = bootstrap_invalid`                       | Нет/неверный `INSTANCE_BOOTSTRAP_TOKEN` на `/setup`.                                             |
 | HTTP **409**, `error.code = setup_already_done`                      | Instance admin уже есть. Логиньтесь.                                                             |
 | HTTP **403**, `error.code = signup_disabled`                         | Instance admin закрыл новые орги или нет неархивного signup-тарифа.                              |
-| Транскрипты / токены воркеров нечитаемы после смены `HUB_SECRET`     | Ключ Fernet — `SHA-256` прежнего секрета. Верните старый `.env` или заново введите токены воркеров и смиритесь с потерей ciphertext. |
+| Hub падает при старте с `FATAL: HUB_SECRET…`                         | Пустой или неверный KEK при наличии DEK/данных. Восстановите `HUB_SECRET` и/или задайте `HUB_SECRET_PREV` при ротации. См. [Security](docs/ru/architecture/security.md). |
+| Job перешифровки failed / старые DEK остались                        | Ошибка в Security → Encryption. Повторите re-encrypt. |
 | `Permission denied` на `/data/...` (`hub.db`, `logs`, `uploads`)     | Хостовый `./data` недоступен на запись uid 1001. `sudo chown -R 1001:1001 ./data` и рестарт. Не chmod `777`. |
 | HTTP **429**, `error.code = rate_limited`                              | Слишком много запросов; подождите `Retry-After` или поднимите лимиты в Instance → Settings.                  |

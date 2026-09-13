@@ -347,7 +347,7 @@ def get_transcript(
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
-    utterances = json.loads(decrypt_str(row.utterances_encrypted))
+    utterances = json.loads(decrypt_str(row.utterances_encrypted, db))
     source_audio = db.get(Audio, row.source_audio_id) if row.source_audio_id else None
     summaries = db.scalars(
         select(Summary).where(Summary.source_transcript_id == row.id).order_by(Summary.created_at.desc())
@@ -385,7 +385,7 @@ def export_transcript(
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
-    utterances = json.loads(decrypt_str(row.utterances_encrypted))
+    utterances = json.loads(decrypt_str(row.utterances_encrypted, db))
     source_audio = db.get(Audio, row.source_audio_id) if row.source_audio_id else None
     stem = safe_filename(
         transcript_display_title(
@@ -480,7 +480,7 @@ def get_summary(
     row = db.get(Summary, summary_id)
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
-    body = decrypt_str(row.body_encrypted)
+    body = decrypt_str(row.body_encrypted, db)
     source_transcript = db.get(Transcript, row.source_transcript_id) if row.source_transcript_id else None
     source_audio = (
         db.get(Audio, source_transcript.source_audio_id)
@@ -512,7 +512,7 @@ def export_summary(
         if source_transcript and source_transcript.source_audio_id
         else None
     )
-    body = unwrap_markdown_fence(decrypt_str(row.body_encrypted))
+    body = unwrap_markdown_fence(decrypt_str(row.body_encrypted, db))
     ext = "md" if format == "md" else "txt"
     media = "text/markdown; charset=utf-8" if format == "md" else "text/plain; charset=utf-8"
     return attachment_response(
@@ -593,13 +593,13 @@ def patch_summary(
         ctx.raise_error(ErrorCode.not_found)
     if body.body is None and body.title is None:
         ctx.raise_error(ErrorCode.validation_error)
-    body_text = decrypt_str(row.body_encrypted)
+    body_text = decrypt_str(row.body_encrypted, db)
     changed = False
     if body.title is not None:
         row.title = body.title.strip()
         changed = True
     if body.body is not None and body.body != body_text:
-        row.body_encrypted = encrypt_str(body.body)
+        row.body_encrypted = encrypt_str(body.body, db)
         row.edited = True
         body_text = body.body
         changed = True

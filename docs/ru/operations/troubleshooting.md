@@ -44,7 +44,10 @@
 
 | Симптом | Причина | Решение |
 | ------- | ------- | ------- |
-| Decrypt errors after deploy | `HUB_SECRET` изменён | Восстановите старый secret или заново введите worker tokens |
+| Процесс падает при старте: `FATAL: HUB_SECRET…` | Пустой/неверный KEK при DEK или ciphertext | Восстановите `HUB_SECRET`; при ротации KEK задайте `HUB_SECRET_PREV` и перезапустите |
+| `deks_pending_rewrap` > 0 в Security → Encryption | Ротация KEK не завершена | Держите `HUB_SECRET` + `HUB_SECRET_PREV`, рестартуйте до pending = 0 |
+| Job перешифровки `failed` | Ошибка фонового job (см. UI) | Исправьте причину, повторите **Перешифровать и удалить старые DEK** |
+| Decrypt errors at runtime | Редко после успешного старта | Проверьте active DEK в Security → Encryption; восстановите backup |
 | Transcripts empty/garbled | DB corruption или wrong key | Восстановите backup |
 | Upload `Permission denied` | `./data` не writable для uid 1001 | `chown -R 1001:1001 ./data` |
 

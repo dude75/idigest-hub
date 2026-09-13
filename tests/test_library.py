@@ -32,7 +32,7 @@ def _insert_transcript_and_summary(org_id: str, user_id: str, audio_id: str | No
                 owner_user_id=user_id,
                 source_audio_id=audio_id,
                 utterances_encrypted=encrypt_str(
-                    json.dumps([{"speaker": "A", "start": 0, "end": 1, "text": "hi"}])
+                    json.dumps([{"speaker": "A", "start": 0, "end": 1, "text": "hi"}]), db
                 ),
                 created_at=now,
             )
@@ -45,7 +45,7 @@ def _insert_transcript_and_summary(org_id: str, user_id: str, audio_id: str | No
                 owner_user_id=user_id,
                 source_transcript_id=transcript_id,
                 skill_ids_json=[],
-                body_encrypted=encrypt_str("kept summary"),
+                body_encrypted=encrypt_str("kept summary", db),
                 created_at=now,
             )
         )
@@ -477,7 +477,7 @@ def test_export_audio_transcript_summary(client):
     db = open_db()
     try:
         row = db.get(Summary, summary_id)
-        row.body_encrypted = encrypt_str(fenced_body)
+        row.body_encrypted = encrypt_str(fenced_body, db)
         db.commit()
     finally:
         db.close()

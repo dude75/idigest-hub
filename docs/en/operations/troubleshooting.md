@@ -44,8 +44,11 @@ Extended from [README — Typical errors](../../../README.md#typical-errors).
 
 | Symptom | Cause | Fix |
 | ------- | ----- | --- |
-| Decrypt errors after deploy | `HUB_SECRET` changed | Restore old secret or re-enter worker tokens |
-| Transcripts empty/garbled | DB corruption or wrong key | Restore backup |
+| Process exits on start: `FATAL: HUB_SECRET…` | Empty/wrong KEK with existing DEKs or ciphertext | Restore correct `HUB_SECRET`; during KEK rotation set `HUB_SECRET_PREV` to old value and restart |
+| `deks_pending_rewrap` > 0 in Security → Encryption | KEK rotation incomplete | Keep `HUB_SECRET` + `HUB_SECRET_PREV`, restart until pending = 0 |
+| Re-encrypt job `failed` | Background job error (see UI) | Fix cause, retry **Re-encrypt and remove old DEKs** |
+| Decrypt errors at runtime | Rare after successful startup | Check active DEK in Security → Encryption; restore backup |
+| Transcripts empty/garbled | DB corruption | Restore backup |
 | Upload `Permission denied` | `./data` not writable by uid 1001 | `chown -R 1001:1001 ./data` |
 
 ## Rate limits

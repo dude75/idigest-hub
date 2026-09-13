@@ -5,6 +5,8 @@ from __future__ import annotations
 from typing import Any
 from urllib.parse import urlparse
 
+from sqlalchemy.orm import Session
+
 from app.models import InstanceSettings
 
 DEFAULT_IMPORT_AUDIO_BITRATE_KBPS = 64
@@ -177,7 +179,7 @@ def normalize_download_proxy_url(url: str) -> str:
     return urlunparse(parsed._replace(netloc=netloc))
 
 
-def effective_download_proxy(settings: InstanceSettings) -> str | None:
+def effective_download_proxy(settings: InstanceSettings, db: Session) -> str | None:
     if not settings.download_proxy_enabled:
         return None
     url = (settings.download_proxy_url or "").strip()
@@ -191,7 +193,7 @@ def effective_download_proxy(settings: InstanceSettings) -> str | None:
         from app.crypto import decrypt_str
         from urllib.parse import quote, urlparse, urlunparse
 
-        password = decrypt_str(settings.download_proxy_password_encrypted)
+        password = decrypt_str(settings.download_proxy_password_encrypted, db)
         if password:
             parsed = urlparse(url)
             netloc = parsed.netloc

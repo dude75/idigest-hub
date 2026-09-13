@@ -173,7 +173,7 @@ def patch_org_sso(
     if body.clear_client_secret:
         clear_client_secret(org)
     elif body.client_secret is not None:
-        store_client_secret(org, body.client_secret)
+        store_client_secret(org, body.client_secret, db)
     if body.enabled is not None:
         org.sso_enabled = body.enabled
     try:

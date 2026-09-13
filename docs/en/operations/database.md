@@ -45,13 +45,15 @@ Local development after model changes:
 | `shares` / `hidden_items` | Sharing and per-user hide |
 | `usage_events` | Billing ledger |
 | `audit_log` | Admin actions |
+| `data_encryption_keys` | DEK material (wrapped by KEK) |
+| `encryption_jobs` | Background DEK re-encrypt jobs |
 | `password_reset_tokens` | Email recovery |
 
 UUIDs stored as 36-char strings. No soft-delete columns (`deleted_at`).
 
 ## Encrypted columns
 
-Require valid `HUB_SECRET`. See [Security](../architecture/security.md).
+Envelope encryption (`v1:{dek_id}:…`). Tables: `data_encryption_keys`, `encryption_jobs`, `instance_settings.active_dek_id`. Require valid `HUB_SECRET` (and `HUB_SECRET_PREV` during KEK rotation). Startup fails if KEK cannot unwrap DEKs. See [Security](../architecture/security.md#at-rest-encryption-envelope).
 
 ## SQLite notes
 

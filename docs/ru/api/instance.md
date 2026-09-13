@@ -143,6 +143,30 @@ Query:
 
 Тот же CRUD, что в [skills API](skills.md), под `/skills/base`.
 
+## Encryption (DEK)
+
+Instance admin: UI **Security → Encryption** или API:
+
+### GET `/instance/crypto/deks`
+
+Список DEK с `usage_count`, `active_dek_id`, `deks_pending_rewrap`, `hub_secret_prev_configured`.
+
+### POST `/instance/crypto/deks`
+
+Новый DEK (`active`); прежний active → `retiring`. Audit: `crypto.dek.create`.
+
+### POST `/instance/crypto/reencrypt`
+
+Фоновый job: перешифровка retiring DEK на active, удаление неиспользуемых DEK.
+
+### GET `/instance/crypto/reencrypt/latest`
+
+### GET `/instance/crypto/reencrypt/{job_id}`
+
+### POST `/instance/crypto/reencrypt/{job_id}/cancel`
+
+Ротация KEK (`HUB_SECRET`) — **не API**, только `.env` оператора; переобёртка DEK при рестарте hub. См. [Security — ротация ключей](../architecture/security.md).
+
 ## Связанные страницы
 
 - [Billing domain](../domain/billing.md)

@@ -14,25 +14,59 @@ The hub is designed for **on-premise / private network** deployment:
 
 | Variable | Purpose |
 | -------- | ------- |
-| `HUB_SECRET` | Fernet key material: `SHA-256(secret)` → AES-128-CBC + HMAC for at-rest ciphertext in DB |
+| `HUB_SECRET` | **KEK** (key-encryption key): `SHA-256(secret)` wraps DEKs stored in `data_encryption_keys`. Operator-only — not editable in UI. |
+| `HUB_SECRET_PREV` | Previous `HUB_SECRET` during **KEK rotation** only. Unwrap tries current, then `PREV`. Removed from `.env` after all DEKs are re-wrapped. |
 | `SESSION_SECRET` | Pepper for hashing session tokens and API token raw values |
 | `INSTANCE_BOOTSTRAP_TOKEN` | One-time gate for `POST /setup` |
 
-**Rotating `HUB_SECRET`** makes existing encrypted rows unreadable (worker tokens, transcript JSON, summary bodies, SMTP password). There is no automatic re-encryption.
-
 **Rotating `SESSION_SECRET`** invalidates all session cookies and API tokens (hashes no longer match).
 
-## At-rest encryption
+## At-rest encryption (envelope)
 
-Encrypted columns (via `app/crypto.py`):
+Sensitive DB fields use **envelope encryption** (`app/crypto.py`):
+
+1. **KEK** — derived from `HUB_SECRET` (operator `.env` only).
+2. **DEK** — random Fernet key per row in `data_encryption_keys`; `wrapped_key` = KEK encrypts DEK.
+3. **Ciphertext** — format `v1:{dek_id}:{fernet_token}` in application columns.
+
+Encrypted columns:
 
 - `worker_nodes.api_token_encrypted`
 - `transcripts.utterances_encrypted`
 - `summaries.body_encrypted`
 - `instance_settings.smtp_password_encrypted`
+- `instance_settings.download_proxy_password_encrypted`
 - `organizations.sso_client_secret_encrypted`
 
-Authorized API responses decrypt on the fly — clients receive plaintext JSON. Encryption protects against DB-only leaks.
+Authorized API responses decrypt on the fly — clients receive plaintext JSON. Encryption protects against DB-only leaks (backup without `.env` is useless for ciphertext).
+
+On first start after upgrade, the hub creates the initial DEK and migrates legacy ciphertext. **Startup is fail-closed:** if the instance is configured or DEKs / encrypted data exist, an empty or wrong `HUB_SECRET` (and `HUB_SECRET_PREV` when needed) prevents the process from starting (`FATAL` in logs, exit code 1).
+
+## Key rotation
+
+Two independent operations:
+
+### KEK rotation (`HUB_SECRET` — operator only)
+
+Re-wraps DEK rows in the database. **Does not** re-encrypt transcripts, summaries, or worker tokens.
+
+1. Set new `HUB_SECRET` in `.env`.
+2. Set `HUB_SECRET_PREV` to the **old** value.
+3. Restart the hub — DEK re-wrap runs automatically on startup (one DEK per DB commit; safe to restart mid-run).
+4. In **Security → Encryption**, confirm `deks_pending_rewrap` is 0 (or no warning).
+5. Remove `HUB_SECRET_PREV` from `.env` and restart again.
+
+Keep both secrets until re-wrap completes. If the service crashes during re-wrap, restart with the same `.env` — it continues from remaining DEKs.
+
+### DEK rotation (compromised data key — instance admin UI)
+
+Re-encrypts all ciphertext onto a new DEK. **Does not** require changing `HUB_SECRET`.
+
+1. **Security → Encryption → Add DEK** — new DEK becomes active; previous active DEK(s) move to `retiring`.
+2. **Re-encrypt and remove old DEKs** — background job rewrites all `v1:{old_dek_id}:…` rows to the active DEK, then deletes unused retiring DEKs.
+3. Monitor job status (start/finish timestamps and per-table progress).
+
+Use DEK rotation when a DEK may be compromised. Use KEK rotation when the operator rotates the master secret in `.env`.
 
 ## Session cookies
 
@@ -107,7 +141,11 @@ Default: `request.client.host` (TCP peer). With empty `TRUSTED_PROXIES` (default
 
 ## Audit log
 
-`audit_log` table records sensitive actions (setup, wallet changes, wipes, impersonation, summary edits). Not exposed via public API in current version — query DB directly for forensics.
+`audit_log` table records sensitive actions (setup, wallet changes, wipes, impersonation, summary edits, `crypto.dek.create`, `crypto.reencrypt.*`). Instance admin **Security → Audit** lists entries via API; older rows remain queryable in DB.
+
+## Encryption UI
+
+Instance admin: **Security → Encryption** — list DEKs (id, status, usage count), add DEK, start/cancel re-encrypt job, hints for `HUB_SECRET_PREV` / pending KEK re-wrap.
 
 ## Related pages
 

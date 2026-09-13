@@ -53,10 +53,10 @@ def combine_skills(skills: list[Skill]) -> str:
 
 async def refresh_node_health(db: Session, node: WorkerNode) -> None:
     try:
-        status, body = await get_health(node)
+        status, body = await get_health(db, node)
         ready_code = None
         if node.type == "summarize":
-            ready_code = await get_ready(node)
+            ready_code = await get_ready(db, node)
         payload = dict(body)
         payload["_http"] = status
         if ready_code is not None:
@@ -185,9 +185,9 @@ def _commit(db: Session) -> None:
     db.commit()
 
 
-async def _finish_worker_cleanup(node: WorkerNode | None, worker_task_id: str | None) -> None:
+async def _finish_worker_cleanup(db: Session, node: WorkerNode | None, worker_task_id: str | None) -> None:
     if node is not None and worker_task_id:
-        await delete_task(node, worker_task_id)
+        await delete_task(db, node, worker_task_id)
 
 
 def _persist_transcript(db: Session, task: Task, utterances: list[dict[str, Any]]) -> Transcript | None:
@@ -205,7 +205,7 @@ def _persist_transcript(db: Session, task: Task, utterances: list[dict[str, Any]
         owner_user_id=task.user_id,
         source_audio_id=task.audio_id,
         title=title,
-        utterances_encrypted=encrypt_str(json.dumps(utterances, ensure_ascii=False)),
+        utterances_encrypted=encrypt_str(json.dumps(utterances, ensure_ascii=False), db),
         created_at=utcnow(),
     )
     db.add(row)
@@ -242,7 +242,7 @@ def _persist_summary(db: Session, task: Task, body: str) -> Summary | None:
         source_transcript_id=task.transcript_id,
         skill_ids_json=list(task.skill_ids_json or []),
         title=title,
-        body_encrypted=encrypt_str(body),
+        body_encrypted=encrypt_str(body, db),
         created_at=utcnow(),
     )
     db.add(row)
@@ -287,7 +287,7 @@ async def _on_transcribe_success(
     task.worker_task_id = None
     task.worker_id = None
     _commit(db)
-    await _finish_worker_cleanup(node, worker_task_id)
+    await _finish_worker_cleanup(db, node, worker_task_id)
 
 
 async def _on_summarize_success(
@@ -303,7 +303,7 @@ async def _on_summarize_success(
     task.worker_task_id = None
     task.worker_id = None
     _commit(db)
-    await _finish_worker_cleanup(node, worker_task_id)
+    await _finish_worker_cleanup(db, node, worker_task_id)
 
 
 async def _on_worker_terminal_error(
@@ -314,7 +314,7 @@ async def _on_worker_terminal_error(
     worker_task_id = task.worker_task_id
     _fail(task, code)
     _commit(db)
-    await _finish_worker_cleanup(node, worker_task_id)
+    await _finish_worker_cleanup(db, node, worker_task_id)
 
 
 async def recover_orphaned_tasks(db: Session) -> None:
@@ -363,7 +363,7 @@ async def _recover_worker_task(db: Session, task: Task, nodes: list[WorkerNode])
         return
 
     try:
-        status_code, body = await get_task(node, task.worker_task_id)
+        status_code, body = await get_task(db, node, task.worker_task_id)
     except WorkerClientError:
         log.info("recover task=%s running->queued (worker unreachable)", task.id)
         task.worker_id = None
@@ -424,7 +424,7 @@ async def poll_running_task(db: Session, task: Task, nodes: list[WorkerNode]) ->
         task.updated_at = utcnow()
         return
     try:
-        status_code, body = await get_task(node, task.worker_task_id)
+        status_code, body = await get_task(db, node, task.worker_task_id)
     except WorkerClientError:
         log.info("worker poll network error task=%s", task.id)
         return
@@ -495,6 +495,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
 
                 async with get_storage().local_path_for_worker(audio.storage_path) as audio_path:
                     body = await post_transcribe(
+                        db,
                         node,
                         audio_path,
                         audio.original_filename,
@@ -508,7 +509,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
                     return
                 from app.crypto import decrypt_str
 
-                utterances = json.loads(decrypt_str(transcript.utterances_encrypted))
+                utterances = json.loads(decrypt_str(transcript.utterances_encrypted, db))
                 text = utterances_to_text(utterances)
                 skill_ids = list(task.skill_ids_json or [])
                 skills: list[Skill] = []
@@ -523,7 +524,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
                 if payload_len > MAX_SUMMARIZE_PAYLOAD_BYTES:
                     _fail(task, "text_too_long")
                     return
-                body = await post_summarize(node, text, skill_text)
+                body = await post_summarize(db, node, text, skill_text)
         except WorkerClientError as exc:
             if exc.kind == "queue_full":
                 task.retry_without_timeout = True

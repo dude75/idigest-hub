@@ -140,7 +140,7 @@ Job `deploy:kubernetes` зарезервирован. После появлен�
 
 | Область | Мера |
 | ------- | ---- |
-| Данные в БД | Fernet-шифрование чувствительных полей (`HUB_SECRET`) |
+| Данные в БД | Envelope encryption: DEK + KEK (`HUB_SECRET`); ротация DEK — Security → Encryption |
 | Сессии | HttpOnly cookie, hash токена с `SESSION_SECRET` |
 | API tokens | Показ один раз; rate limits |
 | SSO | OIDC per org; client secret зашифрован |
@@ -159,7 +159,7 @@ Job `deploy:kubernetes` зарезервирован. После появлен�
 | Загрузки audio | `./data/uploads/` (local) или S3 bucket (`STORAGE_BACKEND=s3`) | Local: с `./data`. S3: backup/replication bucket у провайдера |
 | Логи | `./data/logs/` | По политике заказчика |
 
-Смена `HUB_SECRET` без резервной копии делает зашифрованные строки в БД нечитаемыми. Смена `SESSION_SECRET` разлогинивает всех пользователей.
+**Ротация KEK:** новый `HUB_SECRET`, `HUB_SECRET_PREV` = старый, рестарт — переобёртка DEK при старте (держите оба до завершения). **Ротация DEK:** UI instance admin (фоновый re-encrypt). Неверный/пустой `HUB_SECRET` при наличии данных блокирует старт. Смена `SESSION_SECRET` разлогинивает всех.
 
 ---
 
