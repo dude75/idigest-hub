@@ -266,13 +266,13 @@ class FakeWorkers:
             monkeypatch.setattr(f"app.services.dispatcher.{name}", getattr(self, name))
             monkeypatch.setattr(f"app.services.workers.{name}", getattr(self, name))
 
-    async def get_health(self, node) -> tuple[int, dict[str, Any]]:
+    async def get_health(self, _db, node) -> tuple[int, dict[str, Any]]:
         return self.health_status, dict(self.health)
 
-    async def get_ready(self, node) -> int:
+    async def get_ready(self, _db, node) -> int:
         return self.ready_status
 
-    async def post_transcribe(self, node, path, filename, asr_model, diarization_model) -> dict[str, Any]:
+    async def post_transcribe(self, _db, node, path, filename, asr_model, diarization_model) -> dict[str, Any]:
         self.asr_models_seen.append(asr_model)
         self.post_count += 1
         self.nodes_posted.append(node.id)
@@ -297,7 +297,7 @@ class FakeWorkers:
         }
         return body
 
-    async def post_summarize(self, node, text, skill) -> dict[str, Any]:
+    async def post_summarize(self, _db, node, text, skill) -> dict[str, Any]:
         if self.summarize_mode == "queue_full":
             raise WorkerClientError("queue_full", 503, {"error": {"code": "queue_full"}})
         return {
@@ -306,7 +306,7 @@ class FakeWorkers:
             "meta": {"task_id": "s1"},
         }
 
-    async def get_task(self, node, worker_task_id) -> tuple[int, dict[str, Any]]:
+    async def get_task(self, _db, node, worker_task_id) -> tuple[int, dict[str, Any]]:
         self.poll_count += 1
         self.nodes_polled.append(node.id)
         mode = self.poll_mode
@@ -327,7 +327,7 @@ class FakeWorkers:
             "meta": {"task_id": worker_task_id, "audio_duration_sec": self.audio_duration_sec},
         }
 
-    async def delete_task(self, node, worker_task_id) -> int:
+    async def delete_task(self, _db, node, worker_task_id) -> int:
         return 200
 
 

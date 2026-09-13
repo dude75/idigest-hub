@@ -18,7 +18,8 @@ from app.crypto import (
     encrypt_str,
     rewrap_pending_deks,
 )
-from app.db import SessionLocal, get_engine
+import app.db as db_module
+from app.db import get_engine
 from app.models import (
     DataEncryptionKey,
     InstanceSettings,
@@ -207,8 +208,8 @@ def bootstrap_encryption_db(db: Session) -> bool:
 
 def bootstrap_encryption() -> None:
     get_engine()
-    assert SessionLocal is not None
-    db = SessionLocal()
+    assert db_module.SessionLocal is not None
+    db = db_module.SessionLocal()
     try:
         validate_crypto_config(db)
         bootstrap_encryption_db(db)

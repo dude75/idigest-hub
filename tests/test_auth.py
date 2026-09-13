@@ -1,5 +1,6 @@
 from tests.conftest import (
     ADMIN_EMAIL,
+    ADMIN_PASSWORD,
     create_tariff,
     default_tariff_id,
     err_code,

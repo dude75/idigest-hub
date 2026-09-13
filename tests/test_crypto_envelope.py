@@ -170,7 +170,7 @@ def test_rewrap_deks_on_startup_after_hub_secret_change(client, monkeypatch):
     get_engine()
     db = SessionLocal()
     try:
-        wrapped_before = list(db.scalars(select(DataEncryptionKey))).all()[0].wrapped_key
+        wrapped_before = list(db.scalars(select(DataEncryptionKey)))[0].wrapped_key
         assert not dek_needs_rewrap(wrapped_before)
     finally:
         db.close()

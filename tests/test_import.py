@@ -208,17 +208,20 @@ def test_import_task_saves_error_detail(client, monkeypatch):
 
 
 def test_effective_download_proxy_respects_enabled_flag():
+    from unittest.mock import MagicMock
+
     from app.models import InstanceSettings
     from app.services.import_platforms import effective_download_proxy
 
+    db = MagicMock()
     settings = InstanceSettings(
         id=1,
         download_proxy_url="socks5://127.0.0.1:1080",
         download_proxy_enabled=False,
     )
-    assert effective_download_proxy(settings) is None
+    assert effective_download_proxy(settings, db) is None
     settings.download_proxy_enabled = True
-    assert effective_download_proxy(settings) == "socks5://127.0.0.1:1080"
+    assert effective_download_proxy(settings, db) == "socks5://127.0.0.1:1080"
 
 
 def test_normalize_download_proxy_url():
