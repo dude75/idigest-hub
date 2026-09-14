@@ -66,7 +66,7 @@ from app.services.sso import (
     verify_oauth_state,
 )
 from app.services.backup import build_backup
-from app.services.export import safe_filename
+from app.services.export import content_disposition_attachment
 from app.services.mail import send_mail, smtp_configured
 from app.rate_limit import (
     client_ip,
@@ -634,7 +634,7 @@ def download_backup(
     return Response(
         content=content,
         media_type=media_type,
-        headers={"Content-Disposition": f'attachment; filename="{safe_filename(filename)}"'},
+        headers={"Content-Disposition": content_disposition_attachment(filename)},
     )
 
 

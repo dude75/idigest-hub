@@ -15,7 +15,7 @@ from urllib.parse import unquote, urlparse
 from fastapi import UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from app.config import Settings, get_settings
-from app.services.export import safe_filename
+from app.services.export import content_disposition_attachment, safe_filename
 
 log = logging.getLogger("app")
 
@@ -167,10 +167,8 @@ class LocalStorageBackend(StorageBackend):
         path = self._absolute_path(storage_path)
         headers: dict[str, str] = {}
         if download:
-            headers["Content-Disposition"] = (
-                f'attachment; filename="{safe_filename(filename)}"'
-            )
-        return FileResponse(path, filename=filename, headers=headers)
+            return FileResponse(path, filename=safe_filename(filename))
+        return FileResponse(path, headers=headers)
 
     @asynccontextmanager
     async def local_path_for_worker(self, storage_path: str) -> AsyncIterator[Path]:
@@ -380,9 +378,7 @@ class S3StorageBackend(StorageBackend):
         media_type = obj.get("ContentType") or _mime_for_suffix(suffix)
         headers: dict[str, str] = {}
         if download:
-            headers["Content-Disposition"] = (
-                f'attachment; filename="{safe_filename(filename)}"'
-            )
+            headers["Content-Disposition"] = content_disposition_attachment(filename)
 
         def _iter():
             try:

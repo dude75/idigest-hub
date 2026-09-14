@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from urllib.parse import quote
 
 from fastapi.responses import Response
 
@@ -21,11 +22,20 @@ def safe_filename(name: str, fallback: str = "download") -> str:
     return base[:200]
 
 
+def content_disposition_attachment(filename: str, *, disposition: str = "attachment") -> str:
+    """Build a Content-Disposition header safe for non-ASCII filenames (RFC 5987)."""
+    name = safe_filename(filename)
+    quoted = quote(name)
+    if quoted != name:
+        return f"{disposition}; filename*=utf-8''{quoted}"
+    return f'{disposition}; filename="{name}"'
+
+
 def attachment_response(content: str | bytes, filename: str, media_type: str) -> Response:
     if isinstance(content, str):
         content = content.encode("utf-8")
     return Response(
         content=content,
         media_type=media_type,
-        headers={"Content-Disposition": f'attachment; filename="{safe_filename(filename)}"'},
+        headers={"Content-Disposition": content_disposition_attachment(filename)},
     )
