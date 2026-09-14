@@ -2,7 +2,7 @@
 
 On-prem заказчик поднимает свой Prometheus и Grafana. В репозитории — **endpoint метрик хаба**, имена метрик, JSON дашборда Grafana и пример scrape-конфига.
 
-Воркеры (`itranscribe-worker`, `isummarize-worker`) мониторятся **из своих репозиториев** — не проксируйте worker `/metrics` через хаб.
+Воркеры ([itranscribe-worker](https://github.com/dude75/itranscribe-worker), [isummarize-worker](https://github.com/dude75/isummarize-worker)) мониторятся **из своих репозиториев** — не проксируйте worker `/metrics` через хаб.
 
 ## Endpoint
 

@@ -36,8 +36,8 @@ Full control catalog, ISO/SOC mapping, and audit evidence checklist: [auditor br
 
 | Aspect | Implementation |
 | ------ | -------------- |
-| Repository | Self-hosted GitLab |
-| Build | GitLab CI/CD (`.gitlab-ci.yml`) |
+| Source repository | [GitHub — dude75/idigest-hub](https://github.com/dude75/idigest-hub) |
+| CI/CD | Self-hosted GitLab (`.gitlab-ci.yml`) — build, scan, deploy only |
 | Artifacts | GitLab Container Registry (image tagged by commit SHA) |
 | Deploy (current) | Docker Compose on the target host |
 | Deploy (planned) | Kubernetes — separate pipeline job, enabled via `K8S_DEPLOY_ENABLED` |

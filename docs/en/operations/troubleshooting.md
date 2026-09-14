@@ -37,7 +37,7 @@ Extended from [README — Typical errors](../../../README.md#typical-errors).
 | ------- | ----- | --- |
 | Health `_http: 0` | Network/unreachable `base_url` | Fix URL from hub network namespace |
 | Engines not `loaded` | Model not ready on worker | Worker startup / GPU |
-| Summarize never dispatches | `/ready` not 200 | Configure LLM on isummarize-worker |
+| Summarize never dispatches | `/ready` not 200 | Configure LLM on [isummarize-worker](https://github.com/dude75/isummarize-worker) |
 | 404 redispatch loop | Worker restarted | Usually self-heals; check worker stability |
 
 ## Data and encryption

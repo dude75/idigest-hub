@@ -2,7 +2,7 @@
 
 **Язык:** [English](../en/README.md) · [Русский](README.md)
 
-Локальный multi-tenant control plane над [itranscribe-worker](../../README.ru.md#подключить-воркеры) и [isummarize-worker](../../README.ru.md#подключить-воркеры).
+Локальный multi-tenant control plane над [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker).
 
 **Быстрый старт:** [README проекта](../../README.ru.md)
 

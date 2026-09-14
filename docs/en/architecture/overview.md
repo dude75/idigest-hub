@@ -1,6 +1,6 @@
 # Architecture overview
 
-[idigest-hub](https://github.com/) is an on-premise **multi-tenant control plane** for audio transcription and summarization. End users and integrators talk only to the hub. External worker services perform compute; the hub owns identity, billing, artifacts, and its own task queue.
+[idigest-hub](https://github.com/dude75/idigest-hub) is an on-premise **multi-tenant control plane** for audio transcription and summarization. End users and integrators talk only to the hub. External worker services perform compute; the hub owns identity, billing, artifacts, and its own task queue.
 
 ## Components
 
@@ -11,7 +11,7 @@
 | **Dispatcher** | `app/services/dispatcher.py` | Background loop: health checks, dispatch, poll, billing on success |
 | **Database** | SQLite (default) or PostgreSQL | Orgs, users, tasks, encrypted artifacts metadata |
 | **File storage** | `app/services/storage.py` | Audio blobs: local disk (`STORAGE_BACKEND=local`) or S3-compatible object storage with SSE (`STORAGE_BACKEND=s3`) |
-| **Workers** | External processes | `itranscribe-worker`, `isummarize-worker` — registered by instance admin |
+| **Workers** | External processes | [itranscribe-worker](https://github.com/dude75/itranscribe-worker), [isummarize-worker](https://github.com/dude75/isummarize-worker) — registered by instance admin |
 
 ```mermaid
 flowchart TB

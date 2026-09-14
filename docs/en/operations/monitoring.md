@@ -2,7 +2,7 @@
 
 On-prem customers run their own Prometheus and Grafana. This repo ships the **hub metrics endpoint**, metric names, a Grafana dashboard JSON, and an example scrape config.
 
-Workers (`itranscribe-worker`, `isummarize-worker`) are monitored from **their own repositories** — do not proxy worker `/metrics` through the hub.
+Workers ([itranscribe-worker](https://github.com/dude75/itranscribe-worker), [isummarize-worker](https://github.com/dude75/isummarize-worker)) are monitored from **their own repositories** — do not proxy worker `/metrics` through the hub.
 
 ## Endpoint
 

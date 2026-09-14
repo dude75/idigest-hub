@@ -1,6 +1,6 @@
 # idigest-hub
 
-Локальный (on-premise) **multi-tenant control plane** над [itranscribe-worker](#подключить-воркеры) и [isummarize-worker](#подключить-воркеры). Пользователи ходят только в хаб. Хаб владеет органами, ролями, кошельками, скилами, артефактами и своей очередью задач (`POST` → **202** + `task_id` → poll). Воркеры остаются внешними.
+Локальный (on-premise) **multi-tenant control plane** над [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker). Пользователи ходят только в хаб. Хаб владеет органами, ролями, кошельками, скилами, артефактами и своей очередью задач (`POST` → **202** + `task_id` → poll). Воркеры остаются внешними.
 
 **Язык:** [English](README.md) · [Русский](README.ru.md)
 
@@ -159,7 +159,7 @@ URL должен совпадать с тем, как хаб видят поль
 
 ## Подключить воркеры
 
-Compose воркеры **не** поднимает. Запустите **itranscribe-worker** и **isummarize-worker** отдельно, затем зарегистрируйте их в UI хаба **Instance** (после `/setup`):
+Compose воркеры **не** поднимает. Запустите [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker) отдельно, затем зарегистрируйте их в UI хаба **Instance** (после `/setup`):
 
 1. Поднимите каждый воркер со своим `.env` (`API_TOKEN`, у summarize ещё `BASE_URL` / `API_KEY` / `MODEL`).
 2. Под instance admin: Instance → воркеры → добавить ноду:

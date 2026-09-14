@@ -1,6 +1,6 @@
 # Обзор архитектуры
 
-[idigest-hub](https://github.com/) — on-premise **multi-tenant control plane** для транскрибации и суммаризации аудио. Конечные пользователи и интеграторы взаимодействуют только с хабом. Внешние worker-сервисы выполняют вычисления; хаб владеет идентичностью, биллингом, артефактами и собственной очередью задач.
+[idigest-hub](https://github.com/dude75/idigest-hub) — on-premise **multi-tenant control plane** для транскрибации и суммаризации аудио. Конечные пользователи и интеграторы взаимодействуют только с хабом. Внешние worker-сервисы выполняют вычисления; хаб владеет идентичностью, биллингом, артефактами и собственной очередью задач.
 
 ## Компоненты
 
@@ -11,7 +11,7 @@
 | **Dispatcher** | `app/services/dispatcher.py` | Фоновый цикл: health checks, dispatch, poll, биллинг при успехе |
 | **Database** | SQLite (по умолчанию) или PostgreSQL | Организации, пользователи, задачи, метаданные зашифрованных артефактов |
 | **File storage** | `app/services/storage.py` | Audio: локальный диск (`STORAGE_BACKEND=local`) или S3-compatible object storage с SSE (`STORAGE_BACKEND=s3`) |
-| **Workers** | Внешние процессы | `itranscribe-worker`, `isummarize-worker` — регистрируются instance admin |
+| **Workers** | Внешние процессы | [itranscribe-worker](https://github.com/dude75/itranscribe-worker), [isummarize-worker](https://github.com/dude75/isummarize-worker) — регистрируются instance admin |
 
 ```mermaid
 flowchart TB

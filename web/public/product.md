@@ -9,7 +9,7 @@ Upload audio (MP3, WAV, M4A, and more) via the web UI or REST API. The hub enque
 ## Deployment
 
 - **On-premise / self-hosted** — Docker, SQLite or PostgreSQL, default HTTP port 8080
-- **Workers** — connect itranscribe-worker and isummarize-worker on your network; users never see worker URLs or tokens
+- **Workers** — connect [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker) on your network; users never see worker URLs or tokens
 - **Data** — audio, transcripts, and summaries stored on your disk (`./data` volume or attached storage)
 - **Monitoring** — Prometheus metrics at `/metrics`, Grafana dashboard included
 

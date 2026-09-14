@@ -2,7 +2,7 @@
 
 **Language:** [English](README.md) · [Русский](../ru/README.md)
 
-On-premise multi-tenant control plane for [itranscribe-worker](../../README.md#attach-workers) and [isummarize-worker](../../README.md#attach-workers).
+On-premise multi-tenant control plane for [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker).
 
 **Quick start:** [Project README](../../README.md)
 

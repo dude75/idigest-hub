@@ -36,8 +36,8 @@ idigest-hub реализует многоуровневую защиту для 
 
 | Аспект | Реализация |
 | ------ | ---------- |
-| Репозиторий | Self-hosted GitLab |
-| Сборка | GitLab CI/CD (`.gitlab-ci.yml`) |
+| Исходный код | [GitHub — dude75/idigest-hub](https://github.com/dude75/idigest-hub) |
+| CI/CD | Self-hosted GitLab (`.gitlab-ci.yml`) — только сборка, сканирование и деплой |
 | Артефакты | Container Registry GitLab (образ по SHA коммита) |
 | Деплой (текущий) | Docker Compose на целевом хосте |
 | Деплой (план) | Kubernetes — отдельный job в пайплайне, включается переменной `K8S_DEPLOY_ENABLED` |

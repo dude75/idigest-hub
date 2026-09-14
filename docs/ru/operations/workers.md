@@ -6,8 +6,8 @@ Hub **не** включает воркеры транскрипции или с�
 
 | type | Upstream-проект | Использует hub |
 | ---- | --------------- | -------------- |
-| `transcribe` | itranscribe-worker | POST `/transcribe`, GET/DELETE `/tasks/{id}`, GET `/health` |
-| `summarize` | isummarize-worker | POST `/summarize`, GET/DELETE `/tasks/{id}`, GET `/health`, GET `/ready` |
+| `transcribe` | [itranscribe-worker](https://github.com/dude75/itranscribe-worker) | POST `/transcribe`, GET/DELETE `/tasks/{id}`, GET `/health` |
+| `summarize` | [isummarize-worker](https://github.com/dude75/isummarize-worker) | POST `/summarize`, GET/DELETE `/tasks/{id}`, GET `/health`, GET `/ready` |
 
 ## Регистрация
 

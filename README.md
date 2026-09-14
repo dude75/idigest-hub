@@ -1,6 +1,6 @@
 # idigest-hub
 
-On-premise **multi-tenant control plane** over [itranscribe-worker](#attach-workers) and [isummarize-worker](#attach-workers). Users talk only to the hub. The hub owns orgs, roles, wallets, skills, artifacts, and its own task queue (`POST` → **202** + `task_id` → poll). Workers stay external.
+On-premise **multi-tenant control plane** over [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker). Users talk only to the hub. The hub owns orgs, roles, wallets, skills, artifacts, and its own task queue (`POST` → **202** + `task_id` → poll). Workers stay external.
 
 **Language:** [English](README.md) · [Русский](README.ru.md)
 
@@ -159,7 +159,7 @@ Sensitive fields in the hub database use **envelope encryption** (Fernet): a **D
 
 ## Attach workers
 
-Compose does **not** start workers. Run **itranscribe-worker** and **isummarize-worker** as their own services, then register them in the hub **Instance** UI (after `/setup`):
+Compose does **not** start workers. Run [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker) as their own services, then register them in the hub **Instance** UI (after `/setup`):
 
 1. Start each worker with its own `.env` (`API_TOKEN`, and for summarize also `BASE_URL` / `API_KEY` / `MODEL`).
 2. As instance admin: Instance → workers → add a node:
