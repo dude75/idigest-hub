@@ -6,6 +6,7 @@ import { isOrgAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { OrgStats, User } from '../types'
 import { datePreset } from '../util/date'
+import { StatsDaysView } from '../components/StatsDaysView'
 import { formatAudioTime, showError } from '../util'
 
 export function StatsPage() {
@@ -101,35 +102,7 @@ export function StatsPage() {
               <div className="stat-value">{stats.total_amount}</div>
             </div>
           </div>
-          <h2>{t('stats.calendar')}</h2>
-          {stats.days.length === 0 ? (
-            <p className="muted">{t('common.empty')}</p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>{t('stats.day')}</th>
-                  <th>{t('task.type.transcribe')}</th>
-                  <th>{t('task.type.summarize')}</th>
-                  <th>{t('stats.transcribedAudio')}</th>
-                  <th>{t('stats.summaryChars')}</th>
-                  <th>{t('stats.spent')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.days.map((day) => (
-                  <tr key={day.date}>
-                    <td>{day.date}</td>
-                    <td>{day.tasks_transcribe_success}</td>
-                    <td>{day.tasks_summarize_success}</td>
-                    <td>{formatAudioTime(day.audio_transcribed_sec, t)}</td>
-                    <td>{day.summary_chars}</td>
-                    <td>{day.amount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <StatsDaysView days={stats.days} />
         </>
       )}
     </div>
