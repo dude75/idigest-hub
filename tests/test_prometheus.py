@@ -192,6 +192,45 @@ def test_worker_up_gauge(metrics_client: TestClient, fake_workers: FakeWorkers):
     )
 
 
+def test_download_proxy_metrics(metrics_client: TestClient, monkeypatch):
+    from app.services.download_proxy_health import reset_download_proxy_health_cache
+
+    reset_download_proxy_health_cache()
+    setup_admin(metrics_client)
+    body = metrics_client.get("/metrics", headers=_metrics_headers("metrics-secret")).text
+    assert _sample(body, "idigest_hub_download_proxy_status") == 0.0
+    assert _sample(body, "idigest_hub_download_proxy_configured") == 0.0
+    assert _sample(body, "idigest_hub_download_proxy_enabled") == 0.0
+    assert _sample(body, "idigest_hub_download_proxy_up") == 0.0
+
+    metrics_client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "download_proxy_url": "socks5://127.0.0.1:1",
+            "download_proxy_enabled": True,
+        },
+    )
+    monkeypatch.setattr(
+        "app.services.download_proxy_health.check_download_proxy_available",
+        lambda *_args, **_kwargs: False,
+    )
+    reset_download_proxy_health_cache()
+    body = metrics_client.get("/metrics", headers=_metrics_headers("metrics-secret")).text
+    assert _sample(body, "idigest_hub_download_proxy_configured") == 1.0
+    assert _sample(body, "idigest_hub_download_proxy_enabled") == 1.0
+    assert _sample(body, "idigest_hub_download_proxy_up") == 0.0
+    assert _sample(body, "idigest_hub_download_proxy_status") == 1.0
+
+    monkeypatch.setattr(
+        "app.services.download_proxy_health.check_download_proxy_available",
+        lambda *_args, **_kwargs: True,
+    )
+    reset_download_proxy_health_cache()
+    body = metrics_client.get("/metrics", headers=_metrics_headers("metrics-secret")).text
+    assert _sample(body, "idigest_hub_download_proxy_up") == 1.0
+    assert _sample(body, "idigest_hub_download_proxy_status") == 2.0
+
+
 def test_http_metrics_exclude_scrape(metrics_client: TestClient):
     metrics_client.get("/metrics", headers=_metrics_headers("metrics-secret"))
     metrics_client.get("/api/v1/health")

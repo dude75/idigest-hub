@@ -179,9 +179,7 @@ def normalize_download_proxy_url(url: str) -> str:
     return urlunparse(parsed._replace(netloc=netloc))
 
 
-def effective_download_proxy(settings: InstanceSettings, db: Session) -> str | None:
-    if not settings.download_proxy_enabled:
-        return None
+def resolve_download_proxy_url(settings: InstanceSettings, db: Session) -> str | None:
     url = (settings.download_proxy_url or "").strip()
     if not url:
         return None
@@ -204,3 +202,9 @@ def effective_download_proxy(settings: InstanceSettings, db: Session) -> str | N
                     netloc = f"{userinfo}@{hostport}"
                     url = urlunparse(parsed._replace(netloc=netloc))
     return url
+
+
+def effective_download_proxy(settings: InstanceSettings, db: Session) -> str | None:
+    if not settings.download_proxy_enabled:
+        return None
+    return resolve_download_proxy_url(settings, db)

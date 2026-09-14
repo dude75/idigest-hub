@@ -45,6 +45,7 @@ const NON_RETRIABLE_TASK_ERRORS = new Set([
   'payload_too_large',
   'invalid_file',
   'invalid_url',
+  'proxy_unavailable',
 ])
 
 export function taskIsRetriable(task: Task): boolean {

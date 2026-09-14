@@ -197,6 +197,8 @@ export type PublicImportPlatform = {
 export type ImportPlatformsResponse = {
   enabled: boolean
   platforms: PublicImportPlatform[]
+  download_proxy_required: boolean
+  download_proxy_available: boolean
 }
 
 export type InstanceSettings = {
@@ -260,11 +262,14 @@ export type OrgStats = JobStats & {
   days: OrgStatsDay[]
 }
 
+export type DownloadProxyStatus = 'up' | 'down' | 'na'
+
 export type InstanceSnapshot = {
   orgs: number
   users: number
   tasks_queued: number
   tasks_running: number
+  download_proxy_status: DownloadProxyStatus
 }
 
 export type InstanceStats = JobStats &

@@ -214,6 +214,7 @@
     "importPlaceholder": "URL",
     "importSubmit": "Импорт",
     "importHint": "На этом инстансе: {{platforms}}",
+    "proxyUnavailable": "Прокси для скачивания недоступен. Импорт по URL временно отключён.",
     "importDisabled": "Импорт по URL отключён администратором инстанса.",
     "importing": "Импорт…",
     "uploading": "Загрузка {{name}} — {{percent}}%",
@@ -329,7 +330,10 @@
     "month": "Этот месяц",
     "allTime": "Всё время",
     "calendar": "По дням (UTC)",
-    "day": "День"
+    "day": "День",
+    "viewTable": "Таблица",
+    "viewChart": "Графики",
+    "chartTasks": "Задачи по дням"
   },
   "security": {
     "title": "Безопасность",
@@ -446,6 +450,12 @@
     "importAudioBitrateHint": "0 = лучшее доступное. Для речи: 64–128. По умолчанию 64.",
     "queued": "В очереди",
     "running": "Выполняются",
+    "downloadProxyStatus": "Прокси для скачивания",
+    "downloadProxyStatusValue": {
+      "up": "UP",
+      "down": "DOWN",
+      "na": "N/A"
+    },
     "transcribeDone": "Выполненных задач транскрибации",
     "summarizeDone": "Выполненных задач саммаризации",
     "transcribedAudio": "Время транскрибированного аудио",
@@ -581,6 +591,7 @@
     "download_failed": "Не удалось скачать аудио по ссылке.",
     "video_unavailable": "Видео недоступно (удалено, приватное или заблокировано).",
     "import_disabled": "Импорт по URL отключён на этом инстансе.",
+    "proxy_unavailable": "Прокси для скачивания недоступен. Импорт по URL временно отключён.",
     "generic": "Что-то пошло не так."
   }
 }

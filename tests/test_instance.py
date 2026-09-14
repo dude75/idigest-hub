@@ -15,6 +15,38 @@ from tests.conftest import (
 )
 
 
+def test_instance_stats_includes_download_proxy_status(client, monkeypatch):
+    from app.services.download_proxy_health import reset_download_proxy_health_cache
+
+    reset_download_proxy_health_cache()
+    setup_admin(client)
+    empty = client.get("/api/v1/instance/stats")
+    assert empty.status_code == 200, empty.text
+    assert empty.json()["download_proxy_status"] == "na"
+
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"download_proxy_url": "socks5://127.0.0.1:1"},
+    )
+    monkeypatch.setattr(
+        "app.services.download_proxy_health.check_download_proxy_available",
+        lambda *_args, **_kwargs: False,
+    )
+    reset_download_proxy_health_cache()
+    down = client.get("/api/v1/instance/stats")
+    assert down.status_code == 200, down.text
+    assert down.json()["download_proxy_status"] == "down"
+
+    monkeypatch.setattr(
+        "app.services.download_proxy_health.check_download_proxy_available",
+        lambda *_args, **_kwargs: True,
+    )
+    reset_download_proxy_health_cache()
+    up = client.get("/api/v1/instance/stats")
+    assert up.status_code == 200, up.text
+    assert up.json()["download_proxy_status"] == "up"
+
+
 def test_instance_stats_counts_completed_jobs_and_audio_time(client, fake_workers):
     setup_admin(client)
     empty = client.get("/api/v1/instance/stats")

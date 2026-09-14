@@ -28,6 +28,7 @@ NON_RETRIABLE_ERROR_CODES = frozenset(
         "payload_too_large",
         "invalid_file",
         "invalid_url",
+        "proxy_unavailable",
     }
 )
 
@@ -160,9 +161,12 @@ async def create_import(
     settings = get_instance_settings(db)
     if not settings.import_enabled:
         ctx.raise_error(ErrorCode.import_disabled)
+    from app.services.download_proxy_health import download_proxy_ready
     from app.services.import_platforms import allowed_extractors
     from app.services.url_import import UrlImportError, assert_import_fetch_allowed
 
+    if not download_proxy_ready(settings, db):
+        ctx.raise_error(ErrorCode.proxy_unavailable)
     try:
         url = assert_import_fetch_allowed(
             body.url, settings_allowed=allowed_extractors(settings)
@@ -308,9 +312,12 @@ def _validate_task_source(ctx: AuthContext, db: Session, org: Organization, task
         settings = get_instance_settings(db)
         if not settings.import_enabled:
             ctx.raise_error(ErrorCode.import_disabled)
+        from app.services.download_proxy_health import download_proxy_ready
         from app.services.import_platforms import allowed_extractors
         from app.services.url_import import UrlImportError, assert_import_fetch_allowed
 
+        if not download_proxy_ready(settings, db):
+            ctx.raise_error(ErrorCode.proxy_unavailable)
         url = (task.meta_json or {}).get("url")
         if not isinstance(url, str) or not url.strip():
             ctx.raise_error(ErrorCode.not_found)

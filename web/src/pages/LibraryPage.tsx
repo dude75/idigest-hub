@@ -89,9 +89,21 @@ export function LibraryPage() {
 
   useEffect(() => {
     if (!hasOrg) return
-    void api<ImportPlatformsResponse>('/import/platforms')
-      .then(setImportPlatforms)
-      .catch(showError)
+    let cancelled = false
+    async function loadPlatforms() {
+      try {
+        const data = await api<ImportPlatformsResponse>('/import/platforms')
+        if (!cancelled) setImportPlatforms(data)
+      } catch (e) {
+        if (!cancelled) showError(e)
+      }
+    }
+    void loadPlatforms()
+    const timer = window.setInterval(() => void loadPlatforms(), 30_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
   }, [hasOrg])
 
   if (!hasOrg) return <Navigate to={me?.user.is_instance_admin ? '/app/instance' : '/app/profile'} replace />
@@ -154,6 +166,10 @@ export function LibraryPage() {
   }
 
   const importEnabled = importPlatforms?.enabled === true
+  const proxyBlocked =
+    importPlatforms?.download_proxy_required === true &&
+    importPlatforms?.download_proxy_available === false
+  const importBlocked = busy || proxyBlocked
 
   return (
     <div>
@@ -190,20 +206,20 @@ export function LibraryPage() {
                   type="url"
                   value={importUrl}
                   placeholder={t('library.importPlaceholder')}
-                  disabled={busy}
+                  disabled={importBlocked}
                   aria-label={t('library.importUrl')}
                   onChange={(e) => setImportUrl(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
-                      void importFromUrl()
+                      if (!proxyBlocked) void importFromUrl()
                     }
                   }}
                 />
                 <button
                   type="button"
                   className="primary"
-                  disabled={busy || !importUrl.trim()}
+                  disabled={importBlocked || !importUrl.trim()}
                   onClick={() => void importFromUrl()}
                 >
                   {busy ? t('library.importing') : t('library.importSubmit')}
@@ -230,11 +246,13 @@ export function LibraryPage() {
               />
             </label>
           </div>
-          {importEnabled && importPlatforms && importPlatforms.platforms.length > 0 && (
-            <p className="muted library-ingest-hint">
-              {t('library.importHint', {
-                platforms: importPlatforms.platforms.map((p) => p.label).join(' · '),
-              })}
+          {importEnabled && importPlatforms && (proxyBlocked || importPlatforms.platforms.length > 0) && (
+            <p className={proxyBlocked ? 'err library-ingest-hint' : 'muted library-ingest-hint'}>
+              {proxyBlocked
+                ? t('library.proxyUnavailable')
+                : t('library.importHint', {
+                    platforms: importPlatforms.platforms.map((p) => p.label).join(' · '),
+                  })}
             </p>
           )}
           <IngestPipelinePanel />

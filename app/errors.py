@@ -53,6 +53,7 @@ class ErrorCode(str, Enum):
     download_failed = "download_failed"
     video_unavailable = "video_unavailable"
     import_disabled = "import_disabled"
+    proxy_unavailable = "proxy_unavailable"
 
 
 HTTP_STATUS: dict[ErrorCode, int] = {
@@ -91,6 +92,7 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.download_failed: 502,
     ErrorCode.video_unavailable: 404,
     ErrorCode.import_disabled: 403,
+    ErrorCode.proxy_unavailable: 503,
 }
 
 

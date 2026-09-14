@@ -44,6 +44,107 @@ def test_import_platforms(client):
     assert payload["enabled"] is True
     labels = {item["label"] for item in payload["platforms"]}
     assert labels == {"YouTube", "Rutube", "TikTok"}
+    assert payload["download_proxy_required"] is False
+    assert payload["download_proxy_available"] is True
+
+
+def test_proxy_host_port():
+    from app.services.download_proxy_health import proxy_host_port
+
+    assert proxy_host_port("socks5://127.0.0.1:1080") == ("127.0.0.1", 1080)
+    assert proxy_host_port("http://proxy.example:8080") == ("proxy.example", 8080)
+    assert proxy_host_port("socks5://user@host:9999") == ("host", 9999)
+
+
+def test_download_proxy_status_respects_enabled_flag():
+    from unittest.mock import MagicMock
+
+    from app.models import InstanceSettings
+    from app.services.download_proxy_health import download_proxy_status, reset_download_proxy_health_cache
+
+    reset_download_proxy_health_cache()
+    db = MagicMock()
+    settings = InstanceSettings(
+        id=1,
+        download_proxy_url="socks5://127.0.0.1:1080",
+        download_proxy_enabled=False,
+    )
+    assert download_proxy_status(settings, db) == {
+        "download_proxy_required": False,
+        "download_proxy_available": True,
+    }
+
+
+def test_create_import_blocked_when_proxy_required_and_unavailable(client, monkeypatch):
+    from app.services.download_proxy_health import reset_download_proxy_health_cache
+
+    reset_download_proxy_health_cache()
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "download_proxy_url": "socks5://127.0.0.1:1",
+            "download_proxy_enabled": True,
+        },
+    )
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "proxydown@example.com", "proxydownpass1", tariff_id).status_code == 200
+    login_ready(client, "proxydown@example.com", "proxydownpass1")
+
+    monkeypatch.setattr(
+        "app.services.download_proxy_health.check_download_proxy_available",
+        lambda *_args, **_kwargs: False,
+    )
+    reset_download_proxy_health_cache()
+
+    platforms = client.get("/api/v1/import/platforms")
+    assert platforms.status_code == 200
+    body = platforms.json()
+    assert body["download_proxy_required"] is True
+    assert body["download_proxy_available"] is False
+
+    response = client.post(
+        "/api/v1/tasks/import",
+        json={"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+    )
+    assert response.status_code == 503
+    assert err_code(response) == "proxy_unavailable"
+
+
+def test_create_import_allowed_when_proxy_not_required(client, monkeypatch):
+    from app.services.download_proxy_health import reset_download_proxy_health_cache
+
+    reset_download_proxy_health_cache()
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "download_proxy_url": "socks5://127.0.0.1:1",
+            "download_proxy_enabled": False,
+        },
+    )
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "noproxy@example.com", "noproxypass1", tariff_id).status_code == 200
+    login_ready(client, "noproxy@example.com", "noproxypass1")
+
+    monkeypatch.setattr(
+        "app.services.download_proxy_health.check_download_proxy_available",
+        lambda *_args, **_kwargs: False,
+    )
+    reset_download_proxy_health_cache()
+
+    platforms = client.get("/api/v1/import/platforms")
+    assert platforms.status_code == 200
+    body = platforms.json()
+    assert body["download_proxy_required"] is False
+    assert body["download_proxy_available"] is True
+
+    response = client.post(
+        "/api/v1/tasks/import",
+        json={"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+    )
+    assert response.status_code == 202
+    assert response.json()["task_id"]
 
 
 def test_import_disabled(client):

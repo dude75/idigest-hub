@@ -214,6 +214,7 @@
     "importPlaceholder": "URL",
     "importSubmit": "Importar",
     "importHint": "Soportado en esta instancia: {{platforms}}",
+    "proxyUnavailable": "El proxy de descarga no está disponible. La importación por URL está desactivada temporalmente.",
     "importDisabled": "La importación por URL está desactivada por el administrador.",
     "importing": "Importando…",
     "uploading": "Subiendo {{name}} — {{percent}}%",
@@ -329,7 +330,10 @@
     "month": "Este mes",
     "allTime": "Todo",
     "calendar": "Por día (UTC)",
-    "day": "Día"
+    "day": "Día",
+    "viewTable": "Tabla",
+    "viewChart": "Gráficos",
+    "chartTasks": "Tareas por día"
   },
   "security": {
     "title": "Seguridad",
@@ -446,6 +450,12 @@
     "importAudioBitrateHint": "0 = mejor disponible. Voz: 64–128. Predeterminado 64.",
     "queued": "Tareas en cola",
     "running": "Tareas en curso",
+    "downloadProxyStatus": "Proxy de descarga",
+    "downloadProxyStatusValue": {
+      "up": "UP",
+      "down": "DOWN",
+      "na": "N/A"
+    },
     "transcribeDone": "Tareas de transcripción completadas",
     "summarizeDone": "Tareas de resumen completadas",
     "transcribedAudio": "Tiempo de audio transcrito",
@@ -581,6 +591,7 @@
     "download_failed": "No se pudo descargar el audio desde la URL.",
     "video_unavailable": "El vídeo no está disponible (privado, eliminado o bloqueado).",
     "import_disabled": "La importación por URL está desactivada en esta instancia.",
+    "proxy_unavailable": "El proxy de descarga no está disponible. La importación por URL está desactivada temporalmente.",
     "generic": "Algo salió mal."
   }
 }

@@ -45,10 +45,13 @@ def import_platforms(
     from app.deps import get_instance_settings
     from app.services.import_platforms import public_platforms
 
+    from app.services.download_proxy_health import download_proxy_status
+
     settings = get_instance_settings(db)
     return {
         "enabled": settings.import_enabled,
         "platforms": public_platforms(settings),
+        **download_proxy_status(settings, db),
     }
 
 

@@ -74,6 +74,7 @@ class ScrapeCollector(Collector):
         yield from _task_gauges()
         yield from _worker_gauges()
         yield from _pool_gauges()
+        yield from _download_proxy_gauges()
 
 
 def _ready(state: RuntimeState) -> bool:
@@ -228,6 +229,60 @@ def _pool_gauges():
         for state in POOL_STATES:
             pool.add_metric([kind, state], 1.0 if current == state else 0.0)
     yield pool
+
+
+def _download_proxy_gauges():
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+    from app.services.download_proxy_health import download_proxy_card_status
+
+    configured = GaugeMetricFamily(
+        "idigest_hub_download_proxy_configured",
+        "1 when a download proxy URL is configured in instance settings",
+    )
+    enabled = GaugeMetricFamily(
+        "idigest_hub_download_proxy_enabled",
+        "1 when URL downloads are configured to use the proxy",
+    )
+    up = GaugeMetricFamily(
+        "idigest_hub_download_proxy_up",
+        "1 when the configured download proxy is reachable",
+    )
+    status = GaugeMetricFamily(
+        "idigest_hub_download_proxy_status",
+        "Download proxy status: 0=N/A, 1=DOWN, 2=UP",
+    )
+
+    configured_val = 0.0
+    enabled_val = 0.0
+    up_val = 0.0
+    status_val = 0.0
+    try:
+        get_engine()
+        if SessionLocal is not None:
+            session = SessionLocal()
+            try:
+                settings = get_instance_settings(session)
+                configured_val = 1.0 if (settings.download_proxy_url or "").strip() else 0.0
+                enabled_val = 1.0 if settings.download_proxy_enabled else 0.0
+                card = download_proxy_card_status(settings, session)
+                if card == "up":
+                    up_val = 1.0
+                    status_val = 2.0
+                elif card == "down":
+                    status_val = 1.0
+            finally:
+                session.close()
+    except Exception:
+        pass
+    configured.add_metric([], configured_val)
+    enabled.add_metric([], enabled_val)
+    up.add_metric([], up_val)
+    status.add_metric([], status_val)
+    yield configured
+    yield enabled
+    yield up
+    yield status
 
 
 class Metrics:

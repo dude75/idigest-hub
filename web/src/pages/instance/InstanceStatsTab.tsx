@@ -37,14 +37,28 @@ export function InstanceStatsTab() {
   }, [])
 
   useEffect(() => {
-    api<InstanceStats>('/instance/stats')
-      .then((r) => setSnapshot({
-        orgs: r.orgs,
-        users: r.users,
-        tasks_queued: r.tasks_queued,
-        tasks_running: r.tasks_running,
-      }))
-      .catch(showError)
+    let cancelled = false
+    async function loadSnapshot() {
+      try {
+        const r = await api<InstanceStats>('/instance/stats')
+        if (cancelled) return
+        setSnapshot({
+          orgs: r.orgs,
+          users: r.users,
+          tasks_queued: r.tasks_queued,
+          tasks_running: r.tasks_running,
+          download_proxy_status: r.download_proxy_status,
+        })
+      } catch (e) {
+        if (!cancelled) showError(e)
+      }
+    }
+    void loadSnapshot()
+    const timer = window.setInterval(() => void loadSnapshot(), 30_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
   }, [])
 
   useEffect(() => {
@@ -72,6 +86,12 @@ export function InstanceStatsTab() {
           <div className="stat">
             <div className="stat-label">{t('instance.running')}</div>
             <div className="stat-value">{snapshot.tasks_running}</div>
+          </div>
+          <div className="stat">
+            <div className="stat-label">{t('instance.downloadProxyStatus')}</div>
+            <div className={`stat-value stat-proxy-${snapshot.download_proxy_status}`}>
+              {t(`instance.downloadProxyStatusValue.${snapshot.download_proxy_status}`)}
+            </div>
           </div>
         </div>
       )}

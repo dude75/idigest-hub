@@ -662,11 +662,16 @@ def stats(
     running = int(db.scalar(select(func.count()).select_from(Task).where(Task.status == "running")) or 0)
     orgs = int(db.scalar(select(func.count()).select_from(Organization)) or 0)
     users = int(db.scalar(select(func.count()).select_from(User)) or 0)
+    from app.deps import get_instance_settings
+    from app.services.download_proxy_health import download_proxy_card_status
+
+    settings = get_instance_settings(db)
     return {
         "orgs": orgs,
         "users": users,
         "tasks_queued": queued,
         "tasks_running": running,
+        "download_proxy_status": download_proxy_card_status(settings, db),
         **usage,
         "usage_total": usage["total_amount"],
     }

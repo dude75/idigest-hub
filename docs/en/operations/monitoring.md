@@ -32,6 +32,10 @@ All application metrics use the `idigest_hub_` prefix.
 | `idigest_hub_worker_up` | Gauge | `node_id`, `type`, `name` | Registered worker reachable from hub |
 | `idigest_hub_worker_health_age_seconds` | Gauge | `node_id` | Since last health poll |
 | `idigest_hub_worker_pool_state` | Gauge | `type`, `state` | `ready` / `waiting` / `empty` (one-hot) |
+| `idigest_hub_download_proxy_configured` | Gauge | — | Download proxy URL configured |
+| `idigest_hub_download_proxy_enabled` | Gauge | — | URL downloads use proxy (instance setting) |
+| `idigest_hub_download_proxy_up` | Gauge | — | Configured proxy reachable |
+| `idigest_hub_download_proxy_status` | Gauge | — | `0` = N/A, `1` = DOWN, `2` = UP |
 | `idigest_hub_dispatcher_tick_seconds` | Histogram | — | Dispatcher tick duration |
 | `idigest_hub_dispatcher_tick_errors_total` | Counter | — | Tick failures |
 | `idigest_hub_http_requests_total` | Counter | `method`, `route`, `status` | HTTP (excludes `/metrics` scrapes) |
@@ -66,7 +70,7 @@ Import [`grafana/dashboards/idigest-hub.json`](../../../grafana/dashboards/idige
 3. Select the Prometheus datasource
 4. Dashboard UID: `idigest-hub`
 
-Panels cover queue depth, task throughput/errors, worker health (hub view), dispatcher, HTTP, and process stats.
+Panels cover queue depth, task throughput/errors, worker health (hub view), download proxy status, dispatcher, HTTP, and process stats.
 
 ## Suggested alerts
 
@@ -78,6 +82,7 @@ Panels cover queue depth, task throughput/errors, worker health (hub view), disp
 | NoWorkersUp | `sum(idigest_hub_worker_up) == 0` and `count(idigest_hub_worker_up) > 0` |
 | HighTaskErrors | `sum(rate(idigest_hub_tasks_total{status="error"}[5m])) / sum(rate(idigest_hub_tasks_total[5m])) > 0.1` |
 | StaleWorkerHealth | `max(idigest_hub_worker_health_age_seconds) > 120` |
+| DownloadProxyDown | `idigest_hub_download_proxy_enabled == 1 and idigest_hub_download_proxy_up == 0` |
 
 ## Related
 

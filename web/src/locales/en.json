@@ -214,6 +214,7 @@
     "importPlaceholder": "URL",
     "importSubmit": "Import",
     "importHint": "Supported on this instance: {{platforms}}",
+    "proxyUnavailable": "Download proxy is unavailable. URL import is temporarily disabled.",
     "importDisabled": "URL import is disabled by the instance admin.",
     "importing": "Importing…",
     "uploading": "Uploading {{name}} — {{percent}}%",
@@ -329,7 +330,10 @@
     "month": "This month",
     "allTime": "All time",
     "calendar": "By day (UTC)",
-    "day": "Day"
+    "day": "Day",
+    "viewTable": "Table",
+    "viewChart": "Charts",
+    "chartTasks": "Tasks by day"
   },
   "security": {
     "title": "Security",
@@ -446,6 +450,12 @@
     "importAudioBitrateHint": "0 = best available. Typical speech: 64–128. Default 64.",
     "queued": "Queued tasks",
     "running": "Running tasks",
+    "downloadProxyStatus": "Download proxy",
+    "downloadProxyStatusValue": {
+      "up": "UP",
+      "down": "DOWN",
+      "na": "N/A"
+    },
     "transcribeDone": "Completed transcription tasks",
     "summarizeDone": "Completed summarization tasks",
     "transcribedAudio": "Transcribed audio time",
@@ -581,6 +591,7 @@
     "download_failed": "Could not download audio from the URL.",
     "video_unavailable": "Video is unavailable (private, deleted, or blocked).",
     "import_disabled": "URL import is disabled on this instance.",
+    "proxy_unavailable": "Download proxy is unavailable. URL import is temporarily disabled.",
     "generic": "Something went wrong."
   }
 }
