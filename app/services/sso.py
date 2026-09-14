@@ -49,7 +49,7 @@ def sso_login_url(public_base_url: str | None, org_id: str) -> str | None:
 def password_login_allowed(*, membership: Membership | None, org: Organization | None, is_instance_admin: bool) -> bool:
     if is_instance_admin:
         return True
-    if org is None or membership is None or not sso_configured(org):
+    if org is None or membership is None or not sso_configured(org) or not org.sso_enabled:
         return True
     return membership.role == "org_admin"
 

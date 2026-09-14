@@ -52,13 +52,26 @@ def _create_member(client, email: str = "member@example.com", password: str = "m
     assert response.status_code == 200, response.text
 
 
-def test_password_login_blocked_for_member_when_sso_configured(client):
+def test_password_login_allowed_for_member_when_sso_configured_but_disabled(client):
     setup_admin(client)
     _configure_public_url(client)
     tariff_id = default_tariff_id(client)
     signup(client, "orgadmin@example.com", "orgadminpass1", tariff_id)
     login_ready(client, "orgadmin@example.com", "orgadminpass1")
     _configure_sso(client, enabled=False)
+    _create_member(client)
+    logout(client)
+
+    login(client, "member@example.com", "memberpass1")
+
+
+def test_password_login_blocked_for_member_when_sso_enabled(client):
+    setup_admin(client)
+    _configure_public_url(client)
+    tariff_id = default_tariff_id(client)
+    signup(client, "orgadmin@example.com", "orgadminpass1", tariff_id)
+    login_ready(client, "orgadmin@example.com", "orgadminpass1")
+    _configure_sso(client, enabled=True)
     _create_member(client)
     logout(client)
 

@@ -116,7 +116,7 @@ Each organization can enable **OIDC SSO** (tested with **Keycloak**). **Org admi
 
 **Member login:** `{public_url}/sso/{org_id}` (shown on the Org page after Public URL is set).
 
-**Password login when SSO is configured:** only **org_admin** (break-glass). **org_member** uses SSO once it is enabled; auto-provision matches users by email from the IdP.
+**Password login when SSO is enabled:** only **org_admin** (break-glass). **org_member** uses the IdP; auto-provision matches users by email. With SSO **configured but disabled**, members can sign in with password again and use Hub 2FA.
 
 ## Two-factor authentication (2FA)
 

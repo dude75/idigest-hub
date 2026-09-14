@@ -80,7 +80,7 @@ from app.rate_limit import (
     get_rate_limits,
 )
 from app.services.mfa import (
-    AUTH_PROVIDER_LOCAL,
+    hub_local_auth_applies,
     confirm_totp_setup,
     consume_mfa_challenge,
     consume_recovery_code,
@@ -729,7 +729,7 @@ def mfa_status(db: Session = Depends(get_session), ctx: AuthContext = Depends(re
 
 @router.post("/auth/mfa/setup/start")
 def mfa_setup_start(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
-    if ctx.impersonating or ctx.user.auth_provider != AUTH_PROVIDER_LOCAL:
+    if ctx.impersonating or not hub_local_auth_applies(user=ctx.user, org=ctx.org, membership=ctx.membership):
         ctx.raise_error(ErrorCode.forbidden)
     secret, uri = start_totp_setup(db, ctx.user)
     return {"secret": secret, "otpauth_uri": uri}
@@ -741,7 +741,7 @@ def mfa_setup_confirm(
     db: Session = Depends(get_session),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
-    if ctx.impersonating or ctx.user.auth_provider != AUTH_PROVIDER_LOCAL:
+    if ctx.impersonating or not hub_local_auth_applies(user=ctx.user, org=ctx.org, membership=ctx.membership):
         ctx.raise_error(ErrorCode.forbidden)
     codes = confirm_totp_setup(db, ctx.user, body.code)
     if not codes:
@@ -756,7 +756,7 @@ def mfa_disable(
     db: Session = Depends(get_session),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
-    if ctx.impersonating or ctx.user.auth_provider != AUTH_PROVIDER_LOCAL:
+    if ctx.impersonating or not hub_local_auth_applies(user=ctx.user, org=ctx.org, membership=ctx.membership):
         ctx.raise_error(ErrorCode.forbidden)
     if not totp_enabled(ctx.user):
         ctx.raise_error(ErrorCode.validation_error)

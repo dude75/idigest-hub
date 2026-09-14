@@ -16,7 +16,7 @@ from app.routers.auth import revoke_user_auth
 from app.security import hash_password, random_password
 from app.services.access import guard_last_org_admin
 from app.services.audit import write_audit
-from app.services.mfa import AUTH_PROVIDER_LOCAL, disable_totp, totp_configured
+from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.offboarding import transfer_user, wipe_user_content
 from app.services.sso import (
     clear_client_secret,
@@ -343,7 +343,7 @@ def reset_user_mfa(
     user = db.get(User, user_id)
     if membership is None or user is None:
         ctx.raise_error(ErrorCode.not_found)
-    if user.auth_provider != AUTH_PROVIDER_LOCAL:
+    if not hub_local_auth_applies(user=user, org=org, membership=membership):
         ctx.raise_error(ErrorCode.forbidden)
     if not totp_configured(user):
         ctx.raise_error(ErrorCode.validation_error)

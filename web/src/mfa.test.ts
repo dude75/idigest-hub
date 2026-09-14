@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import type { Me } from './types'
 import { clearMfaChallengeId, readMfaChallengeId, storeMfaChallengeId } from './mfa'
-import { resolveAuthBlockPath, resolveAuthContinuationPath } from './routes'
+import { localAuthProfileVisible, resolveAuthBlockPath, resolveAuthContinuationPath } from './routes'
 
 const baseMe: Me = {
   user: {
@@ -61,6 +61,60 @@ describe('mfa challenge storage', () => {
     storeMfaChallengeId('challenge-1')
     clearMfaChallengeId()
     expect(readMfaChallengeId()).toBeNull()
+  })
+})
+
+describe('localAuthProfileVisible', () => {
+  it('shows for local users when SSO is off', () => {
+    expect(localAuthProfileVisible(baseMe)).toBe(true)
+  })
+
+  it('hides for SSO users when org SSO is enabled', () => {
+    expect(
+      localAuthProfileVisible({
+        ...baseMe,
+        user: { ...baseMe.user, auth_provider: 'oidc' },
+        org: { ...baseMe.org!, sso: { configured: true, enabled: true, login_url: '/sso/o1' } },
+      }),
+    ).toBe(false)
+  })
+
+  it('shows for former SSO users when org SSO is disabled', () => {
+    expect(
+      localAuthProfileVisible({
+        ...baseMe,
+        user: { ...baseMe.user, auth_provider: 'oidc' },
+        org: { ...baseMe.org!, sso: { configured: true, enabled: false, login_url: '/sso/o1' } },
+      }),
+    ).toBe(true)
+  })
+
+  it('hides for local org_member when SSO is enabled', () => {
+    expect(
+      localAuthProfileVisible({
+        ...baseMe,
+        org: { ...baseMe.org!, sso: { configured: true, enabled: true, login_url: '/sso/o1' } },
+      }),
+    ).toBe(false)
+  })
+
+  it('shows for local org_admin when SSO is enabled (break-glass)', () => {
+    expect(
+      localAuthProfileVisible({
+        ...baseMe,
+        user: { ...baseMe.user, role: 'org_admin' },
+        org: { ...baseMe.org!, sso: { configured: true, enabled: true, login_url: '/sso/o1' } },
+      }),
+    ).toBe(true)
+  })
+
+  it('shows for local org_member when SSO is only configured', () => {
+    expect(
+      localAuthProfileVisible({
+        ...baseMe,
+        org: { ...baseMe.org!, sso: { configured: true, enabled: false, login_url: '/sso/o1' } },
+      }),
+    ).toBe(true)
   })
 })
 

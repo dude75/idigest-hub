@@ -29,7 +29,7 @@ from app.routers.auth import revoke_user_auth, seed_default_tariff
 from app.security import hash_password, random_password
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
 from app.services.audit import list_audit, write_audit
-from app.services.mfa import AUTH_PROVIDER_LOCAL, disable_totp, totp_configured
+from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
 from app.timeutil import utcnow
 
@@ -549,7 +549,7 @@ def reset_org_user_mfa(
         ctx.raise_error(ErrorCode.not_found)
     if user.is_instance_admin or user.disabled_at is not None:
         ctx.raise_error(ErrorCode.forbidden)
-    if user.auth_provider != AUTH_PROVIDER_LOCAL:
+    if not hub_local_auth_applies(user=user, org=org, membership=membership):
         ctx.raise_error(ErrorCode.forbidden)
     if not totp_configured(user):
         ctx.raise_error(ErrorCode.validation_error)

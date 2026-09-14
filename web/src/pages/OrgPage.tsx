@@ -464,7 +464,7 @@ export function OrgPage() {
                     {u.disabled ? t('common.enable') : t('common.disable')}
                   </button>
                   <button type="button" onClick={() => void resetPw(u)}>{t('org.resetPassword')}</button>
-                  {u.auth_provider === 'local' && (u.mfa_configured ?? u.mfa_enabled) && (
+                  {(u.mfa_configured ?? u.mfa_enabled) && (u.auth_provider === 'local' || !ssoBlocksMfa) && (
                     <button type="button" onClick={() => setMfaResetUser(u)}>{t('org.resetMfa')}</button>
                   )}
                   <button type="button" className="danger" onClick={() => setOffUser(u)}>{t('org.offboard')}</button>

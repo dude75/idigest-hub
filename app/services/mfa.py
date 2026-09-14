@@ -11,7 +11,7 @@ from app.constants import MFA_CHALLENGE_TTL_SEC, MFA_RECOVERY_CODE_COUNT
 from app.crypto import decrypt_str, encrypt_str
 from app.models import Membership, MfaChallenge, Organization, RecoveryCode, User, new_id
 from app.security import hash_secret, new_mfa_challenge_token, new_recovery_code
-from app.services.sso import password_login_allowed
+from app.services.sso import AUTH_PROVIDER_OIDC, password_login_allowed
 from app.services.totp import generate_secret, provisioning_uri, verify_code
 from app.timeutil import utcnow
 
@@ -39,14 +39,21 @@ def verify_user_totp(user: User, code: str, db: Session) -> bool:
     return verify_code(secret=secret, code=code)
 
 
-def hub_mfa_applies(*, user: User, org: Organization | None, membership: Membership | None) -> bool:
-    if user.auth_provider != AUTH_PROVIDER_LOCAL:
+def hub_local_auth_applies(*, user: User, org: Organization | None, membership: Membership | None) -> bool:
+    """Hub password login and TOTP apply (SSO disabled or break-glass admin)."""
+    if not user.password_hash:
         return False
-    return password_login_allowed(
+    if not password_login_allowed(
         membership=membership,
         org=org,
         is_instance_admin=user.is_instance_admin,
-    )
+    ):
+        return False
+    return user.auth_provider in (AUTH_PROVIDER_LOCAL, AUTH_PROVIDER_OIDC)
+
+
+def hub_mfa_applies(*, user: User, org: Organization | None, membership: Membership | None) -> bool:
+    return hub_local_auth_applies(user=user, org=org, membership=membership)
 
 
 def org_mfa_required(*, user: User, org: Organization | None, membership: Membership | None) -> bool:

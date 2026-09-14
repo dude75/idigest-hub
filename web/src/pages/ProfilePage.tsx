@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { useAuth } from '../auth'
 import { MfaSetupPanel } from '../components/MfaSetupPanel'
-import { allowedDefaultRoutes, defaultRouteLabel, normalizeDefaultRoute, type DefaultRoute } from '../routes'
+import {
+  allowedDefaultRoutes,
+  defaultRouteLabel,
+  localAuthProfileVisible,
+  normalizeDefaultRoute,
+  type DefaultRoute,
+} from '../routes'
 import type { ApiToken } from '../types'
 import { fmtDate, showError } from '../util'
 
@@ -26,6 +32,7 @@ export function ProfilePage() {
   })
 
   const hasOrg = Boolean(me?.org)
+  const showLocalAuth = localAuthProfileVisible(me)
   const apiAllowed = !me?.org || Boolean(me.org.tariff.api_enabled)
   const activeTokens = tokens.filter((tok) => !tok.revoked)
   const [backupTranscripts, setBackupTranscripts] = useState(true)
@@ -207,7 +214,7 @@ export function ProfilePage() {
           </div>
         </section>
 
-        {me?.user.auth_provider === 'local' && (
+        {showLocalAuth && me && (
           <section className="card stack profile-section">
             <div className="profile-section-head">
               <h2>{t('mfa.title')}</h2>
@@ -250,23 +257,25 @@ export function ProfilePage() {
           </section>
         )}
 
-        <form className="card stack profile-section" onSubmit={(e) => void changePw(e)}>
-          <div className="profile-section-head">
-            <h2>{t('auth.changePassword')}</h2>
-          </div>
-          <label>
-            {t('auth.currentPassword')}
-            <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
-          </label>
-          <label>
-            {t('auth.newPassword')}
-            <input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
-          </label>
-          <div className="profile-actions">
-            <button className="primary" type="submit">{t('common.save')}</button>
-            {ok && <p className="ok">{t('profile.saved')}</p>}
-          </div>
-        </form>
+        {showLocalAuth && (
+          <form className="card stack profile-section" onSubmit={(e) => void changePw(e)}>
+            <div className="profile-section-head">
+              <h2>{t('auth.changePassword')}</h2>
+            </div>
+            <label>
+              {t('auth.currentPassword')}
+              <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
+            </label>
+            <label>
+              {t('auth.newPassword')}
+              <input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
+            </label>
+            <div className="profile-actions">
+              <button className="primary" type="submit">{t('common.save')}</button>
+              {ok && <p className="ok">{t('profile.saved')}</p>}
+            </div>
+          </form>
+        )}
 
         {hasOrg && (
           <section className="card stack profile-section profile-backup">

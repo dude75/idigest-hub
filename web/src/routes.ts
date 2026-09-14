@@ -105,10 +105,21 @@ export function allowedDefaultRoutes(me: Me | null): DefaultRoute[] {
 
 export function resolveLoginPath(me: Me | null): string {
   const org = me?.org
-  if (org?.id && (org.sso?.enabled || me?.user.auth_provider === 'oidc')) {
+  if (org?.id && org.sso?.enabled) {
     return `/sso/${org.id}`
   }
   return '/login'
+}
+
+/** Profile sections for Hub password change and TOTP 2FA. */
+export function localAuthProfileVisible(me: Me | null): boolean {
+  if (!me) return false
+  const ssoEnabled = Boolean(me.org?.sso?.enabled)
+  if (me.user.auth_provider === 'oidc') return !ssoEnabled
+  if (me.user.auth_provider !== 'local') return false
+  if (me.user.is_instance_admin) return true
+  if (!ssoEnabled) return true
+  return me.user.role === 'org_admin'
 }
 
 /** Redirect target while sign-in is incomplete (password change or 2FA enrollment). */
