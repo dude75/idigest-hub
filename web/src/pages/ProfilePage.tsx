@@ -245,7 +245,7 @@ export function ProfilePage() {
                 )}
               </form>
             ) : (
-              <MfaSetupPanel onComplete={() => refresh()} />
+              <MfaSetupPanel onComplete={() => void refresh()} />
             )}
           </section>
         )}

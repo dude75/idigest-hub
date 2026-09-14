@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { resolveAuthContinuationPath } from '../routes'
 import { showError } from '../util'
 
 export function ChangePasswordPage() {
@@ -28,8 +29,8 @@ export function ChangePasswordPage() {
           new_password: next,
         }),
       })
-      await refresh()
-      nav('/app', { replace: true })
+      const profile = await refresh()
+      nav(resolveAuthContinuationPath(profile), { replace: true })
     } catch (e) {
       showError(e)
     } finally {

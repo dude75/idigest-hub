@@ -4,8 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { AuthPageShell } from '../components/AuthPageShell'
-import { resolveHomePath } from '../routes'
-import { storeMfaChallengeId } from './Verify2faPage'
+import { storeMfaChallengeId } from '../mfa'
+import { resolveAuthContinuationPath } from '../routes'
 import { showError } from '../util'
 
 const SSO_ORG_ID_KEY = 'lastSsoOrgId'
@@ -36,9 +36,7 @@ export function LoginPage() {
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
   if (ready && me) {
-    if (me.must_change_password) return <Navigate to="/change-password" replace />
-    if (me.mfa_enrollment_required) return <Navigate to="/enroll-2fa" replace />
-    return <Navigate to={resolveHomePath(me)} replace />
+    return <Navigate to={resolveAuthContinuationPath(me)} replace />
   }
 
   function switchMode(next: LoginMode) {
@@ -59,8 +57,8 @@ export function LoginPage() {
         nav('/verify-2fa', { replace: true })
         return
       }
-      await refresh()
-      nav('/app', { replace: true })
+      const profile = await refresh()
+      nav(resolveAuthContinuationPath(profile), { replace: true })
     } catch (e) {
       showError(e)
     } finally {

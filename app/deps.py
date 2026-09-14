@@ -26,6 +26,7 @@ ALLOWED_WHEN_MUST_CHANGE = {
 }
 
 ALLOWED_WHEN_MFA_ENROLLMENT = {
+    ("POST", "/api/v1/auth/password/change"),
     ("POST", "/api/v1/auth/mfa/setup/start"),
     ("POST", "/api/v1/auth/mfa/setup/confirm"),
     ("POST", "/api/v1/auth/logout"),

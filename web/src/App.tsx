@@ -25,7 +25,7 @@ import { SummaryPage } from './pages/SummaryPage'
 import { TaskPage } from './pages/TaskPage'
 import { TasksPage } from './pages/TasksPage'
 import { TranscriptPage } from './pages/TranscriptPage'
-import { resolveHomePath, LIBRARY_DEFAULT } from './routes'
+import { resolveAuthBlockPath, resolveHomePath, LIBRARY_DEFAULT } from './routes'
 
 const InstancePage = lazy(() =>
   import('./pages/instance/InstancePage').then((m) => ({ default: m.InstancePage })),
@@ -51,8 +51,9 @@ function Gate({ children }: { children: ReactNode }) {
   if (!ready) return <p className="page muted">{t('common.loading')}</p>
   if (!bootstrapDone) return <Navigate to="/setup" replace />
   if (!me) return <Navigate to="/login" replace />
-  if (me.must_change_password) return <Navigate to="/change-password" replace />
-  if (me.mfa_enrollment_required) return <Navigate to="/enroll-2fa" replace />
+  const block = resolveAuthBlockPath(me)
+  if (block === '/change-password') return <Navigate to="/change-password" replace />
+  if (block === '/enroll-2fa') return <Navigate to="/enroll-2fa" replace />
   return children
 }
 

@@ -4,34 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { AuthPageShell } from '../components/AuthPageShell'
-import { resolveHomePath } from '../routes'
+import { clearMfaChallengeId, readMfaChallengeId } from '../mfa'
+import { resolveAuthContinuationPath } from '../routes'
 import { showError } from '../util'
-
-const CHALLENGE_KEY = 'mfa_challenge_id'
-
-export function readMfaChallengeId(): string | null {
-  try {
-    return sessionStorage.getItem(CHALLENGE_KEY)
-  } catch {
-    return null
-  }
-}
-
-export function clearMfaChallengeId(): void {
-  try {
-    sessionStorage.removeItem(CHALLENGE_KEY)
-  } catch {
-    /* ignore */
-  }
-}
-
-export function storeMfaChallengeId(id: string): void {
-  try {
-    sessionStorage.setItem(CHALLENGE_KEY, id)
-  } catch {
-    /* ignore */
-  }
-}
 
 export function Verify2faPage() {
   const { t } = useTranslation()
@@ -43,9 +18,10 @@ export function Verify2faPage() {
   const [useRecovery, setUseRecovery] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
-  if (ready && me) return <Navigate to={resolveHomePath(me)} replace />
-  if (ready && !challengeId) return <Navigate to="/login" replace />
+  if (!ready) return <p className="page muted">{t('common.loading')}</p>
+  if (!bootstrapDone) return <Navigate to="/setup" replace />
+  if (me) return <Navigate to={resolveAuthContinuationPath(me)} replace />
+  if (!challengeId) return <Navigate to="/login" replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -64,8 +40,8 @@ export function Verify2faPage() {
         })
       }
       clearMfaChallengeId()
-      await refresh()
-      nav('/app', { replace: true })
+      const next = await refresh()
+      nav(resolveAuthContinuationPath(next), { replace: true })
     } catch (err) {
       showError(err)
     } finally {

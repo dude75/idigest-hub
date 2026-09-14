@@ -10,7 +10,7 @@ type AuthState = {
   bootstrapDone: boolean
   bootstrapError: unknown
   me: Me | null
-  refresh: () => Promise<void>
+  refresh: () => Promise<Me | null>
   setLocale: (locale: Locale) => Promise<void>
   setDefaultRoute: (route: DefaultRoute) => Promise<void>
   logout: () => Promise<void>
@@ -25,13 +25,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [bootstrapError, setBootstrapError] = useState<unknown>(null)
   const [me, setMe] = useState<Me | null>(null)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<Me | null> => {
     setBootstrapError(null)
     const status = await api<{ bootstrap_done: boolean }>('/setup/status')
     setBootstrapDone(status.bootstrap_done)
     if (!status.bootstrap_done) {
       setMe(null)
-      return
+      return null
     }
     try {
       const next = await api<Me>('/me')
@@ -40,10 +40,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('locale', next.user.locale)
         await i18n.changeLanguage(next.user.locale)
       }
+      return next
     } catch (err) {
       if (err instanceof ApiError && err.code === 'unauthorized') {
         setMe(null)
-        return
+        return null
       }
       throw err
     }

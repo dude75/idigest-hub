@@ -111,6 +111,21 @@ export function resolveLoginPath(me: Me | null): string {
   return '/login'
 }
 
+/** Redirect target while sign-in is incomplete (password change or 2FA enrollment). */
+export function resolveAuthBlockPath(me: Me | null): '/login' | '/change-password' | '/enroll-2fa' | null {
+  if (!me) return '/login'
+  if (me.must_change_password) return '/change-password'
+  if (me.mfa_enrollment_required) return '/enroll-2fa'
+  return null
+}
+
+/** Where to send the user after login, password change, or 2FA verify/enroll. */
+export function resolveAuthContinuationPath(me: Me | null): string {
+  const blocked = resolveAuthBlockPath(me)
+  if (blocked && blocked !== '/login') return blocked
+  return resolveHomePath(me)
+}
+
 export function resolveHomePath(me: Me | null): string {
   const allowed = allowedDefaultRoutes(me)
   const stored = normalizeDefaultRoute(me?.user.default_route)
