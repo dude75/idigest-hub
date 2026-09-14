@@ -17,6 +17,7 @@ from tests.conftest import (
     setup_admin,
     signup,
     upload_audio,
+    wait_task,
 )
 
 
@@ -51,9 +52,9 @@ def test_unlimited_tariff_does_not_debit_but_records_usage(client, fake_workers)
     audio = upload_audio(client)
     assert audio.status_code == 200, audio.text
     fake_workers.transcribe_mode = "success"
-    task = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
-    assert task.status_code == 202, task.text
-    assert task.json()["status"] == "success"
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert created.status_code == 202, created.text
+    wait_task(client, created.json()["task_id"], status="success")
     org = client.get("/api/v1/org")
     assert org.status_code == 200, org.text
     body = org.json()
@@ -93,13 +94,13 @@ def test_started_task_can_drive_balance_negative_and_returns_result(client, fake
     assert audio.status_code == 200, audio.text
     fake_workers.transcribe_mode = "success"
     fake_workers.audio_duration_sec = 10.0
-    task = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
-    assert task.status_code == 202, task.text
-    assert task.json()["status"] == "success"
-    assert task.json()["transcript_id"]
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert created.status_code == 202, created.text
+    task = wait_task(client, created.json()["task_id"], status="success")
+    assert task["transcript_id"]
     org = client.get("/api/v1/org").json()
     assert float(org["balance"]) < 0
-    transcript = client.get(f"/api/v1/transcripts/{task.json()['transcript_id']}")
+    transcript = client.get(f"/api/v1/transcripts/{task['transcript_id']}")
     assert transcript.status_code == 200, transcript.text
     assert transcript.json()["utterances"]
 
@@ -132,9 +133,7 @@ def test_charge_uses_snapshot_prices_after_tariff_change(client, fake_workers):
     login(client, "snap@example.com", "snappass1")
     fake_workers.transcribe_mode = "success"
     fake_workers.audio_duration_sec = 2.0
-    polled = client.get(f"/api/v1/tasks/{task_id}")
-    assert polled.status_code == 200, polled.text
-    assert polled.json()["status"] == "success"
+    wait_task(client, task_id, status="success")
     org = client.get("/api/v1/org").json()
     assert org["balance"] == "98.00"
     assert org["tariff"]["id"] == expensive["id"]
@@ -235,16 +234,17 @@ def test_summarize_charges_job_plus_1k_chars(client, fake_workers):
     assert signup(client, "llm@example.com", "llmpass12", paid["id"]).status_code == 200
     audio = upload_audio(client)
     fake_workers.transcribe_mode = "success"
-    task = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
-    assert task.status_code == 202, task.text
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert created.status_code == 202, created.text
+    transcribed = wait_task(client, created.json()["task_id"], status="success")
     fake_workers.summarize_mode = "success"
     fake_workers.summary_text = "a" * 1001
     summary = client.post(
         "/api/v1/tasks/summarize",
-        json={"transcript_id": task.json()["transcript_id"], "skill_ids": [skill.json()["id"]]},
+        json={"transcript_id": transcribed["transcript_id"], "skill_ids": [skill.json()["id"]]},
     )
     assert summary.status_code == 202, summary.text
-    assert summary.json()["status"] == "success"
+    wait_task(client, summary.json()["task_id"], status="success")
     org = client.get("/api/v1/org").json()
     assert org["balance"] == "15.00"
     stats = client.get("/api/v1/org/stats").json()

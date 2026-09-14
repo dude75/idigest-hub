@@ -12,6 +12,7 @@ from tests.conftest import (
     setup_admin,
     signup,
     upload_audio,
+    wait_task,
 )
 
 
@@ -43,25 +44,25 @@ def test_org_stats_counts_own_completed_jobs_and_audio_time(client, fake_workers
     fake_workers.audio_duration_sec = 10.0
     first = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
     assert first.status_code == 202, first.text
-    assert first.json()["status"] == "success"
+    wait_task(client, first.json()["task_id"], status="success")
 
     fake_workers.audio_duration_sec = 25.0
     second = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
     assert second.status_code == 202, second.text
-    assert second.json()["status"] == "success"
+    second_body = wait_task(client, second.json()["task_id"], status="success")
 
     fake_workers.transcribe_mode = "error"
     failed = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
     assert failed.status_code == 202, failed.text
-    assert failed.json()["status"] == "error"
+    wait_task(client, failed.json()["task_id"], status="error")
 
     fake_workers.summarize_mode = "success"
     summary = client.post(
         "/api/v1/tasks/summarize",
-        json={"transcript_id": second.json()["transcript_id"], "skill_ids": [skill.json()["id"]]},
+        json={"transcript_id": second_body["transcript_id"], "skill_ids": [skill.json()["id"]]},
     )
     assert summary.status_code == 202, summary.text
-    assert summary.json()["status"] == "success"
+    wait_task(client, summary.json()["task_id"], status="success")
 
     alice = client.get("/api/v1/org/stats")
     assert alice.status_code == 200, alice.text
@@ -79,7 +80,7 @@ def test_org_stats_counts_own_completed_jobs_and_audio_time(client, fake_workers
     fake_workers.audio_duration_sec = 8.0
     bob_task = client.post("/api/v1/tasks/transcribe", json={"audio_id": bob_audio.json()["id"]})
     assert bob_task.status_code == 202, bob_task.text
-    assert bob_task.json()["status"] == "success"
+    wait_task(client, bob_task.json()["task_id"], status="success")
 
     bob = client.get("/api/v1/org/stats")
     assert bob.status_code == 200, bob.text

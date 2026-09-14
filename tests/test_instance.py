@@ -12,6 +12,7 @@ from tests.conftest import (
     setup_admin,
     signup,
     upload_audio,
+    wait_task,
 )
 
 
@@ -73,25 +74,25 @@ def test_instance_stats_counts_completed_jobs_and_audio_time(client, fake_worker
     fake_workers.audio_duration_sec = 10.0
     first = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
     assert first.status_code == 202, first.text
-    assert first.json()["status"] == "success"
+    wait_task(client, first.json()["task_id"], status="success")
 
     fake_workers.audio_duration_sec = 25.0
     second = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
     assert second.status_code == 202, second.text
-    assert second.json()["status"] == "success"
+    second_body = wait_task(client, second.json()["task_id"], status="success")
 
     fake_workers.transcribe_mode = "error"
     failed = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
     assert failed.status_code == 202, failed.text
-    assert failed.json()["status"] == "error"
+    wait_task(client, failed.json()["task_id"], status="error")
 
     fake_workers.summarize_mode = "success"
     summary = client.post(
         "/api/v1/tasks/summarize",
-        json={"transcript_id": second.json()["transcript_id"], "skill_ids": [skill.json()["id"]]},
+        json={"transcript_id": second_body["transcript_id"], "skill_ids": [skill.json()["id"]]},
     )
     assert summary.status_code == 202, summary.text
-    assert summary.json()["status"] == "success"
+    wait_task(client, summary.json()["task_id"], status="success")
 
     logout(client)
     login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
@@ -123,9 +124,9 @@ def test_instance_org_ledger_shows_charges_and_wallet_topups(client, fake_worker
     assert audio.status_code == 200, audio.text
     fake_workers.transcribe_mode = "success"
     fake_workers.audio_duration_sec = 12.0
-    task = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
-    assert task.status_code == 202, task.text
-    assert task.json()["status"] == "success"
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert created.status_code == 202, created.text
+    wait_task(client, created.json()["task_id"], status="success")
 
     logout(client)
     login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
