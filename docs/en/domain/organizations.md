@@ -24,6 +24,7 @@ Org admin creates users with email, password, role (`org_admin` | `org_member`),
 | `name` | org_admin | Display name |
 | `tariff_id` | org_admin (self) or instance_admin | Must be non-archived and `available_on_signup` for self-service |
 | `password_ttl_days` | org_admin | `0` = disabled; forces periodic password change |
+| `mfa_required` | org_admin | When `true`, local-auth members must enroll TOTP 2FA; incompatible with SSO |
 | `balance` | instance_admin (wallet) | Decimal(12,2), floored to cents on charge |
 
 GET `/org` returns org + embedded tariff + usage total (`sum(usage_events.amount)`).
@@ -44,6 +45,7 @@ Changing tariff does **not** alter snapshotted prices on existing tasks.
 | Disable | `POST /org/users/{id}/disable` | Invalidates sessions + API tokens |
 | Enable | `POST /org/users/{id}/enable` | |
 | Admin reset password | `POST /org/users/{id}/reset-password` | Sets random password, `must_change_password=true`, revokes sessions + API tokens |
+| Admin reset 2FA | `POST /org/users/{id}/reset-mfa` | Clears TOTP enrollment; revokes sessions + API tokens |
 | Offboard | `POST /org/users/{id}/offboard` | See below |
 
 ## Offboarding
@@ -73,6 +75,7 @@ Each org may enable **OIDC SSO** (Keycloak-compatible):
 2. Org admin configures issuer, client ID, and secret in Org → SSO; copies **callback URL** into Keycloak.
 3. When `sso_enabled`, `org_member` users sign in at `{public_url}/sso/{org_id}`; password login is blocked for them (`sso_login_required`).
 4. `org_admin` retains password login as break-glass.
+5. SSO and org `mfa_required` are mutually exclusive — enabling SSO clears the 2FA policy; Hub TOTP is not applied to SSO users (use IdP MFA).
 
 GET `/org` embeds `sso: { configured, enabled, login_url }`. Auto-provision creates new members on first SSO login (email from IdP).
 

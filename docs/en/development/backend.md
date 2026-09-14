@@ -40,6 +40,8 @@ app/
     ├── crypto_bootstrap.py  # Startup validate + initial DEK + KEK re-wrap
     ├── crypto_reencrypt.py  # Background DEK rotation job
     ├── sso.py          # OIDC login, state, token exchange
+    ├── mfa.py          # 2FA policy, challenges, recovery codes
+    ├── totp.py         # TOTP secret generation and verification
     ├── backup.py       # Profile ZIP/TGZ archives
     ├── export.py       # Download filenames, markdown fence unwrap
     └── storage.py      # Audio blobs: local filesystem or S3 (STORAGE_BACKEND)
@@ -62,6 +64,8 @@ Central authorization object (`app/deps.py`):
 - `actor` — logged-in user
 - `org` / `membership` — tenant context
 - `is_instance_admin`, `is_org_admin` — role shortcuts
+
+Enrollment gates in `require_auth()`: `ALLOWED_WHEN_MUST_CHANGE` and `ALLOWED_WHEN_MFA_ENROLLMENT` whitelist endpoints during password-change and forced-2FA flows.
 
 ## Background work
 

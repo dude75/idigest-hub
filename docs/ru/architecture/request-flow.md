@@ -23,7 +23,32 @@ sequenceDiagram
   end
 ```
 
-Разрешение выполняется в `app/deps.py` → `resolve_auth()`. При ошибках возвращается HTTP **401** с `error.code = unauthorized` (или `must_change_password`, `api_disabled` для Bearer).
+Разрешение выполняется в `app/deps.py` → `resolve_auth()`. При ошибках возвращается HTTP **401** с `error.code = unauthorized` (или `must_change_password`, `mfa_enrollment_required`, `api_disabled` для Bearer).
+
+### Password login с 2FA
+
+```mermaid
+sequenceDiagram
+  participant C as Клиент
+  participant H as Hub API
+  participant DB as Database
+
+  C->>H: POST /auth/login (email, password)
+  H->>H: verify password
+  alt TOTP включён (local auth)
+    H->>DB: create MfaChallenge (TTL 5 мин)
+    H-->>C: { status: mfa_required, challenge_id }
+    C->>H: POST /auth/mfa/verify (challenge_id, code)
+    H->>H: verify TOTP или recovery code
+    H->>DB: delete challenge, create session
+    H-->>C: Set-Cookie hub_session
+  else без 2FA
+    H->>DB: create session
+    H-->>C: Set-Cookie hub_session
+  end
+```
+
+После входа, если org `mfa_required` и пользователь не настроил 2FA, `GET /me` возвращает `mfa_enrollment_required: true`, и большинство маршрутов даёт **403** до успешного `POST /auth/mfa/setup/confirm`.
 
 ### Session sliding
 

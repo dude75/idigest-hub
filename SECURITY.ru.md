@@ -18,7 +18,7 @@ idigest-hub реализует многоуровневую защиту для 
 | Домен | Ключевые контроли |
 | ----- | ----------------- |
 | **Криптография** | Envelope encryption (KEK/DEK), fail-closed при старте, двойная ротация ключей с аудируемым re-encrypt |
-| **Идентификация** | RBAC (3 роли), OIDC SSO per org, break-glass для админов, хешированные sessions & API tokens |
+| **Идентификация** | RBAC (3 роли), OIDC SSO per org, TOTP 2FA (опциональная политика org), break-glass для админов, хешированные sessions & API tokens |
 | **Изоляция tenant** | Граница org, автотесты cross-org (`tests/test_abuse.py`) |
 | **Аудит** | Персистентный `audit_log`, trail impersonation, корреляция с wallet ledger |
 | **Защита от злоупотреблений** | Настраиваемые rate limits, trusted-proxy IP, валидация upload |

@@ -67,6 +67,10 @@ Assign any non-archived tariff.
 
 Instance admin only. Resets password for an active `org_admin` in that org. Returns a temporary password; sets `must_change_password=true` and revokes sessions + API tokens. `403 forbidden` for `org_member` or disabled users.
 
+### POST `/orgs/{org_id}/users/{user_id}/reset-mfa`
+
+Instance admin only. Clears TOTP 2FA for a local-auth user in that org who has 2FA configured. Revokes sessions and API tokens. Same constraints as org-admin reset-MFA.
+
 ### POST `/orgs/{org_id}/wallet`
 
 ```json

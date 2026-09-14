@@ -23,7 +23,32 @@ sequenceDiagram
   end
 ```
 
-Resolution lives in `app/deps.py` → `resolve_auth()`. Failures return HTTP **401** with `error.code = unauthorized` (or `must_change_password`, `api_disabled` for Bearer).
+Resolution lives in `app/deps.py` → `resolve_auth()`. Failures return HTTP **401** with `error.code = unauthorized` (or `must_change_password`, `mfa_enrollment_required`, `api_disabled` for Bearer).
+
+### Password login with 2FA
+
+```mermaid
+sequenceDiagram
+  participant C as Client
+  participant H as Hub API
+  participant DB as Database
+
+  C->>H: POST /auth/login (email, password)
+  H->>H: verify password
+  alt TOTP enabled (local auth)
+    H->>DB: create MfaChallenge (5 min TTL)
+    H-->>C: { status: mfa_required, challenge_id }
+    C->>H: POST /auth/mfa/verify (challenge_id, code)
+    H->>H: verify TOTP or recovery code
+    H->>DB: delete challenge, create session
+    H-->>C: Set-Cookie hub_session
+  else no 2FA
+    H->>DB: create session
+    H-->>C: Set-Cookie hub_session
+  end
+```
+
+After login, if org `mfa_required` and user has not enrolled, `GET /me` returns `mfa_enrollment_required: true` and most routes return **403** until `POST /auth/mfa/setup/confirm` succeeds.
 
 ### Session sliding
 

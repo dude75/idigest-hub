@@ -14,6 +14,7 @@ web/src/
 ├── locales/          # en.json, ru.json, es.json
 ├── pages/            # Route components
 │   ├── LandingPage, LoginPage, SignupPage, SetupPage
+│   ├── Verify2faPage, Enroll2faPage   # Login challenge + принудительный enrollment
 │   ├── LibraryPage, AudioPage, TranscriptPage, SummaryPage
 │   ├── TasksPage, TaskPage
 │   ├── SkillsPage, SkillPage
@@ -21,10 +22,12 @@ web/src/
 │   ├── InstancePage
 │   ├── SsoLoginPage
 │   └── ProfilePage, ChangePasswordPage, ...
+├── mfa.ts              # sessionStorage helpers для login challenge_id
 └── components/
     ├── Shell.tsx         # Nav layout
     ├── AppBrand.tsx
     ├── LanguageSwitcher.tsx
+    ├── MfaSetupPanel.tsx # QR setup, confirm, recovery codes
     ├── ShareDialog.tsx   # Список получателей + отзыв
     ├── InlineRename.tsx  # Заголовки transcript/summary/skill
     └── OrgLedgerModal.tsx # Ledger кошелька в instance admin
@@ -32,7 +35,7 @@ web/src/
 
 ## Routing
 
-Browser routes под `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`, `/sso/:orgId`.
+Browser routes под `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`, `/verify-2fa`, `/enroll-2fa`, `/sso/:orgId`.
 
 `resolveHomePath(me)` в `routes.ts` выбирает landing page из user `default_route` и role.
 
@@ -46,8 +49,14 @@ Errors ожидают `{ status: "error", error: { code, message } }`. Ошиб�
 
 1. `GET /me` при загрузке
 2. Redirect на `/login` при 401
-3. `must_change_password` → force `/change-password`
-4. Instance admin без org → Instance UI
+3. `resolveAuthBlockPath(me)` в `routes.ts`:
+   - `must_change_password` → `/change-password`
+   - `mfa_enrollment_required` → `/enroll-2fa` (политика org; setup через `MfaSetupPanel`)
+4. Login с 2FA: `POST /auth/login` возвращает `mfa_required` → `challenge_id` в `sessionStorage` (`mfa.ts`) → `/verify-2fa` → `POST /auth/mfa/verify` или `/recover`
+5. После login / смены пароля / verify или enroll 2FA → `resolveAuthContinuationPath(me)` → home
+6. Instance admin без org → Instance UI
+
+Profile → Security: опциональное включение/отключение 2FA. Диалог API token запрашивает TOTP при `mfa_enabled`. Org admin: переключатель `mfa_required` и reset-MFA участников на Org page.
 
 ## i18n
 

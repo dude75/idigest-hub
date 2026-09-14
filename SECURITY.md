@@ -18,7 +18,7 @@ idigest-hub implements defense-in-depth controls for **on-premise enterprise** d
 | Domain | Key controls |
 | ------ | ------------ |
 | **Cryptography** | Envelope encryption (KEK/DEK), fail-closed startup, dual key rotation with audited re-encrypt |
-| **Identity** | RBAC (3 roles), per-org OIDC SSO, break-glass admin login, hashed sessions & API tokens |
+| **Identity** | RBAC (3 roles), per-org OIDC SSO, TOTP 2FA (optional org policy), break-glass admin login, hashed sessions & API tokens |
 | **Tenant isolation** | Org boundary enforcement, automated cross-org tests (`tests/test_abuse.py`) |
 | **Audit & accountability** | Persistent `audit_log`, impersonation trail, wallet ledger correlation |
 | **Abuse prevention** | Configurable rate limits, trusted-proxy IP handling, upload validation |

@@ -82,6 +82,7 @@
 | Управление сессиями | HttpOnly `hub_session`, SHA-256 + pepper, sliding TTL | `app/cookies.py`, [Безопасность](../architecture/security.md#session-cookies) |
 | API tokens | Prefix `idg_`, показ один раз, отзыв, tariff-gated | `app/routers/auth.py`, tests: `tests/test_auth.py` |
 | OIDC SSO | Per-org config, Authorization Code + PKCE (S256), encrypted client secret, HMAC OAuth state, nonce validation | `app/services/sso.py`, tests: `tests/test_sso.py` |
+| TOTP 2FA | Login challenge, org `mfa_required`, recovery codes, token step-up, encrypted secret | `app/services/mfa.py`, `app/services/totp.py`, tests: `tests/test_mfa.py` |
 | Break-glass login | `org_admin` + `instance_admin` сохраняют password при SSO | [Безопасность](../architecture/security.md#single-sign-on-sso) |
 | RBAC | Три роли + ownership/shares | [Роли и доступ](../domain/roles-and-access.md) |
 | Impersonation | Только instance admin; admin powers отключены при impersonation; аудит | `app/deps.py`, `app/routers/instance.py` |
@@ -197,7 +198,7 @@
 | Container | Non-root `USER 1001` | `Dockerfile` |
 | Deploy | Manual; SHA tags; GitLab Environments | [SECURITY.ru.md](../../../SECURITY.ru.md) |
 
-**Security-focused автотесты:** `test_auth`, `test_sso`, `test_crypto_envelope`, `test_rate_limit`, `test_abuse`, `test_proxy`, `test_prometheus`, `test_logging`, `test_storage`.
+**Security-focused автотесты:** `test_auth`, `test_mfa`, `test_sso`, `test_crypto_envelope`, `test_rate_limit`, `test_abuse`, `test_proxy`, `test_prometheus`, `test_logging`, `test_storage`.
 
 ---
 

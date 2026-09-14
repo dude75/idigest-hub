@@ -67,6 +67,10 @@
 
 Только instance admin. Сброс пароля активного `org_admin` в этой org. Возвращает временный пароль; ставит `must_change_password=true`, отзывает sessions и API tokens. `403 forbidden` для `org_member` и отключённых пользователей.
 
+### POST `/orgs/{org_id}/users/{user_id}/reset-mfa`
+
+Только instance admin. Сбрасывает TOTP 2FA у local-auth пользователя в org с настроенной 2FA. Отзывает sessions и API tokens. Те же ограничения, что у org-admin reset-MFA.
+
 ### POST `/orgs/{org_id}/wallet`
 
 ```json

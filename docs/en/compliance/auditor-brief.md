@@ -82,6 +82,7 @@ Full matrix: [§ Shared responsibility](#shared-responsibility-matrix).
 | Session management | HttpOnly `hub_session`, SHA-256 + pepper, sliding TTL | `app/cookies.py`, [Security architecture](../architecture/security.md#session-cookies) |
 | API tokens | Prefix `idg_`, shown once, revocable, tariff-gated | `app/routers/auth.py`, tests: `tests/test_auth.py` |
 | OIDC SSO | Per-org config, Authorization Code + PKCE (S256), encrypted client secret, HMAC OAuth state, nonce validation | `app/services/sso.py`, tests: `tests/test_sso.py` |
+| TOTP 2FA | Login challenge, org `mfa_required`, recovery codes, token step-up, encrypted secret | `app/services/mfa.py`, `app/services/totp.py`, tests: `tests/test_mfa.py` |
 | Break-glass login | `org_admin` + `instance_admin` retain password when SSO enabled | [Security architecture](../architecture/security.md#single-sign-on-sso) |
 | RBAC | Three roles + object ownership/shares | [Roles and access](../domain/roles-and-access.md) |
 | Impersonation | Instance admin only; admin powers disabled while impersonating; audited | `app/deps.py`, `app/routers/instance.py` |
@@ -202,6 +203,7 @@ Automated isolation tests: `tests/test_abuse.py`.
 | Test file | Coverage |
 | --------- | -------- |
 | `tests/test_auth.py` | Bootstrap, signup, tokens, passwords |
+| `tests/test_mfa.py` | TOTP enrollment, login challenge, org policy, token step-up |
 | `tests/test_sso.py` | OIDC flows, SSO/password interaction |
 | `tests/test_crypto_envelope.py` | Encryption, KEK rotation, fail-closed startup |
 | `tests/test_rate_limit.py` | Rate limiter buckets |

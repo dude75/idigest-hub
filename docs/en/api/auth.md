@@ -50,7 +50,11 @@ Creates user + org + session. Errors: `signup_disabled`, `tariff_not_available`,
 { "email": "...", "password": "..." }
 ```
 
-Success: `{ "status": "ok" }` + cookie. Errors: `invalid_credentials`, `sso_login_required` (403) when org SSO is enabled and the user is `org_member`.
+Success (no 2FA): `{ "status": "ok" }` + session cookie.
+
+When the user has TOTP 2FA enabled (local auth only): `{ "status": "mfa_required", "challenge_id": "..." }` — no cookie yet. Complete login via [MFA verify](#post-authmfaverify) or [MFA recover](#post-authmfarecover). Challenge TTL: 5 minutes.
+
+Errors: `invalid_credentials`, `sso_login_required` (403) when org SSO is enabled and the user is `org_member`.
 
 ### POST `/auth/logout`
 
@@ -116,6 +120,65 @@ Invalid/expired token → `not_found`.
 
 Revokes all browser sessions and API tokens for the user. No new session is created — log in again after reset.
 
+## Two-factor authentication (TOTP)
+
+Local users (`auth_provider=local`) only. SSO users rely on IdP MFA — Hub 2FA is not applied.
+
+### POST `/auth/mfa/verify`
+
+Public (no session). Complete login after `mfa_required`:
+
+```json
+{ "challenge_id": "...", "code": "123456" }
+```
+
+Success: `{ "status": "ok" }` + session cookie. Errors: `mfa_challenge_invalid` (401), `invalid_totp` (401), `rate_limited` (429).
+
+### POST `/auth/mfa/recover`
+
+Public. Same flow with a one-time recovery code instead of TOTP:
+
+```json
+{ "challenge_id": "...", "recovery_code": "..." }
+```
+
+Success: `{ "status": "ok" }` + session cookie. Consumes the recovery code. Same errors as verify.
+
+### GET `/auth/mfa/status`
+
+Auth required. `{ "enabled": bool, "required": bool, "enrollment_required": bool }`.
+
+- `required` — org policy `mfa_required` applies to this user (SSO off, local auth).
+- `enrollment_required` — policy requires 2FA but user has not enrolled yet; most endpoints return `mfa_enrollment_required` (403) until setup is confirmed.
+
+### POST `/auth/mfa/setup/start`
+
+Auth required. Not allowed while impersonating or for SSO users.
+
+Returns `{ "secret": "...", "otpauth_uri": "otpauth://..." }` for authenticator app setup. Secret is stored pending confirmation.
+
+### POST `/auth/mfa/setup/confirm`
+
+Auth required.
+
+```json
+{ "code": "123456" }
+```
+
+Verifies the pending secret and enables 2FA. Response: `{ "status": "ok", "recovery_codes": ["...", ...] }` (8 one-time codes). Error: `invalid_totp`.
+
+### POST `/auth/mfa/disable`
+
+Auth required. User-initiated disable.
+
+```json
+{ "password": "...", "code": "123456" }
+```
+
+`code` may be a TOTP code or recovery code. Blocked when org policy requires 2FA (`forbidden`). On success revokes all sessions and API tokens. Errors: `invalid_credentials`, `invalid_totp`.
+
+Admin reset (clears 2FA without user code): [Org reset-MFA](org.md#post-orgusersuser_idreset-mfa), [Instance reset-MFA](instance.md#post-orgsorg_idusersuser_idreset-mfa).
+
 ## Current user
 
 ### GET `/me`
@@ -129,11 +192,16 @@ Revokes all browser sessions and API tokens for the user. No new session is crea
   "org": { ... } | null,
   "impersonating": false,
   "actor": { ... } | null,
-  "must_change_password": false
+  "must_change_password": false,
+  "mfa_enabled": false,
+  "mfa_required": false,
+  "mfa_enrollment_required": false
 }
 ```
 
 `role`: `instance_admin` | `org_admin` | `org_member` | null
+
+When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, and logout are allowed until 2FA is enrolled.
 
 ### PATCH `/me`
 
@@ -169,11 +237,13 @@ Require auth + org tariff `api_enabled` + no password lock.
 
 ### POST `/auth/tokens`
 
+Cookie session only (not via Bearer). Blocked during MFA enrollment (`mfa_enrollment_required`).
+
 ```json
-{ "name": "CI pipeline" }
+{ "name": "CI pipeline", "totp_code": "123456" }
 ```
 
-Response includes one-time `"token": "idg_..."` field.
+`totp_code` required when the user has 2FA enabled (`mfa_step_up_required` if omitted). Response includes one-time `"token": "idg_..."` field.
 
 ### GET `/auth/tokens`
 

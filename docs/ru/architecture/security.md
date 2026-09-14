@@ -37,6 +37,7 @@
 - `instance_settings.smtp_password_encrypted`
 - `instance_settings.download_proxy_password_encrypted`
 - `organizations.sso_client_secret_encrypted`
+- `users.totp_secret_encrypted`
 
 API расшифровывает на лету — клиенты получают plaintext JSON. Без `.env` дамп БД бесполезен для ciphertext.
 

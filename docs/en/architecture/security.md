@@ -37,6 +37,7 @@ Encrypted columns:
 - `instance_settings.smtp_password_encrypted`
 - `instance_settings.download_proxy_password_encrypted`
 - `organizations.sso_client_secret_encrypted`
+- `users.totp_secret_encrypted`
 
 Authorized API responses decrypt on the fly — clients receive plaintext JSON. Encryption protects against DB-only leaks (backup without `.env` is useless for ciphertext).
 

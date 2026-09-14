@@ -24,6 +24,7 @@ Upload audio (MP3, WAV, M4A, and more) via the web UI or REST API. The hub enque
 | Roles | `org_admin` and `org_member` with role-based access |
 | Billing | Plans, upload limits, audio retention, pay-as-you-go metering |
 | SSO | OIDC-compatible login (Keycloak and other IdPs) at the org level |
+| 2FA | TOTP two-factor authentication for local users; org-wide policy optional |
 | API | REST API for transcription and summarization jobs (plan-gated tokens) |
 
 ## Who it's for

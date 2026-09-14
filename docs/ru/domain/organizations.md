@@ -24,6 +24,7 @@ org admin создаёт пользователей с email, паролем, р
 | `name` | org_admin | Отображаемое имя |
 | `tariff_id` | org_admin (сам) или instance_admin | Должен быть неархивированным и с `available_on_signup` для самообслуживания |
 | `password_ttl_days` | org_admin | `0` = отключено; принудительная периодическая смена пароля |
+| `mfa_required` | org_admin | При `true` local-auth участники должны настроить TOTP 2FA; несовместимо с SSO |
 | `balance` | instance_admin (кошелёк) | Decimal(12,2), при списании округляется вниз до центов |
 
 GET `/org` возвращает org + вложенный tariff + итог использования (`sum(usage_events.amount)`).
@@ -44,6 +45,7 @@ GET `/org` возвращает org + вложенный tariff + итог ис�
 | Отключение | `POST /org/users/{id}/disable` | Инвалидирует сессии + API-токены |
 | Включение | `POST /org/users/{id}/enable` | |
 | Сброс пароля админом | `POST /org/users/{id}/reset-password` | Случайный пароль, `must_change_password=true`, отзывает sessions + API tokens |
+| Сброс 2FA админом | `POST /org/users/{id}/reset-mfa` | Сбрасывает TOTP; отзывает sessions + API tokens |
 | Offboarding | `POST /org/users/{id}/offboard` | См. ниже |
 
 ## Offboarding
@@ -73,6 +75,7 @@ GET `/org` возвращает org + вложенный tariff + итог ис�
 2. org admin настраивает issuer, client ID и secret в Org → SSO; копирует **callback URL** в Keycloak.
 3. При `sso_enabled` участники `org_member` входят по `{public_url}/sso/{org_id}`; пароль для них заблокирован (`sso_login_required`).
 4. `org_admin` сохраняет пароль как аварийный вход.
+5. SSO и org `mfa_required` взаимоисключены — включение SSO сбрасывает политику 2FA; Hub TOTP не применяется к SSO-пользователям (используйте MFA IdP).
 
 GET `/org` включает `sso: { configured, enabled, login_url }`. Auto-provision создаёт новых участников при первом SSO-входе (email из IdP).
 

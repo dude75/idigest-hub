@@ -109,7 +109,7 @@ The full nginx example adds recommended headers on the HTTPS `server` block:
 
 The hub does not set these itself — configure them on the reverse proxy. The example CSP targets the same-origin SPA from `web/dist` (`'self'`); org SSO via IdP redirect does not need extra CSP directives.
 
-- **Public HTTPS** — enable HSTS and CSP from the example; smoke-test the UI after deploy (login, SSO, audio upload, `/docs`).
+- **Public HTTPS** — enable HSTS and CSP from the example; smoke-test the UI after deploy (login, 2FA verify/enroll if enabled, SSO, audio upload, `/docs`).
 - **Private network only** — recommended hardening, not a blocker; use HSTS `includeSubDomains` only if every subdomain is on HTTPS.
 - **Verify:** `curl -sI https://hub.example.com | grep -iE 'strict-transport|content-security'`
 

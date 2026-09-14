@@ -66,6 +66,12 @@
 | `sso_state_invalid` | 400 | Неверный или просроченный OAuth state |
 | `sso_email_missing` | 400 | В токене IdP нет email |
 | `sso_user_wrong_org` | 403 | Пользователь принадлежит другой org |
+| `mfa_required` | 200 | Статус ответа login — нужен TOTP challenge (не error envelope) |
+| `invalid_totp` | 401 | Неверный TOTP или recovery code |
+| `mfa_challenge_invalid` | 401 | MFA challenge отсутствует, просрочен или неизвестен |
+| `mfa_step_up_required` | 403 | Создание API token требует `totp_code` |
+| `mfa_enrollment_required` | 403 | Org требует 2FA; сначала настройте enrollment |
+| `mfa_not_configured` | 403 | Запрошено действие 2FA, но TOTP не настроен |
 | `api_disabled` | 403 | Тариф отключает API |
 | `not_found` | 404 | Ресурс или маршрут |
 | `validation_error` | 400 | Некорректное body/query |

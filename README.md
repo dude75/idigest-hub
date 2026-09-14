@@ -15,6 +15,7 @@ On-premise **multi-tenant control plane** over [itranscribe-worker](https://gith
 - Default HTTP port is **8080** so it does not clash with workers on `8000`.
 - Compose runs **only the hub** plus `./data` (and optionally PostgreSQL with profile `pg`). Do not put workers in this stack.
 - **Single sign-on (SSO):** per-organization **Keycloak-compatible OIDC**. Org admins configure it in **Org**; members sign in at `{public_url}/sso/{org_id}`.
+- **Two-factor authentication (2FA):** optional **TOTP** for local users; org admins can require it per organization (`mfa_required`). SSO users rely on IdP MFA.
 
 ## Requirements
 
@@ -116,6 +117,14 @@ Each organization can enable **OIDC SSO** (tested with **Keycloak**). **Org admi
 **Member login:** `{public_url}/sso/{org_id}` (shown on the Org page after Public URL is set).
 
 **Password login when SSO is configured:** only **org_admin** (break-glass). **org_member** uses SSO once it is enabled; auto-provision matches users by email from the IdP.
+
+## Two-factor authentication (2FA)
+
+Local users can enable **TOTP 2FA** in **Profile → Security**. Org admins may require 2FA for the organization (**Org → Settings**, `mfa_required`) when SSO is off. SSO and org-wide 2FA policy are mutually exclusive — use IdP MFA for SSO users.
+
+Login flow with 2FA: password → `/verify-2fa` (TOTP or recovery code). Forced enrollment: `/enroll-2fa` when the org policy applies and the user has not set up 2FA yet. API token creation requires a TOTP step-up when 2FA is enabled.
+
+Details: [docs/en/api/auth.md](docs/en/api/auth.md#two-factor-authentication-totp), [security architecture](docs/en/architecture/security.md#two-factor-authentication-totp).
 
 ## `.env`
 

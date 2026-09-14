@@ -35,6 +35,7 @@ Each test gets:
 | File | Coverage |
 | ---- | -------- |
 | `test_auth.py` | Setup, signup, login, tokens, password |
+| `test_mfa.py` | TOTP enrollment, login challenge, recovery, org policy, token step-up, admin reset |
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
 | `test_library.py` | Upload, shares, hide |
 | `test_org.py` | Users, offboarding, stats |
@@ -54,6 +55,13 @@ Pattern: return synthetic success JSON from `post_transcribe` / `get_task`.
 2. Bootstrap admin or signup user
 3. Assert status code + `err_code()` on failures
 4. Prefer deterministic dispatch (`locked_tick` runs in request path)
+
+## Frontend tests
+
+```bash
+cd web
+npm test    # vitest — includes web/src/mfa.test.ts (auth block paths)
+```
 
 ## CI considerations
 

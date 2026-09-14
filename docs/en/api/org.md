@@ -22,7 +22,18 @@ org_admin. `{ "tariff_id": "uuid" }`
 
 ### PATCH `/org/settings`
 
-org_admin. `{ "password_ttl_days": 90 }` — `0` disables TTL.
+org_admin.
+
+```json
+{
+  "password_ttl_days": 90,
+  "mfa_required": true
+}
+```
+
+`password_ttl_days`: `0` disables TTL.
+
+`mfa_required`: when `true`, all local-auth users in the org must enroll TOTP 2FA before using the app. Mutually exclusive with SSO — cannot enable while `sso_enabled`; enabling SSO clears `mfa_required`. SSO users are not subject to Hub 2FA.
 
 ## SSO
 
@@ -95,6 +106,10 @@ Change role (`org_admin` | `org_member`).
 ### POST `/org/users/{user_id}/reset-password`
 
 Sets random password, `must_change_password=true`, revokes sessions/tokens.
+
+### POST `/org/users/{user_id}/reset-mfa`
+
+org_admin. Clears TOTP enrollment and recovery codes for a local-auth member who has 2FA configured. Revokes sessions and API tokens. No-op error if 2FA not configured. SSO users: `forbidden`.
 
 ### POST `/org/users/{user_id}/offboard`
 

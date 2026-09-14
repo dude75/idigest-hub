@@ -50,7 +50,11 @@
 { "email": "...", "password": "..." }
 ```
 
-Успех: `{ "status": "ok" }` + cookie. Ошибки: `invalid_credentials`, `sso_login_required` (403), когда SSO org включён и пользователь — `org_member`.
+Успех (без 2FA): `{ "status": "ok" }` + session cookie.
+
+Если у пользователя включён TOTP 2FA (только local auth): `{ "status": "mfa_required", "challenge_id": "..." }` — cookie пока не выдаётся. Завершите вход через [MFA verify](#post-authmfaverify) или [MFA recover](#post-authmfarecover). TTL challenge: 5 минут.
+
+Ошибки: `invalid_credentials`, `sso_login_required` (403), когда SSO org включён и пользователь — `org_member`.
 
 ### POST `/auth/logout`
 
@@ -116,6 +120,65 @@ Auto-provision: первый SSO-вход с неизвестным email соз
 
 Отзывает все browser sessions и API tokens пользователя. Новая session не создаётся — после сброса нужен повторный login.
 
+## Двухфакторная аутентификация (TOTP)
+
+Только local-пользователи (`auth_provider=local`). SSO-пользователи используют MFA IdP — Hub 2FA для них не применяется.
+
+### POST `/auth/mfa/verify`
+
+Публичный (без session). Завершение входа после `mfa_required`:
+
+```json
+{ "challenge_id": "...", "code": "123456" }
+```
+
+Успех: `{ "status": "ok" }` + session cookie. Ошибки: `mfa_challenge_invalid` (401), `invalid_totp` (401), `rate_limited` (429).
+
+### POST `/auth/mfa/recover`
+
+Публичный. Тот же сценарий с одноразовым recovery code вместо TOTP:
+
+```json
+{ "challenge_id": "...", "recovery_code": "..." }
+```
+
+Успех: `{ "status": "ok" }` + session cookie. Recovery code сгорает. Те же ошибки, что у verify.
+
+### GET `/auth/mfa/status`
+
+Требуется auth. `{ "enabled": bool, "required": bool, "enrollment_required": bool }`.
+
+- `required` — политика org `mfa_required` применяется к пользователю (SSO выключен, local auth).
+- `enrollment_required` — политика требует 2FA, но пользователь ещё не настроил; большинство эндпоинтов вернёт `mfa_enrollment_required` (403) до подтверждения setup.
+
+### POST `/auth/mfa/setup/start`
+
+Требуется auth. Недоступно при impersonating и для SSO-пользователей.
+
+Возвращает `{ "secret": "...", "otpauth_uri": "otpauth://..." }` для приложения-аутентификатора. Секрет сохраняется до подтверждения.
+
+### POST `/auth/mfa/setup/confirm`
+
+Требуется auth.
+
+```json
+{ "code": "123456" }
+```
+
+Проверяет pending-секрет и включает 2FA. Ответ: `{ "status": "ok", "recovery_codes": ["...", ...] }` (8 одноразовых кодов). Ошибка: `invalid_totp`.
+
+### POST `/auth/mfa/disable`
+
+Требуется auth. Отключение инициирует пользователь.
+
+```json
+{ "password": "...", "code": "123456" }
+```
+
+`code` — TOTP или recovery code. Заблокировано, если org требует 2FA (`forbidden`). При успехе отзывает все sessions и API tokens. Ошибки: `invalid_credentials`, `invalid_totp`.
+
+Сброс админом (без кода пользователя): [Org reset-MFA](org.md#post-orgusersuser_idreset-mfa), [Instance reset-MFA](instance.md#post-orgsorg_idusersuser_idreset-mfa).
+
 ## Текущий пользователь
 
 ### GET `/me`
@@ -129,11 +192,16 @@ Auto-provision: первый SSO-вход с неизвестным email соз
   "org": { ... } | null,
   "impersonating": false,
   "actor": { ... } | null,
-  "must_change_password": false
+  "must_change_password": false,
+  "mfa_enabled": false,
+  "mfa_required": false,
+  "mfa_enrollment_required": false
 }
 ```
 
 `role`: `instance_admin` | `org_admin` | `org_member` | null
+
+При `mfa_enrollment_required: true` до настройки 2FA доступны только смена пароля, MFA setup, `/me` и logout.
 
 ### PATCH `/me`
 
@@ -169,11 +237,13 @@ Query (хотя бы один флаг `true`):
 
 ### POST `/auth/tokens`
 
+Только cookie session (не через Bearer). Заблокировано во время MFA enrollment (`mfa_enrollment_required`).
+
 ```json
-{ "name": "CI pipeline" }
+{ "name": "CI pipeline", "totp_code": "123456" }
 ```
 
-Ответ включает одноразовое поле `"token": "idg_..."`.
+`totp_code` обязателен, если у пользователя включена 2FA (`mfa_step_up_required`, если пропущен). Ответ включает одноразовое поле `"token": "idg_..."`.
 
 ### GET `/auth/tokens`
 

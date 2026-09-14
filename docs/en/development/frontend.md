@@ -14,6 +14,7 @@ web/src/
 ├── locales/          # en.json, ru.json, es.json
 ├── pages/            # Route components
 │   ├── LandingPage, LoginPage, SignupPage, SetupPage
+│   ├── Verify2faPage, Enroll2faPage   # Login challenge + forced enrollment
 │   ├── LibraryPage, AudioPage, TranscriptPage, SummaryPage
 │   ├── TasksPage, TaskPage
 │   ├── SkillsPage, SkillPage
@@ -21,10 +22,12 @@ web/src/
 │   ├── InstancePage
 │   ├── SsoLoginPage
 │   └── ProfilePage, ChangePasswordPage, ...
+├── mfa.ts              # sessionStorage helpers for login challenge_id
 └── components/
     ├── Shell.tsx         # Nav layout
     ├── AppBrand.tsx
     ├── LanguageSwitcher.tsx
+    ├── MfaSetupPanel.tsx # QR setup, confirm, recovery codes
     ├── ShareDialog.tsx   # Recipients list + revoke
     ├── InlineRename.tsx  # Transcript/summary/skill titles
     └── OrgLedgerModal.tsx # Instance admin wallet ledger
@@ -32,7 +35,7 @@ web/src/
 
 ## Routing
 
-Browser routes under `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`, `/sso/:orgId`.
+Browser routes under `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`, `/verify-2fa`, `/enroll-2fa`, `/sso/:orgId`.
 
 `resolveHomePath(me)` in `routes.ts` picks landing page from user `default_route` and role.
 
@@ -46,8 +49,14 @@ Errors expect `{ status: "error", error: { code, message } }`. API failures show
 
 1. `GET /me` on load
 2. Redirect to `/login` if 401
-3. `must_change_password` → force `/change-password`
-4. Instance admin without org → Instance UI
+3. `resolveAuthBlockPath(me)` in `routes.ts`:
+   - `must_change_password` → `/change-password`
+   - `mfa_enrollment_required` → `/enroll-2fa` (org policy; setup via `MfaSetupPanel`)
+4. Login with 2FA: `POST /auth/login` returns `mfa_required` → store `challenge_id` in `sessionStorage` (`mfa.ts`) → `/verify-2fa` → `POST /auth/mfa/verify` or `/recover`
+5. After login / password change / 2FA verify or enroll → `resolveAuthContinuationPath(me)` → home
+6. Instance admin without org → Instance UI
+
+Profile → Security: optional 2FA enable/disable. API token dialog prompts for TOTP when `mfa_enabled`. Org admin: `mfa_required` toggle and member reset-MFA on Org page.
 
 ## i18n
 

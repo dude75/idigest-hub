@@ -35,6 +35,7 @@ Framework: **pytest** с FastAPI `TestClient`.
 | File | Покрытие |
 | ---- | -------- |
 | `test_auth.py` | Setup, signup, login, tokens, password |
+| `test_mfa.py` | TOTP enrollment, login challenge, recovery, org policy, token step-up, admin reset |
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
 | `test_library.py` | Upload, shares, hide |
 | `test_org.py` | Users, offboarding, stats |
@@ -54,6 +55,13 @@ Tests патчат `app.services.workers` или dispatcher health, чтобы �
 2. Bootstrap admin или signup user
 3. Assert status code + `err_code()` при failures
 4. Предпочитайте deterministic dispatch (`locked_tick` выполняется в request path)
+
+## Frontend tests
+
+```bash
+cd web
+npm test    # vitest — включает web/src/mfa.test.ts (auth block paths)
+```
 
 ## Заметки для CI
 

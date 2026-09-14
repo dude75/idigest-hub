@@ -66,6 +66,12 @@ Unauthenticated requests to protected routes → **401** `unauthorized`.
 | `sso_state_invalid` | 400 | Invalid or expired OAuth state |
 | `sso_email_missing` | 400 | IdP token lacks email claim |
 | `sso_user_wrong_org` | 403 | Existing user belongs to another org |
+| `mfa_required` | 200 | Login response status — TOTP challenge needed (not an error envelope) |
+| `invalid_totp` | 401 | Wrong TOTP or recovery code |
+| `mfa_challenge_invalid` | 401 | Missing, expired, or unknown MFA login challenge |
+| `mfa_step_up_required` | 403 | API token create needs `totp_code` |
+| `mfa_enrollment_required` | 403 | Org requires 2FA; enroll before other API calls |
+| `mfa_not_configured` | 403 | 2FA action requested but TOTP not set up |
 | `api_disabled` | 403 | Tariff disables API |
 | `not_found` | 404 | Resource or route |
 | `validation_error` | 400 | Invalid body/query |

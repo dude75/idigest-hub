@@ -16,6 +16,8 @@ PUBLIC_OPERATIONS: frozenset[tuple[str, str]] = frozenset(
         ("get", "/api/v1/auth/signup-tariffs"),
         ("post", "/api/v1/auth/signup"),
         ("post", "/api/v1/auth/login"),
+        ("post", "/api/v1/auth/mfa/verify"),
+        ("post", "/api/v1/auth/mfa/recover"),
         ("post", "/api/v1/auth/password/reset/request"),
         ("post", "/api/v1/auth/password/reset/confirm"),
         ("post", "/api/v1/auth/logout"),
@@ -35,7 +37,9 @@ SECURITY_SCHEMES = {
         "type": "apiKey",
         "in": "cookie",
         "name": COOKIE_NAME,
-        "description": "Session cookie `hub_session` set by login or signup.",
+        "description": (
+            "Session cookie `hub_session` set by login, signup, or MFA verify/recover."
+        ),
     },
 }
 

@@ -7,6 +7,7 @@
 | Instance settings, workers, tariffs | Yes | No | No |
 | Impersonate users | Yes (not while impersonating) | No | No |
 | Reset `org_admin` password | Yes (per org) | Yes (own org members) | No |
+| Reset member 2FA (TOTP) | Yes (per org) | Yes (own org members) | No |
 | View all orgs / all tasks | Yes | No | No |
 | Org user management, stats | No | Yes | No |
 | Org skills CRUD | No | Yes | Read-only catalog |
@@ -71,14 +72,17 @@ Operations that would leave zero active org admins are rejected with `last_org_a
 - Demoting/disabling the sole admin
 - Offboarding without replacement
 
-## Password lockout modes
+## Password and MFA lockout modes
 
 | Condition | Allowed endpoints |
 | --------- | ------------------- |
 | `must_change_password` | `/me`, PATCH `/me`, password change, logout, stop impersonate |
 | Password TTL expired (org setting) | Same (non–instance-admin users) |
+| `mfa_enrollment_required` (org `mfa_required`, 2FA not enrolled) | `/me`, PATCH `/me`, password change, MFA setup start/confirm, logout, stop impersonate |
 
 Instance admin bypasses password TTL lock for API access patterns tied to admin workflows.
+
+Hub 2FA applies only to local-auth users (`auth_provider=local`). SSO users use IdP MFA; org `mfa_required` is cleared when SSO is enabled.
 
 ## Default landing route
 

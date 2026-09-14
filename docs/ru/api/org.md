@@ -22,7 +22,18 @@ org_admin. `{ "tariff_id": "uuid" }`
 
 ### PATCH `/org/settings`
 
-org_admin. `{ "password_ttl_days": 90 }` — `0` отключает TTL.
+org_admin.
+
+```json
+{
+  "password_ttl_days": 90,
+  "mfa_required": true
+}
+```
+
+`password_ttl_days`: `0` отключает TTL.
+
+`mfa_required`: при `true` все local-auth пользователи org должны настроить TOTP 2FA до использования приложения. Взаимоисключимо с SSO — нельзя включить при `sso_enabled`; включение SSO сбрасывает `mfa_required`. SSO-пользователи не подпадают под Hub 2FA.
 
 ## SSO
 
@@ -95,6 +106,10 @@ org_admin. Создание участника:
 ### POST `/org/users/{user_id}/reset-password`
 
 Устанавливает случайный пароль, `must_change_password=true`, отзывает sessions/tokens.
+
+### POST `/org/users/{user_id}/reset-mfa`
+
+org_admin. Сбрасывает TOTP и recovery codes у local-auth участника с настроенной 2FA. Отзывает sessions и API tokens. Ошибка, если 2FA не настроена. SSO-пользователи: `forbidden`.
 
 ### POST `/org/users/{user_id}/offboard`
 
