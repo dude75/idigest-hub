@@ -1351,6 +1351,36 @@ audio { width: 100%; }
 
 .stats-filters label { min-width: 10rem; }
 
+.stats-days-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0.5rem;
+}
+.stats-days-head h2 { margin: 0; }
+
+.stats-charts {
+  display: grid;
+  gap: 0.75rem;
+}
+@media (min-width: 768px) {
+  .stats-charts { grid-template-columns: 1fr 1fr; }
+}
+.stats-chart {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.75rem 0.5rem;
+}
+.stats-chart-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+  color: var(--muted);
+}
+
 .profile-head {
   display: flex;
   align-items: flex-end;

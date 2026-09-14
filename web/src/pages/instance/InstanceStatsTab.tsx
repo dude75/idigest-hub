@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
 import type { InstanceSnapshot, InstanceStats, Org } from '../../types'
+import { StatsDaysView } from '../../components/StatsDaysView'
 import { datePreset, statsRangeForDays } from '../../util/date'
 import { formatAudioTime, showError } from '../../util'
 
@@ -168,35 +169,7 @@ export function InstanceStatsTab() {
               <div className="stat-value">{stats.usage_total}</div>
             </div>
           </div>
-          <h2>{t('stats.calendar')}</h2>
-          {stats.days.length === 0 ? (
-            <p className="muted">{t('common.empty')}</p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>{t('stats.day')}</th>
-                  <th>{t('task.type.transcribe')}</th>
-                  <th>{t('task.type.summarize')}</th>
-                  <th>{t('stats.transcribedAudio')}</th>
-                  <th>{t('stats.summaryChars')}</th>
-                  <th>{t('stats.spent')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.days.map((day) => (
-                  <tr key={day.date}>
-                    <td>{day.date}</td>
-                    <td>{day.tasks_transcribe_success}</td>
-                    <td>{day.tasks_summarize_success}</td>
-                    <td>{formatAudioTime(day.audio_transcribed_sec, t)}</td>
-                    <td>{day.summary_chars}</td>
-                    <td>{day.amount}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <StatsDaysView days={stats.days} />
         </>
       )}
     </>
