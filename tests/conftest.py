@@ -262,6 +262,51 @@ def get_task_row(task_id: str):
         db.close()
 
 
+def wait_task_row(task_id: str, *, status: str | set[str], timeout: float = 5.0):
+    """Poll the task row until it reaches one of the expected statuses."""
+    import time
+
+    from app.models import Task
+
+    allowed = {status} if isinstance(status, str) else set(status)
+    deadline = time.monotonic() + timeout
+    last: Task | None = None
+    while time.monotonic() < deadline:
+        last = get_task_row(task_id)
+        assert last is not None
+        if last.status in allowed:
+            return last
+        time.sleep(0.02)
+    raise AssertionError(
+        f"task {task_id} did not reach status {sorted(allowed)!r} within {timeout}s; last={last.status if last else None}"
+    )
+
+
+def wait_task(
+    client: TestClient,
+    task_id: str,
+    *,
+    status: str | set[str],
+    timeout: float = 5.0,
+) -> dict:
+    """Poll task until it reaches one of the expected statuses."""
+    import time
+
+    allowed = {status} if isinstance(status, str) else set(status)
+    deadline = time.monotonic() + timeout
+    last: dict | None = None
+    while time.monotonic() < deadline:
+        response = client.get(f"/api/v1/tasks/{task_id}")
+        assert response.status_code == 200, response.text
+        last = response.json()
+        if last["status"] in allowed:
+            return last
+        time.sleep(0.02)
+    raise AssertionError(
+        f"task {task_id} did not reach status {sorted(allowed)!r} within {timeout}s; last={last}"
+    )
+
+
 class FakeWorkers:
     """In-process stand-in for itranscribe / isummarize HTTP."""
 

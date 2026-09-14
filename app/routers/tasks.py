@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -15,7 +15,7 @@ from app.presenters import task_public
 from app.services.access import can_use_audio, can_use_transcript
 from app.services.billing import assert_can_accept_task, snapshot_fields
 from app.rate_limit import enforce_write_limits, get_rate_limits
-from app.services.dispatcher import locked_tick
+from app.services.dispatcher import locked_tick_job
 from app.timeutil import utcnow
 
 router = APIRouter()
@@ -111,6 +111,7 @@ def _task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
 async def create_transcribe(
     body: TranscribeBody,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_session),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
@@ -144,8 +145,8 @@ async def create_transcribe(
     )
     db.add(task)
     db.flush()
-    await locked_tick(db, task.id)
-    db.refresh(task)
+    db.commit()
+    background_tasks.add_task(locked_tick_job, task.id)
     return task_public(task)
 
 
@@ -153,6 +154,7 @@ async def create_transcribe(
 async def create_import(
     body: ImportBody,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_session),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
@@ -189,8 +191,8 @@ async def create_import(
     )
     db.add(task)
     db.flush()
-    await locked_tick(db, task.id)
-    db.refresh(task)
+    db.commit()
+    background_tasks.add_task(locked_tick_job, task.id, refresh_health=False)
     return task_public(task)
 
 
@@ -198,6 +200,7 @@ async def create_import(
 async def create_summarize(
     body: SummarizeBody,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_session),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
@@ -224,8 +227,8 @@ async def create_summarize(
     )
     db.add(task)
     db.flush()
-    await locked_tick(db, task.id)
-    db.refresh(task)
+    db.commit()
+    background_tasks.add_task(locked_tick_job, task.id)
     return task_public(task)
 
 
@@ -256,14 +259,17 @@ def list_tasks(
 
 @router.get("/tasks/{task_id}")
 async def get_task(
-    task_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    task_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     task = db.get(Task, task_id)
     if task is None or not _can_see_task(ctx, task):
         ctx.raise_error(ErrorCode.not_found)
     if task.status in {"queued", "running"}:
-        await locked_tick(db, task.id)
-        db.refresh(task)
+        refresh_health = task.type != "import"
+        background_tasks.add_task(locked_tick_job, task.id, refresh_health=refresh_health)
     return task_public(task)
 
 
@@ -329,7 +335,10 @@ def _validate_task_source(ctx: AuthContext, db: Session, org: Organization, task
 
 @router.post("/tasks/{task_id}/retry", status_code=202)
 async def retry_task(
-    task_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    task_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     task = db.get(Task, task_id)
     if task is None or not _can_see_task(ctx, task):
@@ -359,8 +368,9 @@ async def retry_task(
     task.queued_at = now
     task.updated_at = now
     task.meta_json = meta
-    await locked_tick(db, task.id)
-    db.refresh(task)
+    db.flush()
+    db.commit()
+    background_tasks.add_task(locked_tick_job, task.id)
     return task_public(task)
 
 

@@ -550,6 +550,7 @@
     },
     "pipeline": {
       "title": "Pipeline progress",
+      "loading": "Starting task…",
       "transcribing": "Transcribing…",
       "summarizing": "Summarizing…"
     },

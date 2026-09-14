@@ -1,0 +1,61 @@
+import { describe, expect, it } from 'vitest'
+import type { Task } from './types'
+import {
+  buildPipelineSteps,
+  pipelineStepStatus,
+  shouldShowPipelineProgress,
+} from './components/PipelineProgress'
+
+const transcribeTask = (status: string): Task => ({
+  task_id: 't1',
+  type: 'transcribe',
+  status,
+  meta: {},
+  transcript_id: null,
+  summary_id: null,
+  error: null,
+})
+
+describe('buildPipelineSteps', () => {
+  it('builds import → transcribe → summarize chain', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: ['s1'] }, true)
+    expect(steps.map((s) => s.id)).toEqual(['import', 'transcribe', 'summarize'])
+  })
+
+  it('builds transcribe-only steps for uploads', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false)
+    expect(steps.map((s) => s.id)).toEqual(['transcribe'])
+  })
+})
+
+describe('shouldShowPipelineProgress', () => {
+  it('shows a single transcribe step during an active pipeline run', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false)
+    expect(shouldShowPipelineProgress(steps, true)).toBe(true)
+  })
+
+  it('hides a single transcribe step outside a pipeline run', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false)
+    expect(shouldShowPipelineProgress(steps, false)).toBe(false)
+  })
+
+  it('shows multi-step pipelines even outside a run', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: ['s1'] }, true)
+    expect(shouldShowPipelineProgress(steps, false)).toBe(true)
+  })
+})
+
+describe('pipelineStepStatus', () => {
+  it('marks the current transcribe step active while queued', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false)
+    const task = transcribeTask('queued')
+    expect(pipelineStepStatus('transcribe', task, steps)).toBe('active')
+  })
+
+  it('marks import done once transcribe is running', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, true)
+    const task = transcribeTask('running')
+    expect(pipelineStepStatus('import', task, steps)).toBe('done')
+    expect(pipelineStepStatus('transcribe', task, steps)).toBe('active')
+  })
+})

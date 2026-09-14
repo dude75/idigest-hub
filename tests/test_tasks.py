@@ -18,6 +18,8 @@ from tests.conftest import (
     setup_admin,
     signup,
     upload_audio,
+    wait_task,
+    wait_task_row,
 )
 
 
@@ -42,11 +44,9 @@ def test_transcribe_queued_then_success_with_transcript(client, fake_workers):
     assert created.status_code == 202, created.text
     body = created.json()
     assert body["status"] in {"queued", "running"}
-    polled = client.get(f"/api/v1/tasks/{body['task_id']}")
-    assert polled.status_code == 200, polled.text
-    assert polled.json()["status"] == "success"
-    assert polled.json()["meta"]["audio_duration_sec"] == fake_workers.audio_duration_sec
-    transcript = client.get(f"/api/v1/transcripts/{polled.json()['transcript_id']}")
+    polled = wait_task(client, body["task_id"], status="success")
+    assert polled["meta"]["audio_duration_sec"] == fake_workers.audio_duration_sec
+    transcript = client.get(f"/api/v1/transcripts/{polled['transcript_id']}")
     assert transcript.status_code == 200, transcript.text
     assert transcript.json()["utterances"] == fake_workers.transcript
 
@@ -104,10 +104,8 @@ def test_empty_pool_times_out_after_queued_at_in_past(client):
     assert created.json()["status"] == "queued"
     task_id = created.json()["task_id"]
     set_task_queued_at_past(task_id)
-    later = client.get(f"/api/v1/tasks/{task_id}")
-    assert later.status_code == 200, later.text
-    assert later.json()["status"] == "error"
-    assert later.json()["error"]["code"] == "dispatch_timeout"
+    later = wait_task(client, task_id, status="error")
+    assert later["error"]["code"] == "dispatch_timeout"
 
 
 def test_worker_404_redispatches_same_hub_task_without_second_transcript(client, fake_workers):
@@ -116,13 +114,12 @@ def test_worker_404_redispatches_same_hub_task_without_second_transcript(client,
     created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
     assert created.status_code == 202, created.text
     task_id = created.json()["task_id"]
+    wait_task_row(task_id, status="running")
     assert get_task_row(task_id).worker_task_id == "w1"
     fake_workers.poll_mode = "404"
     fake_workers.transcribe_mode = "success"
-    later = client.get(f"/api/v1/tasks/{task_id}")
-    assert later.status_code == 200, later.text
-    assert later.json()["status"] == "success"
-    assert later.json()["task_id"] == task_id
+    later = wait_task(client, task_id, status="success")
+    assert later["task_id"] == task_id
     assert fake_workers.post_count == 2
     listed = client.get("/api/v1/transcripts")
     assert listed.status_code == 200
@@ -166,15 +163,15 @@ def test_retry_failed_transcribe_then_success(client, fake_workers):
     created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
     assert created.status_code == 202, created.text
     task_id = created.json()["task_id"]
-    assert created.json()["status"] == "error"
-    assert created.json()["error"]["code"] == "pipeline_error"
+    failed = wait_task(client, task_id, status="error")
+    assert failed["error"]["code"] == "pipeline_error"
 
     fake_workers.transcribe_mode = "success"
     retried = client.post(f"/api/v1/tasks/{task_id}/retry")
     assert retried.status_code == 202, retried.text
-    assert retried.json()["status"] == "success"
-    assert retried.json()["error"] is None
-    assert retried.json()["transcript_id"]
+    success = wait_task(client, task_id, status="success")
+    assert success["error"] is None
+    assert success["transcript_id"]
 
 
 def test_retry_canceled_forbidden(client, fake_workers):
@@ -202,7 +199,7 @@ def test_retry_forbidden_for_other_user(client, fake_workers):
     created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
     assert created.status_code == 202, created.text
     task_id = created.json()["task_id"]
-    assert created.json()["status"] == "error"
+    wait_task(client, task_id, status="error")
 
     logout(client)
     assert signup(client, "other@example.com", "otherpass1", ctx["tariff_id"]).status_code == 200
@@ -235,8 +232,8 @@ def test_cancel_only_queued_without_worker_task(client, fake_workers):
     fake_workers.transcribe_mode = "queued"
     running = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
     assert running.status_code == 202, running.text
-    assert running.json()["status"] == "running"
-    blocked = client.delete(f"/api/v1/tasks/{running.json()['task_id']}")
+    running_row = wait_task_row(running.json()["task_id"], status="running")
+    blocked = client.delete(f"/api/v1/tasks/{running_row.id}")
     assert blocked.status_code == 409
     assert err_code(blocked) == "task_running"
 
@@ -268,18 +265,16 @@ def test_wipe_source_while_running_charges_but_skips_library(client, fake_worker
     fake_workers.transcribe_mode = "queued"
     created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
     assert created.status_code == 202, created.text
-    assert created.json()["status"] == "running"
     task_id = created.json()["task_id"]
+    wait_task_row(task_id, status="running")
     wiped = client.delete(f"/api/v1/audios/{ctx['audio']['id']}")
     assert wiped.status_code == 200, wiped.text
     row = get_task_row(task_id)
     assert row.skip_persist is True
     fake_workers.poll_mode = "success"
-    later = client.get(f"/api/v1/tasks/{task_id}")
-    assert later.status_code == 200, later.text
-    assert later.json()["status"] == "error"
-    assert later.json()["error"]["code"] == "source_deleted"
-    assert later.json()["transcript_id"] is None
+    later = wait_task(client, task_id, status="error")
+    assert later["error"]["code"] == "source_deleted"
+    assert later["transcript_id"] is None
     listed = client.get("/api/v1/transcripts")
     assert listed.json()["items"] == []
     org = client.get("/api/v1/org").json()
@@ -311,9 +306,9 @@ def test_several_transcripts_on_one_audio(client, fake_workers):
     first = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
     second = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
     assert first.status_code == 202 and second.status_code == 202
-    assert first.json()["status"] == "success"
-    assert second.json()["status"] == "success"
-    assert first.json()["transcript_id"] != second.json()["transcript_id"]
+    first_body = wait_task(client, first.json()["task_id"], status="success")
+    second_body = wait_task(client, second.json()["task_id"], status="success")
+    assert first_body["transcript_id"] != second_body["transcript_id"]
     detail = client.get(f"/api/v1/audios/{ctx['audio']['id']}")
     assert detail.status_code == 200, detail.text
     assert len(detail.json()["transcripts"]) == 2
@@ -340,8 +335,8 @@ def test_impersonate_artifacts_owned_by_impersonated_user(client, fake_workers):
     fake_workers.transcribe_mode = "success"
     task = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
     assert task.status_code == 202, task.text
-    assert task.json()["status"] == "success"
-    transcript = client.get(f"/api/v1/transcripts/{task.json()['transcript_id']}")
+    task_body = wait_task(client, task.json()["task_id"], status="success")
+    transcript = client.get(f"/api/v1/transcripts/{task_body['transcript_id']}")
     assert transcript.status_code == 200
     assert transcript.json()["owner_user_id"] == target_id
     assert transcript.json()["owner_user_id"] != who["actor"]["id"]
@@ -353,13 +348,14 @@ def test_worker_error_codes_mapped_not_raw(client, fake_workers):
     fake_workers.error_code = "totally_unknown_worker_code"
     created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
     assert created.status_code == 202, created.text
-    assert created.json()["status"] == "error"
-    assert created.json()["error"]["code"] == "pipeline_error"
+    failed = wait_task(client, created.json()["task_id"], status="error")
+    assert failed["error"]["code"] == "pipeline_error"
 
     fake_workers.error_code = "ffmpeg_timeout"
     again = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
     assert again.status_code == 202, again.text
-    assert again.json()["error"]["code"] == "pipeline_error"
+    failed_again = wait_task(client, again.json()["task_id"], status="error")
+    assert failed_again["error"]["code"] == "pipeline_error"
 
 
 def test_dispatch_uses_snap_asr_model_after_settings_change(client, fake_workers):
@@ -383,9 +379,7 @@ def test_dispatch_uses_snap_asr_model_after_settings_change(client, fake_workers
     logout(client)
     login(client, "asr@example.com", "asrpass12")
     fake_workers.transcribe_mode = "success"
-    later = client.get(f"/api/v1/tasks/{task_id}")
-    assert later.status_code == 200, later.text
-    assert later.json()["status"] == "success"
+    later = wait_task(client, task_id, status="success")
     assert fake_workers.asr_models_seen == ["whisper"]
     assert get_task_row(task_id).snap_asr_model == "whisper"
 

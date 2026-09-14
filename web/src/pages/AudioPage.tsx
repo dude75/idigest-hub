@@ -48,7 +48,7 @@ export function AudioPage() {
         method: 'POST',
         body: JSON.stringify(transcribeRequest(id, pipeline)),
       })
-      nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline) })
+      nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
     } catch (e) {
       showError(e)
     } finally {

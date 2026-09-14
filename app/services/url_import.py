@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import ipaddress
 import logging
 import re
@@ -26,6 +27,7 @@ log = logging.getLogger("app.import")
 ProgressCallback = Callable[[str, dict[str, Any]], None]
 
 _ERROR_DETAIL_MAX_LEN = 500
+_DNS_RESOLUTION_TIMEOUT_SEC = 5.0
 
 # YouTube player clients to try when the default path returns HTTP 403.
 _YOUTUBE_CLIENT_FALLBACKS: tuple[list[str], ...] = (
@@ -353,6 +355,28 @@ def _reject_literal_blocked_host(host: str) -> None:
         )
 
 
+def _resolve_addrinfo(host: str, port: int) -> list[tuple]:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(
+            socket.getaddrinfo,
+            host,
+            port,
+            type=socket.SOCK_STREAM,
+            proto=socket.IPPROTO_TCP,
+        )
+        try:
+            return future.result(timeout=_DNS_RESOLUTION_TIMEOUT_SEC)
+        except concurrent.futures.TimeoutError as exc:
+            raise UrlImportError(
+                "unsupported_host",
+                meta={
+                    "host": host,
+                    "reason": "dns_resolution_failed",
+                    "error_detail": f"DNS lookup timed out after {_DNS_RESOLUTION_TIMEOUT_SEC}s",
+                },
+            ) from exc
+
+
 def _reject_blocked_resolved_ips(host: str, *, port: int) -> None:
     try:
         ipaddress.ip_address(host)
@@ -362,12 +386,7 @@ def _reject_blocked_resolved_ips(host: str, *, port: int) -> None:
         return
 
     try:
-        infos = socket.getaddrinfo(
-            host,
-            port,
-            type=socket.SOCK_STREAM,
-            proto=socket.IPPROTO_TCP,
-        )
+        infos = _resolve_addrinfo(host, port)
     except socket.gaierror as exc:
         raise UrlImportError(
             "unsupported_host",

@@ -1,24 +1,28 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { activePipeline, type IngestPipeline } from '../pipeline'
+import { activePipeline, loadPipelineRun, type IngestPipeline } from '../pipeline'
 import type { Task } from '../types'
 
-type StepId = 'import' | 'transcribe' | 'summarize'
+export type PipelineStepId = 'import' | 'transcribe' | 'summarize'
 
-type Step = {
-  id: StepId
+export type PipelineStep = {
+  id: PipelineStepId
   labelKey: string
 }
 
-function buildSteps(pipeline: IngestPipeline, showImport: boolean): Step[] {
-  const steps: Step[] = []
+export function buildPipelineSteps(pipeline: IngestPipeline, showImport: boolean): PipelineStep[] {
+  const steps: PipelineStep[] = []
   if (showImport) steps.push({ id: 'import', labelKey: 'task.type.import' })
   if (pipeline.transcribe) steps.push({ id: 'transcribe', labelKey: 'task.type.transcribe' })
   if (pipeline.skillIds.length > 0) steps.push({ id: 'summarize', labelKey: 'task.type.summarize' })
   return steps
 }
 
-function stepStatus(step: StepId, task: Task | null, steps: Step[]): 'pending' | 'active' | 'done' {
+export function pipelineStepStatus(
+  step: PipelineStepId,
+  task: Task | null,
+  steps: PipelineStep[],
+): 'pending' | 'active' | 'done' {
   if (!task) return 'pending'
   const idx = steps.findIndex((s) => s.id === step)
   const currentIdx = steps.findIndex((s) => s.id === task.type)
@@ -33,23 +37,30 @@ function stepStatus(step: StepId, task: Task | null, steps: Step[]): 'pending' |
   return 'pending'
 }
 
+export function shouldShowPipelineProgress(steps: PipelineStep[], inPipelineRun: boolean): boolean {
+  if (steps.length === 0) return false
+  if (steps.length <= 1 && !inPipelineRun) return false
+  return true
+}
+
 export function PipelineProgress({ task }: { task: Task | null }) {
   const { t } = useTranslation()
   const pipeline = activePipeline()
-  const [showImport, setShowImport] = useState(false)
+  const [showImport, setShowImport] = useState(() => task?.type === 'import')
 
   useEffect(() => {
     if (task?.type === 'import') setShowImport(true)
   }, [task?.type])
 
-  const steps = buildSteps(pipeline, showImport)
+  const steps = buildPipelineSteps(pipeline, showImport)
+  const inPipelineRun = loadPipelineRun() !== null
 
-  if (steps.length <= 1) return null
+  if (!shouldShowPipelineProgress(steps, inPipelineRun)) return null
 
   return (
     <ol className="pipeline-progress" aria-label={t('task.pipeline.title')}>
       {steps.map((step, i) => {
-        const status = stepStatus(step.id, task, steps)
+        const status = pipelineStepStatus(step.id, task, steps)
         return (
           <li
             key={step.id}

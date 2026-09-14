@@ -550,6 +550,7 @@
     },
     "pipeline": {
       "title": "Progreso del pipeline",
+      "loading": "Iniciando tarea…",
       "transcribing": "Transcribiendo…",
       "summarizing": "Resumiendo…"
     },

@@ -12,6 +12,7 @@ from tests.conftest import (
     setup_admin,
     signup,
     upload_audio,
+    wait_task,
 )
 
 
@@ -283,8 +284,7 @@ def test_transcribe_with_skill_ids_chains_summarize(client, fake_workers):
         json={"audio_id": audio.json()["id"], "skill_ids": [skill.json()["id"]]},
     )
     assert transcribed.status_code == 202, transcribed.text
-    body = transcribed.json()
-    assert body["status"] == "success"
+    body = wait_task(client, transcribed.json()["task_id"], status="success")
     assert body["transcript_id"]
     follow_up_id = body["meta"]["follow_up_task_id"]
     assert follow_up_id
@@ -314,8 +314,8 @@ def test_delete_artifacts_after_task_produced_refs(client, fake_workers):
     fake_workers.transcribe_mode = "success"
     transcribed = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio_id})
     assert transcribed.status_code == 202, transcribed.text
-    assert transcribed.json()["status"] == "success"
-    transcript_id = transcribed.json()["transcript_id"]
+    transcribed_body = wait_task(client, transcribed.json()["task_id"], status="success")
+    transcript_id = transcribed_body["transcript_id"]
     assert transcript_id
 
     fake_workers.summarize_mode = "success"
@@ -324,8 +324,8 @@ def test_delete_artifacts_after_task_produced_refs(client, fake_workers):
         json={"transcript_id": transcript_id, "skill_ids": [skill.json()["id"]]},
     )
     assert summarized.status_code == 202, summarized.text
-    assert summarized.json()["status"] == "success"
-    summary_id = summarized.json()["summary_id"]
+    summarized_body = wait_task(client, summarized.json()["task_id"], status="success")
+    summary_id = summarized_body["summary_id"]
     assert summary_id
 
     wiped_audio = client.delete(f"/api/v1/audios/{audio_id}")

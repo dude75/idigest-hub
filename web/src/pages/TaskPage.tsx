@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import type { Task } from '../types'
@@ -8,8 +8,10 @@ import { isOrgAdmin, useAuth } from '../auth'
 import {
   activePipeline,
   endPipelineRun,
+  initialTaskFromNav,
   pipelineShouldTranscribe,
   transcribeRequest,
+  type PipelineNavState,
 } from '../pipeline'
 import { showError, taskErrorDetail, taskErrorMessage, taskIsRetriable, taskYoutubeClientsTried } from '../util'
 
@@ -42,10 +44,12 @@ function redirectAfterSuccess(task: Task, nav: ReturnType<typeof useNavigate>) {
 
 export function TaskPage() {
   const { id } = useParams<{ id: string }>()
+  const location = useLocation()
+  const navState = location.state as PipelineNavState | null
   const { t } = useTranslation()
   const { me } = useAuth()
   const nav = useNavigate()
-  const [task, setTask] = useState<Task | null>(null)
+  const [task, setTask] = useState<Task | null>(() => initialTaskFromNav(navState, id))
   const admin = isOrgAdmin(me)
 
   useEffect(() => {
@@ -140,8 +144,10 @@ export function TaskPage() {
     if (task && (task.status === 'queued' || task.status === 'running')) {
       if (task.type === 'transcribe') return t('task.pipeline.transcribing')
       if (task.type === 'summarize') return t('task.pipeline.summarizing')
+      if (task.type === 'import') return t('task.importStage.queued')
     }
-    return t('task.working', { status: task?.status || '…' })
+    if (!task) return t('task.pipeline.loading')
+    return t('task.working', { status: task.status })
   }
 
   const message = task ? taskErrorMessage(task, t) : null

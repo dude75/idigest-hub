@@ -1,3 +1,5 @@
+import type { Task } from './types'
+
 export type IngestPipeline = {
   transcribe: boolean
   skillIds: string[]
@@ -81,11 +83,21 @@ export function pipelineShouldSummarize(pipeline: IngestPipeline): boolean {
   return pipeline.skillIds.length > 0
 }
 
-export type PipelineNavState = { pipeline: IngestPipeline }
+export type PipelineNavState = { pipeline: IngestPipeline; task?: Task }
 
-export function pipelineNavState(pipeline: IngestPipeline): PipelineNavState {
+export function pipelineNavState(pipeline: IngestPipeline, task?: Task): PipelineNavState {
   const run = loadPipelineRun() ?? normalizePipeline(pipeline)
-  return { pipeline: run }
+  return { pipeline: run, task }
+}
+
+/** Seed TaskPage state from router navigation (avoids blank UI before first poll). */
+export function initialTaskFromNav(
+  navState: PipelineNavState | null | undefined,
+  taskId: string | undefined,
+): Task | null {
+  const initial = navState?.task
+  if (initial && taskId && initial.task_id === taskId) return initial
+  return null
 }
 
 export function transcribeRequest(audioId: string, pipeline: IngestPipeline = activePipeline()): {

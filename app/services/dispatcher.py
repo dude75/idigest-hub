@@ -656,9 +656,26 @@ async def tick_once(db: Session, task_id: str | None = None, *, refresh_health: 
         _commit(db)
 
 
-async def locked_tick(db: Session, task_id: str | None = None) -> None:
+async def locked_tick(
+    db: Session, task_id: str | None = None, *, refresh_health: bool = True
+) -> None:
     async with tick_lock():
-        await tick_once(db, task_id=task_id)
+        await tick_once(db, task_id=task_id, refresh_health=refresh_health)
+
+
+async def locked_tick_job(task_id: str, *, refresh_health: bool = True) -> None:
+    """Run a dispatcher tick in a fresh DB session (for BackgroundTasks)."""
+    from app.db import SessionLocal
+
+    db = SessionLocal()
+    try:
+        await locked_tick(db, task_id, refresh_health=refresh_health)
+        db.commit()
+    except Exception:
+        db.rollback()
+        log.exception("background tick failed task=%s", task_id)
+    finally:
+        db.close()
 
 
 async def dispatcher_loop(stop_event: asyncio.Event) -> None:

@@ -550,6 +550,7 @@
     },
     "pipeline": {
       "title": "Ход пайплайна",
+      "loading": "Запуск задачи…",
       "transcribing": "Транскрибация…",
       "summarizing": "Саммари…"
     },
