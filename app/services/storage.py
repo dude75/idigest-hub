@@ -16,6 +16,7 @@ from fastapi import UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from app.config import Settings, get_settings
 from app.services.export import content_disposition_attachment, safe_filename
+from app.services.upload_validation import InvalidAudioContent, validate_audio_header
 
 log = logging.getLogger("app")
 
@@ -108,20 +109,16 @@ class LocalStorageBackend(StorageBackend):
         dest_dir = self._root / "uploads" / audio_id
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest = dest_dir / f"original{suffix}"
-        size = 0
         try:
             with dest.open("wb") as handle:
-                while True:
-                    chunk = await file.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    size += len(chunk)
-                    if size > max_bytes:
-                        handle.close()
-                        dest.unlink(missing_ok=True)
-                        raise PayloadTooLarge()
-                    handle.write(chunk)
-        except PayloadTooLarge:
+                await _stream_upload_with_magic_check(
+                    file,
+                    suffix=suffix,
+                    max_bytes=max_bytes,
+                    write_bytes=handle.write,
+                )
+        except (PayloadTooLarge, InvalidAudioContent):
+            dest.unlink(missing_ok=True)
             raise
         except Exception:
             dest.unlink(missing_ok=True)
@@ -139,10 +136,11 @@ class LocalStorageBackend(StorageBackend):
         dest_dir = self._root / "uploads" / audio_id
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest = dest_dir / f"original{suffix}"
-        size = source.stat().st_size
-        if size > max_bytes:
+        data = source.read_bytes()
+        if len(data) > max_bytes:
             raise PayloadTooLarge()
-        dest.write_bytes(source.read_bytes())
+        validate_audio_header(suffix, data[:_MAGIC_HEADER_LEN])
+        dest.write_bytes(data)
         return str(dest)
 
     def exists(self, storage_path: str) -> bool:
@@ -270,8 +268,12 @@ class S3StorageBackend(StorageBackend):
         max_bytes: int,
     ) -> str:
         key = audio_object_key(audio_id, suffix)
-        size = 0
-        pending = bytearray()
+        header = await file.read(_MAGIC_HEADER_LEN)
+        if not header:
+            raise InvalidAudioContent()
+        validate_audio_header(suffix, header)
+        size = len(header)
+        pending = bytearray(header)
         upload_id: str | None = None
         parts: list[dict] = []
         part_number = 1
@@ -321,7 +323,7 @@ class S3StorageBackend(StorageBackend):
                 await asyncio.to_thread(
                     self._complete_multipart_sync, key, upload_id, parts
                 )
-        except PayloadTooLarge:
+        except (PayloadTooLarge, InvalidAudioContent):
             raise
         except Exception:
             await abort_if_needed()
@@ -338,9 +340,10 @@ class S3StorageBackend(StorageBackend):
         max_bytes: int,
     ) -> str:
         key = audio_object_key(audio_id, suffix)
-        size = source.stat().st_size
-        if size > max_bytes:
+        data = source.read_bytes()
+        if len(data) > max_bytes:
             raise PayloadTooLarge()
+        validate_audio_header(suffix, data[:_MAGIC_HEADER_LEN])
 
         def _upload() -> None:
             with source.open("rb") as handle:
@@ -404,6 +407,32 @@ class S3StorageBackend(StorageBackend):
 
 class PayloadTooLarge(Exception):
     """Upload exceeded configured max_bytes."""
+
+
+_MAGIC_HEADER_LEN = 12
+
+
+async def _stream_upload_with_magic_check(
+    file: UploadFile,
+    *,
+    suffix: str,
+    max_bytes: int,
+    write_bytes,
+) -> None:
+    header = await file.read(_MAGIC_HEADER_LEN)
+    if not header:
+        raise InvalidAudioContent()
+    validate_audio_header(suffix, header)
+    size = len(header)
+    write_bytes(header)
+    while True:
+        chunk = await file.read(1024 * 1024)
+        if not chunk:
+            break
+        size += len(chunk)
+        if size > max_bytes:
+            raise PayloadTooLarge()
+        write_bytes(chunk)
 
 
 _storage: StorageBackend | None = None

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -13,6 +14,9 @@ from app.services.workers import WorkerClientError
 
 ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASSWORD = "adminpass1"
+SAMPLE_WAV_BYTES = b"RIFF" + b"\x00\x00\x00\x00" + b"WAVE" + b"\x00" * 32
+SAMPLE_MP3_BYTES = b"ID3" + b"\x03\x00" + b"\x00" * 9 + b"\x00" * 32
+SAMPLE_M4A_BYTES = b"\x00" * 4 + b"ftyp" + b"M4A " + b"\x00" * 32
 LOADED_ENGINES = {
     "whisper": "loaded",
     "gigaam": "loaded",
@@ -54,6 +58,7 @@ def client(tmp_path, monkeypatch):
     from app.main import app
 
     with TestClient(app) as test_client:
+        _attach_csrf_client(test_client)
         yield test_client
 
     from app.services.storage import reset_storage
@@ -70,6 +75,26 @@ def client(tmp_path, monkeypatch):
 
 def err_code(response) -> str:
     return response.json()["error"]["code"]
+
+
+def _attach_csrf_client(test_client: TestClient) -> None:
+    def wrap(method_name: str):
+        original = getattr(test_client, method_name)
+        setattr(test_client, f"_csrf_original_{method_name}", original)
+
+        def wrapped(url, **kwargs):
+            headers = dict(kwargs.get("headers") or {})
+            csrf = test_client.cookies.get("hub_csrf")
+            if csrf and "X-CSRF-Token" not in headers:
+                headers["X-CSRF-Token"] = csrf
+            if headers:
+                kwargs["headers"] = headers
+            return original(url, **kwargs)
+
+        return wrapped
+
+    for method_name in ("post", "put", "patch", "delete"):
+        setattr(test_client, method_name, wrap(method_name))
 
 
 def setup_admin(client: TestClient, email: str = ADMIN_EMAIL, password: str = ADMIN_PASSWORD) -> dict:
@@ -143,7 +168,16 @@ def create_tariff(client: TestClient, **overrides) -> dict:
 
 
 def upload_audio(client: TestClient, name: str = "clip.wav", data: bytes | None = None):
-    payload = data if data is not None else b"RIFF" + b"\x00" * 64
+    if data is None:
+        suffix = Path(name).suffix.lower()
+        if suffix == ".mp3":
+            payload = SAMPLE_MP3_BYTES
+        elif suffix == ".m4a":
+            payload = SAMPLE_M4A_BYTES
+        else:
+            payload = SAMPLE_WAV_BYTES
+    else:
+        payload = data
     return client.post(
         "/api/v1/audios",
         files={"file": (name, BytesIO(payload), "audio/wav")},

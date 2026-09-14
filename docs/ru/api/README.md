@@ -2,7 +2,9 @@
 
 Базовый путь: **`/api/v1`**
 
-Интерактивная схема OpenAPI: `{origin}/openapi.json` (автоматически генерируется FastAPI). Swagger UI: `{origin}/docs` — **Authorize** для session cookie (`hub_session`) или Bearer API token (`idg_…` из `POST /auth/tokens`).
+При `OPENAPI_ENABLED=true` (по умолчанию): схема `{origin}/openapi.json`, Swagger UI `{origin}/docs` — **Authorize** для session cookie (`hub_session`) или Bearer API token (`idg_…` из `POST /auth/tokens`). В production задайте `OPENAPI_ENABLED=false`.
+
+Мутации с cookie-аутентификацией требуют заголовок `X-CSRF-Token`, совпадающий с cookie `hub_csrf` (SPA отправляет автоматически). Запросы с Bearer API token exempt.
 
 ## Формат ответа
 

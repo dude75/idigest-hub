@@ -46,5 +46,7 @@
   "mfa_step_up_required": "Introduzca el código del autenticador para continuar.",
   "mfa_enrollment_required": "Configure la autenticación de dos factores antes de continuar.",
   "mfa_challenge_invalid": "Desafío de inicio de sesión no válido o caducado. Inicie sesión de nuevo.",
+  "secrets_misconfigured": "Los secretos del servidor no están configurados. Contacte al operador.",
+  "csrf_invalid": "Token CSRF no válido o ausente. Actualice la página e inténtelo de nuevo.",
   "ok": "ok"
 }

@@ -17,6 +17,7 @@ from app.services.import_platforms import (
     normalize_import_audio_bitrate_kbps,
 )
 from app.services.storage import PayloadTooLarge, get_storage
+from app.services.upload_validation import InvalidAudioContent
 from app.services.url_import import UrlImportError, cleanup_import_path, download_audio
 from app.timeutil import utcnow
 
@@ -157,6 +158,10 @@ async def _run_import_task(task_id: str) -> None:
             )
         except PayloadTooLarge:
             _fail_task(db, task, "payload_too_large", {"host": result.host})
+            db.commit()
+            return
+        except InvalidAudioContent:
+            _fail_task(db, task, "invalid_file", {"host": result.host})
             db.commit()
             return
 

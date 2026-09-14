@@ -207,16 +207,19 @@ def bootstrap_encryption_db(db: Session) -> bool:
 
 
 def bootstrap_encryption() -> None:
+    from app.services.secrets_bootstrap import SecretsConfigError, validate_secrets_config
+
     get_engine()
     assert db_module.SessionLocal is not None
     db = db_module.SessionLocal()
     try:
+        validate_secrets_config(db)
         validate_crypto_config(db)
         bootstrap_encryption_db(db)
         rewrapped = rewrap_pending_deks(db)
         if rewrapped:
             log.info("crypto rewrap on startup: deks=%s", rewrapped)
-    except CryptoConfigError:
+    except (CryptoConfigError, SecretsConfigError):
         db.rollback()
         raise
     except Exception:

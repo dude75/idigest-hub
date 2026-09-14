@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     # Bearer token for Prometheus scrape. Required; empty = /metrics returns 401.
     METRICS_TOKEN: str = ""
 
+    # Swagger UI, ReDoc, and /openapi.json. Set false in production.
+    OPENAPI_ENABLED: bool = True
+
     @field_validator("LOG_MAX_BYTES")
     @classmethod
     def _positive_log_max_bytes(cls, value: int) -> int:

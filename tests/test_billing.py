@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from app.constants import MAX_UPLOAD_BYTES_CAP
 from app.services.billing import upload_limit
 from tests.conftest import (
+    SAMPLE_WAV_BYTES,
     ADMIN_EMAIL,
     ADMIN_PASSWORD,
     add_worker,
@@ -144,7 +145,7 @@ def test_upload_over_tariff_max_bytes_is_payload_too_large(client):
     tiny = create_tariff(client, name="Tiny", max_upload_bytes=32)
     logout(client)
     assert signup(client, "big@example.com", "bigpass12", tiny["id"]).status_code == 200
-    response = upload_audio(client, data=b"x" * 200)
+    response = upload_audio(client, data=SAMPLE_WAV_BYTES + b"x" * 200)
     assert response.status_code == 413
     assert err_code(response) == "payload_too_large"
 
@@ -154,7 +155,7 @@ def test_upload_capped_by_min_of_tariff_and_one_gib(client):
     tiny = create_tariff(client, name="Tiny", max_upload_bytes=16)
     logout(client)
     assert signup(client, "cap@example.com", "cappass12", tiny["id"]).status_code == 200
-    response = upload_audio(client, data=b"y" * 64)
+    response = upload_audio(client, data=SAMPLE_WAV_BYTES + b"y" * 64)
     assert response.status_code == 413
     assert err_code(response) == "payload_too_large"
 

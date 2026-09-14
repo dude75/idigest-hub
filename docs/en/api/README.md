@@ -2,7 +2,9 @@
 
 Base path: **`/api/v1`**
 
-Interactive OpenAPI schema: `{origin}/openapi.json` (FastAPI auto-generated). Swagger UI: `{origin}/docs` — use **Authorize** for session cookie (`hub_session`) or Bearer API token (`idg_…` from `POST /auth/tokens`).
+When `OPENAPI_ENABLED=true` (default): interactive schema at `{origin}/openapi.json`, Swagger UI at `{origin}/docs` — use **Authorize** for session cookie (`hub_session`) or Bearer API token (`idg_…` from `POST /auth/tokens`). Set `OPENAPI_ENABLED=false` in production to disable both.
+
+Cookie-authenticated mutations require header `X-CSRF-Token` matching the `hub_csrf` cookie (the SPA sends it automatically). Bearer API requests are exempt.
 
 ## Response envelope
 

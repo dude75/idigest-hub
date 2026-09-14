@@ -60,6 +60,8 @@ class ErrorCode(str, Enum):
     mfa_step_up_required = "mfa_step_up_required"
     mfa_enrollment_required = "mfa_enrollment_required"
     mfa_challenge_invalid = "mfa_challenge_invalid"
+    secrets_misconfigured = "secrets_misconfigured"
+    csrf_invalid = "csrf_invalid"
 
 
 HTTP_STATUS: dict[ErrorCode, int] = {
@@ -104,6 +106,8 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.mfa_step_up_required: 403,
     ErrorCode.mfa_enrollment_required: 403,
     ErrorCode.mfa_challenge_invalid: 401,
+    ErrorCode.secrets_misconfigured: 503,
+    ErrorCode.csrf_invalid: 403,
 }
 
 

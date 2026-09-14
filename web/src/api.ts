@@ -12,6 +12,20 @@ type ErrorBody = {
   error?: { code?: string; message?: string }
 }
 
+function csrfToken(): string | undefined {
+  const match = document.cookie.match(/(?:^|; )hub_csrf=([^;]*)/)
+  return match ? decodeURIComponent(match[1]) : undefined
+}
+
+function applyCsrfHeader(headers: Headers, method: string): void {
+  const normalized = method.toUpperCase()
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(normalized)) return
+  const token = csrfToken()
+  if (token && !headers.has('X-CSRF-Token')) {
+    headers.set('X-CSRF-Token', token)
+  }
+}
+
 export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   const headers = new Headers(opts.headers)
   const isForm = opts.body instanceof FormData
@@ -22,6 +36,7 @@ export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   if (!headers.has('Accept-Language')) {
     headers.set('Accept-Language', locale)
   }
+  applyCsrfHeader(headers, opts.method || 'GET')
   const res = await fetch(`/api/v1${path}`, {
     ...opts,
     credentials: 'include',
@@ -107,6 +122,8 @@ export function apiUpload<T>(
     xhr.withCredentials = true
     const locale = localStorage.getItem('locale') || 'en'
     xhr.setRequestHeader('Accept-Language', locale)
+    const csrf = csrfToken()
+    if (csrf) xhr.setRequestHeader('X-CSRF-Token', csrf)
 
     if (onProgress) {
       let lastTotal = 0

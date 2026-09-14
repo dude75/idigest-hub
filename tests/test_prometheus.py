@@ -8,6 +8,7 @@ from prometheus_client.parser import text_string_to_metric_families
 
 from tests.conftest import (
     FakeWorkers,
+    _attach_csrf_client,
     add_worker,
     login,
     setup_admin,
@@ -62,6 +63,7 @@ def metrics_client(tmp_path, monkeypatch):
     from app.main import app
 
     with TestClient(app) as test_client:
+        _attach_csrf_client(test_client)
         yield test_client
 
     get_settings.cache_clear()

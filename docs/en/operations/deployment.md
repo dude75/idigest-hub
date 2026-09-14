@@ -123,8 +123,9 @@ Full table in [README — `.env`](../../../README.md#env). Critical secrets:
 
 - `HUB_SECRET` — KEK for envelope encryption; backup `.env`; wrong value blocks startup when DEKs/data exist
 - `HUB_SECRET_PREV` — previous KEK during rotation only; remove after DEK re-wrap completes
-- `SESSION_SECRET` — rotation logs everyone out
+- `SESSION_SECRET` — required before `/setup`; rotation logs everyone out; empty value blocks startup when sessions or API tokens exist
 - `INSTANCE_BOOTSTRAP_TOKEN` — one-time setup only
+- `OPENAPI_ENABLED=false` — disable `/docs`, `/redoc`, and `/openapi.json` in production (recommended)
 
 Process env changes require restart.
 
@@ -163,8 +164,12 @@ Horizontal scaling would require shared rate-limit store and single dispatcher l
 
 ## API exploration
 
+When `OPENAPI_ENABLED=true` (default for development):
+
 - OpenAPI JSON: `GET /openapi.json`
 - Swagger UI: `/docs` (Authorize with session cookie or Bearer `idg_…` token)
+
+Set `OPENAPI_ENABLED=false` in production `.env` to hide the API schema and Swagger UI.
 
 ## Related pages
 

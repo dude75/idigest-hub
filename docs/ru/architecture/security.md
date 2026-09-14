@@ -16,8 +16,9 @@
 | -------- | ---------- |
 | `HUB_SECRET` | **KEK** (key-encryption key): `SHA-256(secret)` оборачивает DEK в `data_encryption_keys`. Только оператор — не через UI. |
 | `HUB_SECRET_PREV` | Прежний `HUB_SECRET` только на время **ротации KEK**. Unwrap: сначала current, затем `PREV`. Удалить из `.env` после переобёртки всех DEK. |
-| `SESSION_SECRET` | Pepper для хеширования session tokens и raw значений API token |
+| `SESSION_SECRET` | Pepper для хеширования session tokens и raw значений API token. **Обязателен до `/setup`.** Пустое значение блокирует setup и старт hub, если уже есть sessions или API tokens (fail-closed). |
 | `INSTANCE_BOOTSTRAP_TOKEN` | Одноразовый gate для `POST /setup` |
+| `OPENAPI_ENABLED` | При `false` отключает `/docs`, `/redoc` и `/openapi.json` (рекомендуется в production). По умолчанию `true` для разработки. |
 
 **Ротация `SESSION_SECRET`** инвалидирует все session cookies и API tokens (хеши перестают совпадать).
 
@@ -82,7 +83,20 @@ Instance admin: **Security → Encryption** — список DEK, добавле
 | Storage | Raw token никогда не хранится; в DB — `SHA-256` hash с pepper `SESSION_SECRET` |
 | TTL | Настраивается в Instance → Settings (`session_ttl_hours`, по умолчанию 24 ч, макс. 336 ч); sliding при каждом запросе |
 
-Logout удаляет строку session и очищает cookie.
+Logout удаляет строку session и очищает session и CSRF cookies.
+
+## CSRF-защита
+
+Для cookie-аутентификации **POST**, **PUT**, **PATCH** и **DELETE** под `/api/v1` нужен double-submit token:
+
+| Элемент | Значение |
+| ------- | -------- |
+| Cookie | `hub_csrf` (доступен SPA, `SameSite=Lax`, `Secure` при `COOKIE_SECURE=true`) |
+| Header | `X-CSRF-Token` должен совпадать с cookie |
+| Выдача | При login, signup, setup, MFA verify/recover, SSO callback, смене пароля (новая session) |
+| Исключения | Публичные auth POST (login, signup, reset, …) и все запросы с **Bearer** API token |
+
+SPA отправляет header автоматически (`web/src/api.ts`).
 
 ## API tokens
 
@@ -147,6 +161,10 @@ OIDC на уровне org (совместим с Keycloak). Authorization Code 
 Instance admin: `POST /impersonate` с `user_id` устанавливает `sessions.impersonate_user_id`. Эффективный пользователь становится target; actor остаётся admin. Audit log фиксирует действия с actor и on-behalf-of.
 
 Остановка: `DELETE /impersonate`.
+
+## Валидация загрузки аудио
+
+Upload принимает `.wav`, `.mp3`, `.m4a` по расширению **и** проверяет **magic bytes** (RIFF/WAVE, ID3 или MP3 sync word, MP4 `ftyp`) перед сохранением. Несовпадение → `invalid_file`.
 
 ## Rate limiting
 

@@ -16,8 +16,9 @@ The hub is designed for **on-premise / private network** deployment:
 | -------- | ------- |
 | `HUB_SECRET` | **KEK** (key-encryption key): `SHA-256(secret)` wraps DEKs stored in `data_encryption_keys`. Operator-only — not editable in UI. |
 | `HUB_SECRET_PREV` | Previous `HUB_SECRET` during **KEK rotation** only. Unwrap tries current, then `PREV`. Removed from `.env` after all DEKs are re-wrapped. |
-| `SESSION_SECRET` | Pepper for hashing session tokens and API token raw values |
+| `SESSION_SECRET` | Pepper for hashing session tokens and API token raw values. **Required before `/setup`.** Empty value blocks setup and prevents hub start once sessions or API tokens exist (fail-closed). |
 | `INSTANCE_BOOTSTRAP_TOKEN` | One-time gate for `POST /setup` |
+| `OPENAPI_ENABLED` | When `false`, disables `/docs`, `/redoc`, and `/openapi.json` (recommended in production). Default `true` for development. |
 
 **Rotating `SESSION_SECRET`** invalidates all session cookies and API tokens (hashes no longer match).
 
@@ -78,7 +79,20 @@ Use DEK rotation when a DEK may be compromised. Use KEK rotation when the operat
 | Storage | Raw token never stored; DB holds `SHA-256` hash with `SESSION_SECRET` pepper |
 | TTL | Configurable in Instance → Settings (`session_ttl_hours`, default 24 h, max 336 h); sliding on each request |
 
-Logout deletes the session row and clears the cookie.
+Logout deletes the session row and clears both session and CSRF cookies.
+
+## CSRF protection
+
+Cookie-authenticated **POST**, **PUT**, **PATCH**, and **DELETE** requests under `/api/v1` require a matching double-submit token:
+
+| Item | Value |
+| ---- | ----- |
+| Cookie | `hub_csrf` (readable by the SPA, `SameSite=Lax`, `Secure` when `COOKIE_SECURE=true`) |
+| Header | `X-CSRF-Token` must equal the cookie value |
+| Issued | On login, signup, setup, MFA verify/recover, SSO callback, and password change (with new session) |
+| Exempt | Public auth POST endpoints (login, signup, reset, …) and all **Bearer** API token requests |
+
+The SPA sends the header automatically (`web/src/api.ts`).
 
 ## API tokens
 
@@ -143,6 +157,10 @@ Instance admin powers are disabled while **impersonating** (`is_instance_admin` 
 Instance admin: `POST /impersonate` with `user_id` sets `sessions.impersonate_user_id`. Effective user becomes the target; actor remains the admin. Audit log records actions with actor and on-behalf-of.
 
 Stop: `DELETE /impersonate`.
+
+## Audio upload validation
+
+Uploads accept `.wav`, `.mp3`, and `.m4a` by extension **and** verify file **magic bytes** (RIFF/WAVE, ID3 or MP3 sync word, MP4 `ftyp`) before persisting. Mismatched content returns `invalid_file`.
 
 ## Rate limiting
 

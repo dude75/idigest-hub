@@ -30,6 +30,7 @@ from app.services.export import attachment_response, safe_filename, unwrap_markd
 from app.rate_limit import enforce_write_limits, get_rate_limits
 from app.services.audit import write_audit
 from app.services.storage import PayloadTooLarge, get_storage
+from app.services.upload_validation import InvalidAudioContent
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
 
@@ -168,6 +169,8 @@ async def upload_audio(
         storage_path = await storage.save_upload(audio_id, suffix, file, max_bytes=limit)
     except PayloadTooLarge:
         ctx.raise_error(ErrorCode.payload_too_large)
+    except InvalidAudioContent:
+        ctx.raise_error(ErrorCode.invalid_file)
     row = Audio(
         id=audio_id,
         org_id=org.id,

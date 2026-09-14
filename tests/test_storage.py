@@ -17,6 +17,8 @@ from app.services.storage import (
     is_s3_ref,
     reset_storage,
 )
+from app.services.upload_validation import InvalidAudioContent
+from tests.conftest import SAMPLE_MP3_BYTES, SAMPLE_WAV_BYTES
 
 
 class _Upload(UploadFile):
@@ -34,7 +36,7 @@ def local_backend(tmp_path):
 
 @pytest.mark.asyncio
 async def test_local_save_exists_delete_download(local_backend, tmp_path):
-    upload = _Upload(b"RIFF-audio-bytes")
+    upload = _Upload(SAMPLE_WAV_BYTES + b"audio-bytes")
     ref = await local_backend.save_upload("a1", ".wav", upload, max_bytes=1024)
     assert not is_s3_ref(ref)
     assert local_backend.exists(ref)
@@ -47,29 +49,37 @@ async def test_local_save_exists_delete_download(local_backend, tmp_path):
 @pytest.mark.asyncio
 async def test_local_save_file_path(local_backend, tmp_path):
     source = tmp_path / "source.mp3"
-    source.write_bytes(b"ID3" + b"\x00" * 16)
+    source.write_bytes(SAMPLE_MP3_BYTES)
     ref = await local_backend.save_file_path("a2", ".mp3", source, max_bytes=1024)
     assert local_backend.exists(ref)
 
 
 @pytest.mark.asyncio
 async def test_local_payload_too_large(local_backend):
-    upload = _Upload(b"x" * 32)
+    upload = _Upload(SAMPLE_WAV_BYTES + b"x" * 32)
     with pytest.raises(PayloadTooLarge):
         await local_backend.save_upload("a2", ".wav", upload, max_bytes=16)
 
 
 @pytest.mark.asyncio
 async def test_local_path_for_worker(local_backend):
-    upload = _Upload(b"worker-bytes")
+    payload = SAMPLE_WAV_BYTES + b"worker-bytes"
+    upload = _Upload(payload)
     ref = await local_backend.save_upload("a3", ".wav", upload, max_bytes=1024)
     async with local_backend.local_path_for_worker(ref) as path:
         assert path.is_file()
-        assert path.read_bytes() == b"worker-bytes"
+        assert path.read_bytes() == payload
 
 
 def test_audio_object_key():
     assert audio_object_key("id1", ".mp3") == "uploads/id1/original.mp3"
+
+
+@pytest.mark.asyncio
+async def test_local_rejects_invalid_magic(local_backend):
+    upload = _Upload(b"MZ" + b"\x00" * 32, filename="clip.wav")
+    with pytest.raises(InvalidAudioContent):
+        await local_backend.save_upload("bad", ".wav", upload, max_bytes=1024)
 
 
 @pytest.mark.asyncio
@@ -87,7 +97,7 @@ async def test_s3_save_and_exists(monkeypatch, tmp_path):
     client = MagicMock()
     with patch("boto3.client", return_value=client):
         backend = S3StorageBackend(get_settings())
-        upload = _Upload(b"s3-payload")
+        upload = _Upload(SAMPLE_WAV_BYTES + b"s3-payload")
         ref = await backend.save_upload("s3a", ".wav", upload, max_bytes=1024)
 
     assert ref == "s3://test-bucket/uploads/s3a/original.wav"
@@ -154,7 +164,7 @@ async def test_s3_upload_without_sse_header(monkeypatch):
     client = MagicMock()
     with patch("boto3.client", return_value=client):
         backend = S3StorageBackend(get_settings())
-        upload = _Upload(b"plain")
+        upload = _Upload(SAMPLE_WAV_BYTES + b"plain")
         await backend.save_upload("y1", ".wav", upload, max_bytes=1024)
 
     _, kwargs = client.upload_fileobj.call_args
@@ -181,7 +191,7 @@ async def test_s3_multipart_upload(monkeypatch):
 
     with patch("boto3.client", return_value=client):
         backend = S3StorageBackend(get_settings())
-        payload = b"x" * (5 * 1024 * 1024 + 1024)
+        payload = SAMPLE_WAV_BYTES + b"x" * (5 * 1024 * 1024 + 1024)
         upload = _Upload(payload)
         ref = await backend.save_upload("mp1", ".wav", upload, max_bytes=len(payload) + 1)
 
@@ -213,7 +223,7 @@ async def test_s3_upload_aws_kms(monkeypatch):
     client = MagicMock()
     with patch("boto3.client", return_value=client):
         backend = S3StorageBackend(get_settings())
-        upload = _Upload(b"kms")
+        upload = _Upload(SAMPLE_MP3_BYTES + b"kms")
         await backend.save_upload("y2", ".mp3", upload, max_bytes=1024)
 
     _, kwargs = client.upload_fileobj.call_args

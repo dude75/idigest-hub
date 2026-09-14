@@ -123,7 +123,8 @@ Hub сам эти заголовки не выставляет — настра�
 
 - `HUB_SECRET` — KEK envelope encryption; backup `.env`; неверный секрет блокирует старт при наличии DEK/данных
 - `HUB_SECRET_PREV` — прежний KEK только на время ротации; удалить после переобёртки DEK
-- `SESSION_SECRET` — смена разлогинивает всех
+- `SESSION_SECRET` — обязателен до `/setup`; смена разлогинивает всех; пустое значение блокирует старт при наличии sessions или API tokens
+- `OPENAPI_ENABLED=false` — отключить `/docs`, `/redoc` и `/openapi.json` в production (рекомендуется)
 - `INSTANCE_BOOTSTRAP_TOKEN` — только для одноразовой настройки
 
 Изменения переменных окружения процесса требуют перезапуска.
@@ -163,8 +164,12 @@ Auth-трафик: email + IP + global buckets. Bearer API: user + IP + global. 
 
 ## Исследование API
 
+При `OPENAPI_ENABLED=true` (по умолчанию для разработки):
+
 - OpenAPI JSON: `GET /openapi.json`
 - Swagger UI: `/docs` (Authorize с session cookie или Bearer token `idg_…`)
+
+В production `.env` задайте `OPENAPI_ENABLED=false`, чтобы скрыть схему API и Swagger UI.
 
 ## Связанные страницы
 

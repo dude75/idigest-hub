@@ -246,10 +246,11 @@ def init_database(engine: Engine) -> None:
     _apply_idempotent_patches(engine)
     _startup_log("database init: crypto bootstrap and DEK re-wrap")
     from app.services.crypto_bootstrap import CryptoConfigError, bootstrap_encryption
+    from app.services.secrets_bootstrap import SecretsConfigError
 
     try:
         bootstrap_encryption()
-    except CryptoConfigError as exc:
+    except (CryptoConfigError, SecretsConfigError) as exc:
         _startup_log(f"FATAL: {exc}")
         os._exit(1)
     _startup_log("database init: done")

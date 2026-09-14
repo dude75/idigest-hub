@@ -100,7 +100,9 @@ def test_cookie_upload_rate_limited(client):
     assert signup(client, "flooder@example.com", "floodpass1", tariff_id).status_code == 200
     _set_write_limits(upload_user=2)
 
-    payload = b"RIFF" + b"\x00" * 64
+    from tests.conftest import SAMPLE_WAV_BYTES
+
+    payload = SAMPLE_WAV_BYTES
     for index in range(2):
         response = upload_audio(client, name=f"clip{index}.wav", data=payload)
         assert response.status_code == 200, response.text

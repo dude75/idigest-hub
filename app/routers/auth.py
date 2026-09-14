@@ -26,7 +26,8 @@ from app.constants import (
     SECURITY_TABS,
     SUPPORTED_LOCALES,
 )
-from app.cookies import clear_session_cookie, set_session_cookie
+from app.cookies import clear_auth_cookies, issue_auth_cookies
+from app.services.secrets_bootstrap import session_secret_configured
 from app.db import get_session
 from app.deps import AuthContext, abort, get_instance_settings, locale_from_request, optional_auth, require_auth, session_ttl_sec_from_db
 from app.errors import ErrorCode
@@ -311,6 +312,8 @@ def setup(body: SetupBody, request: Request, response: Response, db: Session = D
         abort(locale, ErrorCode.setup_already_done)
     from app.config import get_settings as cfg
 
+    if not session_secret_configured():
+        abort(locale, ErrorCode.secrets_misconfigured)
     if not cfg().INSTANCE_BOOTSTRAP_TOKEN or body.bootstrap_token != cfg().INSTANCE_BOOTSTRAP_TOKEN:
         abort(locale, ErrorCode.bootstrap_invalid)
     email = _norm_email(body.email)
@@ -337,7 +340,7 @@ def setup(body: SetupBody, request: Request, response: Response, db: Session = D
     settings.allow_new_orgs = True
     write_audit(db, "instance.setup", actor_id=user.id, payload={"email": email})
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
+    issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok", "user": user_public(user, "instance_admin")}
 
 
@@ -396,7 +399,7 @@ def signup(body: SignupBody, request: Request, response: Response, db: Session =
     db.flush()
     db.add(Membership(id=new_id(), user_id=user.id, org_id=org.id, role="org_admin"))
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
+    issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok", "user": user_public(user, "org_admin")}
 
 
@@ -454,7 +457,7 @@ def login(body: LoginBody, request: Request, response: Response, db: Session = D
         challenge_id = create_mfa_challenge(db, user.id)
         return {"status": "mfa_required", "challenge_id": challenge_id}
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
+    issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok"}
 
 
@@ -551,7 +554,7 @@ def sso_callback(
         return fail(ErrorCode.sso_misconfigured)
     raw = create_session(db, user.id)
     redirect = RedirectResponse(f"{public_base.rstrip('/')}/app", status_code=302)
-    set_session_cookie(redirect, raw, max_age=session_ttl_sec_from_db(db))
+    issue_auth_cookies(redirect, raw, max_age=session_ttl_sec_from_db(db))
     return redirect
 
 
@@ -565,7 +568,7 @@ def logout(
     token = request.cookies.get(COOKIE_NAME)
     if token:
         db.execute(delete(AuthSession).where(AuthSession.token_hash == hash_secret(token)))
-    clear_session_cookie(response)
+    clear_auth_cookies(response)
     return {"status": "ok"}
 
 
@@ -591,7 +594,7 @@ def change_password(
     user.updated_at = utcnow()
     revoke_user_auth(db, user.id)
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
+    issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok"}
 
 
@@ -681,7 +684,7 @@ def mfa_verify(
         abort(locale, ErrorCode.invalid_totp)
     consume_mfa_challenge(db, challenge)
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
+    issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
     write_audit(db, "auth.mfa.verify", actor_id=user.id)
     return {"status": "ok"}
 
@@ -706,7 +709,7 @@ def mfa_recover(
         abort(locale, ErrorCode.invalid_totp)
     consume_mfa_challenge(db, challenge)
     raw = create_session(db, user.id)
-    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
+    issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
     write_audit(db, "auth.mfa.recovery", actor_id=user.id)
     return {"status": "ok"}
 
