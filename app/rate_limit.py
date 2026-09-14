@@ -177,6 +177,19 @@ def enforce_checks(checks: list[tuple[str, int, float]], locale: str) -> None:
         _raise_rate_limited(locale, retry_after)
 
 
+def enforce_mfa_verify(email: str, ip: str, limits: RateLimits, locale: str) -> None:
+    if not limits.enabled:
+        return
+    enforce_checks(
+        [
+            (f"mfa:email:{email}", limits.login_email, WINDOW_MIN),
+            (f"mfa:ip:{ip}", limits.login_ip, WINDOW_MIN),
+            ("mfa:global", limits.login_global, WINDOW_MIN),
+        ],
+        locale,
+    )
+
+
 def enforce_login(email: str, ip: str, limits: RateLimits, locale: str) -> None:
     if not limits.enabled:
         return

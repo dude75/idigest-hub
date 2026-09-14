@@ -40,5 +40,11 @@
   "download_failed": "Could not download audio from the URL.",
   "video_unavailable": "Video is unavailable (private, deleted, or blocked).",
   "import_disabled": "URL import is disabled on this instance.",
+  "mfa_required": "Two-factor authentication is required.",
+  "invalid_totp": "Invalid authenticator or recovery code.",
+  "mfa_not_configured": "Two-factor authentication is not set up.",
+  "mfa_step_up_required": "Enter your authenticator code to continue.",
+  "mfa_enrollment_required": "Set up two-factor authentication before continuing.",
+  "mfa_challenge_invalid": "Invalid or expired sign-in challenge. Sign in again.",
   "ok": "ok"
 }

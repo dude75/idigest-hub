@@ -7,6 +7,8 @@ export type User = {
   default_route: string
   disabled: boolean
   must_change_password: boolean
+  mfa_enabled: boolean
+  mfa_configured?: boolean
   is_instance_admin: boolean
   role: string | null
   auth_provider: string
@@ -48,6 +50,7 @@ export type Org = {
   name: string
   is_personal: boolean
   password_ttl_days: number
+  mfa_required: boolean
   balance: string
   unlimited: boolean
   tariff: Tariff
@@ -63,6 +66,9 @@ export type Me = {
   impersonating: boolean
   actor: User | null
   must_change_password: boolean
+  mfa_enabled: boolean
+  mfa_required: boolean
+  mfa_enrollment_required: boolean
 }
 
 export type ShareRecord = {

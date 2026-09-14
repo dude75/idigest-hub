@@ -5,6 +5,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { resolveHomePath } from '../routes'
+import { storeMfaChallengeId } from './Verify2faPage'
 import { showError } from '../util'
 
 const SSO_ORG_ID_KEY = 'lastSsoOrgId'
@@ -34,7 +35,11 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false)
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
-  if (ready && me) return <Navigate to={me.must_change_password ? '/change-password' : resolveHomePath(me)} replace />
+  if (ready && me) {
+    if (me.must_change_password) return <Navigate to="/change-password" replace />
+    if (me.mfa_enrollment_required) return <Navigate to="/enroll-2fa" replace />
+    return <Navigate to={resolveHomePath(me)} replace />
+  }
 
   function switchMode(next: LoginMode) {
     setMode(next)
@@ -45,7 +50,15 @@ export function LoginPage() {
     e.preventDefault()
     setBusy(true)
     try {
-      await api('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
+      const result = await api<{ status: string; challenge_id?: string }>(
+        '/auth/login',
+        { method: 'POST', body: JSON.stringify({ email, password }) },
+      )
+      if (result.status === 'mfa_required' && result.challenge_id) {
+        storeMfaChallengeId(result.challenge_id)
+        nav('/verify-2fa', { replace: true })
+        return
+      }
       await refresh()
       nav('/app', { replace: true })
     } catch (e) {

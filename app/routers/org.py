@@ -16,6 +16,7 @@ from app.routers.auth import revoke_user_auth
 from app.security import hash_password, random_password
 from app.services.access import guard_last_org_admin
 from app.services.audit import write_audit
+from app.services.mfa import AUTH_PROVIDER_LOCAL, disable_totp, totp_configured
 from app.services.offboarding import transfer_user, wipe_user_content
 from app.services.sso import (
     clear_client_secret,
@@ -47,6 +48,7 @@ class OrgTariffBody(BaseModel):
 
 class OrgSettingsPatch(BaseModel):
     password_ttl_days: int | None = None
+    mfa_required: bool | None = None
 
 
 class OrgSsoPatch(BaseModel):
@@ -151,6 +153,12 @@ def patch_org_settings(
             ctx.raise_error(ErrorCode.validation_error)
         org.password_ttl_days = body.password_ttl_days
         org.updated_at = utcnow()
+    if body.mfa_required is not None:
+        if body.mfa_required and org.sso_enabled:
+            ctx.raise_error(ErrorCode.validation_error)
+        org.mfa_required = body.mfa_required
+        org.updated_at = utcnow()
+        write_audit(db, "org.mfa_policy", ctx, {"mfa_required": org.mfa_required})
     return org_public(org, public_base_url=_public_base_url(db))
 
 
@@ -176,6 +184,8 @@ def patch_org_sso(
         store_client_secret(org, body.client_secret, db)
     if body.enabled is not None:
         org.sso_enabled = body.enabled
+        if org.sso_enabled:
+            org.mfa_required = False
     try:
         validate_sso_config(issuer=org.sso_issuer, client_id=org.sso_client_id)
     except ValueError:
@@ -320,6 +330,27 @@ def reset_user_password(
     user.updated_at = utcnow()
     revoke_user_auth(db, user.id)
     return {"status": "ok", "password": password}
+
+
+@router.post("/org/users/{user_id}/reset-mfa")
+def reset_user_mfa(
+    user_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    org, _ = ctx.require_org_admin()
+    membership = db.scalar(
+        select(Membership).where(Membership.org_id == org.id, Membership.user_id == user_id)
+    )
+    user = db.get(User, user_id)
+    if membership is None or user is None:
+        ctx.raise_error(ErrorCode.not_found)
+    if user.auth_provider != AUTH_PROVIDER_LOCAL:
+        ctx.raise_error(ErrorCode.forbidden)
+    if not totp_configured(user):
+        ctx.raise_error(ErrorCode.validation_error)
+    disable_totp(db, user)
+    revoke_user_auth(db, user.id)
+    write_audit(db, "user.mfa.reset", ctx, {"user_id": user.id})
+    return user_public(user, membership.role)
 
 
 @router.post("/org/users/{user_id}/offboard")

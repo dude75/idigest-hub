@@ -81,7 +81,7 @@ Logout deletes the session row and clears the cookie.
 
 ## API tokens
 
-- Created per user: `POST /auth/tokens` (requires org tariff `api_enabled`)
+- Created per user: `POST /auth/tokens` (cookie session only; requires org tariff `api_enabled`; TOTP step-up when 2FA enabled)
 - Shown **once** in create response; only prefix stored for listing
 - Bearer auth triggers **rate limits** (per user, IP, global)
 - Browser cookie sessions skip Bearer general API limits, but **audio upload** and **task create** use the same write limits as Bearer (`enforce_write_limits`, `rate_limit_api_tasks_*`)
@@ -97,6 +97,21 @@ Users with `must_change_password` or expired org password TTL cannot use API tok
 - Org admin can force reset (`must_change_password`) via reset-password endpoint
 
 Password reset email requires SMTP **and** **Public URL** in Instance settings (`smtp_configured`); otherwise `recovery_disabled`.
+
+## Two-factor authentication (TOTP)
+
+Optional **TOTP 2FA** for local users (`auth_provider=local`). Enrollment and disable are user-initiated in Profile → Security.
+
+| Rule | Behavior |
+| ---- | -------- |
+| Login | Password verified first; if 2FA enabled → `mfa_required` + short-lived challenge; session only after TOTP or recovery code |
+| Org policy | `organizations.mfa_required` — org admin may enable when **SSO is off**; forces enrollment before app access |
+| SSO users | Hub 2FA not applied; use IdP MFA |
+| API token create | Cookie session only (no Bearer chain); if user has 2FA → `totp_code` required (step-up) |
+| Secret storage | `users.totp_secret_encrypted` (envelope encryption) |
+| Recovery | One-time recovery codes issued at enrollment |
+
+Disable 2FA is blocked when org policy requires it. Password change / auth revoke clears sessions and API tokens but keeps 2FA enrollment.
 
 ## Single sign-on (SSO)
 

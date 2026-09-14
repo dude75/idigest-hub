@@ -25,6 +25,15 @@ ALLOWED_WHEN_MUST_CHANGE = {
     ("PATCH", "/api/v1/me"),
 }
 
+ALLOWED_WHEN_MFA_ENROLLMENT = {
+    ("POST", "/api/v1/auth/mfa/setup/start"),
+    ("POST", "/api/v1/auth/mfa/setup/confirm"),
+    ("POST", "/api/v1/auth/logout"),
+    ("DELETE", "/api/v1/impersonate"),
+    ("GET", "/api/v1/me"),
+    ("PATCH", "/api/v1/me"),
+}
+
 
 @dataclass
 class AuthContext:
@@ -197,6 +206,13 @@ def require_auth(
         ):
             if path != "/api/v1/me":
                 abort(ctx.locale, ErrorCode.must_change_password)
+    from app.services.mfa import mfa_enrollment_required
+
+    if mfa_enrollment_required(user=ctx.user, org=ctx.org, membership=ctx.membership):
+        path = request.url.path.rstrip("/") or "/"
+        if (request.method, path) not in ALLOWED_WHEN_MFA_ENROLLMENT and not path.startswith("/api/v1/auth/mfa"):
+            if path != "/api/v1/me":
+                abort(ctx.locale, ErrorCode.mfa_enrollment_required)
     return ctx
 
 

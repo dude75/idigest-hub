@@ -19,6 +19,7 @@ from app.models import (
     WorkerNode,
 )
 from app.money import money_str
+from app.services.mfa import totp_configured
 from app.services.sso import org_sso_public
 
 
@@ -30,6 +31,8 @@ def user_public(user: User, role: str | None = None) -> dict[str, Any]:
         "default_route": user.default_route,
         "disabled": user.disabled_at is not None,
         "must_change_password": user.must_change_password,
+        "mfa_enabled": user.totp_enabled_at is not None,
+        "mfa_configured": totp_configured(user),
         "is_instance_admin": user.is_instance_admin,
         "role": role,
         "auth_provider": user.auth_provider,
@@ -68,6 +71,7 @@ def org_public(
         "name": org.name,
         "is_personal": org.is_personal,
         "password_ttl_days": org.password_ttl_days,
+        "mfa_required": org.mfa_required,
         "balance": money_str(Decimal(org.balance)),
         "unlimited": tariff.unlimited,
         "tariff": tariff_public(tariff),

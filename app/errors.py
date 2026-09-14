@@ -54,6 +54,12 @@ class ErrorCode(str, Enum):
     video_unavailable = "video_unavailable"
     import_disabled = "import_disabled"
     proxy_unavailable = "proxy_unavailable"
+    mfa_required = "mfa_required"
+    invalid_totp = "invalid_totp"
+    mfa_not_configured = "mfa_not_configured"
+    mfa_step_up_required = "mfa_step_up_required"
+    mfa_enrollment_required = "mfa_enrollment_required"
+    mfa_challenge_invalid = "mfa_challenge_invalid"
 
 
 HTTP_STATUS: dict[ErrorCode, int] = {
@@ -93,6 +99,11 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.video_unavailable: 404,
     ErrorCode.import_disabled: 403,
     ErrorCode.proxy_unavailable: 503,
+    ErrorCode.invalid_totp: 401,
+    ErrorCode.mfa_not_configured: 403,
+    ErrorCode.mfa_step_up_required: 403,
+    ErrorCode.mfa_enrollment_required: 403,
+    ErrorCode.mfa_challenge_invalid: 401,
 }
 
 

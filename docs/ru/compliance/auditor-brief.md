@@ -88,7 +88,9 @@
 | Bootstrap gate | Одноразовый `/setup` с `INSTANCE_BOOTSTRAP_TOKEN` | `app/routers/auth.py`, `.env.example` |
 | Metrics endpoint | Bearer `METRICS_TOKEN` обязателен | `app/metrics_auth.py`, tests: `tests/test_prometheus.py` |
 
-**Не реализовано:** MFA/2FA, OAuth provider mode для сторонних приложений.
+**MFA локальных пользователей:** TOTP 2FA (opt-in в профиле; org может требовать при выключенном SSO). SSO — MFA на IdP.
+
+**Не реализовано:** OAuth provider mode для сторонних приложений.
 
 ### 2. Защита данных и криптография
 
@@ -240,7 +242,7 @@
 | Backup & DR | Документирует что бэкапить | Drills, RTO/RPO |
 | Workers | Шифрует tokens в БД | Hardening worker hosts |
 | Retention audit log | Хранит в БД заказчика | Retention, export, SIEM |
-| MFA | — | IdP MFA или принятие password-only risk |
+| MFA | TOTP для local users; org policy без SSO | IdP MFA для SSO members |
 | SIEM | DB/API/logs | Подключение |
 
 ---
@@ -249,7 +251,7 @@
 
 | Ограничение | Риск | Компенсирующая мера |
 | ----------- | ---- | ------------------- |
-| Нет встроенного MFA | Кража credentials | MFA на IdP (SSO); VPN для admin |
+| Local users без 2FA | Кража credentials | TOTP в профиле; org `mfa_required`; IdP MFA для SSO |
 | In-memory rate limits, single worker | Нет horizontal scale | nginx rate limiting |
 | Local audio без app-encrypt | Доступ к диску | Encrypted volume, S3+SSE-KMS |
 | Auth events не в audit_log | Неполная forensics login | IdP logs, proxy access logs |

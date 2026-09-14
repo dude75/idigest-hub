@@ -71,11 +71,27 @@ from app.services.mail import send_mail, smtp_configured
 from app.rate_limit import (
     client_ip,
     enforce_login,
+    enforce_mfa_verify,
     enforce_reset_confirm,
     enforce_reset_request,
     enforce_setup,
     enforce_signup,
     get_rate_limits,
+)
+from app.services.mfa import (
+    AUTH_PROVIDER_LOCAL,
+    confirm_totp_setup,
+    consume_mfa_challenge,
+    consume_recovery_code,
+    create_mfa_challenge,
+    disable_totp,
+    mfa_enrollment_required,
+    org_mfa_required,
+    resolve_mfa_challenge,
+    should_challenge_at_login,
+    start_totp_setup,
+    totp_enabled,
+    verify_user_totp,
 )
 from app.timeutil import as_utc, utcnow
 
@@ -117,6 +133,26 @@ class ResetConfirmBody(BaseModel):
 
 class TokenCreateBody(BaseModel):
     name: str = Field(min_length=1, max_length=128)
+    totp_code: str | None = None
+
+
+class MfaVerifyBody(BaseModel):
+    challenge_id: str
+    code: str = Field(min_length=6, max_length=16)
+
+
+class MfaRecoverBody(BaseModel):
+    challenge_id: str
+    recovery_code: str = Field(min_length=8, max_length=32)
+
+
+class MfaConfirmBody(BaseModel):
+    code: str = Field(min_length=6, max_length=16)
+
+
+class MfaDisableBody(BaseModel):
+    password: str
+    code: str = Field(min_length=6, max_length=32)
 
 
 class MePatchBody(BaseModel):
@@ -241,6 +277,11 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
             select(func.coalesce(func.sum(UsageEvent.amount), 0)).where(UsageEvent.org_id == ctx.org.id)
         )
         usage = {"total_amount": str(total)}
+    enrollment_required = mfa_enrollment_required(
+        user=ctx.user,
+        org=ctx.org,
+        membership=ctx.membership,
+    )
     return {
         "user": user_public(ctx.user, role),
         "org": org_public(ctx.org, usage=usage, public_base_url=_public_base_url(db)) if ctx.org else None,
@@ -254,6 +295,9 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
             and utcnow()
             >= as_utc(ctx.user.password_changed_at) + timedelta(days=ctx.org.password_ttl_days)
         ),
+        "mfa_enabled": totp_enabled(ctx.user),
+        "mfa_required": org_mfa_required(user=ctx.user, org=ctx.org, membership=ctx.membership),
+        "mfa_enrollment_required": enrollment_required,
     }
 
 
@@ -406,6 +450,9 @@ def login(body: LoginBody, request: Request, response: Response, db: Session = D
         abort(locale, ErrorCode.sso_login_required)
     if not verify_password(body.password, user.password_hash):
         abort(locale, ErrorCode.invalid_credentials)
+    if should_challenge_at_login(user=user, org=org, membership=membership):
+        challenge_id = create_mfa_challenge(db, user.id)
+        return {"status": "mfa_required", "challenge_id": challenge_id}
     raw = create_session(db, user.id)
     set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok"}
@@ -614,6 +661,114 @@ def reset_confirm(body: ResetConfirmBody, request: Request, db: Session = Depend
     return {"status": "ok"}
 
 
+@router.post("/auth/mfa/verify")
+def mfa_verify(
+    body: MfaVerifyBody,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_session),
+) -> dict:
+    locale = locale_from_request(request)
+    challenge = resolve_mfa_challenge(db, body.challenge_id.strip())
+    if challenge is None:
+        abort(locale, ErrorCode.mfa_challenge_invalid)
+    user = db.get(User, challenge.user_id)
+    if user is None or user.disabled_at is not None:
+        abort(locale, ErrorCode.mfa_challenge_invalid)
+    limits = get_rate_limits(db)
+    enforce_mfa_verify(user.email, client_ip(request), limits, locale)
+    if not verify_user_totp(user, body.code, db):
+        abort(locale, ErrorCode.invalid_totp)
+    consume_mfa_challenge(db, challenge)
+    raw = create_session(db, user.id)
+    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
+    write_audit(db, "auth.mfa.verify", actor_id=user.id)
+    return {"status": "ok"}
+
+
+@router.post("/auth/mfa/recover")
+def mfa_recover(
+    body: MfaRecoverBody,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_session),
+) -> dict:
+    locale = locale_from_request(request)
+    challenge = resolve_mfa_challenge(db, body.challenge_id.strip())
+    if challenge is None:
+        abort(locale, ErrorCode.mfa_challenge_invalid)
+    user = db.get(User, challenge.user_id)
+    if user is None or user.disabled_at is not None:
+        abort(locale, ErrorCode.mfa_challenge_invalid)
+    limits = get_rate_limits(db)
+    enforce_mfa_verify(user.email, client_ip(request), limits, locale)
+    if not consume_recovery_code(db, user, body.recovery_code):
+        abort(locale, ErrorCode.invalid_totp)
+    consume_mfa_challenge(db, challenge)
+    raw = create_session(db, user.id)
+    set_session_cookie(response, raw, max_age=session_ttl_sec_from_db(db))
+    write_audit(db, "auth.mfa.recovery", actor_id=user.id)
+    return {"status": "ok"}
+
+
+@router.get("/auth/mfa/status")
+def mfa_status(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+    return {
+        "enabled": totp_enabled(ctx.user),
+        "required": org_mfa_required(user=ctx.user, org=ctx.org, membership=ctx.membership),
+        "enrollment_required": mfa_enrollment_required(
+            user=ctx.user,
+            org=ctx.org,
+            membership=ctx.membership,
+        ),
+    }
+
+
+@router.post("/auth/mfa/setup/start")
+def mfa_setup_start(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+    if ctx.impersonating or ctx.user.auth_provider != AUTH_PROVIDER_LOCAL:
+        ctx.raise_error(ErrorCode.forbidden)
+    secret, uri = start_totp_setup(db, ctx.user)
+    return {"secret": secret, "otpauth_uri": uri}
+
+
+@router.post("/auth/mfa/setup/confirm")
+def mfa_setup_confirm(
+    body: MfaConfirmBody,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    if ctx.impersonating or ctx.user.auth_provider != AUTH_PROVIDER_LOCAL:
+        ctx.raise_error(ErrorCode.forbidden)
+    codes = confirm_totp_setup(db, ctx.user, body.code)
+    if not codes:
+        ctx.raise_error(ErrorCode.invalid_totp)
+    write_audit(db, "auth.mfa.enable", ctx, {})
+    return {"status": "ok", "recovery_codes": codes}
+
+
+@router.post("/auth/mfa/disable")
+def mfa_disable(
+    body: MfaDisableBody,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    if ctx.impersonating or ctx.user.auth_provider != AUTH_PROVIDER_LOCAL:
+        ctx.raise_error(ErrorCode.forbidden)
+    if not totp_enabled(ctx.user):
+        ctx.raise_error(ErrorCode.validation_error)
+    if org_mfa_required(user=ctx.user, org=ctx.org, membership=ctx.membership):
+        ctx.raise_error(ErrorCode.forbidden)
+    if not ctx.user.password_hash or not verify_password(body.password, ctx.user.password_hash):
+        ctx.raise_error(ErrorCode.invalid_credentials)
+    if not verify_user_totp(ctx.user, body.code, db) and not consume_recovery_code(db, ctx.user, body.code):
+        ctx.raise_error(ErrorCode.invalid_totp)
+    disable_totp(db, ctx.user)
+    revoke_user_auth(db, ctx.user.id)
+    write_audit(db, "auth.mfa.disable", ctx, {})
+    return {"status": "ok"}
+
+
 @router.get("/me")
 def me(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
     return _me_payload(ctx, db)
@@ -669,12 +824,21 @@ def create_token(
     db: Session = Depends(get_session),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
+    if ctx.via_api_token or ctx.impersonating:
+        ctx.raise_error(ErrorCode.forbidden)
     if ctx.user.must_change_password:
         ctx.raise_error(ErrorCode.must_change_password)
+    if mfa_enrollment_required(user=ctx.user, org=ctx.org, membership=ctx.membership):
+        ctx.raise_error(ErrorCode.mfa_enrollment_required)
     from app.services.billing import org_api_enabled
 
     if not org_api_enabled(ctx.org):
         ctx.raise_error(ErrorCode.api_disabled)
+    if totp_enabled(ctx.user):
+        if not body.totp_code:
+            ctx.raise_error(ErrorCode.mfa_step_up_required)
+        if not verify_user_totp(ctx.user, body.totp_code, db):
+            ctx.raise_error(ErrorCode.invalid_totp)
     raw = new_api_token()
     now = utcnow()
     row = ApiToken(

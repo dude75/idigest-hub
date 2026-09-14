@@ -24,6 +24,7 @@ ENCRYPTED_COLUMNS: list[EncryptedColumn] = [
     ("instance_settings", "smtp_password_encrypted"),
     ("instance_settings", "download_proxy_password_encrypted"),
     ("organizations", "sso_client_secret_encrypted"),
+    ("users", "totp_secret_encrypted"),
     ("transcripts", "utterances_encrypted"),
     ("summaries", "body_encrypted"),
 ]

@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { TariffDetails } from '../components/TariffDetails'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Org, OrgSsoAdmin, Tariff, User } from '../types'
@@ -46,6 +47,7 @@ export function OrgPage() {
   const [tariffs, setTariffs] = useState<Tariff[]>([])
   const [name, setName] = useState('')
   const [ttl, setTtl] = useState(0)
+  const [mfaRequired, setMfaRequired] = useState(false)
   const [tariffId, setTariffId] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -54,6 +56,9 @@ export function OrgPage() {
   const [action, setAction] = useState<'transfer' | 'wipe'>('wipe')
   const [target, setTarget] = useState('')
   const [tempPw, setTempPw] = useState<string | null>(null)
+  const [mfaResetOk, setMfaResetOk] = useState<string | null>(null)
+  const [mfaResetUser, setMfaResetUser] = useState<User | null>(null)
+  const [mfaResetBusy, setMfaResetBusy] = useState(false)
   const [sso, setSso] = useState<OrgSsoAdmin | null>(null)
   const [ssoIssuer, setSsoIssuer] = useState('')
   const [ssoClientId, setSsoClientId] = useState('')
@@ -79,6 +84,7 @@ export function OrgPage() {
     setOrg(o)
     setName(o.name)
     setTtl(o.password_ttl_days)
+    setMfaRequired(o.mfa_required)
     setTariffId(tariffSelectable(tr.items, o.tariff) ? o.tariff.id : '')
     setUsers(u.items)
     setTariffs(tr.items)
@@ -105,8 +111,9 @@ export function OrgPage() {
     admin && selectedTariff && currentTariff && tariffId !== currentTariff.id,
   )
   const profileDirty = Boolean(
-    org && (name.trim() !== org.name || ttl !== org.password_ttl_days),
+    org && (name.trim() !== org.name || ttl !== org.password_ttl_days || mfaRequired !== org.mfa_required),
   )
+  const ssoBlocksMfa = Boolean(sso?.enabled)
 
   async function saveProfile() {
     if (!org) return
@@ -115,8 +122,11 @@ export function OrgPage() {
     if (trimmed && trimmed !== org.name) {
       tasks.push(api('/org', { method: 'PATCH', body: JSON.stringify({ name: trimmed }) }))
     }
-    if (ttl !== org.password_ttl_days) {
-      tasks.push(api('/org/settings', { method: 'PATCH', body: JSON.stringify({ password_ttl_days: ttl }) }))
+    const settingsPatch: { password_ttl_days?: number; mfa_required?: boolean } = {}
+    if (ttl !== org.password_ttl_days) settingsPatch.password_ttl_days = ttl
+    if (mfaRequired !== org.mfa_required) settingsPatch.mfa_required = mfaRequired
+    if (Object.keys(settingsPatch).length > 0) {
+      tasks.push(api('/org/settings', { method: 'PATCH', body: JSON.stringify(settingsPatch) }))
     }
     if (tasks.length === 0) return
     await Promise.all(tasks)
@@ -171,6 +181,23 @@ export function OrgPage() {
   async function resetPw(user: User) {
     const r = await api<{ password: string }>(`/org/users/${user.id}/reset-password`, { method: 'POST' })
     setTempPw(r.password)
+    setMfaResetOk(null)
+  }
+
+  async function confirmResetMfa() {
+    if (!mfaResetUser) return
+    setMfaResetBusy(true)
+    try {
+      await api(`/org/users/${mfaResetUser.id}/reset-mfa`, { method: 'POST' })
+      setMfaResetOk(mfaResetUser.email)
+      setTempPw(null)
+      setMfaResetUser(null)
+      await load()
+    } catch (e) {
+      showError(e)
+    } finally {
+      setMfaResetBusy(false)
+    }
   }
 
   async function offboard() {
@@ -202,6 +229,20 @@ export function OrgPage() {
               {t('org.ttl')}
               <input type="number" min={0} value={ttl} disabled={!admin} onChange={(e) => setTtl(Number(e.target.value))} />
             </label>
+            {admin && (
+              <label className="profile-check-row">
+                <input
+                  type="checkbox"
+                  checked={mfaRequired}
+                  disabled={ssoBlocksMfa}
+                  onChange={(e) => setMfaRequired(e.target.checked)}
+                />
+                {t('org.mfaRequired')}
+              </label>
+            )}
+            {admin && ssoBlocksMfa && (
+              <p className="muted">{t('org.mfaRequiredSsoHint')}</p>
+            )}
             {admin && (
               <button
                 className="primary"
@@ -353,6 +394,9 @@ export function OrgPage() {
           {t('org.newPassword')}: <code className="secret">{tempPw}</code>
         </p>
       )}
+      {mfaResetOk && (
+        <p className="ok">{t('org.resetMfaDone')} ({mfaResetOk})</p>
+      )}
       {admin && (
         <div className="card stack" style={{ marginBottom: 12 }}>
           <h3>{t('org.addUser')}</h3>
@@ -417,6 +461,9 @@ export function OrgPage() {
                     {u.disabled ? t('common.enable') : t('common.disable')}
                   </button>
                   <button type="button" onClick={() => void resetPw(u)}>{t('org.resetPassword')}</button>
+                  {u.auth_provider === 'local' && (u.mfa_configured ?? u.mfa_enabled) && (
+                    <button type="button" onClick={() => setMfaResetUser(u)}>{t('org.resetMfa')}</button>
+                  )}
                   <button type="button" className="danger" onClick={() => setOffUser(u)}>{t('org.offboard')}</button>
                 </td>
               )}
@@ -424,6 +471,16 @@ export function OrgPage() {
           ))}
         </tbody>
       </table>
+      {mfaResetUser && (
+        <ConfirmDialog
+          message={t('org.resetMfaConfirm', { email: mfaResetUser.email })}
+          confirmLabel={t('org.resetMfa')}
+          danger
+          busy={mfaResetBusy}
+          onConfirm={() => void confirmResetMfa()}
+          onClose={() => setMfaResetUser(null)}
+        />
+      )}
       {offUser && (
         <div className="modal-back" onClick={() => setOffUser(null)}>
           <div className="card modal stack" onClick={(e) => e.stopPropagation()}>

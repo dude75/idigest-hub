@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
 import { useAuth } from '../../auth'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { detectLedgerPreset, OrgLedgerModal } from '../../components/OrgLedgerModal'
-import type { Org, OrgLedger, Tariff } from '../../types'
+import type { Org, OrgLedger, Tariff, User } from '../../types'
 import { datePreset, statsRangeForDays, utcDay } from '../../util/date'
 import { showError } from '../../util'
 
@@ -22,6 +23,8 @@ export function InstanceOrgsTab() {
   const [orgUserId, setOrgUserId] = useState('')
   const [orgKind, setOrgKind] = useState('')
   const [tempPw, setTempPw] = useState<{ email: string; password: string } | null>(null)
+  const [mfaResetTarget, setMfaResetTarget] = useState<{ orgId: string; user: User } | null>(null)
+  const [mfaResetBusy, setMfaResetBusy] = useState(false)
 
   const orgLedgerQuery = useMemo(() => {
     const params = new URLSearchParams()
@@ -185,6 +188,14 @@ export function InstanceOrgsTab() {
                             {t('org.resetPassword')}
                           </button>
                         )}
+                        {u.auth_provider === 'local' && (u.mfa_configured ?? u.mfa_enabled) && !u.is_instance_admin && (
+                          <button
+                            type="button"
+                            onClick={() => setMfaResetTarget({ orgId: o.id, user: u })}
+                          >
+                            {t('org.resetMfa')}
+                          </button>
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -195,6 +206,25 @@ export function InstanceOrgsTab() {
         ))}
       </div>
 
+      {mfaResetTarget && (
+        <ConfirmDialog
+          message={t('org.resetMfaConfirm', { email: mfaResetTarget.user.email })}
+          confirmLabel={t('org.resetMfa')}
+          danger
+          busy={mfaResetBusy}
+          onConfirm={() => {
+            setMfaResetBusy(true)
+            void api(`/orgs/${mfaResetTarget.orgId}/users/${mfaResetTarget.user.id}/reset-mfa`, { method: 'POST' })
+              .then(() => {
+                setMfaResetTarget(null)
+                return refresh()
+              })
+              .catch(showError)
+              .finally(() => setMfaResetBusy(false))
+          }}
+          onClose={() => setMfaResetTarget(null)}
+        />
+      )}
       {orgCard && (
         <OrgLedgerModal
           org={orgCard}

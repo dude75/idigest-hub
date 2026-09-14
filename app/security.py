@@ -39,6 +39,14 @@ def new_reset_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def new_mfa_challenge_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def new_recovery_code() -> str:
+    return secrets.token_hex(5).upper()
+
+
 def random_password() -> str:
     return secrets.token_urlsafe(12)
 

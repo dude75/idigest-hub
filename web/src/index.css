@@ -1476,6 +1476,44 @@ audio { width: 100%; }
   color: var(--warn-ink);
   font-size: 0.9rem;
 }
+.mfa-qr-block {
+  display: flex;
+  justify-content: center;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.mfa-secret-block {
+  display: grid;
+  gap: 0.45rem;
+}
+.mfa-secret-block summary {
+  cursor: pointer;
+}
+.mfa-recovery-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+}
+.mfa-recovery-list code {
+  display: block;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius);
+  background: #f3f4f6;
+  font-size: 0.85rem;
+}
+.mfa-recovery-actions {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.mfa-recovery-actions .primary {
+  flex: 1;
+  min-width: 8rem;
+}
 .profile-secret-card {
   padding: 0.85rem;
   border: 1px solid #93c5fd;

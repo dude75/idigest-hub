@@ -102,6 +102,21 @@ Logout удаляет строку session и очищает cookie.
 
 Email сброса пароля требует SMTP **и** **Публичный URL** в Instance settings (`smtp_configured`); иначе `recovery_disabled`.
 
+## Двухфакторная аутентификация (TOTP)
+
+Опциональная **TOTP 2FA** для локальных пользователей (`auth_provider=local`). Включение и отключение — в профиле пользователя.
+
+| Правило | Поведение |
+| ------- | --------- |
+| Login | Сначала пароль; при включённой 2FA → `mfa_required` + challenge; сессия после TOTP или recovery code |
+| Org policy | `organizations.mfa_required` — org admin включает при **выключенном SSO**; принудительный enrollment |
+| SSO users | Hub 2FA не применяется; MFA на IdP |
+| API token create | Только cookie session; при 2FA → обязателен `totp_code` (step-up) |
+| Secret storage | `users.totp_secret_encrypted` (envelope encryption) |
+| Recovery | Одноразовые recovery codes при enrollment |
+
+Отключение 2FA блокируется при org policy. Смена пароля / revoke сессий не сбрасывает enrollment.
+
 ## Single sign-on (SSO)
 
 OIDC на уровне org (совместим с Keycloak). Authorization Code flow с **PKCE (S256)** и опциональным confidential client secret. Client secrets хранятся зашифрованными (`sso_client_secret_encrypted`). OAuth state (nonce + PKCE verifier) в подписанных payload (TTL 10 мин).

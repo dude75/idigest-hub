@@ -5,6 +5,8 @@ import { useAuth } from './auth'
 import { Shell } from './components/Shell'
 import { AudioPage } from './pages/AudioPage'
 import { ChangePasswordPage } from './pages/ChangePasswordPage'
+import { Enroll2faPage } from './pages/Enroll2faPage'
+import { Verify2faPage } from './pages/Verify2faPage'
 import { ForgotPage } from './pages/ForgotPage'
 import { LibraryPage } from './pages/LibraryPage'
 import { LandingPage } from './pages/LandingPage'
@@ -50,6 +52,7 @@ function Gate({ children }: { children: ReactNode }) {
   if (!bootstrapDone) return <Navigate to="/setup" replace />
   if (!me) return <Navigate to="/login" replace />
   if (me.must_change_password) return <Navigate to="/change-password" replace />
+  if (me.mfa_enrollment_required) return <Navigate to="/enroll-2fa" replace />
   return children
 }
 
@@ -63,6 +66,8 @@ export default function App() {
       <Route path="/forgot" element={<ForgotPage />} />
       <Route path="/reset" element={<ResetPage />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
+      <Route path="/verify-2fa" element={<Verify2faPage />} />
+      <Route path="/enroll-2fa" element={<Enroll2faPage />} />
       <Route
         path="/app"
         element={

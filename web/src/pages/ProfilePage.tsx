@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { useAuth } from '../auth'
+import { MfaSetupPanel } from '../components/MfaSetupPanel'
 import { allowedDefaultRoutes, defaultRouteLabel, normalizeDefaultRoute, type DefaultRoute } from '../routes'
 import type { ApiToken } from '../types'
 import { fmtDate, showError } from '../util'
@@ -32,6 +33,11 @@ export function ProfilePage() {
   const [backupSkills, setBackupSkills] = useState(true)
   const [backupFormat, setBackupFormat] = useState<'zip' | 'tgz'>('zip')
   const [backingUp, setBackingUp] = useState(false)
+  const [disablePw, setDisablePw] = useState('')
+  const [disableCode, setDisableCode] = useState('')
+  const [mfaBusy, setMfaBusy] = useState(false)
+  const [tokenTotp, setTokenTotp] = useState('')
+  const [tokenTotpOpen, setTokenTotpOpen] = useState(false)
 
   async function load() {
     const r = await api<{ items: ApiToken[] }>('/auth/tokens')
@@ -77,20 +83,46 @@ export function ProfilePage() {
     }
   }
 
-  async function createToken() {
+  async function createToken(totpCode?: string) {
     const name = tokenName.trim()
     if (!name || !apiAllowed) return
+    if (me?.mfa_enabled && !totpCode) {
+      setTokenTotpOpen(true)
+      return
+    }
     setCopied(false)
     setCreating(true)
     try {
-      const row = await api<ApiToken>('/auth/tokens', { method: 'POST', body: JSON.stringify({ name }) })
+      const body: { name: string; totp_code?: string } = { name }
+      if (me?.mfa_enabled && totpCode) body.totp_code = totpCode
+      const row = await api<ApiToken>('/auth/tokens', { method: 'POST', body: JSON.stringify(body) })
       setSecret(row.token || null)
       setTokenName('')
+      setTokenTotp('')
+      setTokenTotpOpen(false)
       await load()
     } catch (e) {
       showError(e)
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function disableMfa(e: FormEvent) {
+    e.preventDefault()
+    setMfaBusy(true)
+    try {
+      await api('/auth/mfa/disable', {
+        method: 'POST',
+        body: JSON.stringify({ password: disablePw, code: disableCode.trim() }),
+      })
+      setDisablePw('')
+      setDisableCode('')
+      await refresh()
+    } catch (err) {
+      showError(err)
+    } finally {
+      setMfaBusy(false)
     }
   }
 
@@ -174,6 +206,49 @@ export function ProfilePage() {
             {routeOk && <p className="ok">{t('profile.saved')}</p>}
           </div>
         </section>
+
+        {me?.user.auth_provider === 'local' && (
+          <section className="card stack profile-section">
+            <div className="profile-section-head">
+              <h2>{t('mfa.title')}</h2>
+              <p className="muted profile-section-lead">{t('mfa.profileLead')}</p>
+            </div>
+            {me.mfa_enabled ? (
+              <form className="stack" onSubmit={(e) => void disableMfa(e)}>
+                <p className="ok">{t('mfa.enabled')}</p>
+                {me.mfa_required && <p className="muted">{t('mfa.requiredByOrg')}</p>}
+                {!me.mfa_required && (
+                  <>
+                    <label>
+                      {t('common.password')}
+                      <input
+                        type="password"
+                        required
+                        value={disablePw}
+                        onChange={(e) => setDisablePw(e.target.value)}
+                        autoComplete="current-password"
+                      />
+                    </label>
+                    <label>
+                      {t('mfa.codeOrRecovery')}
+                      <input
+                        type="text"
+                        required
+                        value={disableCode}
+                        onChange={(e) => setDisableCode(e.target.value)}
+                      />
+                    </label>
+                    <button className="danger" disabled={mfaBusy} type="submit">
+                      {t('mfa.disable')}
+                    </button>
+                  </>
+                )}
+              </form>
+            ) : (
+              <MfaSetupPanel onComplete={() => refresh()} />
+            )}
+          </section>
+        )}
 
         <form className="card stack profile-section" onSubmit={(e) => void changePw(e)}>
           <div className="profile-section-head">
@@ -285,6 +360,35 @@ export function ProfilePage() {
                 <code className="secret profile-secret-value">{secret}</code>
                 <button type="button" onClick={() => void copySecret()}>
                   {copied ? t('profile.copied') : t('profile.copy')}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tokenTotpOpen && (
+            <div className="profile-secret-card stack">
+              <p className="profile-secret-title">{t('mfa.tokenStepUp')}</p>
+              <label>
+                {t('mfa.code')}
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={tokenTotp}
+                  onChange={(e) => setTokenTotp(e.target.value)}
+                />
+              </label>
+              <div className="row">
+                <button
+                  className="primary"
+                  type="button"
+                  disabled={creating || !tokenTotp.trim()}
+                  onClick={() => void createToken(tokenTotp.trim())}
+                >
+                  {creating ? t('common.loading') : t('profile.newToken')}
+                </button>
+                <button type="button" onClick={() => { setTokenTotpOpen(false); setTokenTotp('') }}>
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>

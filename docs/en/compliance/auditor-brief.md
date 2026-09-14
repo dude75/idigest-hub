@@ -88,7 +88,9 @@ Full matrix: [§ Shared responsibility](#shared-responsibility-matrix).
 | Bootstrap gate | One-time `/setup` with `INSTANCE_BOOTSTRAP_TOKEN` | `app/routers/auth.py`, `.env.example` |
 | Metrics endpoint | Bearer `METRICS_TOKEN` required | `app/metrics_auth.py`, tests: `tests/test_prometheus.py` |
 
-**Not implemented:** MFA/2FA, OAuth provider mode for third-party apps.
+**Local-user MFA:** TOTP 2FA (opt-in in profile; org may require when SSO off). SSO users rely on IdP MFA.
+
+**Not implemented:** OAuth provider mode for third-party apps.
 
 ### 2. Data protection and cryptography
 
@@ -254,7 +256,7 @@ Use this table to map idigest-hub controls to your compliance framework. Status 
 | Backup & DR (RTO/RPO) | Documents what to back up | Execute backup/restore drills |
 | Worker infrastructure | Encrypts stored worker tokens | Secure worker hosts separately |
 | Audit log retention | Stores in customer DB | Define retention, export, archival |
-| User MFA | — | IdP MFA (SSO) or accept password-only risk |
+| User MFA | TOTP for local users; org policy when SSO off | IdP MFA for SSO members |
 | SIEM integration | Exports via DB/API/logs | Connect to SIEM |
 
 ---
@@ -263,7 +265,7 @@ Use this table to map idigest-hub controls to your compliance framework. Status 
 
 | Limitation | Risk | Recommended compensating control |
 | ---------- | ---- | -------------------------------- |
-| No built-in MFA | Credential theft | Enforce MFA at IdP (SSO); VPN for admin access |
+| Password-only local users | Credential theft | Enable TOTP in profile; org `mfa_required`; IdP MFA for SSO |
 | In-memory rate limits, single worker | No horizontal scale; limits reset on restart | nginx rate limiting; single-instance HA acceptance |
 | Local audio not app-encrypted | Disk access exposes files | Encrypted volume, S3 backend with SSE-KMS |
 | Auth events not in audit_log | Incomplete login forensics | IdP logs, reverse proxy access logs |
