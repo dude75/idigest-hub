@@ -192,7 +192,14 @@
     "toForgot": "Забыли пароль?",
     "sent": "Если аккаунт есть, ссылка отправлена.",
     "resetDone": "Пароль обновлён. Можно войти.",
-    "mustChange": "Сначала задайте новый пароль."
+    "mustChange": "Сначала задайте новый пароль.",
+    "modeEmail": "Email",
+    "modeSso": "SSO",
+    "orgId": "ID организации",
+    "orgIdHint": "Попросите ID у IT-администратора.",
+    "orgIdInvalid": "Введите корректный ID организации (UUID).",
+    "changeOrgId": "Не та организация? Сменить ID",
+    "toEmailLogin": "Войти по email и паролю"
   },
   "library": {
     "title": "Библиотека",
@@ -301,7 +308,9 @@
     "clientSecret": "Client secret",
     "secretSaved": "Оставьте пустым, чтобы сохранить текущий secret",
     "enabled": "SSO включён",
-    "configured": "Настроен, выкл."
+    "configured": "Настроен, выкл.",
+    "orgId": "ID организации",
+    "orgIdHint": "Передайте этот ID сотрудникам — они вводят его на странице входа во вкладке SSO."
   },
   "stats": {
     "title": "Статистика",

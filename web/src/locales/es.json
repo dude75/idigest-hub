@@ -192,7 +192,14 @@
     "toForgot": "¿Olvidó la contraseña?",
     "sent": "Si la cuenta existe, se envió el enlace.",
     "resetDone": "Contraseña actualizada. Puede entrar.",
-    "mustChange": "Debe establecer una nueva contraseña."
+    "mustChange": "Debe establecer una nueva contraseña.",
+    "modeEmail": "Correo",
+    "modeSso": "SSO",
+    "orgId": "ID de organización",
+    "orgIdHint": "Pida este ID al administrador de TI.",
+    "orgIdInvalid": "Introduzca un ID de organización válido (UUID).",
+    "changeOrgId": "¿Organización incorrecta? Cambiar ID",
+    "toEmailLogin": "Entrar con correo y contraseña"
   },
   "library": {
     "title": "Biblioteca",
@@ -301,7 +308,9 @@
     "clientSecret": "Secreto de cliente",
     "secretSaved": "Dejar en blanco para conservar el secreto guardado",
     "enabled": "SSO habilitado",
-    "configured": "Configurado, desactivado"
+    "configured": "Configurado, desactivado",
+    "orgId": "ID de organización",
+    "orgIdHint": "Comparta este ID con los empleados — lo introducen en la página de inicio, pestaña SSO."
   },
   "stats": {
     "title": "Estadísticas",

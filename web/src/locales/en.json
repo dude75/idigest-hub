@@ -192,7 +192,14 @@
     "toForgot": "Forgot password?",
     "sent": "If the account exists, a reset link was sent.",
     "resetDone": "Password updated. You can sign in.",
-    "mustChange": "You must set a new password before continuing."
+    "mustChange": "You must set a new password before continuing.",
+    "modeEmail": "Email",
+    "modeSso": "SSO",
+    "orgId": "Organization ID",
+    "orgIdHint": "Ask your IT admin for this ID.",
+    "orgIdInvalid": "Enter a valid organization ID (UUID).",
+    "changeOrgId": "Wrong organization? Change ID",
+    "toEmailLogin": "Sign in with email and password"
   },
   "library": {
     "title": "Library",
@@ -301,7 +308,9 @@
     "clientSecret": "Client secret",
     "secretSaved": "Leave blank to keep the saved secret",
     "enabled": "SSO enabled",
-    "configured": "Configured, off"
+    "configured": "Configured, off",
+    "orgId": "Organization ID",
+    "orgIdHint": "Share this ID with employees — they enter it on the sign-in page under SSO."
   },
   "stats": {
     "title": "Statistics",

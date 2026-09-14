@@ -39,7 +39,7 @@ export function Shell() {
         </div>
       )}
       <header className="topbar">
-        <AppBrand link />
+        <AppBrand />
         <nav className="nav">
           {member && (
             <NavLink to={LIBRARY_DEFAULT} className={() => (libraryActive ? 'active' : '')}>

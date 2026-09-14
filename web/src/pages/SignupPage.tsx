@@ -3,7 +3,7 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { AuthPageShell } from '../components/AuthPageShell'
 import { resolveHomePath } from '../routes'
 import type { Tariff } from '../types'
 import { showError } from '../util'
@@ -54,12 +54,9 @@ export function SignupPage() {
   }
 
   return (
-    <div className="auth-page">
+    <AuthPageShell>
       <form className="card auth-card stack" onSubmit={(e) => void onSubmit(e)}>
-        <div className="row">
-          <h1 className="grow">{t('auth.signup')}</h1>
-          <LanguageSwitcher />
-        </div>
+        <h1>{t('auth.signup')}</h1>
         {tariffsLoading ? (
           <p className="muted">{t('common.loading')}</p>
         ) : tariffs.length === 0 ? (
@@ -89,6 +86,6 @@ export function SignupPage() {
         )}
         <Link to="/login">{t('auth.toLogin')}</Link>
       </form>
-    </div>
+    </AuthPageShell>
   )
 }

@@ -3,7 +3,7 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, ApiError } from '../api'
 import { useAuth } from '../auth'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { AuthPageShell } from '../components/AuthPageShell'
 import { resolveHomePath } from '../routes'
 import { errorText, showError } from '../util'
 
@@ -42,12 +42,9 @@ export function SsoLoginPage() {
   }
 
   return (
-    <div className="auth-page">
+    <AuthPageShell>
       <div className="card auth-card stack">
-        <div className="row">
-          <h1 className="grow">{t('sso.title')}</h1>
-          <LanguageSwitcher />
-        </div>
+        <h1>{t('sso.title')}</h1>
         {authError && <p className="err">{errorText(new ApiError(authError, ''), t)}</p>}
         {loading && <p className="muted">{t('common.loading')}</p>}
         {!loading && info && (
@@ -62,8 +59,9 @@ export function SsoLoginPage() {
             )}
           </>
         )}
-        <Link to="/login">{t('auth.login')}</Link>
+        <Link to="/login?mode=sso">{t('auth.changeOrgId')}</Link>
+        <Link to="/login">{t('auth.toEmailLogin')}</Link>
       </div>
-    </div>
+    </AuthPageShell>
   )
 }

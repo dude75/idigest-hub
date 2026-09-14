@@ -299,14 +299,20 @@ export function OrgPage() {
           <div className="sso-card stack fold-body">
           <p className="muted sso-lead">{t('sso.settingsLead')}</p>
           {sso && (
-            sso.public_base_url_set && sso.login_url && sso.callback_url ? (
+            <>
               <div className="sso-ref">
-                <SsoUrlRow label={t('sso.callbackUrl')} value={sso.callback_url} />
-                <SsoUrlRow label={t('sso.loginUrl')} value={sso.login_url} />
+                <SsoUrlRow label={t('sso.orgId')} value={sso.org_id} />
               </div>
-            ) : (
-              <p className="err sso-lead">{t('sso.publicBaseUrlMissing')}</p>
-            )
+              <p className="muted sso-lead">{t('sso.orgIdHint')}</p>
+              {sso.public_base_url_set && sso.login_url && sso.callback_url ? (
+                <div className="sso-ref">
+                  <SsoUrlRow label={t('sso.callbackUrl')} value={sso.callback_url} />
+                  <SsoUrlRow label={t('sso.loginUrl')} value={sso.login_url} />
+                </div>
+              ) : (
+                <p className="err sso-lead">{t('sso.publicBaseUrlMissing')}</p>
+              )}
+            </>
           )}
           <div className="sso-fields">
             <label>
