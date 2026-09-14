@@ -663,7 +663,7 @@ async def locked_tick(
         await tick_once(db, task_id=task_id, refresh_health=refresh_health)
 
 
-async def locked_tick_job(task_id: str, *, refresh_health: bool = True) -> None:
+async def locked_tick_job(task_id: str | None = None, *, refresh_health: bool = True) -> None:
     """Run a dispatcher tick in a fresh DB session (for BackgroundTasks)."""
     from app.db import SessionLocal
 

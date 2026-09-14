@@ -18,23 +18,6 @@ from tests.conftest import (
 )
 
 
-@pytest.fixture
-def spy_locked_tick_job(monkeypatch):
-    calls: list[dict] = []
-    import app.routers.tasks as tasks_router
-    import app.services.dispatcher as dispatcher
-
-    original = dispatcher.locked_tick_job
-
-    async def spy(task_id: str, *, refresh_health: bool = True) -> None:
-        calls.append({"task_id": task_id, "refresh_health": refresh_health})
-        await original(task_id, refresh_health=refresh_health)
-
-    monkeypatch.setattr(dispatcher, "locked_tick_job", spy)
-    monkeypatch.setattr(tasks_router, "locked_tick_job", spy)
-    return calls
-
-
 def _org_user_with_audio(client, fake_workers=None, *, seed=True):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

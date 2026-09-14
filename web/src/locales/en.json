@@ -538,6 +538,7 @@
     "retry": "Retry",
     "failed": "Task failed",
     "active": "In progress",
+    "activeCount": "{{count}} total",
     "done": "Completed",
     "pageSize": "Show",
     "pageRange": "{{from}}–{{to}} of {{total}}",

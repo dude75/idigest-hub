@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
@@ -6,9 +6,14 @@ import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import type { Org, Task, User } from '../types'
 import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage, taskIsRetriable } from '../util'
 
-const ACTIVE = new Set(['queued', 'running'])
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
+
+type TaskListResponse = {
+  active: Task[]
+  done: Task[]
+  done_total: number
+}
 
 function taskHref(task: Task): string {
   if (task.status === 'success' && task.type === 'import' && task.audio_id) return `/app/audio/${task.audio_id}`
@@ -24,10 +29,12 @@ function statusClass(status: string): string {
   return 'badge'
 }
 
-function tasksPath(orgId: string, userId: string): string {
+function tasksPath(orgId: string, userId: string, doneOffset: number, pageSize: PageSize): string {
   const q = new URLSearchParams()
   if (orgId) q.set('org_id', orgId)
   if (userId) q.set('user_id', userId)
+  q.set('done_limit', String(pageSize))
+  q.set('done_offset', String(doneOffset))
   const s = q.toString()
   return s ? `/tasks?${s}` : '/tasks'
 }
@@ -49,13 +56,16 @@ function uniqueUsers(orgs: Org[], orgId: string): User[] {
 export function TasksPage() {
   const { t } = useTranslation()
   const { me } = useAuth()
-  const [items, setItems] = useState<Task[]>([])
+  const [active, setActive] = useState<Task[]>([])
+  const [done, setDone] = useState<Task[]>([])
+  const [doneTotal, setDoneTotal] = useState(0)
   const [pageSize, setPageSize] = useState<PageSize>(10)
   const [page, setPage] = useState(0)
   const [orgs, setOrgs] = useState<Org[]>([])
   const [orgUsers, setOrgUsers] = useState<User[]>([])
   const [orgId, setOrgId] = useState('')
   const [userId, setUserId] = useState('')
+  const fetchSeq = useRef(0)
   const instance = isInstanceAdmin(me)
   const admin = isOrgAdmin(me)
   const showOwner = instance || admin
@@ -67,11 +77,22 @@ export function TasksPage() {
     return [...orgUsers].sort((a, b) => a.email.localeCompare(b.email))
   }, [instance, orgs, orgId, orgUsers])
 
-  async function load() {
+  const doneOffset = page * pageSize
+  const pageCount = Math.max(1, Math.ceil(doneTotal / pageSize))
+  const safePage = Math.min(page, pageCount - 1)
+  const from = doneTotal === 0 ? 0 : safePage * pageSize + 1
+  const to = Math.min(doneTotal, (safePage + 1) * pageSize)
+
+  async function load(offset = doneOffset, size: PageSize = pageSize) {
+    const seq = ++fetchSeq.current
     try {
-      const r = await api<{ items: Task[] }>(tasksPath(orgId, userId))
-      setItems(r.items)
+      const r = await api<TaskListResponse>(tasksPath(orgId, userId, offset, size))
+      if (seq !== fetchSeq.current) return
+      setActive(r.active)
+      setDone(r.done)
+      setDoneTotal(r.done_total)
     } catch (e) {
+      if (seq !== fetchSeq.current) return
       showError(e)
     }
   }
@@ -101,16 +122,20 @@ export function TasksPage() {
   useEffect(() => {
     let stop = false
     let timer = 0
+    const offset = safePage * pageSize
+
     async function tick() {
       if (stop) return
+      const seq = ++fetchSeq.current
       try {
-        const r = await api<{ items: Task[] }>(tasksPath(orgId, userId))
-        if (stop) return
-        setItems(r.items)
-        const active = r.items.some((item) => ACTIVE.has(item.status))
-        timer = window.setTimeout(() => { void tick() }, active ? 1500 : 8000)
+        const r = await api<TaskListResponse>(tasksPath(orgId, userId, offset, pageSize))
+        if (stop || seq !== fetchSeq.current) return
+        setActive(r.active)
+        setDone(r.done)
+        setDoneTotal(r.done_total)
+        timer = window.setTimeout(() => { void tick() }, r.active.length > 0 ? 1500 : 8000)
       } catch (e) {
-        if (!stop) {
+        if (!stop && seq === fetchSeq.current) {
           showError(e, { id: 'tasks-poll' })
           timer = window.setTimeout(() => { void tick() }, 8000)
         }
@@ -121,7 +146,7 @@ export function TasksPage() {
       stop = true
       window.clearTimeout(timer)
     }
-  }, [orgId, userId])
+  }, [orgId, userId, pageSize, safePage])
 
   async function cancel(id: string) {
     try {
@@ -140,14 +165,6 @@ export function TasksPage() {
       showError(e)
     }
   }
-
-  const active = items.filter((item) => ACTIVE.has(item.status))
-  const done = items.filter((item) => !ACTIVE.has(item.status))
-  const pageCount = Math.max(1, Math.ceil(done.length / pageSize))
-  const safePage = Math.min(page, pageCount - 1)
-  const pagedDone = done.slice(safePage * pageSize, (safePage + 1) * pageSize)
-  const from = done.length === 0 ? 0 : safePage * pageSize + 1
-  const to = Math.min(done.length, (safePage + 1) * pageSize)
 
   function row(task: Task) {
     const canManage = admin || task.user_id === me?.user.id
@@ -229,7 +246,12 @@ export function TasksPage() {
           </label>
         </div>
       )}
-      <h2>{t('task.active')}</h2>
+      <div className="row section-head">
+        <h2>{t('task.active')}</h2>
+        {active.length > 0 && (
+          <span className="muted">{t('task.activeCount', { count: active.length })}</span>
+        )}
+      </div>
       <div className="list">
         {active.length === 0 && <p className="muted">{t('common.empty')}</p>}
         {active.map(row)}
@@ -252,15 +274,15 @@ export function TasksPage() {
         </label>
       </div>
       <div className="list">
-        {done.length === 0 && <p className="muted">{t('common.empty')}</p>}
-        {pagedDone.map(row)}
+        {doneTotal === 0 && <p className="muted">{t('common.empty')}</p>}
+        {done.map(row)}
       </div>
-      {done.length > pageSize && (
+      {doneTotal > pageSize && (
         <div className="row pager">
           <button type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
             {t('common.prev')}
           </button>
-          <span className="muted">{t('task.pageRange', { from, to, total: done.length })}</span>
+          <span className="muted">{t('task.pageRange', { from, to, total: doneTotal })}</span>
           <button type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}>
             {t('common.next')}
           </button>

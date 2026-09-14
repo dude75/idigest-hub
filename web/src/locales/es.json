@@ -538,6 +538,7 @@
     "retry": "Reintentar",
     "failed": "La tarea falló",
     "active": "En curso",
+    "activeCount": "{{count}} en total",
     "done": "Completadas",
     "pageSize": "Mostrar",
     "pageRange": "{{from}}–{{to}} de {{total}}",

@@ -18,6 +18,7 @@ from tests.conftest import (
     setup_admin,
     signup,
     upload_audio,
+    task_list_ids,
     wait_task,
     wait_task_row,
 )
@@ -414,14 +415,16 @@ def test_list_tasks_scoped_by_role(client, fake_workers):
 
     member_list = client.get("/api/v1/tasks")
     assert member_list.status_code == 200, member_list.text
-    assert {item["task_id"] for item in member_list.json()["items"]} == {mem_id}
-    assert member_list.json()["items"][0]["owner_email"] == "mem@example.com"
+    member_payload = member_list.json()
+    assert task_list_ids(member_payload) == {mem_id}
+    member_item = (member_payload["active"] + member_payload["done"])[0]
+    assert member_item["owner_email"] == "mem@example.com"
 
     logout(client)
     login_ready(client, "lead@example.com", "leadpass1")
     admin_list = client.get("/api/v1/tasks")
     assert admin_list.status_code == 200, admin_list.text
-    assert {item["task_id"] for item in admin_list.json()["items"]} == {lead_id, mem_id}
+    assert task_list_ids(admin_list.json()) == {lead_id, mem_id}
 
     logout(client)
     assert signup(client, "other@example.com", "otherpass", tariff_id).status_code == 200
@@ -431,13 +434,13 @@ def test_list_tasks_scoped_by_role(client, fake_workers):
     assert other_task.status_code == 202, other_task.text
     other_id = other_task.json()["task_id"]
     other_list = client.get("/api/v1/tasks")
-    assert {item["task_id"] for item in other_list.json()["items"]} == {other_id}
+    assert task_list_ids(other_list.json()) == {other_id}
 
     logout(client)
     login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     inst_list = client.get("/api/v1/tasks")
     assert inst_list.status_code == 200, inst_list.text
-    assert {item["task_id"] for item in inst_list.json()["items"]} == {lead_id, mem_id, other_id}
+    assert task_list_ids(inst_list.json()) == {lead_id, mem_id, other_id}
     hidden = client.get(f"/api/v1/tasks/{lead_id}")
     assert hidden.status_code == 200
 
@@ -476,14 +479,14 @@ def test_list_tasks_admin_filters(client, fake_workers):
     mem_task = client.post("/api/v1/tasks/transcribe", json={"audio_id": mem_audio.json()["id"]})
     mem_id = mem_task.json()["task_id"]
     scoped = client.get(f"/api/v1/tasks?user_id={lead_user_id}")
-    assert {item["task_id"] for item in scoped.json()["items"]} == {mem_id}
+    assert task_list_ids(scoped.json()) == {mem_id}
 
     logout(client)
     login_ready(client, "lead@example.com", "leadpass1")
     all_org = client.get("/api/v1/tasks")
-    assert {item["task_id"] for item in all_org.json()["items"]} == {lead_id, mem_id}
+    assert task_list_ids(all_org.json()) == {lead_id, mem_id}
     by_mem = client.get(f"/api/v1/tasks?user_id={mem_user_id}")
-    assert {item["task_id"] for item in by_mem.json()["items"]} == {mem_id}
+    assert task_list_ids(by_mem.json()) == {mem_id}
 
     logout(client)
     assert signup(client, "other@example.com", "otherpass", tariff_id).status_code == 200
@@ -493,20 +496,20 @@ def test_list_tasks_admin_filters(client, fake_workers):
     other_id = other_task.json()["task_id"]
     other_user_id = other_task.json()["user_id"]
     ignored_org = client.get(f"/api/v1/tasks?org_id={lead_org}")
-    assert {item["task_id"] for item in ignored_org.json()["items"]} == {other_id}
+    assert task_list_ids(ignored_org.json()) == {other_id}
 
     logout(client)
     login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     inst_all = client.get("/api/v1/tasks")
-    assert {item["task_id"] for item in inst_all.json()["items"]} == {lead_id, mem_id, other_id}
+    assert task_list_ids(inst_all.json()) == {lead_id, mem_id, other_id}
     by_org = client.get(f"/api/v1/tasks?org_id={lead_org}")
-    assert {item["task_id"] for item in by_org.json()["items"]} == {lead_id, mem_id}
+    assert task_list_ids(by_org.json()) == {lead_id, mem_id}
     by_org_user = client.get(f"/api/v1/tasks?org_id={lead_org}&user_id={mem_user_id}")
-    assert {item["task_id"] for item in by_org_user.json()["items"]} == {mem_id}
+    assert task_list_ids(by_org_user.json()) == {mem_id}
     by_user = client.get(f"/api/v1/tasks?user_id={other_user_id}")
-    assert {item["task_id"] for item in by_user.json()["items"]} == {other_id}
+    assert task_list_ids(by_user.json()) == {other_id}
     other_org_list = client.get(f"/api/v1/tasks?org_id={other_org}")
-    assert {item["task_id"] for item in other_org_list.json()["items"]} == {other_id}
+    assert task_list_ids(other_org_list.json()) == {other_id}
 
 
 @pytest.mark.asyncio

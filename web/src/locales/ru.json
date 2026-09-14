@@ -538,6 +538,7 @@
     "retry": "Повторить",
     "failed": "Задача завершилась ошибкой",
     "active": "Выполняются",
+    "activeCount": "всего: {{count}}",
     "done": "Завершённые",
     "pageSize": "Показывать",
     "pageRange": "{{from}}–{{to}} из {{total}}",

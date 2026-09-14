@@ -73,6 +73,23 @@ def client(tmp_path, monkeypatch):
     reset_rate_limiter()
 
 
+@pytest.fixture
+def spy_locked_tick_job(monkeypatch):
+    calls: list[dict] = []
+    import app.routers.tasks as tasks_router
+    import app.services.dispatcher as dispatcher
+
+    original = dispatcher.locked_tick_job
+
+    async def spy(task_id: str | None = None, *, refresh_health: bool = True) -> None:
+        calls.append({"task_id": task_id, "refresh_health": refresh_health})
+        await original(task_id, refresh_health=refresh_health)
+
+    monkeypatch.setattr(dispatcher, "locked_tick_job", spy)
+    monkeypatch.setattr(tasks_router, "locked_tick_job", spy)
+    return calls
+
+
 def err_code(response) -> str:
     return response.json()["error"]["code"]
 
@@ -247,6 +264,13 @@ def set_task_queued_at_past(task_id: str, seconds: int = 7200) -> None:
         db.commit()
     finally:
         db.close()
+
+
+def task_list_ids(payload: dict) -> set[str]:
+    """Collect task ids from GET /tasks (active + done)."""
+    return {item["task_id"] for item in payload.get("active", [])} | {
+        item["task_id"] for item in payload.get("done", [])
+    }
 
 
 def get_task_row(task_id: str):

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.db import get_session
@@ -19,6 +19,8 @@ from app.services.dispatcher import locked_tick_job
 from app.timeutil import utcnow
 
 router = APIRouter()
+
+ACTIVE_TASK_STATUSES = ("queued", "running")
 
 NON_RETRIABLE_ERROR_CODES = frozenset(
     {
@@ -232,14 +234,7 @@ async def create_summarize(
     return task_public(task)
 
 
-@router.get("/tasks")
-def list_tasks(
-    org_id: str | None = None,
-    user_id: str | None = None,
-    db: Session = Depends(get_session),
-    ctx: AuthContext = Depends(require_auth),
-) -> dict:
-    query = select(Task).order_by(Task.updated_at.desc())
+def _list_tasks_filters(ctx: AuthContext, org_id: str | None, user_id: str | None) -> list:
     filters = _visible_tasks_filters(ctx)
     org_filter = (org_id or "").strip()
     user_filter = (user_id or "").strip()
@@ -250,11 +245,52 @@ def list_tasks(
             filters.append(Task.user_id == user_filter)
     elif ctx.is_org_admin and user_filter:
         filters.append(Task.user_id == user_filter)
+    return filters
+
+
+@router.get("/tasks")
+def list_tasks(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session),
+    ctx: AuthContext = Depends(require_auth),
+    org_id: str | None = None,
+    user_id: str | None = None,
+    done_limit: int = Query(10, ge=1, le=100),
+    done_offset: int = Query(0, ge=0),
+) -> dict:
+    filters = _list_tasks_filters(ctx, org_id, user_id)
+    base = select(Task)
     if filters:
-        query = query.where(*filters)
-    rows = list(db.scalars(query).all())
-    extras = _task_list_extra(db, rows)
-    return {"items": [task_public(row, extras.get(row.id)) for row in rows]}
+        base = base.where(*filters)
+
+    active_rows = list(
+        db.scalars(
+            base.where(Task.status.in_(ACTIVE_TASK_STATUSES)).order_by(Task.updated_at.desc())
+        ).all()
+    )
+
+    done_count = select(func.count()).select_from(Task).where(~Task.status.in_(ACTIVE_TASK_STATUSES))
+    if filters:
+        done_count = done_count.where(*filters)
+    done_total = int(db.scalar(done_count) or 0)
+
+    done_rows = list(
+        db.scalars(
+            base.where(~Task.status.in_(ACTIVE_TASK_STATUSES))
+            .order_by(Task.updated_at.desc())
+            .offset(done_offset)
+            .limit(done_limit)
+        ).all()
+    )
+
+    extras = _task_list_extra(db, active_rows + done_rows)
+    if active_rows:
+        background_tasks.add_task(locked_tick_job, None, refresh_health=False)
+    return {
+        "active": [task_public(row, extras.get(row.id)) for row in active_rows],
+        "done": [task_public(row, extras.get(row.id)) for row in done_rows],
+        "done_total": done_total,
+    }
 
 
 @router.get("/tasks/{task_id}")
