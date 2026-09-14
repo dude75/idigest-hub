@@ -171,7 +171,11 @@ export function InstanceOrgsTab() {
                         {!u.is_instance_admin && (
                           <button
                             type="button"
-                            onClick={() => void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) }).then(() => refresh())}
+                            onClick={() =>
+                              void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) })
+                                .then(() => refresh())
+                                .catch(showError)
+                            }
                           >
                             {t('instance.impersonate')}
                           </button>

@@ -451,7 +451,10 @@ export function OrgPage() {
                         void api('/impersonate', {
                           method: 'POST',
                           body: JSON.stringify({ user_id: u.id }),
-                        }).then(() => refresh()).then(() => nav(LIBRARY_DEFAULT))
+                        })
+                          .then(() => refresh())
+                          .then(() => nav(LIBRARY_DEFAULT))
+                          .catch(showError)
                       }
                     >
                       {t('org.impersonate')}

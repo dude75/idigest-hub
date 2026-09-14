@@ -53,6 +53,12 @@ def clear_auth_cookies(response: Response) -> None:
     clear_csrf_cookie(response)
 
 
+def ensure_csrf_cookie(response: Response, *, has_session: bool, csrf_present: bool, max_age: int = SESSION_TTL_SEC) -> None:
+    """Backfill CSRF for sessions created before CSRF cookies were introduced."""
+    if has_session and not csrf_present:
+        set_csrf_cookie(response, new_session_token(), max_age=max_age)
+
+
 def sliding_cookie(response: Response, token: str | None, *, max_age: int = SESSION_TTL_SEC) -> None:
     if token:
         set_session_cookie(response, token, max_age=max_age)

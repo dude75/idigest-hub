@@ -128,3 +128,17 @@ def test_csrf_exempt_login(client):
     )
     assert response.status_code == 200, response.text
     assert client.cookies.get("hub_csrf")
+
+
+def test_csrf_backfilled_for_legacy_session(client):
+    setup_admin(client)
+    client.cookies.pop("hub_csrf", None)
+    assert client.cookies.get("hub_session")
+    assert client.cookies.get("hub_csrf") is None
+
+    me = client.get("/api/v1/me")
+    assert me.status_code == 200, me.text
+    assert client.cookies.get("hub_csrf")
+
+    response = client.post("/api/v1/auth/logout")
+    assert response.status_code == 200, response.text

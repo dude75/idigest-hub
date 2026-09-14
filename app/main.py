@@ -16,8 +16,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.config import Settings, get_settings
-from app.cookies import set_session_cookie
-from app.constants import COOKIE_NAME
+from app.cookies import ensure_csrf_cookie, set_session_cookie
+from app.constants import COOKIE_NAME, CSRF_COOKIE_NAME
 from app.csrf import enforce_csrf
 from app.deps import cached_session_ttl_sec
 from app.db import get_engine, init_database
@@ -161,8 +161,15 @@ def _register_middleware(application: FastAPI) -> None:
             if key.lower() == b"set-cookie" and COOKIE_NAME.encode() in value:
                 set_cookie_already = True
                 break
+        max_age = cached_session_ttl_sec()
         if not set_cookie_already:
-            set_session_cookie(response, token, max_age=cached_session_ttl_sec())
+            set_session_cookie(response, token, max_age=max_age)
+        ensure_csrf_cookie(
+            response,
+            has_session=True,
+            csrf_present=bool(request.cookies.get(CSRF_COOKIE_NAME)),
+            max_age=max_age,
+        )
         return response
 
 
