@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import socket
 from pathlib import Path
 
 import pytest
@@ -14,6 +15,48 @@ from tests.conftest import (
     setup_admin,
     signup,
 )
+
+
+@pytest.fixture(autouse=True)
+def _mock_catalog_host_dns(monkeypatch):
+    """Keep import validation deterministic without live DNS lookups."""
+
+    real_getaddrinfo = socket.getaddrinfo
+
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        if host.endswith("youtube.com") or host == "youtu.be":
+            return [
+                (
+                    socket.AF_INET,
+                    socket.SOCK_STREAM,
+                    socket.IPPROTO_TCP,
+                    "",
+                    ("142.250.185.78", port),
+                )
+            ]
+        if host.endswith("tiktok.com"):
+            return [
+                (
+                    socket.AF_INET,
+                    socket.SOCK_STREAM,
+                    socket.IPPROTO_TCP,
+                    "",
+                    ("20.42.73.27", port),
+                )
+            ]
+        if host.endswith("rutube.ru"):
+            return [
+                (
+                    socket.AF_INET,
+                    socket.SOCK_STREAM,
+                    socket.IPPROTO_TCP,
+                    "",
+                    ("185.71.76.0", port),
+                )
+            ]
+        return real_getaddrinfo(host, port, *args, **kwargs)
+
+    monkeypatch.setattr("app.services.url_import.socket.getaddrinfo", fake_getaddrinfo)
 
 
 @pytest.fixture(autouse=True)
@@ -191,6 +234,73 @@ def test_assert_import_fetch_allowed_accepts_catalog_host():
         settings_allowed=["Youtube"],
     )
     assert cleaned.startswith("https://")
+
+
+def test_assert_import_fetch_allowed_blocks_dns_rebinding(monkeypatch):
+    from app.services.url_import import UrlImportError, assert_import_fetch_allowed
+
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        return [
+            (
+                socket.AF_INET,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("127.0.0.1", port),
+            )
+        ]
+
+    monkeypatch.setattr("app.services.url_import.socket.getaddrinfo", fake_getaddrinfo)
+
+    with pytest.raises(UrlImportError) as exc_info:
+        assert_import_fetch_allowed(
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            settings_allowed=["Youtube"],
+        )
+    assert exc_info.value.code == "unsupported_host"
+    assert exc_info.value.meta["reason"] == "blocked_address"
+    assert exc_info.value.meta["resolved_ip"] == "127.0.0.1"
+
+
+def test_assert_import_fetch_allowed_blocks_private_resolved_ip(monkeypatch):
+    from app.services.url_import import UrlImportError, assert_import_fetch_allowed
+
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        return [
+            (
+                socket.AF_INET,
+                socket.SOCK_STREAM,
+                socket.IPPROTO_TCP,
+                "",
+                ("10.0.0.5", port),
+            )
+        ]
+
+    monkeypatch.setattr("app.services.url_import.socket.getaddrinfo", fake_getaddrinfo)
+
+    with pytest.raises(UrlImportError) as exc_info:
+        assert_import_fetch_allowed(
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            settings_allowed=["Youtube"],
+        )
+    assert exc_info.value.meta["reason"] == "blocked_address"
+    assert exc_info.value.meta["resolved_ip"] == "10.0.0.5"
+
+
+def test_assert_import_fetch_allowed_blocks_dns_resolution_failure(monkeypatch):
+    from app.services.url_import import UrlImportError, assert_import_fetch_allowed
+
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        raise socket.gaierror("Name or service not known")
+
+    monkeypatch.setattr("app.services.url_import.socket.getaddrinfo", fake_getaddrinfo)
+
+    with pytest.raises(UrlImportError) as exc_info:
+        assert_import_fetch_allowed(
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            settings_allowed=["Youtube"],
+        )
+    assert exc_info.value.meta["reason"] == "dns_resolution_failed"
 
 
 def test_assert_import_fetch_allowed_respects_admin_whitelist():

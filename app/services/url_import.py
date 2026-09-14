@@ -5,10 +5,12 @@ from __future__ import annotations
 import ipaddress
 import logging
 import re
+import socket
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import urlparse
 
 from app.services.export import safe_filename
 from app.services.import_platforms import (
@@ -310,21 +312,105 @@ def validate_import_url(url: str) -> str:
     return cleaned
 
 
+def _normalize_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
+    if isinstance(ip, ipaddress.IPv6Address):
+        mapped = ip.ipv4_mapped
+        if mapped is not None:
+            return mapped
+    return ip
+
+
+def _is_blocked_address(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    ip = _normalize_ip(ip)
+    return (
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_reserved
+        or ip.is_multicast
+        or ip.is_unspecified
+    )
+
+
+def _port_from_url(url: str) -> int:
+    parsed = urlparse(url.strip())
+    if parsed.port is not None:
+        return parsed.port
+    if parsed.scheme.lower() == "https":
+        return 443
+    return 80
+
+
+def _reject_literal_blocked_host(host: str) -> None:
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return
+    if _is_blocked_address(ip):
+        raise UrlImportError(
+            "unsupported_host",
+            meta={"host": host, "reason": "blocked_address"},
+        )
+
+
+def _reject_blocked_resolved_ips(host: str, *, port: int) -> None:
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        return
+
+    try:
+        infos = socket.getaddrinfo(
+            host,
+            port,
+            type=socket.SOCK_STREAM,
+            proto=socket.IPPROTO_TCP,
+        )
+    except socket.gaierror as exc:
+        raise UrlImportError(
+            "unsupported_host",
+            meta={
+                "host": host,
+                "reason": "dns_resolution_failed",
+                "error_detail": _error_detail(exc),
+            },
+        ) from exc
+
+    if not infos:
+        raise UrlImportError(
+            "unsupported_host",
+            meta={"host": host, "reason": "dns_resolution_failed"},
+        )
+
+    seen: set[str] = set()
+    for _, _, _, _, sockaddr in infos:
+        addr = sockaddr[0]
+        if addr in seen:
+            continue
+        seen.add(addr)
+        try:
+            ip = ipaddress.ip_address(addr)
+        except ValueError:
+            continue
+        if _is_blocked_address(ip):
+            raise UrlImportError(
+                "unsupported_host",
+                meta={
+                    "host": host,
+                    "reason": "blocked_address",
+                    "resolved_ip": str(_normalize_ip(ip)),
+                },
+            )
+
+
 def assert_import_fetch_allowed(url: str, *, settings_allowed: list[str]) -> str:
     """Reject internal/metadata URLs and non-catalog hosts before yt-dlp runs."""
     cleaned = validate_import_url(url)
     host = host_from_url(cleaned)
 
-    try:
-        ip = ipaddress.ip_address(host)
-    except ValueError:
-        pass
-    else:
-        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
-            raise UrlImportError(
-                "unsupported_host",
-                meta={"host": host, "reason": "blocked_address"},
-            )
+    _reject_literal_blocked_host(host)
 
     platform = catalog_platform_for_host(host)
     if platform is None:
@@ -344,6 +430,8 @@ def assert_import_fetch_allowed(url: str, *, settings_allowed: list[str]) -> str
                 "reason": "disabled_by_admin",
             },
         )
+
+    _reject_blocked_resolved_ips(host, port=_port_from_url(cleaned))
 
     return cleaned
 
