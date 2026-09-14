@@ -77,6 +77,9 @@ async def lifespan(app: FastAPI):
     Path(settings.DATA_DIR).mkdir(parents=True, exist_ok=True)
     engine = get_engine()
     init_database(engine)
+    from app.services.storage_gc import drain_all_pending_storage_deletes
+
+    await asyncio.to_thread(drain_all_pending_storage_deletes)
     metrics = create_metrics(settings)
     set_active(metrics)
     metrics.bind(settings=settings)

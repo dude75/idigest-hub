@@ -23,6 +23,8 @@ log = logging.getLogger("app")
 S3_SCHEME = "s3://"
 # S3 multipart minimum part size (except the trailing part).
 _S3_PART_SIZE = 5 * 1024 * 1024
+_S3_CONNECT_TIMEOUT_SEC = 5
+_S3_READ_TIMEOUT_SEC = 30
 _AUDIO_MIME = {
     ".wav": "audio/wav",
     ".mp3": "audio/mpeg",
@@ -188,7 +190,11 @@ class S3StorageBackend(StorageBackend):
             "aws_access_key_id": settings.S3_ACCESS_KEY or None,
             "aws_secret_access_key": settings.S3_SECRET_KEY or None,
             "region_name": settings.S3_REGION or None,
-            "config": Config(signature_version="s3v4"),
+            "config": Config(
+                signature_version="s3v4",
+                connect_timeout=_S3_CONNECT_TIMEOUT_SEC,
+                read_timeout=_S3_READ_TIMEOUT_SEC,
+            ),
         }
         if settings.S3_ENDPOINT:
             kwargs["endpoint_url"] = settings.S3_ENDPOINT
@@ -399,7 +405,9 @@ class S3StorageBackend(StorageBackend):
         tmp_path = Path(tmp.name)
         try:
             tmp.close()
-            self._client.download_file(self._bucket, key, str(tmp_path))
+            await asyncio.to_thread(
+                self._client.download_file, self._bucket, key, str(tmp_path)
+            )
             yield tmp_path
         finally:
             tmp_path.unlink(missing_ok=True)

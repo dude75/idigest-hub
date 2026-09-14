@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Audio, HiddenItem, Share, Summary, Task, Transcript
 from app.presenters import summary_display_title
-from app.services.storage import get_storage
+from app.services.storage_gc import queue_storage_delete
 
 
 def cancel_queued_for_source(db: Session, *, audio_id: str | None = None, transcript_id: str | None = None) -> None:
@@ -57,9 +57,10 @@ def hard_delete_audio(db: Session, audio: Audio) -> None:
         for transcript in db.scalars(select(Transcript).where(Transcript.source_audio_id == audio.id)):
             if not (transcript.title and transcript.title.strip()):
                 transcript.title = stem
-    get_storage().delete(audio.storage_path)
+    storage_path = audio.storage_path
     db.delete(audio)
     db.flush()
+    queue_storage_delete(db, storage_path)
 
 
 def hard_delete_transcript(db: Session, transcript: Transcript) -> None:

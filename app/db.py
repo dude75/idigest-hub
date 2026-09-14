@@ -294,6 +294,9 @@ def get_engine() -> Engine:
                 cursor.close()
 
         SessionLocal = sessionmaker(bind=_engine, autoflush=False, expire_on_commit=False, future=True)
+        from app.services.storage_gc import register_storage_delete_hooks
+
+        register_storage_delete_hooks()
     return _engine
 
 

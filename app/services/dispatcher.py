@@ -711,6 +711,9 @@ async def dispatcher_loop(stop_event: asyncio.Event) -> None:
 
                 purge_expired_audio(session)
             session.commit()
+            from app.services.storage_gc import drain_all_pending_storage_deletes
+
+            await asyncio.to_thread(drain_all_pending_storage_deletes)
             mark_dispatcher_tick_success()
             observe_dispatcher_tick(time.perf_counter() - tick_started)
         except Exception:

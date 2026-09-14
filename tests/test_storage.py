@@ -138,6 +138,64 @@ async def test_s3_save_and_exists(monkeypatch, tmp_path):
     reset_storage()
 
 
+@pytest.mark.asyncio
+async def test_queue_storage_delete_after_commit(tmp_path, monkeypatch):
+    monkeypatch.setenv("STORAGE_BACKEND", "local")
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'queue.db'}")
+    from app.config import get_settings
+    import app.db as db_module
+    from app.db import get_engine, init_database, reset_engine
+    from app.models import PendingStorageDelete
+    from app.services.storage import LocalStorageBackend, reset_storage
+    from app.services.storage_gc import (
+        drain_all_pending_storage_deletes,
+        queue_storage_delete,
+        register_storage_delete_hooks,
+        reset_storage_delete_hooks,
+    )
+    from sqlalchemy import select
+
+    get_settings.cache_clear()
+    reset_storage()
+    reset_engine()
+    reset_storage_delete_hooks()
+    init_database(get_engine())
+    register_storage_delete_hooks()
+
+    backend = LocalStorageBackend(str(tmp_path))
+    upload = _Upload(SAMPLE_WAV_BYTES + b"queue-delete")
+    ref = await backend.save_upload("q1", ".wav", upload, max_bytes=1024)
+    assert backend.exists(ref)
+
+    assert db_module.SessionLocal is not None
+    session = db_module.SessionLocal()
+    try:
+        queue_storage_delete(session, ref)
+        assert backend.exists(ref)
+        session.flush()
+        pending = session.scalar(select(PendingStorageDelete).where(PendingStorageDelete.storage_path == ref))
+        assert pending is not None
+        session.commit()
+    finally:
+        session.close()
+
+    assert backend.exists(ref)
+    drain_all_pending_storage_deletes()
+    assert not backend.exists(ref)
+
+    verify = db_module.SessionLocal()
+    try:
+        assert verify.scalar(select(PendingStorageDelete).where(PendingStorageDelete.storage_path == ref)) is None
+    finally:
+        verify.close()
+
+    get_settings.cache_clear()
+    reset_storage()
+    reset_engine()
+    reset_storage_delete_hooks()
+
+
 def test_get_storage_local_default(monkeypatch, tmp_path):
     monkeypatch.setenv("STORAGE_BACKEND", "local")
     monkeypatch.setenv("DATA_DIR", str(tmp_path))

@@ -405,3 +405,13 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     payload_json: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class PendingStorageDelete(Base):
+    __tablename__ = "pending_storage_deletes"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    storage_path: Mapped[str] = mapped_column(String(1024), nullable=False, unique=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
