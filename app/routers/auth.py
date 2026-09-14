@@ -438,12 +438,13 @@ def sso_start(org_id: str, request: Request, db: Session = Depends(get_session))
     if not public_base:
         abort(locale, ErrorCode.sso_misconfigured)
     try:
-        state, nonce = make_oauth_state(org_id)
+        state, nonce, code_challenge = make_oauth_state(org_id)
         url = build_authorization_url(
             org=org,
             public_base_url=public_base,
             state=state,
             nonce=nonce,
+            code_challenge=code_challenge,
         )
     except Exception:
         abort(locale, ErrorCode.sso_misconfigured)
@@ -475,8 +476,14 @@ def sso_callback(
     if not public_base or not code or not state:
         return fail(ErrorCode.sso_misconfigured)
     try:
-        nonce = verify_oauth_state(state, org_id)
-        token_payload = exchange_code(db=db, org=org, public_base_url=public_base, code=code)
+        nonce, code_verifier = verify_oauth_state(state, org_id)
+        token_payload = exchange_code(
+            db=db,
+            org=org,
+            public_base_url=public_base,
+            code=code,
+            code_verifier=code_verifier,
+        )
         id_token = token_payload.get("id_token")
         if not id_token:
             return fail(ErrorCode.sso_misconfigured)

@@ -110,7 +110,7 @@ def test_sso_callback_provisions_member(client, monkeypatch):
         lambda **kwargs: {"sub": "kc-1", "email": "newbie@example.com"},
     )
 
-    state, _nonce = sso_service.make_oauth_state(org_id)
+    state, _nonce, _challenge = sso_service.make_oauth_state(org_id)
     query = urlencode({"code": "abc", "state": state})
     response = client.get(
         f"/api/v1/auth/sso/{org_id}/callback?{query}",
@@ -143,7 +143,7 @@ def test_sso_callback_merges_existing_member(client, monkeypatch):
         lambda **kwargs: {"sub": "kc-member", "email": "member@example.com"},
     )
 
-    state, _nonce = sso_service.make_oauth_state(org_id)
+    state, _nonce, _challenge = sso_service.make_oauth_state(org_id)
     query = urlencode({"code": "abc", "state": state})
     response = client.get(
         f"/api/v1/auth/sso/{org_id}/callback?{query}",
@@ -177,7 +177,7 @@ def test_sso_callback_disabled_user_redirects(client, monkeypatch):
         lambda **kwargs: {"sub": "kc-member", "email": "member@example.com"},
     )
 
-    state, _nonce = sso_service.make_oauth_state(org_id)
+    state, _nonce, _challenge = sso_service.make_oauth_state(org_id)
     query = urlencode({"code": "abc", "state": state})
     response = client.get(
         f"/api/v1/auth/sso/{org_id}/callback?{query}",
@@ -245,8 +245,92 @@ def test_oauth_state_roundtrip(client):
 
     org_id = "org-roundtrip"
     for _ in range(200):
-        state, nonce = sso_service.make_oauth_state(org_id)
-        assert sso_service.verify_oauth_state(state, org_id) == nonce
+        state, nonce, code_challenge = sso_service.make_oauth_state(org_id)
+        roundtrip_nonce, code_verifier = sso_service.verify_oauth_state(state, org_id)
+        assert roundtrip_nonce == nonce
+        assert code_challenge == sso_service._pkce_challenge(code_verifier)
+
+
+def test_build_authorization_url_includes_pkce(monkeypatch):
+    from app.services import sso as sso_service
+
+    org = SimpleNamespace(
+        id="org-1",
+        sso_issuer="https://keycloak.example/realms/demo",
+        sso_client_id="hub",
+    )
+    monkeypatch.setattr(
+        sso_service,
+        "fetch_oidc_config",
+        lambda issuer: {"authorization_endpoint": "https://keycloak.example/authorize"},
+    )
+    state, nonce, code_challenge = sso_service.make_oauth_state(org.id)
+    url = sso_service.build_authorization_url(
+        org=org,
+        public_base_url="https://hub.example",
+        state=state,
+        nonce=nonce,
+        code_challenge=code_challenge,
+    )
+    assert "code_challenge=" in url
+    assert "code_challenge_method=S256" in url
+    assert f"nonce={nonce}" in url
+
+
+def test_exchange_code_sends_code_verifier(monkeypatch):
+    from app.services import sso as sso_service
+
+    org = SimpleNamespace(
+        id="org-1",
+        sso_issuer="https://keycloak.example/realms/demo",
+        sso_client_id="hub",
+        sso_client_secret_encrypted="enc",
+    )
+    monkeypatch.setattr(
+        sso_service,
+        "fetch_oidc_config",
+        lambda issuer: {"token_endpoint": "https://keycloak.example/token"},
+    )
+    monkeypatch.setattr(sso_service, "_client_secret", lambda org, db: "secret")
+
+    captured: dict = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {"id_token": "token"}
+
+    class FakeClient:
+        def __init__(self, timeout):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def post(self, url, data, auth):
+            captured["url"] = url
+            captured["data"] = data
+            captured["auth"] = auth
+            return FakeResponse()
+
+    monkeypatch.setattr(sso_service.httpx2, "Client", FakeClient)
+
+    payload = sso_service.exchange_code(
+        db=None,
+        org=org,
+        public_base_url="https://hub.example",
+        code="abc",
+        code_verifier="verifier-123",
+    )
+    assert payload["id_token"] == "token"
+    assert captured["data"]["code_verifier"] == "verifier-123"
+    assert captured["data"]["grant_type"] == "authorization_code"
+    assert captured["auth"] == ("hub", "secret")
 
 
 def test_validate_id_token_accepts_matching_nonce(monkeypatch):

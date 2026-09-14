@@ -21,7 +21,7 @@
 | **Fail-closed криптография** | Неверный или отсутствующий `HUB_SECRET` блокирует старт при наличии зашифрованных данных — без тихого downgrade |
 | **Двойная ротация ключей** | Независимая ротация KEK (оператор) и DEK (UI instance admin) с аудируемым фоновым re-encrypt |
 | **RBAC из трёх уровней + ACL объектов** | `instance_admin` / `org_admin` / `org_member` с границей org, владением и sharing внутри org |
-| **Enterprise SSO** | OIDC per org (Keycloak-compatible), зашифрованные client secrets, break-glass для админов |
+| **Enterprise SSO** | OIDC per org (Keycloak-compatible), Authorization Code + PKCE (S256), зашифрованные client secrets, break-glass для админов |
 | **Гигиена сессий и API tokens** | HttpOnly cookies, хешированные токены (raw не хранится), одноразовый показ API token, отзыв |
 | **Защита от злоупотреблений** | Настраиваемые rate limits на auth, API, upload и создание задач; trusted-proxy для IP |
 | **Audit trail** | Персистентный `audit_log` для admin-действий, impersonation, wallet, wipe данных, crypto-операций |
@@ -81,7 +81,7 @@
 | Локальный password auth | bcrypt, min 8 chars, org password TTL, forced reset | `app/security.py`, `app/routers/auth.py`, [Auth API](../api/auth.md) |
 | Управление сессиями | HttpOnly `hub_session`, SHA-256 + pepper, sliding TTL | `app/cookies.py`, [Безопасность](../architecture/security.md#session-cookies) |
 | API tokens | Prefix `idg_`, показ один раз, отзыв, tariff-gated | `app/routers/auth.py`, tests: `tests/test_auth.py` |
-| OIDC SSO | Per-org config, encrypted client secret, HMAC OAuth state, nonce validation | `app/services/sso.py`, tests: `tests/test_sso.py` |
+| OIDC SSO | Per-org config, Authorization Code + PKCE (S256), encrypted client secret, HMAC OAuth state, nonce validation | `app/services/sso.py`, tests: `tests/test_sso.py` |
 | Break-glass login | `org_admin` + `instance_admin` сохраняют password при SSO | [Безопасность](../architecture/security.md#single-sign-on-sso) |
 | RBAC | Три роли + ownership/shares | [Роли и доступ](../domain/roles-and-access.md) |
 | Impersonation | Только instance admin; admin powers отключены при impersonation; аудит | `app/deps.py`, `app/routers/instance.py` |

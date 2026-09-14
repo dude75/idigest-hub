@@ -21,7 +21,7 @@ The product implements **defense-in-depth** controls typical of enterprise SaaS 
 | **Fail-closed cryptography** | Wrong or missing `HUB_SECRET` prevents startup when encrypted data exists — no silent downgrade |
 | **Dual key rotation** | Independent KEK rotation (operator) and DEK rotation (instance admin UI) with audited background re-encrypt |
 | **Three-tier RBAC + object ACLs** | `instance_admin` / `org_admin` / `org_member` with org boundary, ownership, and in-org sharing |
-| **Enterprise SSO** | Per-organization OIDC (Keycloak-compatible), encrypted client secrets, break-glass for admins |
+| **Enterprise SSO** | Per-organization OIDC (Keycloak-compatible), Authorization Code + PKCE (S256), encrypted client secrets, break-glass for admins |
 | **Session & API token hygiene** | HttpOnly cookies, hashed tokens (never stored raw), one-time API token display, revocable tokens |
 | **Abuse controls** | Configurable rate limits on auth, API, uploads, and task creation; trusted-proxy IP handling |
 | **Audit trail** | Persistent `audit_log` for admin actions, impersonation, wallet changes, data wipes, crypto operations |
@@ -81,7 +81,7 @@ Full matrix: [§ Shared responsibility](#shared-responsibility-matrix).
 | Local password auth | bcrypt hashing, min 8 chars, org password TTL, forced reset | `app/security.py`, `app/routers/auth.py`, [Auth API](../api/auth.md) |
 | Session management | HttpOnly `hub_session`, SHA-256 + pepper, sliding TTL | `app/cookies.py`, [Security architecture](../architecture/security.md#session-cookies) |
 | API tokens | Prefix `idg_`, shown once, revocable, tariff-gated | `app/routers/auth.py`, tests: `tests/test_auth.py` |
-| OIDC SSO | Per-org config, encrypted client secret, HMAC OAuth state, nonce validation | `app/services/sso.py`, tests: `tests/test_sso.py` |
+| OIDC SSO | Per-org config, Authorization Code + PKCE (S256), encrypted client secret, HMAC OAuth state, nonce validation | `app/services/sso.py`, tests: `tests/test_sso.py` |
 | Break-glass login | `org_admin` + `instance_admin` retain password when SSO enabled | [Security architecture](../architecture/security.md#single-sign-on-sso) |
 | RBAC | Three roles + object ownership/shares | [Roles and access](../domain/roles-and-access.md) |
 | Impersonation | Instance admin only; admin powers disabled while impersonating; audited | `app/deps.py`, `app/routers/instance.py` |

@@ -100,7 +100,7 @@ Password reset email requires SMTP **and** **Public URL** in Instance settings (
 
 ## Single sign-on (SSO)
 
-Per-organization OIDC (Keycloak-compatible). Client secrets stored encrypted (`sso_client_secret_encrypted`). OAuth state/nonce in signed cookies (10 min TTL).
+Per-organization OIDC (Keycloak-compatible). Authorization Code flow with **PKCE (S256)** and optional confidential client secret. Client secrets stored encrypted (`sso_client_secret_encrypted`). OAuth state (nonce + PKCE verifier) in signed payloads (10 min TTL).
 
 | Rule | Behavior |
 | ---- | -------- |
@@ -108,6 +108,7 @@ Per-organization OIDC (Keycloak-compatible). Client secrets stored encrypted (`s
 | Break-glass | `org_admin` and `instance_admin` keep password login |
 | Auto-provision | New email from IdP → `org_member` in that org |
 | Callback | `{public_base_url}/api/v1/auth/sso/{org_id}/callback` |
+| PKCE | `code_challenge` (S256) on authorize; `code_verifier` on token exchange (stored in signed state) |
 | `id_token` nonce | Required; must match the nonce from the signed OAuth state (fail-closed) |
 
 Requires instance **Public URL** — same as password-reset links and SSO member login URL.

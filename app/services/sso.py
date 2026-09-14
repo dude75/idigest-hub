@@ -27,6 +27,12 @@ log = logging.getLogger("app")
 
 STATE_TTL_SEC = 600
 AUTH_PROVIDER_OIDC = "oidc"
+_PKCE_VERIFIER_BYTES = 48  # token_urlsafe → 64 chars (RFC 7636 requires 43–128)
+
+
+def _pkce_challenge(code_verifier: str) -> str:
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
 
 
 def sso_configured(org: Organization) -> bool:
@@ -120,20 +126,31 @@ def _verify_state(state: str) -> dict[str, Any]:
     return payload
 
 
-def make_oauth_state(org_id: str) -> tuple[str, str]:
+def make_oauth_state(org_id: str) -> tuple[str, str, str]:
+    """Return signed state, OIDC nonce, and PKCE code_challenge (S256)."""
     nonce = secrets.token_urlsafe(16)
-    payload = {"org_id": org_id, "nonce": nonce, "exp": int(time.time()) + STATE_TTL_SEC}
-    return _sign_state(payload), nonce
+    code_verifier = secrets.token_urlsafe(_PKCE_VERIFIER_BYTES)
+    payload = {
+        "org_id": org_id,
+        "nonce": nonce,
+        "code_verifier": code_verifier,
+        "exp": int(time.time()) + STATE_TTL_SEC,
+    }
+    return _sign_state(payload), nonce, _pkce_challenge(code_verifier)
 
 
-def verify_oauth_state(state: str, org_id: str) -> str:
+def verify_oauth_state(state: str, org_id: str) -> tuple[str, str]:
+    """Return OIDC nonce and PKCE code_verifier from signed state."""
     payload = _verify_state(state)
     if payload.get("org_id") != org_id:
         raise ValueError("org mismatch")
     nonce = payload.get("nonce")
     if not nonce:
         raise ValueError("missing nonce")
-    return str(nonce)
+    code_verifier = payload.get("code_verifier")
+    if not code_verifier:
+        raise ValueError("missing code_verifier")
+    return str(nonce), str(code_verifier)
 
 
 def callback_url(public_base_url: str, org_id: str) -> str:
@@ -146,6 +163,7 @@ def build_authorization_url(
     public_base_url: str,
     state: str,
     nonce: str,
+    code_challenge: str,
 ) -> str:
     config = fetch_oidc_config(org.sso_issuer or "")
     auth_endpoint = config["authorization_endpoint"]
@@ -157,6 +175,8 @@ def build_authorization_url(
         "redirect_uri": redirect_uri,
         "state": state,
         "nonce": nonce,
+        "code_challenge": code_challenge,
+        "code_challenge_method": "S256",
     }
     return f"{auth_endpoint}?{urlencode(params)}"
 
@@ -165,7 +185,14 @@ def _client_secret(org: Organization, db: Session) -> str | None:
     return try_decrypt_str(org.sso_client_secret_encrypted, db)
 
 
-def exchange_code(*, db: Session, org: Organization, public_base_url: str, code: str) -> dict[str, Any]:
+def exchange_code(
+    *,
+    db: Session,
+    org: Organization,
+    public_base_url: str,
+    code: str,
+    code_verifier: str,
+) -> dict[str, Any]:
     config = fetch_oidc_config(org.sso_issuer or "")
     token_endpoint = config["token_endpoint"]
     redirect_uri = callback_url(public_base_url, org.id)
@@ -174,6 +201,7 @@ def exchange_code(*, db: Session, org: Organization, public_base_url: str, code:
         "code": code,
         "redirect_uri": redirect_uri,
         "client_id": org.sso_client_id,
+        "code_verifier": code_verifier,
     }
     secret = _client_secret(org, db)
     auth = None

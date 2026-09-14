@@ -104,7 +104,7 @@ Email сброса пароля требует SMTP **и** **Публичный 
 
 ## Single sign-on (SSO)
 
-OIDC на уровне org (совместим с Keycloak). Client secrets хранятся зашифрованными (`sso_client_secret_encrypted`). OAuth state/nonce в подписанных cookies (TTL 10 мин).
+OIDC на уровне org (совместим с Keycloak). Authorization Code flow с **PKCE (S256)** и опциональным confidential client secret. Client secrets хранятся зашифрованными (`sso_client_secret_encrypted`). OAuth state (nonce + PKCE verifier) в подписанных payload (TTL 10 мин).
 
 | Правило | Поведение |
 | ------- | --------- |
@@ -112,6 +112,7 @@ OIDC на уровне org (совместим с Keycloak). Client secrets хр
 | Аварийный вход | `org_admin` и `instance_admin` сохраняют password login |
 | Auto-provision | Новый email из IdP → `org_member` в этой org |
 | Callback | `{public_base_url}/api/v1/auth/sso/{org_id}/callback` |
+| PKCE | `code_challenge` (S256) при authorize; `code_verifier` при token exchange (в подписанном state) |
 | `id_token` nonce | Обязателен; должен совпадать с nonce из подписанного OAuth state (fail-closed) |
 
 Требует **Публичный URL** инстанса — как ссылки сброса пароля и URL входа участников SSO.
