@@ -188,8 +188,10 @@ async def _run_import_task(task_id: str) -> None:
         }
         task.updated_at = utcnow()
         from app.prometheus_metrics import observe_task_terminal
+        from app.services.dispatcher import enqueue_transcribe_after_import
 
         observe_task_terminal(task)
+        enqueue_transcribe_after_import(db, task)
         db.commit()
     except UrlImportError as exc:
         db.rollback()

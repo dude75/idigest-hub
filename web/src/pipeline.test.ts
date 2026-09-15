@@ -3,6 +3,7 @@ import type { Task } from './types'
 import {
   beginPipelineRun,
   endPipelineRun,
+  importRequest,
   initialTaskFromNav,
   pipelineNavState,
 } from './pipeline'
@@ -15,6 +16,29 @@ const sampleTask = (taskId: string): Task => ({
   transcript_id: null,
   summary_id: null,
   error: null,
+})
+
+describe('importRequest', () => {
+  it('includes transcribe flag when pipeline requests it', () => {
+    expect(importRequest('https://example.com/v', { transcribe: true, skillIds: [] })).toEqual({
+      url: 'https://example.com/v',
+      transcribe: true,
+    })
+  })
+
+  it('includes skill_ids when summarize is configured', () => {
+    expect(importRequest('https://example.com/v', { transcribe: true, skillIds: ['skill-1'] })).toEqual({
+      url: 'https://example.com/v',
+      transcribe: true,
+      skill_ids: ['skill-1'],
+    })
+  })
+
+  it('omits transcribe when pipeline is import-only', () => {
+    expect(importRequest('https://example.com/v', { transcribe: false, skillIds: [] })).toEqual({
+      url: 'https://example.com/v',
+    })
+  })
 })
 
 describe('pipelineNavState', () => {

@@ -8,12 +8,15 @@ from pathlib import Path
 import pytest
 
 from tests.conftest import (
+    add_worker,
     default_tariff_id,
     err_code,
     login_ready,
     logout,
+    seed_node_health,
     setup_admin,
     signup,
+    wait_task,
 )
 
 
@@ -546,6 +549,51 @@ def test_import_task_success(client, tmp_path, monkeypatch):
     audio = client.get(f"/api/v1/audios/{body['audio_id']}")
     assert audio.status_code == 200
     assert audio.json()["filename"] == "Sample Video.mp3"
+
+
+def test_import_with_transcribe_chains_follow_up(client, tmp_path, monkeypatch, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client)
+    seed_node_health(worker["id"])
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "pipeimport@example.com", "pipeimportpass1", tariff_id).status_code == 200
+    login_ready(client, "pipeimport@example.com", "pipeimportpass1")
+
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"ID3" + b"\x00" * 128)
+
+    from app.services.url_import import ImportResult
+
+    def fake_download(url, **kwargs):
+        return ImportResult(
+            source_path=source,
+            suffix=".mp3",
+            original_filename="Sample Video.mp3",
+            title="Sample Video",
+            duration_sec=42.0,
+            extractor_key="Youtube",
+            host="youtube.com",
+            platform_label="YouTube",
+        )
+
+    monkeypatch.setattr("app.services.import_runner.download_audio", fake_download)
+    fake_workers.transcribe_mode = "success"
+
+    created = client.post(
+        "/api/v1/tasks/import",
+        json={
+            "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "transcribe": True,
+        },
+    )
+    assert created.status_code == 202, created.text
+    import_id = created.json()["task_id"]
+    body = wait_task(client, import_id, status="success")
+    assert body["audio_id"]
+    follow_up_id = body["meta"]["follow_up_task_id"]
+    assert follow_up_id
+    follow_up = wait_task(client, follow_up_id, status="success")
+    assert follow_up["transcript_id"]
 
 
 def test_import_unsupported_extractor(client):

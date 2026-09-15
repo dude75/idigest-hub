@@ -47,6 +47,8 @@ class SummarizeBody(BaseModel):
 
 class ImportBody(BaseModel):
     url: str = Field(min_length=8, max_length=2048)
+    transcribe: bool = False
+    skill_ids: list[str] = Field(default_factory=list)
 
 
 def _can_manage_task(ctx: AuthContext, task: Task) -> bool:
@@ -177,18 +179,26 @@ async def create_import(
         )
     except UrlImportError as exc:
         ctx.raise_error(ErrorCode(exc.code))
+    if body.transcribe:
+        assert_can_accept_task(ctx, org, ctx.locale)
+        if body.skill_ids:
+            _validate_summarize_skills(ctx, db, org, body.skill_ids)
     tariff = org.tariff
     now = utcnow()
+    meta: dict = {"url": url, "stage": "queued"}
+    if body.transcribe:
+        meta["pipeline_transcribe"] = True
     task = Task(
         id=new_id(),
         type="import",
         status="queued",
         org_id=org.id,
         user_id=ctx.user.id,
+        skill_ids_json=list(body.skill_ids) or None if body.transcribe and body.skill_ids else None,
         queued_at=now,
         created_at=now,
         updated_at=now,
-        meta_json={"url": url, "stage": "queued"},
+        meta_json=meta,
         **snapshot_fields(tariff, settings.asr_model, settings.diarization_model),
     )
     db.add(task)

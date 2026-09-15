@@ -6,7 +6,7 @@ import { useAuth } from '../auth'
 import { isLibraryTab, libraryPath, type LibraryTab } from '../routes'
 import type { Audio, ImportPlatformsResponse, Summary, Task, Transcript } from '../types'
 import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
-import { beginPipelineRun, endPipelineRun, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
+import { beginPipelineRun, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
 import { ShareBadges, fmtDate, showError } from '../util'
 
 type SourceGroup<T> = {
@@ -119,7 +119,7 @@ export function LibraryPage() {
       const pipeline = beginPipelineRun()
       const task = await api<Task>('/tasks/import', {
         method: 'POST',
-        body: JSON.stringify({ url }),
+        body: JSON.stringify(importRequest(url, pipeline)),
       })
       setImportUrl('')
       nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })

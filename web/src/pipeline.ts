@@ -110,3 +110,18 @@ export function transcribeRequest(audioId: string, pipeline: IngestPipeline = ac
   }
   return body
 }
+
+export function importRequest(url: string, pipeline: IngestPipeline = activePipeline()): {
+  url: string
+  transcribe?: boolean
+  skill_ids?: string[]
+} {
+  const body: { url: string; transcribe?: boolean; skill_ids?: string[] } = { url }
+  if (pipelineShouldTranscribe(pipeline)) {
+    body.transcribe = true
+    if (pipeline.skillIds.length > 0) {
+      body.skill_ids = [...pipeline.skillIds]
+    }
+  }
+  return body
+}

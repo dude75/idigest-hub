@@ -6,11 +6,8 @@ import type { Task } from '../types'
 import { PipelineProgress } from '../components/PipelineProgress'
 import { isOrgAdmin, useAuth } from '../auth'
 import {
-  activePipeline,
   endPipelineRun,
   initialTaskFromNav,
-  pipelineShouldTranscribe,
-  transcribeRequest,
   type PipelineNavState,
 } from '../pipeline'
 import { showError, taskErrorDetail, taskErrorMessage, taskIsRetriable, taskYoutubeClientsTried } from '../util'
@@ -70,22 +67,8 @@ export function TaskPage() {
     async function run() {
       const taskId = id
       if (!taskId) return
-      const pipeline = activePipeline()
       let current = await waitForTask(taskId)
       if (!current || stop) return
-
-      if (current.status === 'success' && current.type === 'import' && current.audio_id && pipelineShouldTranscribe(pipeline)) {
-        current = await api<Task>('/tasks/transcribe', {
-          method: 'POST',
-          body: JSON.stringify(transcribeRequest(current.audio_id, pipeline)),
-        })
-        if (stop) return
-        setTask(current)
-        if (current.status === 'queued' || current.status === 'running') {
-          current = await waitForTask(current.task_id)
-          if (!current || stop) return
-        }
-      }
 
       while (current && current.status === 'success' && !stop) {
         const nextId = followUpTaskId(current)

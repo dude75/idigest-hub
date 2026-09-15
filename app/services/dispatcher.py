@@ -220,6 +220,56 @@ def _persist_transcript(db: Session, task: Task, utterances: list[dict[str, Any]
     return row
 
 
+def enqueue_transcribe_after_import(db: Session, import_task: Task) -> Task | None:
+    if import_task.type != "import" or import_task.status != "success" or not import_task.audio_id:
+        return None
+    meta = dict(import_task.meta_json or {})
+    if meta.get("pipeline_transcribe") is not True:
+        return None
+    if meta.get("follow_up_task_id"):
+        existing = db.get(Task, str(meta["follow_up_task_id"]))
+        if existing is not None:
+            return existing
+
+    org = db.get(Organization, import_task.org_id)
+    if org is None:
+        return None
+    tariff = org.tariff
+    if not tariff.unlimited and org.balance <= 0:
+        log.warning(
+            "import pipeline transcribe skipped: insufficient balance task=%s",
+            import_task.id,
+        )
+        return None
+
+    skill_ids = list(import_task.skill_ids_json or [])
+    now = utcnow()
+    follow_up = Task(
+        id=new_id(),
+        type="transcribe",
+        status="queued",
+        org_id=import_task.org_id,
+        user_id=import_task.user_id,
+        audio_id=import_task.audio_id,
+        skill_ids_json=skill_ids or None,
+        queued_at=now,
+        created_at=now,
+        updated_at=now,
+        snap_unlimited=import_task.snap_unlimited,
+        snap_price_per_audio_sec=import_task.snap_price_per_audio_sec,
+        snap_price_per_summarize_job=import_task.snap_price_per_summarize_job,
+        snap_price_per_1k_summary_chars=import_task.snap_price_per_1k_summary_chars,
+        snap_max_upload_bytes=import_task.snap_max_upload_bytes,
+        snap_asr_model=import_task.snap_asr_model,
+        snap_diarization_model=import_task.snap_diarization_model,
+    )
+    db.add(follow_up)
+    db.flush()
+    meta["follow_up_task_id"] = follow_up.id
+    import_task.meta_json = meta
+    return follow_up
+
+
 def _enqueue_summarize_after_transcribe(db: Session, task: Task) -> Task | None:
     skill_ids = list(task.skill_ids_json or [])
     if not skill_ids or not task.produced_transcript_id:
