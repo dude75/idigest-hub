@@ -174,6 +174,81 @@ export function LibraryPage() {
   return (
     <div>
       <h1>{t('library.title')}</h1>
+      <section className="card library-ingest">
+        {uploadProgress && (
+          <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
+            <div className="upload-progress-label">
+              {uploadProgress.phase === 'processing'
+                ? t('library.uploadProcessing', { name: uploadProgress.name })
+                : t('library.uploading', { name: uploadProgress.name, percent: uploadProgress.percent })}
+            </div>
+            <div className="progress-bar" aria-hidden="true">
+              <div
+                className={`progress-bar-fill${uploadProgress.phase === 'processing' ? ' progress-bar-indeterminate' : ''}`}
+                style={uploadProgress.phase === 'processing' ? undefined : { width: `${uploadProgress.percent}%` }}
+              />
+            </div>
+          </div>
+        )}
+        <div className={`library-ingest-toolbar${importEnabled ? '' : ' upload-only'}`}>
+          {importEnabled && (
+            <>
+              <input
+                className="library-ingest-url"
+                type="url"
+                value={importUrl}
+                placeholder={t('library.importPlaceholder')}
+                disabled={importBlocked}
+                aria-label={t('library.importUrl')}
+                onChange={(e) => setImportUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    if (!proxyBlocked) void importFromUrl()
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="primary"
+                disabled={importBlocked || !importUrl.trim()}
+                onClick={() => void importFromUrl()}
+              >
+                {busy ? t('library.importing') : t('library.importSubmit')}
+              </button>
+              <span className="library-ingest-or" aria-hidden="true">
+                {t('library.or')}
+              </span>
+            </>
+          )}
+          {!importEnabled && (
+            <span className="library-ingest-upload-label">{t('library.uploadFile')}</span>
+          )}
+          <label className="btn library-file-btn">
+            {t('library.chooseFile')}
+            <input
+              type="file"
+              accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4"
+              disabled={busy}
+              onChange={(e) => {
+                const f = e.target.files?.[0]
+                if (f) void upload(f)
+                e.target.value = ''
+              }}
+            />
+          </label>
+        </div>
+        {importEnabled && importPlatforms && (proxyBlocked || importPlatforms.platforms.length > 0) && (
+          <p className={proxyBlocked ? 'err library-ingest-hint' : 'muted library-ingest-hint'}>
+            {proxyBlocked
+              ? t('library.proxyUnavailable')
+              : t('library.importHint', {
+                  platforms: importPlatforms.platforms.map((p) => p.label).join(' · '),
+                })}
+          </p>
+        )}
+        <IngestPipelinePanel />
+      </section>
       <div className="tabs">
         {(['audio', 'transcripts', 'summaries'] as LibraryTab[]).map((id) => (
           <NavLink key={id} to={libraryPath(id)} className={({ isActive }) => (isActive ? 'active' : '')}>
@@ -181,83 +256,6 @@ export function LibraryPage() {
           </NavLink>
         ))}
       </div>
-      {tab === 'audio' && (
-        <section className="card library-ingest">
-          {uploadProgress && (
-            <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
-              <div className="upload-progress-label">
-                {uploadProgress.phase === 'processing'
-                  ? t('library.uploadProcessing', { name: uploadProgress.name })
-                  : t('library.uploading', { name: uploadProgress.name, percent: uploadProgress.percent })}
-              </div>
-              <div className="progress-bar" aria-hidden="true">
-                <div
-                  className={`progress-bar-fill${uploadProgress.phase === 'processing' ? ' progress-bar-indeterminate' : ''}`}
-                  style={uploadProgress.phase === 'processing' ? undefined : { width: `${uploadProgress.percent}%` }}
-                />
-              </div>
-            </div>
-          )}
-          <div className={`library-ingest-toolbar${importEnabled ? '' : ' upload-only'}`}>
-            {importEnabled && (
-              <>
-                <input
-                  className="library-ingest-url"
-                  type="url"
-                  value={importUrl}
-                  placeholder={t('library.importPlaceholder')}
-                  disabled={importBlocked}
-                  aria-label={t('library.importUrl')}
-                  onChange={(e) => setImportUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      if (!proxyBlocked) void importFromUrl()
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="primary"
-                  disabled={importBlocked || !importUrl.trim()}
-                  onClick={() => void importFromUrl()}
-                >
-                  {busy ? t('library.importing') : t('library.importSubmit')}
-                </button>
-                <span className="library-ingest-or" aria-hidden="true">
-                  {t('library.or')}
-                </span>
-              </>
-            )}
-            {!importEnabled && (
-              <span className="library-ingest-upload-label">{t('library.uploadFile')}</span>
-            )}
-            <label className="btn library-file-btn">
-              {t('library.chooseFile')}
-              <input
-                type="file"
-                accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4"
-                disabled={busy}
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) void upload(f)
-                  e.target.value = ''
-                }}
-              />
-            </label>
-          </div>
-          {importEnabled && importPlatforms && (proxyBlocked || importPlatforms.platforms.length > 0) && (
-            <p className={proxyBlocked ? 'err library-ingest-hint' : 'muted library-ingest-hint'}>
-              {proxyBlocked
-                ? t('library.proxyUnavailable')
-                : t('library.importHint', {
-                    platforms: importPlatforms.platforms.map((p) => p.label).join(' · '),
-                  })}
-            </p>
-          )}
-          <IngestPipelinePanel />
-        </section>
-      )}
       <label className="row" style={{ marginBottom: 12 }}>
         <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
         {t('library.showHidden', { count: hiddenCount })}
