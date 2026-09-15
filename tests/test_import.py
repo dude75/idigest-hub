@@ -549,6 +549,11 @@ def test_import_task_success(client, tmp_path, monkeypatch):
     audio = client.get(f"/api/v1/audios/{body['audio_id']}")
     assert audio.status_code == 200
     assert audio.json()["filename"] == "Sample Video.mp3"
+    assert audio.json()["source_url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    listed = client.get("/api/v1/audios")
+    assert listed.status_code == 200
+    match = next(item for item in listed.json()["items"] if item["id"] == body["audio_id"])
+    assert match["source_url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 
 
 def test_import_with_transcribe_chains_follow_up(client, tmp_path, monkeypatch, fake_workers):

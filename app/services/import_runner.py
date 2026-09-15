@@ -171,6 +171,7 @@ async def _run_import_task(task_id: str) -> None:
             owner_user_id=task.user_id,
             storage_path=storage_path,
             original_filename=result.original_filename,
+            source_url=url[:2048],
             duration_sec=result.duration_sec,
             created_at=utcnow(),
         )

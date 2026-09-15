@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, NavLink, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, NavLink, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiUpload } from '../api'
 import { useAuth } from '../auth'
@@ -7,7 +7,7 @@ import { isLibraryTab, libraryPath, type LibraryTab } from '../routes'
 import type { Audio, ImportPlatformsResponse, Summary, Task, Transcript } from '../types'
 import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
 import { beginPipelineRun, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
-import { ShareBadges, fmtDate, showError } from '../util'
+import { AudioDerivedBadges, ShareBadges, fmtDate, showError } from '../util'
 
 type SourceGroup<T> = {
   key: string
@@ -45,6 +45,8 @@ export function LibraryPage() {
   const { me } = useAuth()
   const { tab: tabParam } = useParams<{ tab: string }>()
   const nav = useNavigate()
+  const [searchParams] = useSearchParams()
+  const sourceFilter = searchParams.get('source')
   const tab: LibraryTab = isLibraryTab(tabParam) ? tabParam : 'audio'
   const [hidden, setHidden] = useState(false)
   const [hiddenCount, setHiddenCount] = useState(0)
@@ -86,6 +88,16 @@ export function LibraryPage() {
     if (!hasOrg) return
     void load()
   }, [tab, hidden, hasOrg])
+
+  useEffect(() => {
+    if (!sourceFilter) return
+    const el = document.getElementById(`source-${sourceFilter}`)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    el.classList.add('group-highlight')
+    const timer = window.setTimeout(() => el.classList.remove('group-highlight'), 2500)
+    return () => window.clearTimeout(timer)
+  }, [sourceFilter, tab, audios, transcripts, summaries])
 
   useEffect(() => {
     if (!hasOrg) return
@@ -267,7 +279,11 @@ export function LibraryPage() {
             <div className="item row" key={a.id}>
               <div className="grow">
                 <Link className="title" to={`/app/audio/${a.id}`}>{a.filename}</Link>
-                <div className="muted">{fmtDate(a.created_at)} {a.owner_email && `· ${a.owner_email}`}</div>
+                <div className="muted item-meta">
+                  <span>{fmtDate(a.created_at)}</span>
+                  <AudioDerivedBadges audio={a} />
+                  {a.owner_email && <span>· {a.owner_email}</span>}
+                </div>
               </div>
               <ShareBadges item={a} />
             </div>
@@ -278,7 +294,7 @@ export function LibraryPage() {
         <div className="list">
           {transcripts.length === 0 && <p className="muted">{t('common.empty')}</p>}
           {groupBySource(transcripts, (tr) => tr.source_audio_id).map((g) => (
-            <section className="group" key={g.key}>
+            <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
               <div className="group-title">
                 {g.sourceId ? (
                   <Link to={`/app/audio/${g.sourceId}`}>
@@ -307,7 +323,7 @@ export function LibraryPage() {
         <div className="list">
           {summaries.length === 0 && <p className="muted">{t('common.empty')}</p>}
           {groupBySource(summaries, (s) => s.source_transcript_id).map((g) => (
-            <section className="group" key={g.key}>
+            <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
               <div className="group-title">
                 {g.sourceId ? (
                   <Link to={`/app/transcript/${g.sourceId}`}>

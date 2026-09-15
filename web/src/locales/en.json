@@ -247,6 +247,7 @@
     "transcribe": "Transcribe",
     "transcribeAgain": "Transcribe again",
     "noFile": "Source file is gone; cannot transcribe.",
+    "sourceUrl": "Source",
     "transcripts": "Transcripts"
   },
   "transcript": {

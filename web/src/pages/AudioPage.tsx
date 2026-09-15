@@ -11,6 +11,17 @@ import { LIBRARY_DEFAULT } from '../routes'
 import type { Audio, Task } from '../types'
 import { ShareBadges, fmtDate, showError } from '../util'
 
+function httpSourceUrl(value: string | null | undefined): string | null {
+  if (!value) return null
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') return value
+  } catch {
+    return null
+  }
+  return null
+}
+
 export function AudioPage() {
   const { id } = useParams<{ id: string }>()
   const { t } = useTranslation()
@@ -23,6 +34,7 @@ export function AudioPage() {
   const [busy, setBusy] = useState(false)
   const admin = isOrgAdmin(me)
   const mine = item?.owner_user_id === me?.user.id
+  const sourceUrl = httpSourceUrl(item?.source_url)
 
   async function load() {
     if (!id) return
@@ -87,6 +99,14 @@ export function AudioPage() {
       <h1>{item?.filename || t('audio.title')}</h1>
       {item && (
         <>
+          {sourceUrl && (
+            <p className="muted audio-source-url">
+              {t('audio.sourceUrl')}:{' '}
+              <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                {sourceUrl}
+              </a>
+            </p>
+          )}
           <div className="row">
             <ShareBadges item={item} />
             <span className="muted">{fmtDate(item.created_at)}</span>

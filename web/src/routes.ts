@@ -6,8 +6,10 @@ import type { Me } from './types'
 export const LIBRARY_TABS = ['audio', 'transcripts', 'summaries'] as const
 export type LibraryTab = (typeof LIBRARY_TABS)[number]
 
-export function libraryPath(tab: LibraryTab = 'audio'): string {
-  return `/app/library/${tab}`
+export function libraryPath(tab: LibraryTab = 'audio', source?: string | null): string {
+  const base = `/app/library/${tab}`
+  if (source) return `${base}?source=${encodeURIComponent(source)}`
+  return base
 }
 
 export const LIBRARY_DEFAULT = libraryPath('audio')

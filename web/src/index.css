@@ -31,6 +31,10 @@ a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 button, input, select, textarea { font: inherit; }
 h1 { font-size: 1.25rem; margin: 0 0 0.75rem; }
+.audio-source-url {
+  margin: -0.4rem 0 0.75rem;
+  word-break: break-all;
+}
 h2 { font-size: 1.05rem; margin: 1.25rem 0 0.5rem; }
 .section-head { margin: 1.25rem 0 0.5rem; }
 .section-head h2 { margin: 0; }
@@ -401,6 +405,19 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 .badge.warn { background: var(--warn-bg); color: var(--warn-ink); }
 .badge.out { background: #ecfdf3; color: #067647; }
 .badge.err { background: #fef2f2; color: var(--danger); }
+a.badge.badge-link { text-decoration: none; }
+a.badge.badge-link:hover { text-decoration: none; filter: brightness(0.95); }
+.item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+.group-highlight {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius);
+}
 
 table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 th, td { text-align: left; padding: 0.4rem 0.35rem; border-bottom: 1px solid var(--line); vertical-align: top; }

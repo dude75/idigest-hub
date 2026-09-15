@@ -273,6 +273,7 @@ class Audio(Base):
     owner_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
     storage_path: Mapped[str] = mapped_column(String(1024), nullable=False)
     original_filename: Mapped[str] = mapped_column(String(512), nullable=False)
+    source_url: Mapped[str | None] = mapped_column(String(2048))
     duration_sec: Mapped[float | None] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

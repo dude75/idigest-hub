@@ -118,6 +118,7 @@ def audio_public(audio: Audio, extra: dict[str, Any] | None = None) -> dict[str,
         "org_id": audio.org_id,
         "owner_user_id": audio.owner_user_id,
         "filename": audio.original_filename,
+        "source_url": audio.source_url,
         "duration_sec": audio.duration_sec,
         "created_at": audio.created_at.isoformat(),
     }

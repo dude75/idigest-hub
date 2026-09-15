@@ -93,10 +93,15 @@ export type Audio = ShareBadge & {
   org_id: string
   owner_user_id: string
   filename: string
+  source_url?: string | null
   duration_sec?: number | null
   created_at: string
   transcripts?: Transcript[]
   can_transcribe?: boolean
+  has_transcript?: boolean
+  has_summary?: boolean
+  transcript_id?: string | null
+  summary_transcript_id?: string | null
 }
 
 export type Utterance = {

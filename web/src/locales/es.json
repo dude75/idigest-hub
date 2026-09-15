@@ -247,6 +247,7 @@
     "transcribe": "Transcribir",
     "transcribeAgain": "Transcribir de nuevo",
     "noFile": "El archivo ya no existe; no se puede transcribir.",
+    "sourceUrl": "Origen",
     "transcripts": "Transcripciones"
   },
   "transcript": {

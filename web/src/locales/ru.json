@@ -247,6 +247,7 @@
     "transcribe": "Транскрибировать",
     "transcribeAgain": "Транскрибировать снова",
     "noFile": "Файла нет, транскрипция невозможна.",
+    "sourceUrl": "Источник",
     "transcripts": "Транскрипты"
   },
   "transcript": {

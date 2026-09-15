@@ -77,6 +77,7 @@ def test_org_admin_sees_member_hidden_audio_unhide_restores(client):
     assert all(item["id"] != audio_id for item in member_list.json()["items"])
     still_there = client.get(f"/api/v1/audios/{audio_id}")
     assert still_there.status_code == 200, still_there.text
+    assert still_there.json()["source_url"] is None
 
     logout(client)
     login_ready(client, "lead@example.com", "leadpass1")
@@ -227,6 +228,36 @@ def test_list_transcripts_includes_source_filename(client):
     detail = client.get(f"/api/v1/transcripts/{transcript_id}")
     assert detail.status_code == 200, detail.text
     assert detail.json()["source_filename"] == "clip.wav"
+
+
+def test_list_audios_includes_derived_badges(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    audio_id = audio.json()["id"]
+    transcript_id, _summary_id = _insert_transcript_and_summary(org_id, user_id, audio_id)
+
+    listed = client.get("/api/v1/audios")
+    assert listed.status_code == 200, listed.text
+    match = next(item for item in listed.json()["items"] if item["id"] == audio_id)
+    assert match["has_transcript"] is True
+    assert match["has_summary"] is True
+    assert match["transcript_id"] == transcript_id
+    assert match["summary_transcript_id"] == transcript_id
+
+    bare = upload_audio(client)
+    assert bare.status_code == 200, bare.text
+    bare_list = client.get("/api/v1/audios")
+    assert bare_list.status_code == 200, bare_list.text
+    bare_item = next(item for item in bare_list.json()["items"] if item["id"] == bare.json()["id"])
+    assert bare_item["has_transcript"] is False
+    assert bare_item["has_summary"] is False
+    assert bare_item["transcript_id"] is None
+    assert bare_item["summary_transcript_id"] is None
 
 
 def test_delete_transcript_does_not_cascade_summaries(client):

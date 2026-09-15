@@ -2,7 +2,9 @@ import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from './api'
 import i18n from './i18n'
-import type { ShareBadge, Task } from './types'
+import { Link } from 'react-router-dom'
+import { libraryPath } from './routes'
+import type { Audio, ShareBadge, Task } from './types'
 
 type TaskTranslate = (
   key: string,
@@ -114,6 +116,25 @@ export function errorText(err: unknown, t: (key: string) => string): string {
 export function showError(err: unknown, opts?: { id?: string }) {
   if (!err) return
   toast.error(errorText(err, i18n.t.bind(i18n)), { id: opts?.id })
+}
+
+export function AudioDerivedBadges({ audio }: { audio: Audio }) {
+  const { t } = useTranslation()
+  if (!audio.has_transcript && !audio.has_summary) return null
+  return (
+    <>
+      {audio.has_transcript && (
+        <Link className="badge out badge-link" to={libraryPath('transcripts', audio.id)}>
+          {t('library.transcripts')}
+        </Link>
+      )}
+      {audio.has_summary && audio.summary_transcript_id && (
+        <Link className="badge out badge-link" to={libraryPath('summaries', audio.summary_transcript_id)}>
+          {t('library.summaries')}
+        </Link>
+      )}
+    </>
+  )
 }
 
 export function ShareBadges({ item, showHidden = true }: { item: ShareBadge; showHidden?: boolean }) {

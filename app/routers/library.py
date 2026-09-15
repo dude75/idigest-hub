@@ -108,6 +108,80 @@ def _share_badge(db: Session, object_type: str, object_id: str, owner_id: str, c
     return extra
 
 
+def _visible_transcript(ctx: AuthContext, db: Session, transcript: Transcript) -> bool:
+    if is_hidden(db, ctx.user.id, "transcript", transcript.id):
+        return False
+    return can_read_object(
+        ctx, db, "transcript", transcript.owner_user_id, transcript.org_id, transcript.id
+    ) or ctx.is_org_admin
+
+
+def _visible_summary(ctx: AuthContext, db: Session, summary: Summary) -> bool:
+    if is_hidden(db, ctx.user.id, "summary", summary.id):
+        return False
+    return can_read_object(
+        ctx, db, "summary", summary.owner_user_id, summary.org_id, summary.id
+    ) or ctx.is_org_admin
+
+
+def _audio_derived_info(db: Session, ctx: AuthContext, audio_ids: list[str]) -> dict[str, dict]:
+    if not audio_ids:
+        return {}
+    transcripts = list(
+        db.scalars(
+            select(Transcript)
+            .where(Transcript.source_audio_id.in_(audio_ids))
+            .order_by(Transcript.created_at.desc())
+        ).all()
+    )
+    visible_by_audio: dict[str, list[Transcript]] = {}
+    visible_tr_ids: list[str] = []
+    for transcript in transcripts:
+        audio_id = transcript.source_audio_id
+        if not audio_id or not _visible_transcript(ctx, db, transcript):
+            continue
+        visible_by_audio.setdefault(audio_id, []).append(transcript)
+        visible_tr_ids.append(transcript.id)
+
+    summary_by_transcript: dict[str, Summary] = {}
+    if visible_tr_ids:
+        summaries = list(
+            db.scalars(
+                select(Summary)
+                .where(Summary.source_transcript_id.in_(visible_tr_ids))
+                .order_by(Summary.created_at.desc())
+            ).all()
+        )
+        for summary in summaries:
+            transcript_id = summary.source_transcript_id
+            if not transcript_id or not _visible_summary(ctx, db, summary):
+                continue
+            if transcript_id not in summary_by_transcript:
+                summary_by_transcript[transcript_id] = summary
+
+    result: dict[str, dict] = {}
+    for audio_id in audio_ids:
+        visible = visible_by_audio.get(audio_id, [])
+        has_transcript = bool(visible)
+        transcript_id = visible[0].id if visible else None
+        summary_transcript_id = None
+        newest_summary_at = None
+        for transcript in visible:
+            summary = summary_by_transcript.get(transcript.id)
+            if summary is None:
+                continue
+            if newest_summary_at is None or summary.created_at > newest_summary_at:
+                newest_summary_at = summary.created_at
+                summary_transcript_id = transcript.id
+        result[audio_id] = {
+            "has_transcript": has_transcript,
+            "has_summary": summary_transcript_id is not None,
+            "transcript_id": transcript_id,
+            "summary_transcript_id": summary_transcript_id,
+        }
+    return result
+
+
 def _count_hidden_for_user(ctx: AuthContext, db: Session, model, object_type: str) -> int:
     return sum(
         1
@@ -191,9 +265,22 @@ def list_audios(
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     rows = _list_filter(ctx, db, Audio, "audio", include_hidden)
+    derived = _audio_derived_info(db, ctx, [row.id for row in rows])
     return {
         "items": [
-            audio_public(row, _share_badge(db, "audio", row.id, row.owner_user_id, ctx)) for row in rows
+            {
+                **audio_public(row, _share_badge(db, "audio", row.id, row.owner_user_id, ctx)),
+                **derived.get(
+                    row.id,
+                    {
+                        "has_transcript": False,
+                        "has_summary": False,
+                        "transcript_id": None,
+                        "summary_transcript_id": None,
+                    },
+                ),
+            }
+            for row in rows
         ],
         "hidden_count": _count_hidden_for_user(ctx, db, Audio, "audio"),
     }
