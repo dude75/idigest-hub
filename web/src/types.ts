@@ -122,6 +122,7 @@ export type Transcript = ShareBadge & {
   created_at: string
   utterances?: Utterance[]
   summaries?: Summary[]
+  has_summary?: boolean
 }
 
 export type Summary = ShareBadge & {

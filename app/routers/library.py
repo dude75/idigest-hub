@@ -182,6 +182,25 @@ def _audio_derived_info(db: Session, ctx: AuthContext, audio_ids: list[str]) -> 
     return result
 
 
+def _transcript_derived_info(db: Session, ctx: AuthContext, transcript_ids: list[str]) -> dict[str, dict]:
+    if not transcript_ids:
+        return {}
+    has_summary = dict.fromkeys(transcript_ids, False)
+    summaries = list(
+        db.scalars(
+            select(Summary)
+            .where(Summary.source_transcript_id.in_(transcript_ids))
+            .order_by(Summary.created_at.desc())
+        ).all()
+    )
+    for summary in summaries:
+        transcript_id = summary.source_transcript_id
+        if not transcript_id or not _visible_summary(ctx, db, summary):
+            continue
+        has_summary[transcript_id] = True
+    return {transcript_id: {"has_summary": has_summary[transcript_id]} for transcript_id in transcript_ids}
+
+
 def _count_hidden_for_user(ctx: AuthContext, db: Session, model, object_type: str) -> int:
     return sum(
         1
@@ -420,13 +439,17 @@ def list_transcripts(
 ) -> dict:
     rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden)
     filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
+    derived = _transcript_derived_info(db, ctx, [row.id for row in rows])
     return {
         "items": [
-            transcript_public(
-                row,
-                extra=_share_badge(db, "transcript", row.id, row.owner_user_id, ctx),
-                source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
-            )
+            {
+                **transcript_public(
+                    row,
+                    extra=_share_badge(db, "transcript", row.id, row.owner_user_id, ctx),
+                    source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
+                ),
+                **derived.get(row.id, {"has_summary": False}),
+            }
             for row in rows
         ],
         "hidden_count": _count_hidden_for_user(ctx, db, Transcript, "transcript"),

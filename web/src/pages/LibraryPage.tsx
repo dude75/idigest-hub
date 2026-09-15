@@ -7,7 +7,7 @@ import { isLibraryTab, libraryPath, type LibraryTab } from '../routes'
 import type { Audio, ImportPlatformsResponse, Summary, Task, Transcript } from '../types'
 import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
 import { beginPipelineRun, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
-import { AudioDerivedBadges, ShareBadges, fmtDate, showError } from '../util'
+import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
 
 type SourceGroup<T> = {
   key: string
@@ -310,7 +310,11 @@ export function LibraryPage() {
                     <Link className="title" to={`/app/transcript/${tr.id}`}>
                       {tr.display_title || tr.title || tr.id.slice(0, 8)}
                     </Link>
-                    <div className="muted">{fmtDate(tr.created_at)} {tr.owner_email && `· ${tr.owner_email}`}</div>
+                    <div className="muted item-meta">
+                      <span>{fmtDate(tr.created_at)}</span>
+                      <TranscriptDerivedBadges transcript={tr} />
+                      {tr.owner_email && <span>· {tr.owner_email}</span>}
+                    </div>
                   </div>
                   <ShareBadges item={tr} />
                 </div>

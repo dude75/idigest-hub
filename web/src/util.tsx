@@ -4,7 +4,7 @@ import { ApiError } from './api'
 import i18n from './i18n'
 import { Link } from 'react-router-dom'
 import { libraryPath } from './routes'
-import type { Audio, ShareBadge, Task } from './types'
+import type { Audio, ShareBadge, Task, Transcript } from './types'
 
 type TaskTranslate = (
   key: string,
@@ -134,6 +134,16 @@ export function AudioDerivedBadges({ audio }: { audio: Audio }) {
         </Link>
       )}
     </>
+  )
+}
+
+export function TranscriptDerivedBadges({ transcript }: { transcript: Transcript }) {
+  const { t } = useTranslation()
+  if (!transcript.has_summary) return null
+  return (
+    <Link className="badge out badge-link" to={libraryPath('summaries', transcript.id)}>
+      {t('library.summaries')}
+    </Link>
   )
 }
 

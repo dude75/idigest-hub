@@ -208,6 +208,51 @@ def test_titles_preserved_after_audio_delete(client):
     assert s["source_transcript_title"] == "clip"
 
 
+def _insert_transcript(org_id: str, user_id: str, audio_id: str | None = None):
+    from app.crypto import encrypt_str
+    from app.models import Transcript, new_id
+    from app.timeutil import utcnow
+
+    db = open_db()
+    try:
+        transcript_id = new_id()
+        db.add(
+            Transcript(
+                id=transcript_id,
+                org_id=org_id,
+                owner_user_id=user_id,
+                source_audio_id=audio_id,
+                utterances_encrypted=encrypt_str(
+                    json.dumps([{"speaker": "A", "start": 0, "end": 1, "text": "hi"}]), db
+                ),
+                created_at=utcnow(),
+            )
+        )
+        db.commit()
+        return transcript_id
+    finally:
+        db.close()
+
+
+def test_list_transcripts_includes_derived_badges(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    transcript_id, _summary_id = _insert_transcript_and_summary(org_id, user_id, audio.json()["id"])
+    bare_transcript_id = _insert_transcript(org_id, user_id, audio.json()["id"])
+
+    listed = client.get("/api/v1/transcripts")
+    assert listed.status_code == 200, listed.text
+    match = next(item for item in listed.json()["items"] if item["id"] == transcript_id)
+    assert match["has_summary"] is True
+    bare_item = next(item for item in listed.json()["items"] if item["id"] == bare_transcript_id)
+    assert bare_item["has_summary"] is False
+
+
 def test_list_transcripts_includes_source_filename(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)
