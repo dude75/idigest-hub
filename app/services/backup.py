@@ -15,6 +15,7 @@ from app.deps import AuthContext
 from app.models import Summary, Transcript
 from app.presenters import summary_display_title, transcript_display_title
 from app.services.export import safe_filename, unwrap_markdown_fence
+from app.services.transcript_payload import decode_transcript_payload, extract_utterances, is_worker_payload
 
 ARCHIVE_MEDIA = {
     "zip": "application/zip",
@@ -50,7 +51,7 @@ def build_backup(
         rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden=True)
         filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
         for row in rows:
-            utterances = json.loads(decrypt_str(row.utterances_encrypted, db))
+            stored = decode_transcript_payload(decrypt_str(row.utterances_encrypted, db))
             source_filename = filenames.get(row.source_audio_id) if row.source_audio_id else None
             display = transcript_display_title(row, source_filename=source_filename)
             stem = safe_filename(f"{row.id}_{display}")
@@ -60,8 +61,10 @@ def build_backup(
                 "display_title": display,
                 "created_at": row.created_at.isoformat(),
                 "source_audio_id": row.source_audio_id,
-                "utterances": utterances,
+                "utterances": extract_utterances(stored),
             }
+            if is_worker_payload(stored):
+                payload["worker_response"] = stored
             files[f"transcripts/{stem}.json"] = json.dumps(payload, ensure_ascii=False, indent=2)
         included.append("transcripts")
         manifest["transcript_count"] = len(rows)

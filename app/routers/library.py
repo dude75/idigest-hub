@@ -26,6 +26,11 @@ from app.presenters import (
 from app.services.access import can_read_object, is_hidden, is_shared_with, outgoing_shares
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 from app.services.dispatcher import utterances_to_text
+from app.services.transcript_payload import (
+    decode_transcript_payload,
+    export_json_payload,
+    extract_utterances,
+)
 from app.services.export import attachment_response, safe_filename, unwrap_markdown_fence
 from app.rate_limit import enforce_write_limits, get_rate_limits
 from app.services.audit import write_audit
@@ -463,7 +468,8 @@ def get_transcript(
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
-    utterances = json.loads(decrypt_str(row.utterances_encrypted, db))
+    stored = decode_transcript_payload(decrypt_str(row.utterances_encrypted, db))
+    utterances = extract_utterances(stored)
     source_audio = db.get(Audio, row.source_audio_id) if row.source_audio_id else None
     summaries = db.scalars(
         select(Summary).where(Summary.source_transcript_id == row.id).order_by(Summary.created_at.desc())
@@ -501,7 +507,8 @@ def export_transcript(
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
-    utterances = json.loads(decrypt_str(row.utterances_encrypted, db))
+    stored = decode_transcript_payload(decrypt_str(row.utterances_encrypted, db))
+    utterances = extract_utterances(stored)
     source_audio = db.get(Audio, row.source_audio_id) if row.source_audio_id else None
     stem = safe_filename(
         transcript_display_title(
@@ -510,7 +517,7 @@ def export_transcript(
         )
     )
     if format == "json":
-        content = json.dumps(utterances, ensure_ascii=False, indent=2)
+        content = json.dumps(export_json_payload(stored), ensure_ascii=False, indent=2)
         return attachment_response(content, f"{stem}.json", "application/json")
     return attachment_response(utterances_to_text(utterances), f"{stem}.txt", "text/plain; charset=utf-8")
 

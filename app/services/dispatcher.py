@@ -19,6 +19,11 @@ from app.crypto import encrypt_str
 from app.models import Audio, Organization, Skill, Summary, Task, Transcript, WorkerNode, new_id
 from app.presenters import transcript_display_title
 from app.services.billing import apply_success_charge, summarize_amount, transcribe_amount
+from app.services.transcript_payload import (
+    build_worker_payload,
+    decode_transcript_payload,
+    summarize_input_text,
+)
 from app.services.workers import (
     WorkerClientError,
     delete_task,
@@ -190,7 +195,7 @@ async def _finish_worker_cleanup(db: Session, node: WorkerNode | None, worker_ta
         await delete_task(db, node, worker_task_id)
 
 
-def _persist_transcript(db: Session, task: Task, utterances: list[dict[str, Any]]) -> Transcript | None:
+def _persist_transcript(db: Session, task: Task, payload: dict[str, Any]) -> Transcript | None:
     if task.skip_persist:
         _fail(task, task.skip_reason or "source_deleted")
         return None
@@ -205,7 +210,7 @@ def _persist_transcript(db: Session, task: Task, utterances: list[dict[str, Any]
         owner_user_id=task.user_id,
         source_audio_id=task.audio_id,
         title=title,
-        utterances_encrypted=encrypt_str(json.dumps(utterances, ensure_ascii=False), db),
+        utterances_encrypted=encrypt_str(json.dumps(payload, ensure_ascii=False), db),
         created_at=utcnow(),
     )
     db.add(row)
@@ -363,7 +368,7 @@ async def _on_transcribe_success(
             audio.duration_sec = audio_sec
     amount = transcribe_amount(task, audio_sec)
     worker_task_id = task.worker_task_id
-    _persist_transcript(db, task, utterances)
+    _persist_transcript(db, task, build_worker_payload(body, utterances))
     _charge(db, task, audio_sec, amount)
     follow_up = _enqueue_summarize_after_transcribe(db, task)
     meta = dict(task.meta_json or {})
@@ -600,8 +605,8 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
                     return
                 from app.crypto import decrypt_str
 
-                utterances = json.loads(decrypt_str(transcript.utterances_encrypted, db))
-                text = utterances_to_text(utterances)
+                payload = decode_transcript_payload(decrypt_str(transcript.utterances_encrypted, db))
+                text = summarize_input_text(payload)
                 skill_ids = list(task.skill_ids_json or [])
                 skills: list[Skill] = []
                 for sid in skill_ids:

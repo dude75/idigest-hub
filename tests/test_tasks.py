@@ -52,6 +52,45 @@ def test_transcribe_queued_then_success_with_transcript(client, fake_workers):
     assert transcript.json()["utterances"] == fake_workers.transcript
 
 
+def test_transcribe_stores_worker_payload_and_exports_it(client, fake_workers):
+    import json
+
+    ctx = _org_user_with_audio(client)
+    fake_workers.transcribe_mode = "success"
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
+    assert created.status_code == 202, created.text
+    polled = wait_task(client, created.json()["task_id"], status="success")
+    transcript_id = polled["transcript_id"]
+
+    exported = client.get(f"/api/v1/transcripts/{transcript_id}/export?format=json")
+    assert exported.status_code == 200, exported.text
+    payload = exported.json()
+    assert payload["status"] == "success"
+    assert payload["meta"]["audio_duration_sec"] == fake_workers.audio_duration_sec
+    assert payload["meta"]["asr_model"] == "whisper"
+    assert payload["transcript"] == fake_workers.transcript
+    assert payload["error"] is None
+
+    setup_admin(client)
+    skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "Sum it up"})
+    assert skill.status_code == 200, skill.text
+    summarize_worker = add_worker(
+        client, type="summarize", name="llm", base_url="http://summarize.test"
+    )
+    seed_node_health(summarize_worker["id"], ready_http=200)
+    logout(client)
+    login(client, ctx["me"]["user"]["email"], "userpass1")
+
+    fake_workers.summarize_mode = "success"
+    summarized = client.post(
+        "/api/v1/tasks/summarize",
+        json={"transcript_id": transcript_id, "skill_ids": [skill.json()["id"]]},
+    )
+    assert summarized.status_code == 202, summarized.text
+    wait_task(client, summarized.json()["task_id"], status="success")
+    assert fake_workers.last_summarize_text == json.dumps(payload, ensure_ascii=False)
+
+
 def test_queue_full_stays_queued_without_dispatch_timeout(client, fake_workers):
     ctx = _org_user_with_audio(client)
     fake_workers.transcribe_mode = "queue_full"

@@ -352,6 +352,7 @@ class FakeWorkers:
         self.worker_task_id = "w1"
         self.error_code = "ffmpeg_timeout"
         self.asr_models_seen: list[str] = []
+        self.last_summarize_text: str | None = None
         self.post_count = 0
         self.poll_count = 0
         self.nodes_posted: list[str] = []
@@ -396,11 +397,14 @@ class FakeWorkers:
                 "task_id": self.worker_task_id,
                 "audio_duration_sec": self.audio_duration_sec,
                 "asr_model": asr_model,
+                "diarization_model": diarization_model or "",
             },
+            "error": None,
         }
         return body
 
     async def post_summarize(self, _db, node, text, skill) -> dict[str, Any]:
+        self.last_summarize_text = text
         if self.summarize_mode == "queue_full":
             raise WorkerClientError("queue_full", 503, {"error": {"code": "queue_full"}})
         return {
