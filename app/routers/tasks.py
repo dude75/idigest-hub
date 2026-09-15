@@ -82,7 +82,7 @@ def _visible_tasks_filters(ctx: AuthContext) -> list:
 def _task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
     user_ids = {row.user_id for row in rows}
     org_ids = {row.org_id for row in rows}
-    audio_ids = {row.audio_id for row in rows if row.audio_id}
+    transcript_ids = {row.transcript_id for row in rows if row.transcript_id}
     users = (
         {u.id: u for u in db.scalars(select(User).where(User.id.in_(user_ids))).all()}
         if user_ids
@@ -93,8 +93,22 @@ def _task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
         if org_ids
         else {}
     )
+    transcripts = (
+        {
+            transcript.id: transcript
+            for transcript in db.scalars(select(Transcript).where(Transcript.id.in_(transcript_ids))).all()
+        }
+        if transcript_ids
+        else {}
+    )
+    audio_ids = {row.audio_id for row in rows if row.audio_id}
+    audio_ids.update(
+        transcript.source_audio_id
+        for transcript in transcripts.values()
+        if transcript.source_audio_id
+    )
     audios = (
-        {a.id: a for a in db.scalars(select(Audio).where(Audio.id.in_(audio_ids))).all()}
+        {audio.id: audio for audio in db.scalars(select(Audio).where(Audio.id.in_(audio_ids))).all()}
         if audio_ids
         else {}
     )
@@ -103,6 +117,10 @@ def _task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
         user = users.get(row.user_id)
         org = orgs.get(row.org_id)
         audio = audios.get(row.audio_id) if row.audio_id else None
+        if audio is None and row.transcript_id:
+            transcript = transcripts.get(row.transcript_id)
+            if transcript and transcript.source_audio_id:
+                audio = audios.get(transcript.source_audio_id)
         extra[row.id] = {
             "owner_email": user.email if user else None,
             "org_name": org.name if org else None,
@@ -316,7 +334,7 @@ async def get_task(
     if task.status in {"queued", "running"}:
         refresh_health = task.type != "import"
         background_tasks.add_task(locked_tick_job, task.id, refresh_health=refresh_health)
-    return task_public(task)
+    return task_public(task, _task_list_extra(db, [task]).get(task.id))
 
 
 def _validate_summarize_skills(ctx: AuthContext, db: Session, org: Organization, skill_ids: list[str]) -> None:

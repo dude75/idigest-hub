@@ -385,6 +385,45 @@ def test_dispatch_uses_snap_asr_model_after_settings_change(client, fake_workers
     assert get_task_row(task_id).snap_asr_model == "whisper"
 
 
+def test_list_tasks_summarize_includes_audio_filename(client, fake_workers):
+    setup_admin(client)
+    transcribe_worker = add_worker(client, type="transcribe", name="asr", base_url="http://transcribe.test")
+    summarize_worker = add_worker(
+        client, type="summarize", name="llm", base_url="http://summarize.test"
+    )
+    seed_node_health(transcribe_worker["id"])
+    seed_node_health(summarize_worker["id"], ready_http=200)
+    skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "Sum it up"})
+    assert skill.status_code == 200, skill.text
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "sum@example.com", "sumpass12", tariff_id).status_code == 200
+
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    fake_workers.transcribe_mode = "success"
+    fake_workers.summarize_mode = "success"
+    transcribed = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert transcribed.status_code == 202, transcribed.text
+    transcript_id = wait_task(client, transcribed.json()["task_id"], status="success")["transcript_id"]
+
+    summarized = client.post(
+        "/api/v1/tasks/summarize",
+        json={"transcript_id": transcript_id, "skill_ids": [skill.json()["id"]]},
+    )
+    assert summarized.status_code == 202, summarized.text
+    summarize_id = summarized.json()["task_id"]
+
+    listed = client.get("/api/v1/tasks")
+    assert listed.status_code == 200, listed.text
+    match = next(
+        task
+        for task in listed.json()["active"] + listed.json()["done"]
+        if task["task_id"] == summarize_id
+    )
+    assert match["audio_filename"] == "clip.wav"
+
+
 def test_list_tasks_scoped_by_role(client, fake_workers):
     setup_admin(client)
     tariff_id = default_tariff_id(client)
