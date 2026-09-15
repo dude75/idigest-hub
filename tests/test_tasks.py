@@ -385,6 +385,44 @@ def test_dispatch_uses_snap_asr_model_after_settings_change(client, fake_workers
     assert get_task_row(task_id).snap_asr_model == "whisper"
 
 
+def test_list_tasks_import_includes_title_before_audio(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "imp@example.com", "imppass12", tariff_id).status_code == 200
+
+    created = client.post(
+        "/api/v1/tasks/import",
+        json={"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+    )
+    assert created.status_code == 202, created.text
+    task_id = created.json()["task_id"]
+
+    from app.models import Task
+
+    db = open_db()
+    try:
+        task = db.get(Task, task_id)
+        assert task is not None
+        task.meta_json = {
+            **(task.meta_json or {}),
+            "title": "Imported lecture",
+            "stage": "downloading",
+        }
+        db.commit()
+    finally:
+        db.close()
+
+    listed = client.get("/api/v1/tasks")
+    assert listed.status_code == 200, listed.text
+    match = next(
+        task
+        for task in listed.json()["active"] + listed.json()["done"]
+        if task["task_id"] == task_id
+    )
+    assert match["audio_filename"] == "Imported lecture"
+
+
 def test_list_tasks_summarize_includes_audio_filename(client, fake_workers):
     setup_admin(client)
     transcribe_worker = add_worker(client, type="transcribe", name="asr", base_url="http://transcribe.test")

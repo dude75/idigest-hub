@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from typing import Any
+from urllib.parse import urlparse
+
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
@@ -79,6 +82,24 @@ def _visible_tasks_filters(ctx: AuthContext) -> list:
     return [Task.org_id == ctx.org.id, Task.user_id == ctx.user.id]
 
 
+def _import_display_name(meta: dict[str, Any] | None) -> str | None:
+    if not meta:
+        return None
+    title = meta.get("title")
+    if isinstance(title, str) and title.strip():
+        return title.strip()
+    url = meta.get("url")
+    if not isinstance(url, str) or not url.strip():
+        return None
+    parsed = urlparse(url.strip())
+    parts = [part for part in parsed.path.split("/") if part]
+    if parts:
+        return parts[-1]
+    if parsed.hostname:
+        return parsed.hostname
+    return url.strip()
+
+
 def _task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
     user_ids = {row.user_id for row in rows}
     org_ids = {row.org_id for row in rows}
@@ -121,10 +142,13 @@ def _task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
             transcript = transcripts.get(row.transcript_id)
             if transcript and transcript.source_audio_id:
                 audio = audios.get(transcript.source_audio_id)
+        audio_filename = audio.original_filename if audio else None
+        if audio_filename is None and row.type == "import":
+            audio_filename = _import_display_name(row.meta_json)
         extra[row.id] = {
             "owner_email": user.email if user else None,
             "org_name": org.name if org else None,
-            "audio_filename": audio.original_filename if audio else None,
+            "audio_filename": audio_filename,
         }
     return extra
 
