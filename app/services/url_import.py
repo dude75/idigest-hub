@@ -29,10 +29,10 @@ ProgressCallback = Callable[[str, dict[str, Any]], None]
 _ERROR_DETAIL_MAX_LEN = 500
 _DNS_RESOLUTION_TIMEOUT_SEC = 5.0
 
-# YouTube player clients to try when the default path returns HTTP 403.
+# YouTube player clients to try when android returns HTTP 403.
 _YOUTUBE_CLIENT_FALLBACKS: tuple[list[str], ...] = (
-    ["default", "web_embedded"],
     ["android"],
+    ["default", "web_embedded"],
     ["ios"],
     ["web"],
     ["mweb"],
