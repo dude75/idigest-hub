@@ -71,7 +71,8 @@ def test_transcribe_stores_worker_payload_and_exports_it(client, fake_workers):
     assert payload["transcript"] == fake_workers.transcript
     assert payload["error"] is None
 
-    setup_admin(client)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "Sum it up"})
     assert skill.status_code == 200, skill.text
     summarize_worker = add_worker(
@@ -436,7 +437,14 @@ def test_dispatch_uses_snap_asr_model_after_settings_change(client, fake_workers
     assert get_task_row(task_id).snap_asr_model == "whisper"
 
 
-def test_list_tasks_import_includes_title_before_audio(client):
+def _allow_import_url(url: str, *, settings_allowed):
+    return url.strip()
+
+
+def test_list_tasks_import_includes_title_before_audio(client, monkeypatch):
+    monkeypatch.setattr("app.services.url_import.assert_import_fetch_allowed", _allow_import_url)
+    monkeypatch.setattr("app.services.import_runner.import_slots_available", lambda: False)
+
     setup_admin(client)
     tariff_id = default_tariff_id(client)
     logout(client)
