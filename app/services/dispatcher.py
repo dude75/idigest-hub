@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.constants import MAX_SUMMARIZE_PAYLOAD_BYTES
 from app.crypto import encrypt_str
+from app.db import release_connection
 from app.models import Audio, Organization, Skill, Summary, Task, Transcript, WorkerNode, new_id
 from app.presenters import transcript_display_title
 from app.services.billing import apply_success_charge, summarize_amount, transcribe_amount
@@ -37,6 +38,10 @@ from app.services.workers import (
 from app.timeutil import as_utc, utcnow
 
 log = logging.getLogger("app")
+_ERROR_DETAIL_MAX_LEN = 500
+
+# Keep last successful health if a probe throws (busy worker, event-loop stall).
+_HEALTH_FAIL_GRACE_SEC = 60
 
 
 def utterances_to_text(utterances: list[dict[str, Any]]) -> str:
@@ -56,12 +61,21 @@ def combine_skills(skills: list[Skill]) -> str:
     return "\n\n".join(parts)
 
 
-async def refresh_node_health(db: Session, node: WorkerNode) -> None:
+def _keep_last_good_health(node: WorkerNode) -> bool:
+    health = node.last_health or {}
+    last_at = node.last_health_at
+    if health.get("_http") != 200 or last_at is None:
+        return False
+    return (utcnow() - as_utc(last_at)).total_seconds() < _HEALTH_FAIL_GRACE_SEC
+
+
+async def _probe_node_health(node: WorkerNode) -> None:
+    """HTTP only — does not touch the Session, safe to run concurrently."""
     try:
-        status, body = await get_health(db, node)
+        status, body = await get_health(None, node)
         ready_code = None
         if node.type == "summarize":
-            ready_code = await get_ready(db, node)
+            ready_code = await get_ready(None, node)
         payload = dict(body)
         payload["_http"] = status
         if ready_code is not None:
@@ -70,10 +84,35 @@ async def refresh_node_health(db: Session, node: WorkerNode) -> None:
         node.last_seen_version = body.get("version") if status == 200 else node.last_seen_version
         node.last_health_at = utcnow()
         node.updated_at = utcnow()
-    except Exception:
+    except Exception as exc:
+        log.info("worker health probe error node=%s error=%s", node.id, exc)
+        if _keep_last_good_health(node):
+            return
         node.last_health = {"_http": 0, "status": "unreachable"}
         node.last_health_at = utcnow()
         log.info("worker health failed node=%s", node.id)
+
+
+async def refresh_node_health(db: Session, node: WorkerNode) -> None:
+    release_connection(db)
+    await _probe_node_health(node)
+
+
+async def refresh_nodes_health(
+    db: Session, nodes: list[WorkerNode], *, force: bool = False
+) -> None:
+    now = utcnow()
+    stale = [
+        node
+        for node in nodes
+        if force
+        or node.last_health_at is None
+        or (now - as_utc(node.last_health_at)).total_seconds() >= 5
+    ]
+    if not stale:
+        return
+    release_connection(db)
+    await asyncio.gather(*(_probe_node_health(node) for node in stale))
 
 
 def _engines(node: WorkerNode) -> dict[str, str]:
@@ -164,12 +203,32 @@ def pick_node(db: Session, candidates: list[WorkerNode]) -> WorkerNode | None:
     return sorted(candidates, key=score)[0]
 
 
-def _fail(task: Task, code: str) -> None:
+def _worker_error_detail(body: dict[str, Any] | None) -> str | None:
+    err = body.get("error") if isinstance(body, dict) else None
+    if not isinstance(err, dict):
+        return None
+    message = err.get("message")
+    if not isinstance(message, str):
+        return None
+    text = " ".join(message.split())
+    if not text:
+        return None
+    if len(text) <= _ERROR_DETAIL_MAX_LEN:
+        return text
+    return text[: _ERROR_DETAIL_MAX_LEN - 3] + "..."
+
+
+def _fail(task: Task, code: str, *, error_detail: str | None = None) -> None:
     task.status = "error"
     task.error_code = code
     task.updated_at = utcnow()
     task.worker_id = None
     task.worker_task_id = None
+    if error_detail:
+        meta = dict(task.meta_json or {})
+        meta["stage"] = "error"
+        meta["error_detail"] = error_detail
+        task.meta_json = meta
     from app.prometheus_metrics import observe_task_terminal
 
     observe_task_terminal(task)
@@ -407,8 +466,10 @@ async def _on_worker_terminal_error(
 ) -> None:
     err = body.get("error") if isinstance(body.get("error"), dict) else {}
     code = map_worker_error(err.get("code") if isinstance(err, dict) else None)
+    detail = _worker_error_detail(body)
     worker_task_id = task.worker_task_id
-    _fail(task, code)
+    log.info("worker terminal error task=%s code=%s detail=%s", task.id, code, detail or "")
+    _fail(task, code, error_detail=detail)
     _commit(db)
     await _finish_worker_cleanup(db, node, worker_task_id)
 
@@ -416,8 +477,7 @@ async def _on_worker_terminal_error(
 async def recover_orphaned_tasks(db: Session) -> None:
     """Reconcile running tasks after hub process restart."""
     nodes = list(db.scalars(select(WorkerNode)).all())
-    for node in nodes:
-        await refresh_node_health(db, node)
+    await refresh_nodes_health(db, nodes, force=True)
 
     running = list(db.scalars(select(Task).where(Task.status == "running")).all())
     if not running:
@@ -589,6 +649,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
                     return
                 from app.services.storage import get_storage
 
+                release_connection(db)
                 async with get_storage().local_path_for_worker(audio.storage_path) as audio_path:
                     body = await post_transcribe(
                         db,
@@ -636,7 +697,9 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
             if mapped == "engine_unavailable":
                 task.retry_without_timeout = True
                 continue
-            _fail(task, mapped)
+            detail = _worker_error_detail(exc.body)
+            log.info("worker post error task=%s code=%s detail=%s", task.id, mapped, detail or "")
+            _fail(task, mapped, error_detail=detail)
             return
         worker_task_id = body.get("meta", {}).get("task_id") if isinstance(body.get("meta"), dict) else None
         worker_task_id = worker_task_id or body.get("task_id")
@@ -669,6 +732,7 @@ async def _dispatch_follow_up_task(db: Session, follow_up_id: str) -> None:
 
 
 _tick_lock: asyncio.Lock | None = None
+_inflight_ticks: set[tuple[str | None, bool]] = set()
 
 
 def tick_lock() -> asyncio.Lock:
@@ -678,20 +742,42 @@ def tick_lock() -> asyncio.Lock:
     return _tick_lock
 
 
+def _claim_tick_job(task_id: str | None, refresh_health: bool) -> bool:
+    key = (task_id, refresh_health)
+    if key in _inflight_ticks:
+        return False
+    _inflight_ticks.add(key)
+    return True
+
+
+def _release_tick_job(task_id: str | None, refresh_health: bool) -> None:
+    _inflight_ticks.discard((task_id, refresh_health))
+
+
+def schedule_locked_tick(
+    background_tasks: Any,
+    task_id: str | None = None,
+    *,
+    refresh_health: bool = True,
+    wait: bool = True,
+) -> None:
+    """Queue a dispatcher tick.
+
+    Polls pass wait=False: if a tick is already uploading/polling a worker,
+    skip instead of stacking BackgroundTasks that pin request DB sessions.
+    """
+    if not wait and tick_lock().locked():
+        return
+    background_tasks.add_task(locked_tick_job, task_id, refresh_health=refresh_health)
+
+
 async def tick_once(db: Session, task_id: str | None = None, *, refresh_health: bool = True) -> None:
     # Persist the caller's pending writes first so SQLite is not locked during worker HTTP.
     _commit(db)
     settings = get_settings()
     nodes = list(db.scalars(select(WorkerNode)).all())
-    now = utcnow()
     if refresh_health:
-        for node in nodes:
-            if (
-                node.last_health_at is not None
-                and (now - as_utc(node.last_health_at)).total_seconds() < 5
-            ):
-                continue
-            await refresh_node_health(db, node)
+        await refresh_nodes_health(db, nodes)
     _commit(db)
     query = select(Task).where(Task.status.in_(("queued", "running")))
     if task_id:
@@ -720,17 +806,23 @@ async def locked_tick(
 
 async def locked_tick_job(task_id: str | None = None, *, refresh_health: bool = True) -> None:
     """Run a dispatcher tick in a fresh DB session (for BackgroundTasks)."""
+    if not _claim_tick_job(task_id, refresh_health):
+        return
     from app.db import SessionLocal
 
-    db = SessionLocal()
     try:
-        await locked_tick(db, task_id, refresh_health=refresh_health)
-        db.commit()
-    except Exception:
-        db.rollback()
-        log.exception("background tick failed task=%s", task_id)
+        async with tick_lock():
+            db = SessionLocal()
+            try:
+                await tick_once(db, task_id=task_id, refresh_health=refresh_health)
+                db.commit()
+            except Exception:
+                db.rollback()
+                log.exception("background tick failed task=%s", task_id)
+            finally:
+                db.close()
     finally:
-        db.close()
+        _release_tick_job(task_id, refresh_health)
 
 
 async def dispatcher_loop(stop_event: asyncio.Event) -> None:
@@ -757,26 +849,29 @@ async def dispatcher_loop(stop_event: asyncio.Event) -> None:
     finally:
         session.close()
     while not stop_event.is_set():
-        session = SessionLocal()
         tick_started = time.perf_counter()
         try:
             async with tick_lock():
-                await tick_once(session)
-                from app.services.retention import purge_expired_audio
+                session = SessionLocal()
+                try:
+                    await tick_once(session)
+                    from app.services.retention import purge_expired_audio
 
-                purge_expired_audio(session)
-            session.commit()
+                    purge_expired_audio(session)
+                    session.commit()
+                except Exception:
+                    session.rollback()
+                    raise
+                finally:
+                    session.close()
             from app.services.storage_gc import drain_all_pending_storage_deletes
 
             await asyncio.to_thread(drain_all_pending_storage_deletes)
             mark_dispatcher_tick_success()
             observe_dispatcher_tick(time.perf_counter() - tick_started)
         except Exception:
-            session.rollback()
             observe_dispatcher_tick_error()
             log.exception("dispatcher tick failed")
-        finally:
-            session.close()
         try:
             await asyncio.wait_for(stop_event.wait(), timeout=settings.DISPATCH_POLL_SEC)
         except TimeoutError:

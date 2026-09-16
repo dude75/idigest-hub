@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.crypto import decrypt_str
+from app.db import release_connection
 from app.models import WorkerNode
 
 log = logging.getLogger("app")
@@ -56,6 +57,11 @@ def _timeout(upload: bool = False) -> httpx2.Timeout:
     return httpx2.Timeout(connect=10.0, read=read, write=read, pool=10.0)
 
 
+def _release(db: Session | None) -> None:
+    if db is not None:
+        release_connection(db)
+
+
 class WorkerClientError(Exception):
     def __init__(self, kind: str, status_code: int | None = None, body: dict | None = None) -> None:
         super().__init__(kind)
@@ -79,15 +85,17 @@ def _parse_json(response: httpx2.Response) -> dict[str, Any]:
         return {}
 
 
-async def get_health(db: Session, node: WorkerNode) -> tuple[int, dict[str, Any]]:
+async def get_health(db: Session | None, node: WorkerNode) -> tuple[int, dict[str, Any]]:
     url = node.base_url.rstrip("/") + "/health"
+    _release(db)
     async with httpx2.AsyncClient(timeout=_timeout()) as client:
         response = await client.get(url)
     return response.status_code, _parse_json(response)
 
 
-async def get_ready(_db: Session, node: WorkerNode) -> int:
+async def get_ready(db: Session | None, node: WorkerNode) -> int:
     url = node.base_url.rstrip("/") + "/ready"
+    _release(db)
     async with httpx2.AsyncClient(timeout=_timeout()) as client:
         response = await client.get(url)
     return response.status_code
@@ -106,6 +114,7 @@ async def post_transcribe(
     suffix = path.suffix.lower()
     mime = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".m4a": "audio/mp4"}.get(suffix, "application/octet-stream")
     data = {"asr_model": asr_model, "diarization_model": diarization_model or ""}
+    _release(db)
     try:
         async with httpx2.AsyncClient(timeout=_timeout(upload=True)) as client:
             with path.open("rb") as handle:
@@ -134,6 +143,7 @@ async def post_transcribe(
 async def post_summarize(db: Session, node: WorkerNode, text: str, skill: str) -> dict[str, Any]:
     url = node.base_url.rstrip("/") + "/summarize"
     headers = {**_auth_header(db, node), "Content-Type": "application/json"}
+    _release(db)
     try:
         async with httpx2.AsyncClient(timeout=_timeout(upload=True)) as client:
             response = await client.post(url, headers=headers, json={"text": text, "skill": skill})
@@ -155,9 +165,11 @@ async def post_summarize(db: Session, node: WorkerNode, text: str, skill: str) -
 
 async def get_task(db: Session, node: WorkerNode, worker_task_id: str) -> tuple[int, dict[str, Any]]:
     url = node.base_url.rstrip("/") + f"/tasks/{worker_task_id}"
+    headers = _auth_header(db, node)
+    _release(db)
     try:
         async with httpx2.AsyncClient(timeout=_timeout()) as client:
-            response = await client.get(url, headers=_auth_header(db, node))
+            response = await client.get(url, headers=headers)
     except httpx2.TimeoutException as exc:
         raise WorkerClientError("timeout") from exc
     except httpx2.HTTPError as exc:
@@ -167,9 +179,11 @@ async def get_task(db: Session, node: WorkerNode, worker_task_id: str) -> tuple[
 
 async def delete_task(db: Session, node: WorkerNode, worker_task_id: str) -> int:
     url = node.base_url.rstrip("/") + f"/tasks/{worker_task_id}"
+    headers = _auth_header(db, node)
+    _release(db)
     try:
         async with httpx2.AsyncClient(timeout=_timeout()) as client:
-            response = await client.delete(url, headers=_auth_header(db, node))
+            response = await client.delete(url, headers=headers)
     except httpx2.HTTPError:
         log.info("worker delete failed node=%s task=%s", node.id, worker_task_id)
         return 0

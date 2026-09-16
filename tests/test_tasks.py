@@ -382,6 +382,18 @@ def test_impersonate_artifacts_owned_by_impersonated_user(client, fake_workers):
     assert transcript.json()["owner_user_id"] != who["actor"]["id"]
 
 
+def test_worker_pipeline_error_keeps_message(client, fake_workers):
+    ctx = _org_user_with_audio(client)
+    fake_workers.transcribe_mode = "error"
+    fake_workers.error_code = "pipeline_error"
+    fake_workers.error_message = "CUDA out of memory. Tried to allocate 4.21 GiB."
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": ctx["audio"]["id"]})
+    assert created.status_code == 202, created.text
+    failed = wait_task(client, created.json()["task_id"], status="error")
+    assert failed["error"]["code"] == "pipeline_error"
+    assert failed["meta"]["error_detail"] == "CUDA out of memory. Tried to allocate 4.21 GiB."
+
+
 def test_worker_error_codes_mapped_not_raw(client, fake_workers):
     ctx = _org_user_with_audio(client)
     fake_workers.transcribe_mode = "error"

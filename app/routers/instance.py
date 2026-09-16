@@ -124,7 +124,7 @@ def _org_count(db: Session, tariff_id: str) -> int:
 
 
 @router.get("/workers")
-def list_workers(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def list_workers(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
     rows = db.scalars(select(WorkerNode).order_by(WorkerNode.created_at)).all()
     return {"items": [worker_public(row) for row in rows]}
@@ -132,7 +132,7 @@ def list_workers(db: Session = Depends(get_session), ctx: AuthContext = Depends(
 
 @router.post("/workers")
 def create_worker(
-    body: WorkerBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: WorkerBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     if body.type not in {"transcribe", "summarize"}:
@@ -160,7 +160,7 @@ def create_worker(
 def patch_worker(
     worker_id: str,
     body: WorkerBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -182,7 +182,7 @@ def patch_worker(
 
 @router.delete("/workers/{worker_id}")
 def delete_worker(
-    worker_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    worker_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     node = db.get(WorkerNode, worker_id)
@@ -193,7 +193,7 @@ def delete_worker(
 
 
 @router.get("/tariffs")
-def list_tariffs(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def list_tariffs(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
     seed_default_tariff(db)
     rows = db.scalars(select(Tariff).order_by(Tariff.created_at)).all()
@@ -220,7 +220,7 @@ def _apply_tariff(tariff: Tariff, body: TariffBody, ctx: AuthContext) -> None:
 
 @router.post("/tariffs")
 def create_tariff(
-    body: TariffBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: TariffBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     now = utcnow()
@@ -244,7 +244,7 @@ def create_tariff(
 def patch_tariff(
     tariff_id: str,
     body: TariffBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -258,7 +258,7 @@ def patch_tariff(
 
 @router.post("/tariffs/{tariff_id}/archive")
 def archive_tariff(
-    tariff_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    tariff_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     tariff = db.get(Tariff, tariff_id)
@@ -273,7 +273,7 @@ def archive_tariff(
 
 @router.post("/tariffs/{tariff_id}/unarchive")
 def unarchive_tariff(
-    tariff_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    tariff_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     tariff = db.get(Tariff, tariff_id)
@@ -287,7 +287,7 @@ def unarchive_tariff(
 
 @router.delete("/tariffs/{tariff_id}")
 def delete_tariff(
-    tariff_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    tariff_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     tariff = db.get(Tariff, tariff_id)
@@ -306,7 +306,7 @@ def delete_tariff(
 def wallet_delta(
     org_id: str,
     body: WalletBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -321,7 +321,7 @@ def wallet_delta(
 
 
 @router.get("/instance/settings")
-def get_settings_ep(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
     s = get_instance_settings(db)
     from app.services.import_platforms import DEFAULT_IMPORT_AUDIO_BITRATE_KBPS, admin_platforms
@@ -355,7 +355,7 @@ def get_settings_ep(db: Session = Depends(get_session), ctx: AuthContext = Depen
 
 @router.patch("/instance/settings")
 def patch_settings(
-    body: SettingsPatch, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: SettingsPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     s = get_instance_settings(db)
@@ -422,7 +422,7 @@ def _count_hidden_orgs(ctx: AuthContext, db: Session) -> int:
 @router.get("/orgs")
 def list_orgs(
     include_hidden: bool = False,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -446,7 +446,7 @@ def list_orgs(
 
 @router.post("/orgs/{org_id}/hide")
 def hide_org(
-    org_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    org_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     org = db.get(Organization, org_id)
@@ -459,7 +459,7 @@ def hide_org(
 
 @router.post("/orgs/{org_id}/unhide")
 def unhide_org(
-    org_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    org_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     org = db.get(Organization, org_id)
@@ -484,7 +484,7 @@ def org_ledger_ep(
     to_day: str | None = Query(None, alias="to"),
     user_id: str | None = None,
     kind: str | None = None,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -509,7 +509,7 @@ def org_ledger_ep(
 def reset_org_admin_password(
     org_id: str,
     user_id: str,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -536,7 +536,7 @@ def reset_org_admin_password(
 def reset_org_user_mfa(
     org_id: str,
     user_id: str,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -563,7 +563,7 @@ def reset_org_user_mfa(
 def assign_org_tariff(
     org_id: str,
     body: OrgTariffBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -588,7 +588,7 @@ def _actor_is_org_admin(db: Session, ctx: AuthContext) -> tuple[Organization, Me
 
 @router.post("/impersonate")
 def impersonate(
-    body: ImpersonateBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: ImpersonateBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     if ctx.session is None or ctx.impersonating:
         ctx.raise_error(ErrorCode.forbidden)
@@ -617,7 +617,7 @@ def impersonate(
 
 @router.delete("/impersonate")
 def stop_impersonate(
-    db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     if ctx.session is None:
         ctx.raise_error(ErrorCode.forbidden)
@@ -635,7 +635,7 @@ def audit_log(
     org_id: str | None = None,
     user_id: str | None = None,
     action: str | None = None,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -667,7 +667,7 @@ def stats(
     org_id: str | None = None,
     user_id: str | None = None,
     kind: str | None = None,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
@@ -706,7 +706,7 @@ def stats(
 
 
 @router.get("/skills/base")
-def list_base_skills(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def list_base_skills(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     from app.models import Skill
     from app.presenters import skill_public
 
@@ -717,7 +717,7 @@ def list_base_skills(db: Session = Depends(get_session), ctx: AuthContext = Depe
 
 @router.post("/skills/base")
 def create_base_skill(
-    body: BaseSkillBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: BaseSkillBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     from app.models import Skill
     from app.presenters import skill_public
@@ -741,7 +741,7 @@ def create_base_skill(
 def patch_base_skill(
     skill_id: str,
     body: BaseSkillBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     from app.models import Skill
@@ -759,7 +759,7 @@ def patch_base_skill(
 
 @router.delete("/skills/base/{skill_id}")
 def delete_base_skill(
-    skill_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    skill_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     from app.models import Skill
 

@@ -54,6 +54,7 @@ def client(tmp_path, monkeypatch):
     import app.services.dispatcher as dispatcher
 
     dispatcher._tick_lock = None
+    dispatcher._inflight_ticks.clear()
 
     from app.main import app
 
@@ -67,6 +68,7 @@ def client(tmp_path, monkeypatch):
     reset_storage()
     reset_engine()
     dispatcher._tick_lock = None
+    dispatcher._inflight_ticks.clear()
 
     from app.rate_limit import reset_rate_limiter
 
@@ -79,14 +81,20 @@ def spy_locked_tick_job(monkeypatch):
     import app.routers.tasks as tasks_router
     import app.services.dispatcher as dispatcher
 
-    original = dispatcher.locked_tick_job
+    original = dispatcher.schedule_locked_tick
 
-    async def spy(task_id: str | None = None, *, refresh_health: bool = True) -> None:
-        calls.append({"task_id": task_id, "refresh_health": refresh_health})
-        await original(task_id, refresh_health=refresh_health)
+    def spy(
+        background_tasks,
+        task_id: str | None = None,
+        *,
+        refresh_health: bool = True,
+        wait: bool = True,
+    ) -> None:
+        calls.append({"task_id": task_id, "refresh_health": refresh_health, "wait": wait})
+        original(background_tasks, task_id, refresh_health=refresh_health, wait=wait)
 
-    monkeypatch.setattr(dispatcher, "locked_tick_job", spy)
-    monkeypatch.setattr(tasks_router, "locked_tick_job", spy)
+    monkeypatch.setattr(dispatcher, "schedule_locked_tick", spy)
+    monkeypatch.setattr(tasks_router, "schedule_locked_tick", spy)
     return calls
 
 
@@ -351,6 +359,7 @@ class FakeWorkers:
         self.audio_duration_sec = 10.0
         self.worker_task_id = "w1"
         self.error_code = "ffmpeg_timeout"
+        self.error_message: str | None = None
         self.asr_models_seen: list[str] = []
         self.last_summarize_text: str | None = None
         self.post_count = 0
@@ -385,9 +394,12 @@ class FakeWorkers:
         if self.transcribe_mode == "network":
             raise WorkerClientError("http")
         if self.transcribe_mode == "error":
+            error = {"code": self.error_code}
+            if self.error_message:
+                error["message"] = self.error_message
             return {
                 "status": "error",
-                "error": {"code": self.error_code},
+                "error": error,
                 "meta": {"task_id": self.worker_task_id},
             }
         body = {
@@ -424,7 +436,10 @@ class FakeWorkers:
         if mode == "404":
             return 404, {}
         if mode == "error":
-            return 200, {"status": "error", "error": {"code": self.error_code}}
+            error = {"code": self.error_code}
+            if self.error_message:
+                error["message"] = self.error_message
+            return 200, {"status": "error", "error": error}
         if mode in {"queued", "running"}:
             return 200, {"status": mode}
         return 200, {

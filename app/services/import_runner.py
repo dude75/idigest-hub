@@ -132,6 +132,7 @@ async def _run_import_task(task_id: str) -> None:
             finally:
                 session.close()
 
+        db.commit()
         result = await asyncio.to_thread(
             download_audio,
             url,
@@ -152,6 +153,7 @@ async def _run_import_task(task_id: str) -> None:
 
         audio_id = new_id()
         storage = get_storage()
+        db.commit()
         try:
             storage_path = await storage.save_file_path(
                 audio_id, result.suffix, result.source_path, max_bytes=max_bytes

@@ -59,6 +59,7 @@ def metrics_client(tmp_path, monkeypatch):
     reset_engine()
     reset_rate_limiter()
     dispatcher._tick_lock = None
+    dispatcher._inflight_ticks.clear()
 
     from app.main import app
 
@@ -71,6 +72,7 @@ def metrics_client(tmp_path, monkeypatch):
     reset_engine()
     reset_rate_limiter()
     dispatcher._tick_lock = None
+    dispatcher._inflight_ticks.clear()
 
 
 def test_metrics_requires_token(metrics_client: TestClient):
@@ -101,6 +103,7 @@ def test_metrics_denied_when_token_unconfigured(tmp_path, monkeypatch):
     get_settings.cache_clear()
     reset_engine()
     dispatcher._tick_lock = None
+    dispatcher._inflight_ticks.clear()
 
     from app.main import app
 
@@ -131,6 +134,7 @@ def test_metrics_disabled_keeps_process_collectors(tmp_path, monkeypatch):
     get_settings.cache_clear()
     reset_engine()
     dispatcher._tick_lock = None
+    dispatcher._inflight_ticks.clear()
 
     from app.main import app
 

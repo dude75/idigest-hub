@@ -76,7 +76,7 @@ class OffboardBody(BaseModel):
 
 
 @router.get("/org/available-tariffs")
-def available_tariffs(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def available_tariffs(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     from app.presenters import tariff_public
 
     ctx.require_org()
@@ -87,7 +87,7 @@ def available_tariffs(db: Session = Depends(get_session), ctx: AuthContext = Dep
 
 
 @router.get("/org")
-def get_org(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def get_org(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     org, _ = ctx.require_org()
     total = db.scalar(select(func.coalesce(func.sum(UsageEvent.amount), 0)).where(UsageEvent.org_id == org.id))
     return org_public(org, usage={"total_amount": str(total)}, public_base_url=_public_base_url(db))
@@ -99,7 +99,7 @@ def org_stats(
     to_day: str | None = Query(None, alias="to"),
     user_id: str | None = None,
     kind: str | None = None,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org_admin()
@@ -119,7 +119,7 @@ def org_stats(
 
 @router.patch("/org")
 def patch_org(
-    body: OrgPatch, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: OrgPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     if body.name and body.name.strip():
@@ -130,7 +130,7 @@ def patch_org(
 
 @router.patch("/org/tariff")
 def patch_org_tariff(
-    body: OrgTariffBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: OrgTariffBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     tariff = db.get(Tariff, body.tariff_id)
@@ -145,7 +145,7 @@ def patch_org_tariff(
 
 @router.patch("/org/settings")
 def patch_org_settings(
-    body: OrgSettingsPatch, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: OrgSettingsPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     if body.password_ttl_days is not None:
@@ -164,14 +164,14 @@ def patch_org_settings(
 
 
 @router.get("/org/sso")
-def get_org_sso(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def get_org_sso(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     org, _ = ctx.require_org_admin()
     return org_sso_admin_public(org, public_base_url=_public_base_url(db))
 
 
 @router.patch("/org/sso")
 def patch_org_sso(
-    body: OrgSsoPatch, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: OrgSsoPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     if body.issuer is not None:
@@ -213,7 +213,7 @@ def patch_org_sso(
 
 
 @router.get("/org/users")
-def list_users(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def list_users(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     org, _ = ctx.require_org()
     memberships = db.scalars(select(Membership).where(Membership.org_id == org.id)).all()
     items = []
@@ -226,7 +226,7 @@ def list_users(db: Session = Depends(get_session), ctx: AuthContext = Depends(re
 
 @router.post("/org/users")
 def create_user(
-    body: CreateUserBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: CreateUserBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     if body.role not in {"org_admin", "org_member"}:
@@ -257,7 +257,7 @@ def create_user(
 def patch_user_role(
     user_id: str,
     body: RoleBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org_admin()
@@ -277,7 +277,7 @@ def patch_user_role(
 
 @router.post("/org/users/{user_id}/disable")
 def disable_user(
-    user_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    user_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     membership = db.scalar(
@@ -297,7 +297,7 @@ def disable_user(
 
 @router.post("/org/users/{user_id}/enable")
 def enable_user(
-    user_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    user_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     membership = db.scalar(
@@ -314,7 +314,7 @@ def enable_user(
 
 @router.post("/org/users/{user_id}/reset-password")
 def reset_user_password(
-    user_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    user_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     membership = db.scalar(
@@ -334,7 +334,7 @@ def reset_user_password(
 
 @router.post("/org/users/{user_id}/reset-mfa")
 def reset_user_mfa(
-    user_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    user_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     membership = db.scalar(
@@ -357,7 +357,7 @@ def reset_user_mfa(
 def offboard_user(
     user_id: str,
     body: OffboardBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org_admin()

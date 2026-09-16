@@ -14,6 +14,7 @@ from alembic.config import Config
 from sqlalchemy import create_engine, event, inspect, text
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool, StaticPool
 
 from app.config import Settings, get_settings
 
@@ -25,6 +26,9 @@ _SQLITE_BUSY_TIMEOUT_SEC = 30.0
 _POSTGRES_CONNECT_TIMEOUT_SEC = 10
 _POSTGRES_STARTUP_RETRIES = 60
 _POSTGRES_STARTUP_RETRY_SEC = 1.0
+_POSTGRES_POOL_SIZE = 10
+_POSTGRES_MAX_OVERFLOW = 20
+_POSTGRES_POOL_RECYCLE_SEC = 1800
 
 
 def sqlite_url(path: str) -> str:
@@ -256,14 +260,26 @@ def init_database(engine: Engine) -> None:
     _startup_log("database init: done")
 
 
+def release_connection(session: Session) -> None:
+    """Return the checked-out connection without expunging ORM objects.
+
+    Sessions use expire_on_commit=False, so in-memory instances stay usable.
+    Call immediately before await I/O so worker HTTP cannot starve the pool.
+    """
+    if session.in_transaction():
+        session.commit()
+
+
 def get_engine() -> Engine:
     global _engine, SessionLocal
     if _engine is None:
         url = database_url()
         if is_sqlite_url(url):
+            memory = ":memory:" in (make_url(url).database or "")
             _engine = create_engine(
                 url,
                 future=True,
+                poolclass=StaticPool if memory else NullPool,
                 connect_args={
                     "check_same_thread": False,
                     "timeout": _SQLITE_BUSY_TIMEOUT_SEC,
@@ -283,6 +299,9 @@ def get_engine() -> Engine:
                 url,
                 future=True,
                 pool_pre_ping=True,
+                pool_size=_POSTGRES_POOL_SIZE,
+                max_overflow=_POSTGRES_MAX_OVERFLOW,
+                pool_recycle=_POSTGRES_POOL_RECYCLE_SEC,
                 connect_args={"connect_timeout": _POSTGRES_CONNECT_TIMEOUT_SEC},
             )
 

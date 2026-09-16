@@ -116,7 +116,7 @@ def _effective_user(db: Session, session_row: AuthSession, login_user: User) -> 
     return target
 
 
-def resolve_auth(request: Request, db: Session = Depends(get_session)) -> AuthContext | None:
+def resolve_auth(request: Request, db: Session = Depends(get_session, scope="function")) -> AuthContext | None:
     locale = locale_from_request(request)
     token = request.cookies.get(COOKIE_NAME)
     authorization = request.headers.get("authorization") or ""
@@ -193,7 +193,7 @@ def resolve_auth(request: Request, db: Session = Depends(get_session)) -> AuthCo
 
 def require_auth(
     request: Request,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> AuthContext:
     locale = locale_from_request(request)
     ctx = resolve_auth(request, db)
@@ -219,7 +219,7 @@ def require_auth(
 
 def optional_auth(
     request: Request,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> AuthContext | None:
     return resolve_auth(request, db)
 

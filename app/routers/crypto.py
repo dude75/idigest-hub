@@ -37,7 +37,7 @@ def _job_public(job) -> dict:
 
 
 @router.get("/instance/crypto/deks")
-def list_deks(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def list_deks(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
     settings = get_instance_settings(db)
     rows = list(db.scalars(select(DataEncryptionKey).order_by(DataEncryptionKey.created_at.desc())).all())
@@ -51,7 +51,7 @@ def list_deks(db: Session = Depends(get_session), ctx: AuthContext = Depends(req
 
 
 @router.post("/instance/crypto/deks")
-def add_dek(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def add_dek(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
     if active_job_id() is not None:
         ctx.raise_error(ErrorCode.conflict)
@@ -67,7 +67,7 @@ def add_dek(db: Session = Depends(get_session), ctx: AuthContext = Depends(requi
 
 
 @router.post("/instance/crypto/reencrypt")
-def start_reencrypt(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def start_reencrypt(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
     if active_job_id() is not None:
         ctx.raise_error(ErrorCode.conflict)
@@ -79,7 +79,7 @@ def start_reencrypt(db: Session = Depends(get_session), ctx: AuthContext = Depen
 
 
 @router.get("/instance/crypto/reencrypt/latest")
-def reencrypt_latest(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def reencrypt_latest(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
     job = latest_job(db)
     if job is None:
@@ -89,7 +89,7 @@ def reencrypt_latest(db: Session = Depends(get_session), ctx: AuthContext = Depe
 
 @router.get("/instance/crypto/reencrypt/{job_id}")
 def reencrypt_status(
-    job_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    job_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     job = db.get(EncryptionJob, job_id)
@@ -100,7 +100,7 @@ def reencrypt_status(
 
 @router.post("/instance/crypto/reencrypt/{job_id}/cancel")
 def cancel_reencrypt(
-    job_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    job_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     _admin(ctx)
     job = db.get(EncryptionJob, job_id)

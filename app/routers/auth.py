@@ -303,7 +303,7 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
 
 
 @router.post("/setup")
-def setup(body: SetupBody, request: Request, response: Response, db: Session = Depends(get_session)) -> dict:
+def setup(body: SetupBody, request: Request, response: Response, db: Session = Depends(get_session, scope="function")) -> dict:
     locale = _locale(body.locale)
     limits = get_rate_limits(db)
     enforce_setup(client_ip(request), limits, locale)
@@ -345,7 +345,7 @@ def setup(body: SetupBody, request: Request, response: Response, db: Session = D
 
 
 @router.post("/auth/signup")
-def signup(body: SignupBody, request: Request, response: Response, db: Session = Depends(get_session)) -> dict:
+def signup(body: SignupBody, request: Request, response: Response, db: Session = Depends(get_session, scope="function")) -> dict:
     locale = _locale(body.locale)
     settings = get_instance_settings(db)
     if not settings.bootstrap_done:
@@ -410,7 +410,7 @@ def _tariff_org_count(db: Session, tariff_id: str) -> int:
 
 
 @router.get("/auth/signup-tariffs")
-def signup_tariffs(request: Request, db: Session = Depends(get_session)) -> dict:
+def signup_tariffs(request: Request, db: Session = Depends(get_session, scope="function")) -> dict:
     locale = locale_from_request(request)
     settings = get_instance_settings(db)
     if not settings.bootstrap_done or not settings.allow_new_orgs:
@@ -422,7 +422,7 @@ def signup_tariffs(request: Request, db: Session = Depends(get_session)) -> dict
 
 
 @router.get("/setup/status")
-def setup_status(db: Session = Depends(get_session)) -> dict:
+def setup_status(db: Session = Depends(get_session, scope="function")) -> dict:
     settings = get_instance_settings(db)
     return {"bootstrap_done": bool(settings.bootstrap_done)}
 
@@ -436,7 +436,7 @@ def _login_membership_org(db: Session, user: User) -> tuple[Membership | None, O
 
 
 @router.post("/auth/login")
-def login(body: LoginBody, request: Request, response: Response, db: Session = Depends(get_session)) -> dict:
+def login(body: LoginBody, request: Request, response: Response, db: Session = Depends(get_session, scope="function")) -> dict:
     locale = locale_from_request(request)
     email = _norm_email(body.email)
     limits = get_rate_limits(db)
@@ -462,7 +462,7 @@ def login(body: LoginBody, request: Request, response: Response, db: Session = D
 
 
 @router.get("/auth/sso/{org_id}/info")
-def sso_info(org_id: str, request: Request, db: Session = Depends(get_session)) -> dict:
+def sso_info(org_id: str, request: Request, db: Session = Depends(get_session, scope="function")) -> dict:
     locale = locale_from_request(request)
     org = db.get(Organization, org_id)
     if org is None:
@@ -475,7 +475,7 @@ def sso_info(org_id: str, request: Request, db: Session = Depends(get_session)) 
 
 
 @router.get("/auth/sso/{org_id}/start")
-def sso_start(org_id: str, request: Request, db: Session = Depends(get_session)) -> RedirectResponse:
+def sso_start(org_id: str, request: Request, db: Session = Depends(get_session, scope="function")) -> RedirectResponse:
     locale = locale_from_request(request)
     org = db.get(Organization, org_id)
     if org is None:
@@ -506,7 +506,7 @@ def sso_callback(
     org_id: str,
     request: Request,
     response: Response,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     code: str | None = None,
     state: str | None = None,
 ) -> RedirectResponse:
@@ -562,7 +562,7 @@ def sso_callback(
 def logout(
     request: Request,
     response: Response,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext | None = Depends(optional_auth),
 ) -> dict:
     token = request.cookies.get(COOKIE_NAME)
@@ -576,7 +576,7 @@ def logout(
 def change_password(
     body: PasswordChangeBody,
     response: Response,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     user = ctx.user
@@ -599,7 +599,7 @@ def change_password(
 
 
 @router.post("/auth/password/reset/request")
-def reset_request(body: ResetRequestBody, request: Request, db: Session = Depends(get_session)) -> dict:
+def reset_request(body: ResetRequestBody, request: Request, db: Session = Depends(get_session, scope="function")) -> dict:
     locale = locale_from_request(request)
     settings = get_instance_settings(db)
     if not smtp_configured(settings):
@@ -639,7 +639,7 @@ def reset_request(body: ResetRequestBody, request: Request, db: Session = Depend
 
 
 @router.post("/auth/password/reset/confirm")
-def reset_confirm(body: ResetConfirmBody, request: Request, db: Session = Depends(get_session)) -> dict:
+def reset_confirm(body: ResetConfirmBody, request: Request, db: Session = Depends(get_session, scope="function")) -> dict:
     locale = locale_from_request(request)
     limits = get_rate_limits(db)
     enforce_reset_confirm(client_ip(request), limits, locale)
@@ -669,7 +669,7 @@ def mfa_verify(
     body: MfaVerifyBody,
     request: Request,
     response: Response,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> dict:
     locale = locale_from_request(request)
     challenge = resolve_mfa_challenge(db, body.challenge_id.strip())
@@ -694,7 +694,7 @@ def mfa_recover(
     body: MfaRecoverBody,
     request: Request,
     response: Response,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
 ) -> dict:
     locale = locale_from_request(request)
     challenge = resolve_mfa_challenge(db, body.challenge_id.strip())
@@ -715,7 +715,7 @@ def mfa_recover(
 
 
 @router.get("/auth/mfa/status")
-def mfa_status(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def mfa_status(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     return {
         "enabled": totp_enabled(ctx.user),
         "required": org_mfa_required(user=ctx.user, org=ctx.org, membership=ctx.membership),
@@ -728,7 +728,7 @@ def mfa_status(db: Session = Depends(get_session), ctx: AuthContext = Depends(re
 
 
 @router.post("/auth/mfa/setup/start")
-def mfa_setup_start(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def mfa_setup_start(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     if ctx.impersonating or not hub_local_auth_applies(user=ctx.user, org=ctx.org, membership=ctx.membership):
         ctx.raise_error(ErrorCode.forbidden)
     secret, uri = start_totp_setup(db, ctx.user)
@@ -738,7 +738,7 @@ def mfa_setup_start(db: Session = Depends(get_session), ctx: AuthContext = Depen
 @router.post("/auth/mfa/setup/confirm")
 def mfa_setup_confirm(
     body: MfaConfirmBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     if ctx.impersonating or not hub_local_auth_applies(user=ctx.user, org=ctx.org, membership=ctx.membership):
@@ -753,7 +753,7 @@ def mfa_setup_confirm(
 @router.post("/auth/mfa/disable")
 def mfa_disable(
     body: MfaDisableBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     if ctx.impersonating or not hub_local_auth_applies(user=ctx.user, org=ctx.org, membership=ctx.membership):
@@ -773,7 +773,7 @@ def mfa_disable(
 
 
 @router.get("/me")
-def me(db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)) -> dict:
+def me(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     return _me_payload(ctx, db)
 
 
@@ -783,7 +783,7 @@ def download_backup(
     summaries: bool = Query(False),
     skills: bool = Query(False),
     format: str = Query("zip", pattern="^(zip|tgz)$"),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ):
     if not transcripts and not summaries and not skills:
@@ -806,7 +806,7 @@ def download_backup(
 @router.patch("/me")
 def patch_me(
     body: MePatchBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     if body.locale:
@@ -824,7 +824,7 @@ def patch_me(
 @router.post("/auth/tokens")
 def create_token(
     body: TokenCreateBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     if ctx.via_api_token or ctx.impersonating:
@@ -861,7 +861,7 @@ def create_token(
 
 @router.get("/auth/tokens")
 def list_tokens(
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     rows = db.scalars(select(ApiToken).where(ApiToken.user_id == ctx.user.id).order_by(ApiToken.created_at.desc()))
@@ -874,7 +874,7 @@ def list_tokens(
 @router.delete("/auth/tokens/{token_id}")
 def revoke_token(
     token_id: str,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     row = db.get(ApiToken, token_id)

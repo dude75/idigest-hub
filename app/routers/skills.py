@@ -80,7 +80,7 @@ def _visible_skills(db: Session, ctx: AuthContext, scope: str | None) -> list[tu
 @router.get("/skills")
 def catalog(
     scope: str | None = None,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     items = _visible_skills(db, ctx, scope)
@@ -89,7 +89,7 @@ def catalog(
 
 @router.post("/skills/self")
 def create_self(
-    body: SkillBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: SkillBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org()
     now = utcnow()
@@ -112,7 +112,7 @@ def create_self(
 def patch_self(
     skill_id: str,
     body: SkillBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     skill = db.get(Skill, skill_id)
@@ -126,7 +126,7 @@ def patch_self(
 
 @router.delete("/skills/self/{skill_id}")
 def delete_self(
-    skill_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    skill_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     skill = db.get(Skill, skill_id)
     if skill is None or skill.scope != "self" or skill.owner_user_id != ctx.user.id:
@@ -137,7 +137,7 @@ def delete_self(
 
 @router.post("/org/skills")
 def create_org_skill(
-    body: SkillBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: SkillBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     now = utcnow()
@@ -159,7 +159,7 @@ def create_org_skill(
 def patch_org_skill(
     skill_id: str,
     body: SkillBody,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org_admin()
@@ -174,7 +174,7 @@ def patch_org_skill(
 
 @router.delete("/org/skills/{skill_id}")
 def delete_org_skill(
-    skill_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    skill_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org_admin()
     skill = db.get(Skill, skill_id)
@@ -186,7 +186,7 @@ def delete_org_skill(
 
 @router.get("/skills/{skill_id}/export")
 def export_skill(
-    skill_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    skill_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ):
     skill = db.get(Skill, skill_id)
     if skill is None or not _can_read_skill(db, ctx, skill):
@@ -196,7 +196,7 @@ def export_skill(
 
 @router.post("/skills/{skill_id}/copy")
 def copy_skill(
-    skill_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    skill_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     org, _ = ctx.require_org()
     skill = db.get(Skill, skill_id)

@@ -44,7 +44,7 @@ router = APIRouter()
 
 @router.get("/import/platforms")
 def import_platforms(
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     ctx.require_org()
@@ -245,7 +245,7 @@ def _list_filter(
 async def upload_audio(
     request: Request,
     file: UploadFile,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org()
@@ -285,7 +285,7 @@ async def upload_audio(
 @router.get("/audios")
 def list_audios(
     include_hidden: bool = False,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     rows = _list_filter(ctx, db, Audio, "audio", include_hidden)
@@ -312,7 +312,7 @@ def list_audios(
 
 @router.get("/audios/{audio_id}")
 def get_audio(
-    audio_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Audio, audio_id)
     if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
@@ -342,7 +342,7 @@ def get_audio(
 def audio_file(
     audio_id: str,
     download: bool = False,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ):
     row = db.get(Audio, audio_id)
@@ -358,7 +358,7 @@ def audio_file(
 
 @router.post("/audios/{audio_id}/hide")
 def hide_audio(
-    audio_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Audio, audio_id)
     if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
@@ -370,7 +370,7 @@ def hide_audio(
 
 @router.post("/audios/{audio_id}/unhide")
 def unhide_audio(
-    audio_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Audio, audio_id)
     if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
@@ -389,7 +389,7 @@ def unhide_audio(
 
 @router.delete("/audios/{audio_id}")
 def delete_audio(
-    audio_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Audio, audio_id)
     if row is None:
@@ -439,7 +439,7 @@ def _summary_source_context(
 @router.get("/transcripts")
 def list_transcripts(
     include_hidden: bool = False,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden)
@@ -463,7 +463,7 @@ def list_transcripts(
 
 @router.get("/transcripts/{transcript_id}")
 def get_transcript(
-    transcript_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
@@ -501,7 +501,7 @@ def get_transcript(
 def export_transcript(
     transcript_id: str,
     format: str = Query("txt", pattern="^(txt|json)$"),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ):
     row = db.get(Transcript, transcript_id)
@@ -524,7 +524,7 @@ def export_transcript(
 
 @router.post("/transcripts/{transcript_id}/hide")
 def hide_transcript(
-    transcript_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
@@ -536,7 +536,7 @@ def hide_transcript(
 
 @router.post("/transcripts/{transcript_id}/unhide")
 def unhide_transcript(
-    transcript_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
@@ -555,7 +555,7 @@ def unhide_transcript(
 
 @router.delete("/transcripts/{transcript_id}")
 def delete_transcript(
-    transcript_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Transcript, transcript_id)
     if row is None:
@@ -571,7 +571,7 @@ def delete_transcript(
 @router.get("/summaries")
 def list_summaries(
     include_hidden: bool = False,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     rows = _list_filter(ctx, db, Summary, "summary", include_hidden)
@@ -598,7 +598,7 @@ def list_summaries(
 
 @router.get("/summaries/{summary_id}")
 def get_summary(
-    summary_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Summary, summary_id)
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
@@ -623,7 +623,7 @@ def get_summary(
 def export_summary(
     summary_id: str,
     format: str = Query("md", pattern="^(md|txt)$"),
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ):
     row = db.get(Summary, summary_id)
@@ -647,7 +647,7 @@ def export_summary(
 
 @router.post("/summaries/{summary_id}/hide")
 def hide_summary(
-    summary_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Summary, summary_id)
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
@@ -659,7 +659,7 @@ def hide_summary(
 
 @router.post("/summaries/{summary_id}/unhide")
 def unhide_summary(
-    summary_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Summary, summary_id)
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
@@ -680,7 +680,7 @@ def unhide_summary(
 def patch_transcript(
     transcript_id: str,
     body: TitlePatch,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     row = db.get(Transcript, transcript_id)
@@ -704,7 +704,7 @@ def patch_transcript(
 def patch_summary(
     summary_id: str,
     body: SummaryPatch,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     row = db.get(Summary, summary_id)
@@ -745,7 +745,7 @@ def patch_summary(
 
 @router.delete("/summaries/{summary_id}")
 def delete_summary(
-    summary_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Summary, summary_id)
     if row is None:
@@ -788,7 +788,7 @@ def _require_share_owner(
 def list_shares(
     object_type: str,
     object_id: str,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _require_share_owner(db, object_type, object_id, ctx)
@@ -798,7 +798,7 @@ def list_shares(
 
 @router.post("/shares")
 def create_shares(
-    body: ShareBody, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    body: ShareBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     obj = _require_share_owner(db, body.object_type, body.object_id, ctx)
     org, _ = ctx.require_org()
@@ -833,7 +833,7 @@ def create_shares(
 
 @router.delete("/shares/{share_id}")
 def delete_share(
-    share_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    share_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     row = db.get(Share, share_id)
     if row is None:

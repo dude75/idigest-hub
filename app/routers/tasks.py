@@ -18,7 +18,7 @@ from app.presenters import task_public
 from app.services.access import can_use_audio, can_use_transcript
 from app.services.billing import assert_can_accept_task, snapshot_fields
 from app.rate_limit import enforce_write_limits, get_rate_limits
-from app.services.dispatcher import locked_tick_job
+from app.services.dispatcher import schedule_locked_tick
 from app.timeutil import utcnow
 
 router = APIRouter()
@@ -158,7 +158,7 @@ async def create_transcribe(
     body: TranscribeBody,
     request: Request,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org()
@@ -192,7 +192,7 @@ async def create_transcribe(
     db.add(task)
     db.flush()
     db.commit()
-    background_tasks.add_task(locked_tick_job, task.id)
+    schedule_locked_tick(background_tasks, task.id)
     return task_public(task)
 
 
@@ -201,7 +201,7 @@ async def create_import(
     body: ImportBody,
     request: Request,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org()
@@ -246,7 +246,7 @@ async def create_import(
     db.add(task)
     db.flush()
     db.commit()
-    background_tasks.add_task(locked_tick_job, task.id, refresh_health=False)
+    schedule_locked_tick(background_tasks, task.id, refresh_health=False)
     return task_public(task)
 
 
@@ -255,7 +255,7 @@ async def create_summarize(
     body: SummarizeBody,
     request: Request,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     org, _ = ctx.require_org()
@@ -282,7 +282,7 @@ async def create_summarize(
     db.add(task)
     db.flush()
     db.commit()
-    background_tasks.add_task(locked_tick_job, task.id)
+    schedule_locked_tick(background_tasks, task.id)
     return task_public(task)
 
 
@@ -303,7 +303,7 @@ def _list_tasks_filters(ctx: AuthContext, org_id: str | None, user_id: str | Non
 @router.get("/tasks")
 def list_tasks(
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
     org_id: str | None = None,
     user_id: str | None = None,
@@ -337,7 +337,7 @@ def list_tasks(
 
     extras = _task_list_extra(db, active_rows + done_rows)
     if active_rows:
-        background_tasks.add_task(locked_tick_job, None, refresh_health=False)
+        schedule_locked_tick(background_tasks, None, refresh_health=False, wait=False)
     return {
         "active": [task_public(row, extras.get(row.id)) for row in active_rows],
         "done": [task_public(row, extras.get(row.id)) for row in done_rows],
@@ -349,7 +349,7 @@ def list_tasks(
 async def get_task(
     task_id: str,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     task = db.get(Task, task_id)
@@ -357,7 +357,7 @@ async def get_task(
         ctx.raise_error(ErrorCode.not_found)
     if task.status in {"queued", "running"}:
         refresh_health = task.type != "import"
-        background_tasks.add_task(locked_tick_job, task.id, refresh_health=refresh_health)
+        schedule_locked_tick(background_tasks, task.id, refresh_health=refresh_health, wait=False)
     return task_public(task, _task_list_extra(db, [task]).get(task.id))
 
 
@@ -425,7 +425,7 @@ def _validate_task_source(ctx: AuthContext, db: Session, org: Organization, task
 async def retry_task(
     task_id: str,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_session),
+    db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     task = db.get(Task, task_id)
@@ -458,13 +458,13 @@ async def retry_task(
     task.meta_json = meta
     db.flush()
     db.commit()
-    background_tasks.add_task(locked_tick_job, task.id)
+    schedule_locked_tick(background_tasks, task.id)
     return task_public(task)
 
 
 @router.delete("/tasks/{task_id}")
 def cancel_task(
-    task_id: str, db: Session = Depends(get_session), ctx: AuthContext = Depends(require_auth)
+    task_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
     task = db.get(Task, task_id)
     if task is None:
