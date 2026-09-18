@@ -558,27 +558,6 @@ export function ProfilePage() {
         )}
       </div>
 
-      {showAgreement && (
-        <AdminFormCard
-          title={t('profile.userAgreementTitle')}
-          lead={t('profile.userAgreementLead', { version: me?.user_agreement_version ?? 0 })}
-        >
-          <div className="agreement-text profile-agreement-text">
-            <MarkdownBody text={agreementText} />
-          </div>
-          <div className="profile-actions">
-            <button
-              type="button"
-              onClick={() =>
-                downloadMarkdown(agreementText, `user-agreement-v${me?.user_agreement_version ?? 1}.md`)
-              }
-            >
-              {t('common.downloadMd')}
-            </button>
-          </div>
-        </AdminFormCard>
-      )}
-
       {hasOrg && (
         <AdminFormCard title={t('profile.backup')} lead={t('profile.backupLead')}>
           <div className="profile-backup-body">
@@ -745,6 +724,27 @@ export function ProfilePage() {
           </p>
         )}
       </AdminTableCard>
+
+      {showAgreement && (
+        <AdminFormCard
+          title={t('profile.userAgreementTitle')}
+          lead={t('profile.userAgreementLead', { version: me?.user_agreement_version ?? 0 })}
+        >
+          <div className="agreement-text profile-agreement-text">
+            <MarkdownBody text={agreementText} />
+          </div>
+          <div className="profile-actions">
+            <button
+              type="button"
+              onClick={() =>
+                downloadMarkdown(agreementText, `user-agreement-v${me?.user_agreement_version ?? 1}.md`)
+              }
+            >
+              {t('common.downloadMd')}
+            </button>
+          </div>
+        </AdminFormCard>
+      )}
     </AdminPage>
   )
 }

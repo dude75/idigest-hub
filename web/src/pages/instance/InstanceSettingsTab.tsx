@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '../../api'
@@ -10,7 +10,9 @@ import { showError } from '../../util'
 import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../../util/timezones'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { MarkdownBody } from '../../markdown'
 import { DEFAULT_IMPORT_AUDIO_BITRATE_KBPS } from './constants'
+import { useAgreementPreview } from './useAgreementPreview'
 
 type SavedAgreement = { en: string | null; ru: string | null }
 
@@ -19,6 +21,59 @@ function agreementTextTrim(value: string | null | undefined): string {
 }
 
 /** Mirrors backend version bump: any non-empty text change requires re-acceptance. */
+function AgreementEditorPair({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  const { t } = useTranslation()
+  const preview = useAgreementPreview(value)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [paneHeight, setPaneHeight] = useState<number | null>(null)
+
+  useEffect(() => {
+    const el = textareaRef.current
+    if (!el) return
+    const syncHeight = () => setPaneHeight(el.offsetHeight)
+    syncHeight()
+    const observer = new ResizeObserver(syncHeight)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  const paneStyle = paneHeight ? { height: paneHeight } : undefined
+
+  return (
+    <div className="agreement-editor-row">
+      <label className="agreement-editor-field">
+        <span>{label}</span>
+        <textarea
+          ref={textareaRef}
+          className="agreement-editor-input"
+          rows={12}
+          style={paneStyle}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      </label>
+      <div className="agreement-editor-field">
+        <span className="muted">{t('instance.userAgreementPreview')}</span>
+        <div className="agreement-text agreement-preview" style={paneStyle}>
+          {preview.trim() ? (
+            <MarkdownBody text={preview} />
+          ) : (
+            <p className="muted agreement-preview-empty">{t('agreement.empty')}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function agreementChangeRequiresReacceptance(saved: SavedAgreement, current: SavedAgreement): boolean {
   const oldEn = agreementTextTrim(saved.en)
   const oldRu = agreementTextTrim(saved.ru)
@@ -517,22 +572,16 @@ export function InstanceSettingsTab() {
         <div className="stack fold-body">
           <p className="muted">{t('instance.userAgreementHint')}</p>
           <p className="muted">{t('instance.userAgreementVersion', { version: settings.user_agreement_version ?? 0 })}</p>
-          <label>
-            {t('instance.userAgreementEn')}
-            <textarea
-              rows={8}
-              value={settings.user_agreement_text_en || ''}
-              onChange={(e) => setSettings({ ...settings, user_agreement_text_en: e.target.value })}
-            />
-          </label>
-          <label>
-            {t('instance.userAgreementRu')}
-            <textarea
-              rows={8}
-              value={settings.user_agreement_text_ru || ''}
-              onChange={(e) => setSettings({ ...settings, user_agreement_text_ru: e.target.value })}
-            />
-          </label>
+          <AgreementEditorPair
+            label={t('instance.userAgreementEn')}
+            value={settings.user_agreement_text_en || ''}
+            onChange={(user_agreement_text_en) => setSettings({ ...settings, user_agreement_text_en })}
+          />
+          <AgreementEditorPair
+            label={t('instance.userAgreementRu')}
+            value={settings.user_agreement_text_ru || ''}
+            onChange={(user_agreement_text_ru) => setSettings({ ...settings, user_agreement_text_ru })}
+          />
         </div>
       </details>
 

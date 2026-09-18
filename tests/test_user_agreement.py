@@ -217,6 +217,44 @@ def test_must_change_password_before_agreement_accept(client: TestClient):
     assert allowed.status_code == 200, allowed.text
 
 
+def test_normalize_agreement_markdown_fixes_glued_table():
+    from app.services.user_agreement import normalize_agreement_markdown
+
+    raw = (
+        "- comply with your organization's data policies. | Topic | Rule | "
+        "| ---------------- | ---------------------------------------------------- | "
+        "| Uploads | You must have rights to content |"
+    )
+    normalized = normalize_agreement_markdown(raw)
+    assert "policies.\n\n| Topic | Rule |" in normalized
+    assert "| Uploads | You must have rights to content |" in normalized
+    assert "||" not in normalized
+
+
+def test_agreement_preview_endpoint(client: TestClient):
+    setup_admin(client)
+    messy = "- item. | Topic | Rule | | --- | --- | | Uploads | ok |"
+    resp = client.post("/api/v1/instance/settings/agreement/preview", json={"text": messy})
+    assert resp.status_code == 200, resp.text
+    assert "item.\n\n| Topic | Rule |" in resp.json()["text"]
+
+
+def test_save_agreement_normalizes_markdown(client: TestClient):
+    setup_admin(client)
+    messy = (
+        "# User Agreement\n\n"
+        "- comply with policies. | Topic | Rule | | --- | --- | | Uploads | rights required |"
+    )
+    saved = client.patch(
+        "/api/v1/instance/settings",
+        json={"user_agreement_text_en": messy},
+    )
+    assert saved.status_code == 200, saved.text
+    stored = saved.json()["user_agreement_text_en"]
+    assert "policies.\n\n| Topic | Rule |" in stored
+    assert "| Uploads | rights required |" in stored
+
+
 def test_bearer_token_blocked_until_agreement_accepted(client: TestClient):
     setup_admin(client)
     _set_agreement(client)

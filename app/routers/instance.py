@@ -96,6 +96,10 @@ class SmtpTestSendBody(SmtpTestBody):
     to: str | None = None
 
 
+class AgreementPreviewBody(BaseModel):
+    text: str = ""
+
+
 class SettingsPatch(BaseModel):
     allow_new_orgs: bool | None = None
     public_base_url: str | None = None
@@ -637,6 +641,17 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "user_agreement_version": s.user_agreement_version,
         **rate_limits_public(s),
     }
+
+
+@router.post("/instance/settings/agreement/preview")
+def preview_agreement_markdown(
+    body: AgreementPreviewBody,
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _admin(ctx)
+    from app.services.user_agreement import normalize_agreement_markdown
+
+    return {"text": normalize_agreement_markdown(body.text.strip())}
 
 
 @router.patch("/instance/settings")
