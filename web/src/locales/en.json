@@ -744,6 +744,7 @@
     "landingExtraSave": "Save address and footer",
     "userAgreementEn": "Text (English)",
     "userAgreementRu": "Text (Russian)",
+    "userAgreementEs": "Text (Spanish)",
     "userAgreementPreview": "Preview (Markdown)",
     "rateLimitTitle": "Rate limiting",
     "rateLimitHint": "0 disables a rule. Per-IP uses the client address (TCP peer, or X-Forwarded-For when TRUSTED_PROXIES is set in .env). Browser sessions are not API-rate-limited; Bearer tokens are.",

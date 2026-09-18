@@ -4,6 +4,10 @@ export const LEGAL_DOCUMENT_KEYS = ['user_agreement', 'personal_data_consent', '
 
 export type LegalDocumentKey = (typeof LEGAL_DOCUMENT_KEYS)[number]
 
+export const LEGAL_DOC_LOCALES = ['ru', 'en', 'es'] as const
+
+export type LegalDocLocale = (typeof LEGAL_DOC_LOCALES)[number]
+
 export type LegalDocument = {
   key: LegalDocumentKey
   version: number
@@ -12,7 +16,7 @@ export type LegalDocument = {
   pending: boolean
 }
 
-export type SavedLegalDoc = { en: string | null; ru: string | null }
+export type SavedLegalDoc = Record<LegalDocLocale, string | null>
 
 export type SavedLegalDocs = Record<LegalDocumentKey, SavedLegalDoc>
 
@@ -25,47 +29,65 @@ export const LEGAL_DOCUMENT_I18N: Record<LegalDocumentKey, string> = {
 export const LEGAL_DOC_FIELDS: Record<
   LegalDocumentKey,
   {
-    en: keyof InstanceSettings
-    ru: keyof InstanceSettings
+    texts: Record<LegalDocLocale, keyof InstanceSettings>
     version: keyof InstanceSettings
     published: keyof InstanceSettings
   }
 > = {
   user_agreement: {
-    en: 'user_agreement_text_en',
-    ru: 'user_agreement_text_ru',
+    texts: {
+      en: 'user_agreement_text_en',
+      ru: 'user_agreement_text_ru',
+      es: 'user_agreement_text_es',
+    },
     version: 'user_agreement_version',
     published: 'user_agreement_published',
   },
   personal_data_consent: {
-    en: 'personal_data_consent_text_en',
-    ru: 'personal_data_consent_text_ru',
+    texts: {
+      en: 'personal_data_consent_text_en',
+      ru: 'personal_data_consent_text_ru',
+      es: 'personal_data_consent_text_es',
+    },
     version: 'personal_data_consent_version',
     published: 'personal_data_consent_published',
   },
   privacy_policy: {
-    en: 'privacy_policy_text_en',
-    ru: 'privacy_policy_text_ru',
+    texts: {
+      en: 'privacy_policy_text_en',
+      ru: 'privacy_policy_text_ru',
+      es: 'privacy_policy_text_es',
+    },
     version: 'privacy_policy_version',
     published: 'privacy_policy_published',
   },
 }
 
-export function savedLegalDocsFromSettings(settings: InstanceSettings): SavedLegalDocs {
+export const FOOTER_TEXT_FIELDS: Record<LegalDocLocale, keyof InstanceSettings> = {
+  en: 'landing_footer_text_en',
+  ru: 'landing_footer_text_ru',
+  es: 'landing_footer_text_es',
+}
+
+export const LEGAL_DOC_LOCALE_LABEL_KEYS: Record<LegalDocLocale, string> = {
+  ru: 'instance.userAgreementRu',
+  en: 'instance.userAgreementEn',
+  es: 'instance.userAgreementEs',
+}
+
+function savedLegalDocFromSettings(settings: InstanceSettings, key: LegalDocumentKey): SavedLegalDoc {
+  const texts = LEGAL_DOC_FIELDS[key].texts
   return {
-    user_agreement: {
-      en: settings.user_agreement_text_en,
-      ru: settings.user_agreement_text_ru,
-    },
-    personal_data_consent: {
-      en: settings.personal_data_consent_text_en,
-      ru: settings.personal_data_consent_text_ru,
-    },
-    privacy_policy: {
-      en: settings.privacy_policy_text_en,
-      ru: settings.privacy_policy_text_ru,
-    },
+    en: settings[texts.en] as string | null,
+    ru: settings[texts.ru] as string | null,
+    es: settings[texts.es] as string | null,
   }
+}
+
+export function savedLegalDocsFromSettings(settings: InstanceSettings): SavedLegalDocs {
+  return Object.fromEntries(
+    LEGAL_DOCUMENT_KEYS.map((key) => [key, savedLegalDocFromSettings(settings, key)]),
+  ) as SavedLegalDocs
 }
 
 export function legalDocTextTrim(value: string | null | undefined): string {
@@ -74,13 +96,11 @@ export function legalDocTextTrim(value: string | null | undefined): string {
 
 /** Mirrors backend version bump: any non-empty text change requires re-acceptance. */
 export function legalDocChangeRequiresReacceptance(saved: SavedLegalDoc, current: SavedLegalDoc): boolean {
-  const oldEn = legalDocTextTrim(saved.en)
-  const oldRu = legalDocTextTrim(saved.ru)
-  const newEn = legalDocTextTrim(current.en)
-  const newRu = legalDocTextTrim(current.ru)
-  if (newEn === oldEn && newRu === oldRu) return false
-  if (!newEn && !newRu) return false
-  return true
+  const unchanged = LEGAL_DOC_LOCALES.every(
+    (locale) => legalDocTextTrim(saved[locale]) === legalDocTextTrim(current[locale]),
+  )
+  if (unchanged) return false
+  return LEGAL_DOC_LOCALES.some((locale) => legalDocTextTrim(current[locale]))
 }
 
 export function legalDocsChangeRequiresReacceptance(saved: SavedLegalDocs, settings: InstanceSettings): boolean {
@@ -93,9 +113,7 @@ export type LegalDocsAdminSnapshot = {
   published: Record<LegalDocumentKey, boolean>
 }
 
-export type FooterAdminSnapshot = {
-  en: string | null
-  ru: string | null
+export type FooterAdminSnapshot = Record<LegalDocLocale, string | null> & {
   published: boolean
 }
 
@@ -116,18 +134,18 @@ export function footerAdminSnapshot(settings: InstanceSettings): FooterAdminSnap
   return {
     en: settings.landing_footer_text_en,
     ru: settings.landing_footer_text_ru,
+    es: settings.landing_footer_text_es,
     published: settings.landing_footer_published ?? true,
   }
 }
 
 export function legalDocHasContent(doc: SavedLegalDoc): boolean {
-  return Boolean(legalDocTextTrim(doc.en) || legalDocTextTrim(doc.ru))
+  return LEGAL_DOC_LOCALES.some((locale) => legalDocTextTrim(doc[locale]))
 }
 
 function legalDocAdminFieldsEqual(saved: SavedLegalDoc, current: SavedLegalDoc): boolean {
-  return (
-    legalDocTextTrim(saved.en) === legalDocTextTrim(current.en) &&
-    legalDocTextTrim(saved.ru) === legalDocTextTrim(current.ru)
+  return LEGAL_DOC_LOCALES.every(
+    (locale) => legalDocTextTrim(saved[locale]) === legalDocTextTrim(current[locale]),
   )
 }
 
@@ -147,10 +165,9 @@ export function legalDocsAdminDirty(saved: LegalDocsAdminSnapshot, settings: Ins
 
 export function footerAdminDirty(saved: FooterAdminSnapshot, settings: InstanceSettings): boolean {
   const current = footerAdminSnapshot(settings)
-  return (
-    saved.published !== current.published ||
-    legalDocTextTrim(saved.en) !== legalDocTextTrim(current.en) ||
-    legalDocTextTrim(saved.ru) !== legalDocTextTrim(current.ru)
+  if (saved.published !== current.published) return true
+  return LEGAL_DOC_LOCALES.some(
+    (locale) => legalDocTextTrim(saved[locale]) !== legalDocTextTrim(current[locale]),
   )
 }
 

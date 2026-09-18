@@ -387,18 +387,22 @@ export type InstanceSettings = {
   timezone: string
   user_agreement_text_en: string | null
   user_agreement_text_ru: string | null
+  user_agreement_text_es: string | null
   user_agreement_version: number
   user_agreement_published: boolean
   personal_data_consent_text_en: string | null
   personal_data_consent_text_ru: string | null
+  personal_data_consent_text_es: string | null
   personal_data_consent_version: number
   personal_data_consent_published: boolean
   privacy_policy_text_en: string | null
   privacy_policy_text_ru: string | null
+  privacy_policy_text_es: string | null
   privacy_policy_version: number
   privacy_policy_published: boolean
   landing_footer_text_en: string | null
   landing_footer_text_ru: string | null
+  landing_footer_text_es: string | null
   landing_footer_published: boolean
 }
 

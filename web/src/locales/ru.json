@@ -744,6 +744,7 @@
     "landingExtraSave": "Сохранить адрес и футер",
     "userAgreementEn": "Текст (английский)",
     "userAgreementRu": "Текст (русский)",
+    "userAgreementEs": "Текст (испанский)",
     "userAgreementPreview": "Предпросмотр (Markdown)",
     "rateLimitTitle": "Ограничение частоты запросов",
     "rateLimitHint": "0 отключает правило. Per-IP — адрес клиента (TCP peer или X-Forwarded-For при TRUSTED_PROXIES в .env). Cookie-сессии не лимитируются как API; Bearer-токены — да.",

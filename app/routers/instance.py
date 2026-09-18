@@ -145,15 +145,19 @@ class SettingsPatch(BaseModel):
     timezone: str | None = None
     user_agreement_text_en: str | None = None
     user_agreement_text_ru: str | None = None
+    user_agreement_text_es: str | None = None
     personal_data_consent_text_en: str | None = None
     personal_data_consent_text_ru: str | None = None
+    personal_data_consent_text_es: str | None = None
     privacy_policy_text_en: str | None = None
     privacy_policy_text_ru: str | None = None
+    privacy_policy_text_es: str | None = None
     user_agreement_published: bool | None = None
     personal_data_consent_published: bool | None = None
     privacy_policy_published: bool | None = None
     landing_footer_text_en: str | None = None
     landing_footer_text_ru: str | None = None
+    landing_footer_text_es: str | None = None
     landing_footer_published: bool | None = None
 
 
@@ -648,18 +652,22 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "timezone": s.timezone,
         "user_agreement_text_en": s.user_agreement_text_en,
         "user_agreement_text_ru": s.user_agreement_text_ru,
+        "user_agreement_text_es": s.user_agreement_text_es,
         "user_agreement_version": s.user_agreement_version,
         "user_agreement_published": s.user_agreement_published,
         "personal_data_consent_text_en": s.personal_data_consent_text_en,
         "personal_data_consent_text_ru": s.personal_data_consent_text_ru,
+        "personal_data_consent_text_es": s.personal_data_consent_text_es,
         "personal_data_consent_version": s.personal_data_consent_version,
         "personal_data_consent_published": s.personal_data_consent_published,
         "privacy_policy_text_en": s.privacy_policy_text_en,
         "privacy_policy_text_ru": s.privacy_policy_text_ru,
+        "privacy_policy_text_es": s.privacy_policy_text_es,
         "privacy_policy_version": s.privacy_policy_version,
         "privacy_policy_published": s.privacy_policy_published,
         "landing_footer_text_en": s.landing_footer_text_en,
         "landing_footer_text_ru": s.landing_footer_text_ru,
+        "landing_footer_text_es": s.landing_footer_text_es,
         "landing_footer_published": s.landing_footer_published,
         **rate_limits_public(s),
     }

@@ -109,6 +109,29 @@ def test_agreement_locale_ru(client: TestClient):
     assert payload["user_agreement"]["text"] == "Terms RU"
 
 
+def test_agreement_locale_es(client: TestClient):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    signup(client, "es@example.com", "espass1234", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "user_agreement_text_en": "Terms EN",
+            "user_agreement_text_ru": "Terms RU",
+            "user_agreement_text_es": "Terms ES",
+        },
+    )
+    logout(client)
+
+    login(client, "es@example.com", "espass1234")
+    client.patch("/api/v1/me", json={"locale": "es"})
+    payload = me(client)
+    assert payload["user_agreement_required"] is True
+    assert payload["user_agreement"]["text"] == "Terms ES"
+
+
 def test_org_users_list_shows_agreement_status(client: TestClient):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

@@ -15,10 +15,13 @@ LEGAL_DOCUMENT_KEYS: tuple[LegalDocumentKey, ...] = (
     "privacy_policy",
 )
 
+LEGAL_DOCUMENT_TEXT_FIELDS = ("text_en", "text_ru", "text_es")
+
 LEGAL_DOCUMENT_SPECS: dict[LegalDocumentKey, dict[str, str]] = {
     "user_agreement": {
         "text_en": "user_agreement_text_en",
         "text_ru": "user_agreement_text_ru",
+        "text_es": "user_agreement_text_es",
         "version": "user_agreement_version",
         "published": "user_agreement_published",
         "accepted": "user_agreement_accepted_version",
@@ -26,6 +29,7 @@ LEGAL_DOCUMENT_SPECS: dict[LegalDocumentKey, dict[str, str]] = {
     "personal_data_consent": {
         "text_en": "personal_data_consent_text_en",
         "text_ru": "personal_data_consent_text_ru",
+        "text_es": "personal_data_consent_text_es",
         "version": "personal_data_consent_version",
         "published": "personal_data_consent_published",
         "accepted": "personal_data_consent_accepted_version",
@@ -33,6 +37,7 @@ LEGAL_DOCUMENT_SPECS: dict[LegalDocumentKey, dict[str, str]] = {
     "privacy_policy": {
         "text_en": "privacy_policy_text_en",
         "text_ru": "privacy_policy_text_ru",
+        "text_es": "privacy_policy_text_es",
         "version": "privacy_policy_version",
         "published": "privacy_policy_published",
         "accepted": "privacy_policy_accepted_version",
@@ -71,15 +76,31 @@ def normalize_agreement_markdown(text: str) -> str:
     return body
 
 
-def _setting_text(settings: InstanceSettings, key: LegalDocumentKey, locale: str) -> str:
-    spec = LEGAL_DOCUMENT_SPECS[key]
-    en = (getattr(settings, spec["text_en"]) or "").strip()
-    ru = (getattr(settings, spec["text_ru"]) or "").strip()
+def _localized_markdown(*, locale: str, en: str, ru: str, es: str) -> str:
+    en = (en or "").strip()
+    ru = (ru or "").strip()
+    es = (es or "").strip()
     if locale == "ru" and ru:
         return normalize_agreement_markdown(ru)
+    if locale == "es" and es:
+        return normalize_agreement_markdown(es)
     if en:
         return normalize_agreement_markdown(en)
-    return normalize_agreement_markdown(ru) if ru else ru
+    if ru:
+        return normalize_agreement_markdown(ru)
+    if es:
+        return normalize_agreement_markdown(es)
+    return ""
+
+
+def _setting_text(settings: InstanceSettings, key: LegalDocumentKey, locale: str) -> str:
+    spec = LEGAL_DOCUMENT_SPECS[key]
+    return _localized_markdown(
+        locale=locale,
+        en=getattr(settings, spec["text_en"]) or "",
+        ru=getattr(settings, spec["text_ru"]) or "",
+        es=getattr(settings, spec["text_es"]) or "",
+    )
 
 
 def document_text(settings: InstanceSettings, key: LegalDocumentKey, locale: str) -> str:
@@ -100,9 +121,9 @@ def document_active(settings: InstanceSettings, key: LegalDocumentKey) -> bool:
     version = getattr(settings, spec["version"])
     if version <= 0:
         return False
-    en = (getattr(settings, spec["text_en"]) or "").strip()
-    ru = (getattr(settings, spec["text_ru"]) or "").strip()
-    return bool(en or ru)
+    return any(
+        (getattr(settings, spec[field]) or "").strip() for field in LEGAL_DOCUMENT_TEXT_FIELDS
+    )
 
 
 def agreement_active(settings: InstanceSettings) -> bool:
@@ -177,26 +198,26 @@ def user_agreement_required(
 
 def _apply_document_text_patch(settings: InstanceSettings, key: LegalDocumentKey, data: dict) -> None:
     spec = LEGAL_DOCUMENT_SPECS[key]
-    en_field = spec["text_en"]
-    ru_field = spec["text_ru"]
     version_field = spec["version"]
+    text_fields = [spec[field] for field in LEGAL_DOCUMENT_TEXT_FIELDS]
 
-    new_en = data.pop(en_field) if en_field in data else getattr(settings, en_field)
-    new_ru = data.pop(ru_field) if ru_field in data else getattr(settings, ru_field)
+    old_values = [(getattr(settings, field) or "").strip() for field in text_fields]
+    new_values: list[str] = []
+    for field in text_fields:
+        raw = data.pop(field) if field in data else getattr(settings, field)
+        if raw is None:
+            new_values.append((getattr(settings, field) or "").strip())
+        else:
+            new_values.append(normalize_agreement_markdown((raw or "").strip()))
 
-    old_en = (getattr(settings, en_field) or "").strip()
-    old_ru = (getattr(settings, ru_field) or "").strip()
-    new_en_s = normalize_agreement_markdown((new_en or "").strip()) if new_en is not None else old_en
-    new_ru_s = normalize_agreement_markdown((new_ru or "").strip()) if new_ru is not None else old_ru
-    changed = new_en_s != old_en or new_ru_s != old_ru
+    changed = new_values != old_values
+    for field, value in zip(text_fields, new_values, strict=True):
+        setattr(settings, field, value or None)
 
-    setattr(settings, en_field, new_en_s or None)
-    setattr(settings, ru_field, new_ru_s or None)
-
-    if not new_en_s and not new_ru_s:
+    if not any(new_values):
         setattr(settings, version_field, 0)
     elif changed:
-        had_text = bool(old_en or old_ru)
+        had_text = bool(any(old_values))
         current_version = getattr(settings, version_field)
         setattr(settings, version_field, max(1, current_version + 1) if had_text else 1)
 
@@ -208,19 +229,18 @@ def apply_agreement_text_patch(settings: InstanceSettings, data: dict) -> None:
 def apply_legal_documents_patch(settings: InstanceSettings, data: dict) -> None:
     for key in LEGAL_DOCUMENT_SPECS:
         spec = LEGAL_DOCUMENT_SPECS[key]
-        if spec["text_en"] in data or spec["text_ru"] in data:
+        if any(spec[field] in data for field in LEGAL_DOCUMENT_TEXT_FIELDS):
             _apply_document_text_patch(settings, key, data)
     apply_landing_footer_patch(settings, data)
 
 
 def landing_footer_text(settings: InstanceSettings, locale: str) -> str:
-    en = (settings.landing_footer_text_en or "").strip()
-    ru = (settings.landing_footer_text_ru or "").strip()
-    if locale == "ru" and ru:
-        return normalize_agreement_markdown(ru)
-    if en:
-        return normalize_agreement_markdown(en)
-    return normalize_agreement_markdown(ru) if ru else ""
+    return _localized_markdown(
+        locale=locale,
+        en=settings.landing_footer_text_en or "",
+        ru=settings.landing_footer_text_ru or "",
+        es=settings.landing_footer_text_es or "",
+    )
 
 
 def apply_landing_footer_patch(settings: InstanceSettings, data: dict) -> None:
@@ -232,6 +252,10 @@ def apply_landing_footer_patch(settings: InstanceSettings, data: dict) -> None:
         raw = data.pop("landing_footer_text_ru")
         text = normalize_agreement_markdown((raw or "").strip()) if raw is not None else ""
         settings.landing_footer_text_ru = text or None
+    if "landing_footer_text_es" in data:
+        raw = data.pop("landing_footer_text_es")
+        text = normalize_agreement_markdown((raw or "").strip()) if raw is not None else ""
+        settings.landing_footer_text_es = text or None
 
 
 def public_landing_footer_text(settings: InstanceSettings, locale: str) -> str | None:

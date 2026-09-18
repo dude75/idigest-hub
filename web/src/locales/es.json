@@ -744,6 +744,7 @@
     "landingExtraSave": "Guardar dirección y pie de página",
     "userAgreementEn": "Texto (inglés)",
     "userAgreementRu": "Texto (ruso)",
+    "userAgreementEs": "Texto (español)",
     "userAgreementPreview": "Vista previa (Markdown)",
     "rateLimitTitle": "Límite de frecuencia",
     "rateLimitHint": "0 desactiva la regla. Per-IP usa la IP del cliente (TCP o X-Forwarded-For con TRUSTED_PROXIES en .env). Las sesiones cookie no se limitan como API; los tokens Bearer sí.",

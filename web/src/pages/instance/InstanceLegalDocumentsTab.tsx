@@ -10,7 +10,10 @@ import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Segmented } from '../../components/Segmented'
 import { MarkdownBody } from '../../markdown'
 import {
+  FOOTER_TEXT_FIELDS,
   LEGAL_DOC_FIELDS,
+  LEGAL_DOC_LOCALES,
+  LEGAL_DOC_LOCALE_LABEL_KEYS,
   LEGAL_DOCUMENT_I18N,
   LEGAL_DOCUMENT_KEYS,
   footerAdminDirty,
@@ -25,13 +28,17 @@ import {
   legalDocsChangeRequiresReacceptance,
   savedLegalDocsFromSettings,
   type FooterAdminSnapshot,
+  type LegalDocLocale,
   type LegalDocumentKey,
   type LegalDocsAdminSnapshot,
 } from '../../legalDocuments'
 import { showError } from '../../util'
 import { useAgreementPreview } from './useAgreementPreview'
 
-type EditLanguage = 'en' | 'ru'
+const LEGAL_LANG_OPTIONS = LEGAL_DOC_LOCALES.map((value) => ({
+  value,
+  labelKey: `lang.${value}` as const,
+}))
 
 function AgreementEditorPair({
   label,
@@ -93,8 +100,8 @@ export function InstanceLegalDocumentsTab() {
   const [savedLegalSnapshot, setSavedLegalSnapshot] = useState<LegalDocsAdminSnapshot | null>(null)
   const [savedFooterSnapshot, setSavedFooterSnapshot] = useState<FooterAdminSnapshot | null>(null)
   const [legalDocTab, setLegalDocTab] = useState<LegalDocumentKey>('user_agreement')
-  const [editLang, setEditLang] = useState<EditLanguage>('ru')
-  const [footerLang, setFooterLang] = useState<EditLanguage>('ru')
+  const [editLang, setEditLang] = useState<LegalDocLocale>('ru')
+  const [footerLang, setFooterLang] = useState<LegalDocLocale>('ru')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [legalSaveBusy, setLegalSaveBusy] = useState(false)
   const [footerSaveBusy, setFooterSaveBusy] = useState(false)
@@ -160,12 +167,15 @@ export function InstanceLegalDocumentsTab() {
       ...settings,
       user_agreement_text_en: docs.user_agreement.en,
       user_agreement_text_ru: docs.user_agreement.ru,
+      user_agreement_text_es: docs.user_agreement.es,
       user_agreement_published: published.user_agreement,
       personal_data_consent_text_en: docs.personal_data_consent.en,
       personal_data_consent_text_ru: docs.personal_data_consent.ru,
+      personal_data_consent_text_es: docs.personal_data_consent.es,
       personal_data_consent_published: published.personal_data_consent,
       privacy_policy_text_en: docs.privacy_policy.en,
       privacy_policy_text_ru: docs.privacy_policy.ru,
+      privacy_policy_text_es: docs.privacy_policy.es,
       privacy_policy_published: published.privacy_policy,
     })
   }
@@ -176,6 +186,7 @@ export function InstanceLegalDocumentsTab() {
       ...settings,
       landing_footer_text_en: savedFooterSnapshot.en,
       landing_footer_text_ru: savedFooterSnapshot.ru,
+      landing_footer_text_es: savedFooterSnapshot.es,
       landing_footer_published: savedFooterSnapshot.published,
     })
   }
@@ -189,12 +200,15 @@ export function InstanceLegalDocumentsTab() {
         body: JSON.stringify({
           user_agreement_text_en: settings.user_agreement_text_en,
           user_agreement_text_ru: settings.user_agreement_text_ru,
+          user_agreement_text_es: settings.user_agreement_text_es,
           user_agreement_published: settings.user_agreement_published,
           personal_data_consent_text_en: settings.personal_data_consent_text_en,
           personal_data_consent_text_ru: settings.personal_data_consent_text_ru,
+          personal_data_consent_text_es: settings.personal_data_consent_text_es,
           personal_data_consent_published: settings.personal_data_consent_published,
           privacy_policy_text_en: settings.privacy_policy_text_en,
           privacy_policy_text_ru: settings.privacy_policy_text_ru,
+          privacy_policy_text_es: settings.privacy_policy_text_es,
           privacy_policy_published: settings.privacy_policy_published,
         }),
       })
@@ -219,6 +233,7 @@ export function InstanceLegalDocumentsTab() {
         body: JSON.stringify({
           landing_footer_text_en: settings.landing_footer_text_en,
           landing_footer_text_ru: settings.landing_footer_text_ru,
+          landing_footer_text_es: settings.landing_footer_text_es,
           landing_footer_published: settings.landing_footer_published,
         }),
       })
@@ -247,14 +262,10 @@ export function InstanceLegalDocumentsTab() {
   const savedDoc = savedLegalSnapshot.docs[legalDocTab]
   const showPreviewLink =
     savedLegalSnapshot.published[legalDocTab] && legalDocHasContent(savedDoc)
-  const editValue =
-    editLang === 'en'
-      ? (settings[docFields.en] as string | null) || ''
-      : (settings[docFields.ru] as string | null) || ''
-  const footerValue =
-    footerLang === 'en'
-      ? settings.landing_footer_text_en || ''
-      : settings.landing_footer_text_ru || ''
+  const editField = docFields.texts[editLang]
+  const editValue = (settings[editField] as string | null) || ''
+  const footerField = FOOTER_TEXT_FIELDS[footerLang]
+  const footerValue = (settings[footerField] as string | null) || ''
 
   return (
     <AdminPage>
@@ -333,19 +344,19 @@ export function InstanceLegalDocumentsTab() {
           ariaLabel={t('instance.legalDocumentLanguage')}
           value={editLang}
           onChange={setEditLang}
-          options={[
-            { value: 'ru', label: t('lang.ru') },
-            { value: 'en', label: t('lang.en') },
-          ]}
+          options={LEGAL_LANG_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: t(opt.labelKey),
+          }))}
         />
 
         <AgreementEditorPair
-          label={editLang === 'en' ? t('instance.userAgreementEn') : t('instance.userAgreementRu')}
+          label={t(LEGAL_DOC_LOCALE_LABEL_KEYS[editLang])}
           value={editValue}
           onChange={(value) =>
             setSettings({
               ...settings,
-              [editLang === 'en' ? docFields.en : docFields.ru]: value,
+              [editField]: value,
             })
           }
         />
@@ -389,19 +400,19 @@ export function InstanceLegalDocumentsTab() {
           ariaLabel={t('instance.legalDocumentLanguage')}
           value={footerLang}
           onChange={setFooterLang}
-          options={[
-            { value: 'ru', label: t('lang.ru') },
-            { value: 'en', label: t('lang.en') },
-          ]}
+          options={LEGAL_LANG_OPTIONS.map((opt) => ({
+            value: opt.value,
+            label: t(opt.labelKey),
+          }))}
         />
 
         <AgreementEditorPair
-          label={footerLang === 'en' ? t('instance.userAgreementEn') : t('instance.userAgreementRu')}
+          label={t(LEGAL_DOC_LOCALE_LABEL_KEYS[footerLang])}
           value={footerValue}
           onChange={(value) =>
             setSettings({
               ...settings,
-              [footerLang === 'en' ? 'landing_footer_text_en' : 'landing_footer_text_ru']: value,
+              [footerField]: value,
             })
           }
         />
