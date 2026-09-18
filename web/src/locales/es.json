@@ -175,7 +175,8 @@
     "faq5a": "Cada org tiene cartera y ledger de operaciones; el instance admin puede cargar o debitar saldo con registro de auditoría. El uso se factura según el plan por transcripción y resumen. Los tokens API dependen del plan; las tareas se envían por REST para flujos enterprise.",
     "faq6q": "¿Cómo monitorizar y operar en producción?",
     "faq6a": "El hub expone métricas Prometheus (/metrics) y un dashboard Grafana. Soporta rate limits, health checks y HTTPS a nivel de instancia. Para producción se recomienda PostgreSQL en lugar de SQLite y workers dedicados balanceados por el instance admin.",
-    "footer": "Hub self-hosted para transcripción y resúmenes."
+    "footerLegal": "Documentos legales",
+    "backHome": "Volver al inicio"
   },
   "auth": {
     "login": "Entrar",
@@ -475,13 +476,26 @@
     "tokenStepUp": "Introduzca el código del autenticador para crear un token API."
   },
   "agreement": {
-    "title": "Acuerdo de usuario",
-    "lead": "Lea y acepte el acuerdo de usuario para continuar.",
+    "title": "Documentos legales",
+    "lead": "Revise y acepte los documentos obligatorios para continuar.",
     "acceptLabel": "He leído y acepto el acuerdo de usuario",
     "continue": "Continuar",
     "empty": "No hay texto de acuerdo configurado.",
     "badgeAccepted": "Acuerdo aceptado",
     "badgeBlocked": "Acuerdo pendiente"
+  },
+  "legalDocuments": {
+    "tabs": {
+      "userAgreement": "Acuerdo de usuario",
+      "personalDataConsent": "Consentimiento de datos personales",
+      "privacyPolicy": "Política de privacidad"
+    },
+    "acceptPrefix": "Acepto",
+    "acceptLabels": {
+      "userAgreement": "He leído y acepto el acuerdo de usuario (licencia / oferta)",
+      "personalDataConsent": "Consiento el tratamiento de mis datos personales",
+      "privacyPolicy": "He leído y acepto la política de privacidad"
+    }
   },
   "profile": {
     "title": "Perfil",
@@ -552,6 +566,7 @@
     "workers": "Workers",
     "tariffs": "Tarifas",
     "orgs": "Organizaciones",
+    "legalDocuments": "Documentos legales",
     "settings": "Ajustes",
     "baseSkills": "Skills base",
     "stats": "Estadísticas",
@@ -711,12 +726,17 @@
     "timezoneHint": "Las marcas de tiempo se convierten de UTC al desplazamiento GMT seleccionado para mostrarlas.",
     "sessionTtlHours": "TTL de sesión (horas)",
     "sessionTtlHint": "Duración deslizante de la sesión del navegador; cada solicitud autenticada extiende la caducidad. En entornos enterprise suele usarse 8–24 horas (predeterminado 24). Máximo 336 horas (14 días).",
-    "userAgreementTitle": "Acuerdo de usuario",
-    "userAgreementHint": "Los miembros de la organización deben aceptar este acuerdo antes de usar el servicio. Se admite Markdown; coloque las tablas en líneas separadas con una línea en blanco antes del encabezado. Editar el texto incrementa la versión y exige nueva aceptación.",
+    "legalDocumentsTitle": "Documentos legales",
+    "legalDocumentsHint": "Los miembros de la organización deben aceptar los documentos activos antes de usar el servicio. Se admite Markdown; coloque las tablas en líneas separadas con una línea en blanco antes del encabezado. Editar un documento incrementa su versión y exige nueva aceptación.",
+    "legalDocumentVersion": "Versión actual: {{version}}",
+    "legalDocumentPublish": "Publicar en la página de inicio",
+    "landingExtraTitle": "Dirección y otros",
+    "landingExtraHint": "Markdown libre en el pie del landing, debajo de los enlaces legales (dirección, contactos, etc.).",
+    "legalDocumentsSave": "Guardar documentos legales",
+    "legalDocumentsSaveConfirm": "Al guardar se actualizará la versión de uno o más documentos. Todos los miembros de la organización deberán aceptarlos de nuevo antes de usar el servicio.",
+    "landingExtraSave": "Guardar dirección y pie de página",
     "userAgreementEn": "Texto (inglés)",
     "userAgreementRu": "Texto (ruso)",
-    "userAgreementVersion": "Versión actual: {{version}}",
-    "userAgreementSaveConfirm": "Al guardar se actualizará la versión del acuerdo. Todos los miembros de la organización deberán aceptarlo de nuevo antes de usar el servicio.",
     "userAgreementPreview": "Vista previa (Markdown)",
     "rateLimitTitle": "Límite de frecuencia",
     "rateLimitHint": "0 desactiva la regla. Per-IP usa la IP del cliente (TCP o X-Forwarded-For con TRUSTED_PROXIES en .env). Las sesiones cookie no se limitan como API; los tokens Bearer sí.",
@@ -876,7 +896,7 @@
     "mfa_challenge_invalid": "Desafío de inicio de sesión no válido o caducado. Inicie sesión de nuevo.",
     "mfa_step_up_required": "Introduzca el código del autenticador para continuar.",
     "mfa_enrollment_required": "Configure la autenticación de dos factores antes de continuar.",
-    "user_agreement_required": "Acepte el acuerdo de usuario antes de continuar.",
+    "user_agreement_required": "Acepte los documentos legales obligatorios antes de continuar.",
     "rate_limited": "Demasiados intentos. Inténtelo más tarde.",
     "last_org_admin": "No se puede eliminar, degradar ni desactivar al último administrador activo.",
     "tariff_in_use": "Esta tarifa aún la usan organizaciones.",

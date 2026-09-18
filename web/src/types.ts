@@ -114,6 +114,13 @@ export type Me = {
   user_agreement_required: boolean
   user_agreement: { version: number; text: string } | null
   user_agreement_version: number | null
+  legal_documents: {
+    key: 'user_agreement' | 'personal_data_consent' | 'privacy_policy'
+    version: number
+    text: string
+    accepted_version: number
+    pending: boolean
+  }[] | null
 }
 
 export type ShareRecord = {
@@ -381,6 +388,18 @@ export type InstanceSettings = {
   user_agreement_text_en: string | null
   user_agreement_text_ru: string | null
   user_agreement_version: number
+  user_agreement_published: boolean
+  personal_data_consent_text_en: string | null
+  personal_data_consent_text_ru: string | null
+  personal_data_consent_version: number
+  personal_data_consent_published: boolean
+  privacy_policy_text_en: string | null
+  privacy_policy_text_ru: string | null
+  privacy_policy_version: number
+  privacy_policy_published: boolean
+  landing_footer_text_en: string | null
+  landing_footer_text_ru: string | null
+  landing_footer_published: boolean
 }
 
 export type JobStats = {

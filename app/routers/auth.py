@@ -112,6 +112,7 @@ class SignupBody(BaseModel):
     password: str = Field(min_length=8)
     tariff_id: str
     locale: str = DEFAULT_LOCALE
+    accept_legal_documents: bool = False
 
 
 class LoginBody(BaseModel):
@@ -291,7 +292,12 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
     )
     from app.datetime_format import resolve_date_time_prefs
     from app.services.transcribe_models import aggregate_instance_models, resolve_transcribe_models
-    from app.services.user_agreement import agreement_active, agreement_text, user_agreement_required
+    from app.services.user_agreement import (
+        agreement_active,
+        agreement_text,
+        member_legal_documents,
+        user_agreement_required,
+    )
 
     settings = get_instance_settings(db)
     agreement_pending = user_agreement_required(
@@ -301,11 +307,14 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
         settings=settings,
     )
     agreement_payload = None
-    if agreement_active(settings) and ctx.membership is not None and ctx.org is not None:
-        agreement_payload = {
-            "version": settings.user_agreement_version,
-            "text": agreement_text(settings, ctx.locale),
-        }
+    legal_documents = None
+    if ctx.membership is not None and ctx.org is not None:
+        legal_documents = member_legal_documents(ctx.user, settings, ctx.locale)
+        if agreement_active(settings):
+            agreement_payload = {
+                "version": settings.user_agreement_version,
+                "text": agreement_text(settings, ctx.locale),
+            }
     return {
         "user": user_public(ctx.user, role),
         "org": org_public(ctx.org, usage=usage, public_base_url=_public_base_url(db)) if ctx.org else None,
@@ -328,6 +337,7 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
         "user_agreement_required": agreement_pending,
         "user_agreement": agreement_payload,
         "user_agreement_version": settings.user_agreement_version if agreement_active(settings) else None,
+        "legal_documents": legal_documents,
     }
 
 
@@ -398,6 +408,10 @@ def signup(body: SignupBody, request: Request, response: Response, db: Session =
         abort(locale, ErrorCode.tariff_not_available)
     if db.scalar(select(User).where(User.email == email)):
         abort(locale, ErrorCode.email_taken)
+    from app.services.user_agreement import accept_all_pending_documents, any_document_active
+
+    if any_document_active(settings) and not body.accept_legal_documents:
+        abort(locale, ErrorCode.validation_error)
     now = utcnow()
     user = User(
         id=new_id(),
@@ -427,6 +441,9 @@ def signup(body: SignupBody, request: Request, response: Response, db: Session =
     db.add(org)
     db.flush()
     db.add(Membership(id=new_id(), user_id=user.id, org_id=org.id, role="org_admin"))
+    if any_document_active(settings):
+        accept_all_pending_documents(user, settings)
+        user.updated_at = utcnow()
     raw = create_session(db, user.id)
     issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
     return {"status": "ok", "user": user_public(user, "org_admin")}
@@ -781,7 +798,7 @@ def accept_user_agreement(
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     from app.deps import _password_expired
-    from app.services.user_agreement import user_agreement_required
+    from app.services.user_agreement import accept_all_pending_documents, user_agreement_required
 
     if not ctx.is_instance_admin and (
         ctx.user.must_change_password or _password_expired(ctx.user, ctx.org)
@@ -795,10 +812,18 @@ def accept_user_agreement(
         settings=settings,
     ):
         ctx.raise_error(ErrorCode.validation_error)
-    ctx.user.user_agreement_accepted_version = settings.user_agreement_version
+    accepted_keys = accept_all_pending_documents(ctx.user, settings)
     ctx.user.updated_at = utcnow()
     db.flush()
-    write_audit(db, "auth.agreement.accept", ctx, {"version": settings.user_agreement_version})
+    write_audit(
+        db,
+        "auth.agreement.accept",
+        ctx,
+        {
+            "documents": accepted_keys,
+            "user_agreement_version": settings.user_agreement_version,
+        },
+    )
     return _me_payload(ctx, db)
 
 

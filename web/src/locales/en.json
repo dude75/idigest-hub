@@ -175,7 +175,8 @@
     "faq5a": "Every org has a wallet and operation ledger; the instance admin can credit or debit balances with audit logging. Usage is metered per plan for transcription and summarization. API tokens are plan-gated; jobs can be submitted via REST to fit enterprise workflows.",
     "faq6q": "How do we monitor and run it in production?",
     "faq6a": "The hub exposes Prometheus metrics (/metrics) and ships a Grafana dashboard. Rate limits, health checks, and HTTPS at the instance level are supported. For production resilience, use PostgreSQL instead of SQLite and dedicated workers balanced by the instance admin.",
-    "footer": "Self-hosted hub for transcription and summarization."
+    "footerLegal": "Legal documents",
+    "backHome": "Back to home"
   },
   "auth": {
     "login": "Sign in",
@@ -475,13 +476,26 @@
     "tokenStepUp": "Enter your authenticator code to create an API token."
   },
   "agreement": {
-    "title": "User agreement",
-    "lead": "Please read and accept the user agreement to continue.",
+    "title": "Legal documents",
+    "lead": "Please review and accept the required documents to continue.",
     "acceptLabel": "I have read and accept the user agreement",
     "continue": "Continue",
     "empty": "No agreement text is configured.",
     "badgeAccepted": "Agreement accepted",
     "badgeBlocked": "Agreement pending"
+  },
+  "legalDocuments": {
+    "tabs": {
+      "userAgreement": "User agreement",
+      "personalDataConsent": "Personal data consent",
+      "privacyPolicy": "Privacy policy"
+    },
+    "acceptPrefix": "I agree with",
+    "acceptLabels": {
+      "userAgreement": "I have read and accept the user agreement (license / offer)",
+      "personalDataConsent": "I consent to the processing of my personal data",
+      "privacyPolicy": "I have read and accept the privacy policy"
+    }
   },
   "profile": {
     "title": "Profile",
@@ -552,6 +566,7 @@
     "workers": "Workers",
     "tariffs": "Tariffs",
     "orgs": "Organizations",
+    "legalDocuments": "Legal documents",
     "settings": "Settings",
     "baseSkills": "Base skills",
     "stats": "Stats",
@@ -711,12 +726,17 @@
     "timezoneHint": "Timestamps are converted from UTC storage to the selected GMT offset for display.",
     "sessionTtlHours": "Session TTL (hours)",
     "sessionTtlHint": "Sliding browser session lifetime. Each authenticated request extends expiry. Enterprise deployments typically use 8–24 hours (default 24). Max 336 hours (14 days).",
-    "userAgreementTitle": "User agreement",
-    "userAgreementHint": "Organization members must accept this agreement before using the service. Markdown is supported; put tables on their own lines with a blank line before the header row. Editing the text bumps the version and requires re-acceptance.",
+    "legalDocumentsTitle": "Legal documents",
+    "legalDocumentsHint": "Organization members must accept active documents before using the service. Markdown is supported; put tables on their own lines with a blank line before the header row. Editing a document bumps its version and requires re-acceptance.",
+    "legalDocumentVersion": "Current version: {{version}}",
+    "legalDocumentPublish": "Publish on landing page",
+    "landingExtraTitle": "Address and other",
+    "landingExtraHint": "Free-form Markdown shown in the landing footer below the legal document links (e.g. address, contacts).",
+    "legalDocumentsSave": "Save legal documents",
+    "legalDocumentsSaveConfirm": "Saving will update one or more document versions. All organization members must accept the changed documents again before using the service.",
+    "landingExtraSave": "Save address and footer",
     "userAgreementEn": "Text (English)",
     "userAgreementRu": "Text (Russian)",
-    "userAgreementVersion": "Current version: {{version}}",
-    "userAgreementSaveConfirm": "Saving will update the agreement version. All organization members must accept the agreement again before using the service.",
     "userAgreementPreview": "Preview (Markdown)",
     "rateLimitTitle": "Rate limiting",
     "rateLimitHint": "0 disables a rule. Per-IP uses the client address (TCP peer, or X-Forwarded-For when TRUSTED_PROXIES is set in .env). Browser sessions are not API-rate-limited; Bearer tokens are.",
@@ -876,7 +896,7 @@
     "mfa_challenge_invalid": "Invalid or expired sign-in challenge. Sign in again.",
     "mfa_step_up_required": "Enter your authenticator code to continue.",
     "mfa_enrollment_required": "Set up two-factor authentication before continuing.",
-    "user_agreement_required": "Accept the user agreement before continuing.",
+    "user_agreement_required": "Accept the required legal documents before continuing.",
     "rate_limited": "Too many attempts. Try again later.",
     "last_org_admin": "The last active organization admin cannot be removed, demoted, or disabled.",
     "tariff_in_use": "This tariff is still used by organizations.",

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '../../api'
@@ -9,80 +9,7 @@ import { diarizationOptionsForAsr, isDispatchableCombo } from '../../transcribeM
 import { showError } from '../../util'
 import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../../util/timezones'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { MarkdownBody } from '../../markdown'
 import { DEFAULT_IMPORT_AUDIO_BITRATE_KBPS } from './constants'
-import { useAgreementPreview } from './useAgreementPreview'
-
-type SavedAgreement = { en: string | null; ru: string | null }
-
-function agreementTextTrim(value: string | null | undefined): string {
-  return (value || '').trim()
-}
-
-/** Mirrors backend version bump: any non-empty text change requires re-acceptance. */
-function AgreementEditorPair({
-  label,
-  value,
-  onChange,
-}: {
-  label: string
-  value: string
-  onChange: (value: string) => void
-}) {
-  const { t } = useTranslation()
-  const preview = useAgreementPreview(value)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [paneHeight, setPaneHeight] = useState<number | null>(null)
-
-  useEffect(() => {
-    const el = textareaRef.current
-    if (!el) return
-    const syncHeight = () => setPaneHeight(el.offsetHeight)
-    syncHeight()
-    const observer = new ResizeObserver(syncHeight)
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
-
-  const paneStyle = paneHeight ? { height: paneHeight } : undefined
-
-  return (
-    <div className="agreement-editor-row">
-      <label className="agreement-editor-field">
-        <span>{label}</span>
-        <textarea
-          ref={textareaRef}
-          className="agreement-editor-input"
-          rows={12}
-          style={paneStyle}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      </label>
-      <div className="agreement-editor-field">
-        <span className="muted">{t('instance.userAgreementPreview')}</span>
-        <div className="agreement-text agreement-preview" style={paneStyle}>
-          {preview.trim() ? (
-            <MarkdownBody text={preview} />
-          ) : (
-            <p className="muted agreement-preview-empty">{t('agreement.empty')}</p>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export function agreementChangeRequiresReacceptance(saved: SavedAgreement, current: SavedAgreement): boolean {
-  const oldEn = agreementTextTrim(saved.en)
-  const oldRu = agreementTextTrim(saved.ru)
-  const newEn = agreementTextTrim(current.en)
-  const newRu = agreementTextTrim(current.ru)
-  if (newEn === oldEn && newRu === oldRu) return false
-  if (!newEn && !newRu) return false
-  return true
-}
 
 export function InstanceSettingsTab() {
   const { t } = useTranslation()
@@ -92,8 +19,6 @@ export function InstanceSettingsTab() {
   const [proxyPassword, setProxyPassword] = useState('')
   const [smtpTestEmail, setSmtpTestEmail] = useState('')
   const [smtpTestingConnection, setSmtpTestingConnection] = useState(false)
-  const [savedAgreement, setSavedAgreement] = useState<SavedAgreement | null>(null)
-  const [agreementConfirmOpen, setAgreementConfirmOpen] = useState(false)
   const [saveBusy, setSaveBusy] = useState(false)
 
   function normalizeSettings(data: InstanceSettings): InstanceSettings {
@@ -113,10 +38,6 @@ export function InstanceSettingsTab() {
       const data = await api<InstanceSettings>('/instance/settings')
       const normalized = normalizeSettings(data)
       setSettings(normalized)
-      setSavedAgreement({
-        en: normalized.user_agreement_text_en,
-        ru: normalized.user_agreement_text_ru,
-      })
     } catch (e) {
       showError(e)
     }
@@ -193,20 +114,6 @@ export function InstanceSettingsTab() {
     }
   }
 
-  function onSaveClick() {
-    if (!settings || !savedAgreement) return
-    if (
-      agreementChangeRequiresReacceptance(savedAgreement, {
-        en: settings.user_agreement_text_en,
-        ru: settings.user_agreement_text_ru,
-      })
-    ) {
-      setAgreementConfirmOpen(true)
-      return
-    }
-    void saveSettings()
-  }
-
   async function saveSettings() {
     if (!settings) return
     setSaveBusy(true)
@@ -251,21 +158,14 @@ export function InstanceSettingsTab() {
           session_ttl_hours: settings.session_ttl_hours,
           date_time_format: settings.date_time_format,
           timezone: settings.timezone,
-          user_agreement_text_en: settings.user_agreement_text_en,
-          user_agreement_text_ru: settings.user_agreement_text_ru,
           ...(smtpPassword ? { smtp_password: smtpPassword } : {}),
           ...(proxyPassword ? { download_proxy_password: proxyPassword } : {}),
         }),
       })
       const normalized = normalizeSettings(data)
       setSettings(normalized)
-      setSavedAgreement({
-        en: normalized.user_agreement_text_en,
-        ru: normalized.user_agreement_text_ru,
-      })
       setSmtpPassword('')
       setProxyPassword('')
-      setAgreementConfirmOpen(false)
       toast.success(t('profile.saved'))
       await refresh()
     } catch (e) {
@@ -567,26 +467,6 @@ export function InstanceSettingsTab() {
 
       <details className="fold org-fold card">
         <summary className="org-fold-summary">
-          <span>{t('instance.userAgreementTitle')}</span>
-        </summary>
-        <div className="stack fold-body">
-          <p className="muted">{t('instance.userAgreementHint')}</p>
-          <p className="muted">{t('instance.userAgreementVersion', { version: settings.user_agreement_version ?? 0 })}</p>
-          <AgreementEditorPair
-            label={t('instance.userAgreementEn')}
-            value={settings.user_agreement_text_en || ''}
-            onChange={(user_agreement_text_en) => setSettings({ ...settings, user_agreement_text_en })}
-          />
-          <AgreementEditorPair
-            label={t('instance.userAgreementRu')}
-            value={settings.user_agreement_text_ru || ''}
-            onChange={(user_agreement_text_ru) => setSettings({ ...settings, user_agreement_text_ru })}
-          />
-        </div>
-      </details>
-
-      <details className="fold org-fold card">
-        <summary className="org-fold-summary">
           <span>{t('instance.rateLimitTitle')}</span>
         </summary>
         <div className="stack fold-body">
@@ -637,22 +517,11 @@ export function InstanceSettingsTab() {
           className="primary"
           type="button"
           disabled={!serviceModelsValid || saveBusy}
-          onClick={() => onSaveClick()}
+          onClick={() => void saveSettings()}
         >
           {t('common.save')}
         </button>
       </div>
-      {agreementConfirmOpen ? (
-        <ConfirmDialog
-          message={t('instance.userAgreementSaveConfirm')}
-          confirmLabel={t('common.save')}
-          busy={saveBusy}
-          onConfirm={() => void saveSettings()}
-          onClose={() => {
-            if (!saveBusy) setAgreementConfirmOpen(false)
-          }}
-        />
-      ) : null}
     </AdminPage>
   )
 }

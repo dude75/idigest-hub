@@ -145,6 +145,16 @@ class SettingsPatch(BaseModel):
     timezone: str | None = None
     user_agreement_text_en: str | None = None
     user_agreement_text_ru: str | None = None
+    personal_data_consent_text_en: str | None = None
+    personal_data_consent_text_ru: str | None = None
+    privacy_policy_text_en: str | None = None
+    privacy_policy_text_ru: str | None = None
+    user_agreement_published: bool | None = None
+    personal_data_consent_published: bool | None = None
+    privacy_policy_published: bool | None = None
+    landing_footer_text_en: str | None = None
+    landing_footer_text_ru: str | None = None
+    landing_footer_published: bool | None = None
 
 
 class CreateOrgBody(BaseModel):
@@ -639,6 +649,18 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "user_agreement_text_en": s.user_agreement_text_en,
         "user_agreement_text_ru": s.user_agreement_text_ru,
         "user_agreement_version": s.user_agreement_version,
+        "user_agreement_published": s.user_agreement_published,
+        "personal_data_consent_text_en": s.personal_data_consent_text_en,
+        "personal_data_consent_text_ru": s.personal_data_consent_text_ru,
+        "personal_data_consent_version": s.personal_data_consent_version,
+        "personal_data_consent_published": s.personal_data_consent_published,
+        "privacy_policy_text_en": s.privacy_policy_text_en,
+        "privacy_policy_text_ru": s.privacy_policy_text_ru,
+        "privacy_policy_version": s.privacy_policy_version,
+        "privacy_policy_published": s.privacy_policy_published,
+        "landing_footer_text_en": s.landing_footer_text_en,
+        "landing_footer_text_ru": s.landing_footer_text_ru,
+        "landing_footer_published": s.landing_footer_published,
         **rate_limits_public(s),
     }
 
@@ -723,10 +745,9 @@ def patch_settings(
             s.timezone = normalize_timezone(str(tz) if tz is not None else None)
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
-    if "user_agreement_text_en" in data or "user_agreement_text_ru" in data:
-        from app.services.user_agreement import apply_agreement_text_patch
+    from app.services.user_agreement import apply_legal_documents_patch
 
-        apply_agreement_text_patch(s, data)
+    apply_legal_documents_patch(s, data)
     for key, value in data.items():
         setattr(s, key, value)
     if "asr_model" in body.model_dump(exclude_unset=True) or "diarization_model" in body.model_dump(exclude_unset=True):

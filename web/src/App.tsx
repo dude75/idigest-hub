@@ -11,6 +11,7 @@ import { Verify2faPage } from './pages/Verify2faPage'
 import { ForgotPage } from './pages/ForgotPage'
 import { LibraryPage } from './pages/LibraryPage'
 import { LandingPage } from './pages/LandingPage'
+import { LegalDocumentPage } from './pages/LegalDocumentPage'
 import { LoginPage } from './pages/LoginPage'
 import { SsoLoginPage } from './pages/SsoLoginPage'
 import { OrgPage } from './pages/OrgPage'
@@ -101,6 +102,7 @@ export default function App() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="task/:id" element={<TaskPage />} />
       </Route>
+      <Route path="/legal/:slug" element={<LegalDocumentPage />} />
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<LandingPage />} />
     </Routes>

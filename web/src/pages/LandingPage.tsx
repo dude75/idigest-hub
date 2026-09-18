@@ -3,9 +3,8 @@ import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
-import { AppBrand } from '../components/AppBrand'
-import { GitHubLink } from '../components/GitHubLink'
-import { LanguageSwitcher } from '../components/LanguageSwitcher'
+import { LandingFooter } from '../components/LandingFooter'
+import { LandingHeader } from '../components/LandingHeader'
 import { resolveAuthContinuationPath } from '../routes'
 import { arrangeTariffsForLanding } from '../landingTariffLayout'
 import { LandingTariffGrid } from '../components/LandingTariffGrid'
@@ -37,27 +36,7 @@ export function LandingPage() {
 
   return (
     <div className="landing">
-      <header className="landing-topbar topbar">
-        <AppBrand />
-        <nav className="landing-nav" aria-label="Landing">
-          <a href="#how">{t('landing.navHow')}</a>
-          <a href="#features">{t('landing.navFeatures')}</a>
-          {tariffs.length > 0 && <a href="#pricing">{t('landing.navPricing')}</a>}
-          <a href="#faq">{t('landing.navFaq')}</a>
-        </nav>
-        <div className="right row">
-          <GitHubLink />
-          <LanguageSwitcher />
-          {me ? (
-            <Link to={enterAppPath!} className="btn primary">{t('landing.enterSystem')}</Link>
-          ) : (
-            <>
-              <Link to="/login" className="btn">{t('auth.login')}</Link>
-              <Link to="/signup" className="btn primary">{t('auth.signup')}</Link>
-            </>
-          )}
-        </div>
-      </header>
+      <LandingHeader />
 
       <section className="landing-hero">
         <div className="landing-hero-inner">
@@ -181,13 +160,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <footer className="landing-footer">
-        <div className="landing-footer-copy">
-          <AppBrand />
-          <p className="muted">{t('landing.footer')}</p>
-        </div>
-        <GitHubLink variant="footer" />
-      </footer>
+      <LandingFooter />
     </div>
   )
 }

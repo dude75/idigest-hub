@@ -77,6 +77,7 @@ const baseMe: Me = {
   user_agreement_required: false,
   user_agreement: null,
   user_agreement_version: null,
+  legal_documents: null,
   must_change_password: false,
 }
 

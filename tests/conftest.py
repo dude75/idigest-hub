@@ -148,11 +148,18 @@ def setup_admin(client: TestClient, email: str = ADMIN_EMAIL, password: str = AD
     return response.json()
 
 
-def signup(client: TestClient, email: str, password: str, tariff_id: str):
-    return client.post(
-        "/api/v1/auth/signup",
-        json={"email": email, "password": password, "tariff_id": tariff_id},
-    )
+def signup(
+    client: TestClient,
+    email: str,
+    password: str,
+    tariff_id: str,
+    *,
+    accept_legal_documents: bool = True,
+):
+    payload: dict = {"email": email, "password": password, "tariff_id": tariff_id}
+    if accept_legal_documents:
+        payload["accept_legal_documents"] = True
+    return client.post("/api/v1/auth/signup", json=payload)
 
 
 def login(client: TestClient, email: str, password: str):

@@ -29,9 +29,11 @@ def _set_agreement(client: TestClient, *, en: str = "Terms EN", ru: str = "Terms
 
 def test_user_agreement_blocks_org_member_until_accepted(client: TestClient):
     setup_admin(client)
-    _set_agreement(client)
     tariff_id = default_tariff_id(client)
     signup(client, "member@example.com", "memberpass1", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    _set_agreement(client)
     logout(client)
 
     login(client, "member@example.com", "memberpass1")
@@ -93,9 +95,11 @@ def test_agreement_version_bump_requires_reacceptance(client: TestClient):
 
 def test_agreement_locale_ru(client: TestClient):
     setup_admin(client)
-    _set_agreement(client)
     tariff_id = default_tariff_id(client)
     signup(client, "ru@example.com", "rupass1234", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    _set_agreement(client)
     logout(client)
 
     login(client, "ru@example.com", "rupass1234")
@@ -107,12 +111,11 @@ def test_agreement_locale_ru(client: TestClient):
 
 def test_org_users_list_shows_agreement_status(client: TestClient):
     setup_admin(client)
-    _set_agreement(client)
     tariff_id = default_tariff_id(client)
     signup(client, "listed@example.com", "listedpass1", tariff_id)
     logout(client)
-
     login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    _set_agreement(client)
     orgs = client.get("/api/v1/orgs")
     assert orgs.status_code == 200, orgs.text
     member = next(
@@ -142,9 +145,11 @@ def test_org_users_list_shows_agreement_status(client: TestClient):
 
 def test_instance_org_list_marks_disabled_user(client: TestClient):
     setup_admin(client)
-    _set_agreement(client)
     tariff_id = default_tariff_id(client)
     signup(client, "owner@example.com", "ownerpass12", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    _set_agreement(client)
     logout(client)
 
     login_ready(client, "owner@example.com", "ownerpass12")
@@ -175,9 +180,11 @@ def test_instance_org_list_marks_disabled_user(client: TestClient):
 
 def test_must_change_password_before_agreement_accept(client: TestClient):
     setup_admin(client)
-    _set_agreement(client)
     tariff_id = default_tariff_id(client)
     signup(client, "owner@example.com", "ownerpass12", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    _set_agreement(client)
     logout(client)
 
     login_ready(client, "owner@example.com", "ownerpass12")
@@ -255,11 +262,198 @@ def test_save_agreement_normalizes_markdown(client: TestClient):
     assert "| Uploads | rights required |" in stored
 
 
+def test_signup_accepts_all_active_legal_documents(client: TestClient):
+    setup_admin(client)
+    saved = client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "user_agreement_text_en": "Terms EN",
+            "personal_data_consent_text_en": "Consent EN",
+            "privacy_policy_text_en": "Privacy EN",
+        },
+    )
+    assert saved.status_code == 200, saved.text
+    body = saved.json()
+    assert body["user_agreement_version"] == 1
+    assert body["personal_data_consent_version"] == 1
+    assert body["privacy_policy_version"] == 1
+
+    tariff_id = default_tariff_id(client)
+    blocked = signup(
+        client,
+        "blocked@example.com",
+        "blockedpass1",
+        tariff_id,
+        accept_legal_documents=False,
+    )
+    assert blocked.status_code == 400
+    assert err_code(blocked) == "validation_error"
+
+    created = signup(client, "legal@example.com", "legalpass12", tariff_id)
+    assert created.status_code == 200, created.text
+    logout(client)
+
+    login(client, "legal@example.com", "legalpass12")
+    payload = me(client)
+    assert payload["user_agreement_required"] is False
+    assert all(not doc["pending"] for doc in payload["legal_documents"])
+
+    allowed = client.get("/api/v1/audios")
+    assert allowed.status_code == 200, allowed.text
+
+
+def test_privacy_policy_version_bump_requires_reacceptance(client: TestClient):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    signup(client, "owner2@example.com", "ownerpass22", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "user_agreement_text_en": "Terms EN",
+            "privacy_policy_text_en": "Privacy EN",
+        },
+    )
+    logout(client)
+
+    login_ready(client, "owner2@example.com", "ownerpass22")
+    client.post("/api/v1/auth/agreement/accept")
+    logout(client)
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    updated = client.patch(
+        "/api/v1/instance/settings",
+        json={"privacy_policy_text_en": "Privacy EN v2"},
+    )
+    assert updated.status_code == 200, updated.text
+    assert updated.json()["privacy_policy_version"] == 2
+    assert updated.json()["user_agreement_version"] == 1
+    logout(client)
+
+    login(client, "owner2@example.com", "ownerpass22")
+    payload = me(client)
+    assert payload["user_agreement_required"] is True
+    pending = [doc for doc in payload["legal_documents"] if doc["pending"]]
+    assert {doc["key"] for doc in pending} == {"privacy_policy"}
+
+    accepted = client.post("/api/v1/auth/agreement/accept")
+    assert accepted.status_code == 200, accepted.text
+    assert me(client)["user_agreement_required"] is False
+
+
+def test_all_active_legal_documents_required_before_accept(client: TestClient):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    signup(client, "all-docs@example.com", "alldocspass1", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "user_agreement_text_en": "Terms EN",
+            "personal_data_consent_text_en": "Consent EN",
+            "privacy_policy_text_en": "Privacy EN",
+        },
+    )
+    logout(client)
+
+    login(client, "all-docs@example.com", "alldocspass1")
+    payload = me(client)
+    assert payload["user_agreement_required"] is True
+    assert {doc["key"] for doc in payload["legal_documents"]} == {
+        "user_agreement",
+        "personal_data_consent",
+        "privacy_policy",
+    }
+    assert all(doc["pending"] for doc in payload["legal_documents"])
+
+    accepted = client.post("/api/v1/auth/agreement/accept")
+    assert accepted.status_code == 200, accepted.text
+    after = accepted.json()
+    assert after["user_agreement_required"] is False
+    assert all(not doc["pending"] for doc in after["legal_documents"])
+
+
+def test_public_legal_documents_endpoint(client: TestClient):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "user_agreement_text_en": "Terms EN",
+            "privacy_policy_text_en": "Privacy EN",
+        },
+    )
+    logout(client)
+
+    listed = client.get("/api/v1/public/legal-documents")
+    assert listed.status_code == 200, listed.text
+    items = listed.json()["items"]
+    assert {item["key"] for item in items} == {"user_agreement", "privacy_policy"}
+    assert items[0]["text"]
+
+    one = client.get("/api/v1/public/legal-documents/user_agreement")
+    assert one.status_code == 200, one.text
+    assert one.json()["text"] == "Terms EN"
+
+    missing = client.get("/api/v1/public/legal-documents/personal_data_consent")
+    assert missing.status_code == 404
+
+
+def test_landing_footer_text_on_public_endpoint(client: TestClient):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "landing_footer_text_en": "**HQ** · Moscow · [email](mailto:ops@example.com)",
+            "landing_footer_published": True,
+        },
+    )
+    logout(client)
+
+    listed = client.get("/api/v1/public/legal-documents")
+    assert listed.status_code == 200, listed.text
+    assert "HQ" in listed.json()["footer_text"]
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"landing_footer_published": False},
+    )
+    logout(client)
+
+    hidden = client.get("/api/v1/public/legal-documents")
+    assert hidden.status_code == 200, hidden.text
+    assert hidden.json()["footer_text"] is None
+
+
+def test_unpublished_legal_document_hidden_from_landing(client: TestClient):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "user_agreement_text_en": "Terms EN",
+            "privacy_policy_text_en": "Privacy EN",
+            "privacy_policy_published": False,
+        },
+    )
+    logout(client)
+
+    listed = client.get("/api/v1/public/legal-documents")
+    assert listed.status_code == 200, listed.text
+    assert {item["key"] for item in listed.json()["items"]} == {"user_agreement"}
+
+    hidden = client.get("/api/v1/public/legal-documents/privacy_policy")
+    assert hidden.status_code == 404
+
+
 def test_bearer_token_blocked_until_agreement_accepted(client: TestClient):
     setup_admin(client)
-    _set_agreement(client)
     tariff_id = default_tariff_id(client)
     signup(client, "api@example.com", "apipass1234", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    _set_agreement(client)
     logout(client)
 
     login_ready(client, "api@example.com", "apipass1234")

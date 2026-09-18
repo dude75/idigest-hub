@@ -20,7 +20,6 @@ import {
   resolveEffectiveAsr,
   resolveEffectiveDiarization,
 } from '../transcribeModels'
-import { downloadMarkdown, MarkdownBody } from '../markdown'
 import { fmtDate, formatInteger, showError } from '../util'
 import { DATE_TIME_FORMATS, formatDateTime } from '../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../util/timezones'
@@ -52,8 +51,6 @@ export function ProfilePage() {
   })
 
   const hasOrg = Boolean(me?.org)
-  const agreementText = me?.user_agreement?.text?.trim() || ''
-  const showAgreement = hasOrg && Boolean(agreementText) && !me?.user_agreement_required
   const showLocalAuth = localAuthProfileVisible(me)
   const apiAllowed = !me?.org || Boolean(me.org.tariff.api_enabled)
   const activeTokens = tokens.filter((tok) => !tok.revoked)
@@ -725,26 +722,6 @@ export function ProfilePage() {
         )}
       </AdminTableCard>
 
-      {showAgreement && (
-        <AdminFormCard
-          title={t('profile.userAgreementTitle')}
-          lead={t('profile.userAgreementLead', { version: me?.user_agreement_version ?? 0 })}
-        >
-          <div className="agreement-text profile-agreement-text">
-            <MarkdownBody text={agreementText} />
-          </div>
-          <div className="profile-actions">
-            <button
-              type="button"
-              onClick={() =>
-                downloadMarkdown(agreementText, `user-agreement-v${me?.user_agreement_version ?? 1}.md`)
-              }
-            >
-              {t('common.downloadMd')}
-            </button>
-          </div>
-        </AdminFormCard>
-      )}
     </AdminPage>
   )
 }

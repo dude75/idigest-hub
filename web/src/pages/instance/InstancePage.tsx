@@ -18,6 +18,9 @@ const InstanceTariffsTab = lazy(() =>
 const InstanceOrgsTab = lazy(() =>
   import('./InstanceOrgsTab').then((m) => ({ default: m.InstanceOrgsTab })),
 )
+const InstanceLegalDocumentsTab = lazy(() =>
+  import('./InstanceLegalDocumentsTab').then((m) => ({ default: m.InstanceLegalDocumentsTab })),
+)
 const InstanceSettingsTab = lazy(() =>
   import('./InstanceSettingsTab').then((m) => ({ default: m.InstanceSettingsTab })),
 )
@@ -35,6 +38,8 @@ function InstanceTabContent({ tab }: { tab: InstanceTab }) {
       return <InstanceTariffsTab />
     case 'orgs':
       return <InstanceOrgsTab />
+    case 'legalDocuments':
+      return <InstanceLegalDocumentsTab />
     case 'settings':
       return <InstanceSettingsTab />
     case 'baseSkills':

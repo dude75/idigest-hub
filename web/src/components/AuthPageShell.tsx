@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { AppBrand } from './AppBrand'
+import { BackToLandingLink } from './BackToLandingLink'
 import { GitHubLink } from './GitHubLink'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
@@ -13,6 +14,7 @@ export function AuthPageShell({ children }: Props) {
       <header className="auth-topbar topbar">
         <AppBrand />
         <div className="right row">
+          <BackToLandingLink />
           <GitHubLink />
           <LanguageSwitcher />
         </div>

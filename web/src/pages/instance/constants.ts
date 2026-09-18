@@ -1,9 +1,17 @@
 export const MAX_UPLOAD = 1073741824
 export const DEFAULT_IMPORT_AUDIO_BITRATE_KBPS = 64
 
-export type InstanceTab = 'workers' | 'tariffs' | 'orgs' | 'settings' | 'baseSkills' | 'stats'
+export type InstanceTab = 'workers' | 'tariffs' | 'orgs' | 'settings' | 'baseSkills' | 'stats' | 'legalDocuments'
 
-export const INSTANCE_TABS: InstanceTab[] = ['stats', 'workers', 'tariffs', 'orgs', 'baseSkills', 'settings']
+export const INSTANCE_TABS: InstanceTab[] = [
+  'stats',
+  'workers',
+  'tariffs',
+  'orgs',
+  'baseSkills',
+  'settings',
+  'legalDocuments',
+]
 
 export function resolveInstanceTab(tabParam: string | null): InstanceTab {
   return INSTANCE_TABS.includes(tabParam as InstanceTab) ? (tabParam as InstanceTab) : 'stats'
