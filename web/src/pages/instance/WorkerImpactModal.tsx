@@ -375,7 +375,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
         onClose()
       }}
       closeOnBackdrop={!busy && !loading}
-      panelClassName="stack worker-impact-modal"
+      panelClassName="worker-impact-modal"
     >
       <header className="worker-impact-head">
         <h2>{title}</h2>
@@ -385,6 +385,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
         </p>
       </header>
 
+      <div className="modal-body stack">
       {loading ? (
         <div className="worker-impact-banner loading" aria-busy="true">
           <p>{t('instance.workerImpactLoading')}</p>
@@ -459,6 +460,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
           ) : null}
         </>
       ) : null}
+      </div>
 
       <div className="row modal-actions worker-impact-actions">
         <button type="button" disabled={busy || loading} autoFocus onClick={onClose}>

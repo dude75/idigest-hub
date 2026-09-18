@@ -144,9 +144,10 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
   }
 
   return (
-    <Modal onClose={onClose} panelClassName="stack share-dialog">
+    <Modal onClose={onClose} panelClassName="share-dialog">
       <h2 className="share-dialog-title">{t('share.title')}</h2>
 
+      <div className="modal-body stack">
       {showPublic && isOwner && (
         <section className="share-section">
           <h3 className="share-section-head">{t('share.publicLink')}</h3>
@@ -270,6 +271,7 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
           </div>
         </section>
       )}
+      </div>
 
       <div className="share-dialog-footer">
         {available.length > 0 && (

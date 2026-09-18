@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 
 type Props = {
   onClose: () => void
@@ -17,6 +17,14 @@ export function Modal({
   backdropClassName,
   panelClassName,
 }: Props) {
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [])
+
   const panelClass = ['card', 'modal', wide && 'modal-wide', panelClassName].filter(Boolean).join(' ')
 
   return (
