@@ -35,6 +35,7 @@ export function MfaSetupPanel({ onComplete }: Props) {
   const [code, setCode] = useState('')
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null)
   const [busy, setBusy] = useState(false)
+  const [secretCopied, setSecretCopied] = useState(false)
 
   async function startSetup() {
     setBusy(true)
@@ -68,6 +69,17 @@ export function MfaSetupPanel({ onComplete }: Props) {
     a.click()
     a.remove()
     URL.revokeObjectURL(url)
+  }
+
+  async function copySecret() {
+    if (!secret) return
+    try {
+      await navigator.clipboard.writeText(secret)
+      setSecretCopied(true)
+      window.setTimeout(() => setSecretCopied(false), 1500)
+    } catch {
+      /* clipboard unavailable */
+    }
   }
 
   async function confirmSetup(e: FormEvent) {
@@ -130,7 +142,12 @@ export function MfaSetupPanel({ onComplete }: Props) {
         )}
         <details className="mfa-secret-block">
           <summary className="muted">{t('mfa.manualEntry')}</summary>
-          <code className="secret">{secret}</code>
+          <div className="public-link-url-row">
+            <code className="public-link-url" title={secret}>{secret}</code>
+            <button type="button" className="public-link-copy" onClick={() => void copySecret()}>
+              {secretCopied ? t('profile.copied') : t('common.copy')}
+            </button>
+          </div>
         </details>
         <label>
           {t('mfa.code')}
