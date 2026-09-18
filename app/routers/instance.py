@@ -347,6 +347,19 @@ async def patch_worker(
     return worker_public(node)
 
 
+@router.get("/workers/{worker_id}/delete-impact")
+def worker_delete_impact(
+    worker_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    from app.services.worker_delete import compute_worker_delete_impact
+
+    _admin(ctx)
+    node = db.get(WorkerNode, worker_id)
+    if node is None:
+        ctx.raise_error(ErrorCode.not_found)
+    return compute_worker_delete_impact(db, node)
+
+
 @router.delete("/workers/{worker_id}")
 def delete_worker(
     worker_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)

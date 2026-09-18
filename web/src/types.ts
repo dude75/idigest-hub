@@ -271,6 +271,36 @@ export type WorkerProbeResult = {
   diarization_models?: WorkerEngineOption[]
 }
 
+export type WorkerDeleteImpactUser = {
+  id: string
+  email: string
+  asr_model: string
+  diarization_model: string | null
+}
+
+export type WorkerDeleteImpactTask = {
+  task_id: string
+  status: string
+  asr_model?: string
+  diarization_model?: string | null
+  on_worker?: boolean
+}
+
+export type WorkerDeleteImpact = {
+  worker: Pick<Worker, 'id' | 'name' | 'type' | 'enabled' | 'base_url'>
+  blocking: boolean
+  remaining_transcribe_workers?: number
+  remaining_summarize_workers?: number
+  lost_model_pairs?: DispatchablePair[]
+  instance_defaults_broken?: boolean
+  instance_defaults?: { asr_model: string; diarization_model: string | null }
+  affected_users?: WorkerDeleteImpactUser[]
+  affected_users_count?: number
+  affected_tasks?: WorkerDeleteImpactTask[]
+  affected_tasks_count?: number
+  last_enabled_worker?: boolean
+}
+
 export type ImportPlatform = {
   id: string
   label: string

@@ -7,6 +7,7 @@ import { WorkerHealthBadge, isWorkerHealthy, isWorkerUnhealthy } from '../../com
 import type { Worker, WorkerEngineOption, WorkerProbeResult } from '../../types'
 import { formatInteger, showError } from '../../util'
 import { emptyWorker } from './constants'
+import { WorkerDeleteModal } from './WorkerDeleteModal'
 
 const SELECTABLE_STATUSES = new Set(['loaded', 'unavailable'])
 
@@ -23,6 +24,7 @@ export function InstanceWorkersTab() {
   const [probing, setProbing] = useState(false)
   const [probe, setProbe] = useState<WorkerProbeResult | null>(null)
   const [probeOk, setProbeOk] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Worker | null>(null)
 
   async function load() {
     try {
@@ -283,7 +285,7 @@ export function InstanceWorkersTab() {
                     <td className="table-actions">
                       <div className="row">
                         <button type="button" onClick={() => startEdit(w)}>{t('common.edit')}</button>
-                        <button type="button" className="danger" onClick={() => void api(`/workers/${w.id}`, { method: 'DELETE' }).then(load)}>{t('common.delete')}</button>
+                        <button type="button" className="danger" onClick={() => setDeleteTarget(w)}>{t('common.delete')}</button>
                       </div>
                     </td>
                   </tr>
@@ -293,6 +295,14 @@ export function InstanceWorkersTab() {
           </div>
         ) : null}
       </AdminTableCard>
+
+      {deleteTarget ? (
+        <WorkerDeleteModal
+          worker={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={load}
+        />
+      ) : null}
     </AdminPage>
   )
 }
