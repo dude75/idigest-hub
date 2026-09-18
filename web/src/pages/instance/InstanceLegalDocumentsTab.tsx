@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '../../api'
 import { useAuth } from '../../auth'
 import type { InstanceSettings } from '../../types'
-import { AdminPage } from '../../components/AdminSection'
+import { AdminFormCard, AdminPage } from '../../components/AdminSection'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Segmented } from '../../components/Segmented'
 import { MarkdownBody } from '../../markdown'
@@ -12,13 +13,25 @@ import {
   LEGAL_DOC_FIELDS,
   LEGAL_DOCUMENT_I18N,
   LEGAL_DOCUMENT_KEYS,
+  footerAdminDirty,
+  footerAdminSnapshot,
+  legalDocAdminDirty,
+  legalDocChangeRequiresReacceptance,
+  legalDocHasContent,
+  legalDocPath,
+  legalDocPublished,
+  legalDocsAdminDirty,
+  legalDocsAdminSnapshot,
   legalDocsChangeRequiresReacceptance,
   savedLegalDocsFromSettings,
+  type FooterAdminSnapshot,
   type LegalDocumentKey,
-  type SavedLegalDocs,
+  type LegalDocsAdminSnapshot,
 } from '../../legalDocuments'
 import { showError } from '../../util'
 import { useAgreementPreview } from './useAgreementPreview'
+
+type EditLanguage = 'en' | 'ru'
 
 function AgreementEditorPair({
   label,
@@ -53,7 +66,7 @@ function AgreementEditorPair({
         <textarea
           ref={textareaRef}
           className="agreement-editor-input"
-          rows={12}
+          rows={14}
           style={paneStyle}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -77,29 +90,94 @@ export function InstanceLegalDocumentsTab() {
   const { t } = useTranslation()
   const { refresh } = useAuth()
   const [settings, setSettings] = useState<InstanceSettings | null>(null)
-  const [savedLegalDocs, setSavedLegalDocs] = useState<SavedLegalDocs | null>(null)
+  const [savedLegalSnapshot, setSavedLegalSnapshot] = useState<LegalDocsAdminSnapshot | null>(null)
+  const [savedFooterSnapshot, setSavedFooterSnapshot] = useState<FooterAdminSnapshot | null>(null)
   const [legalDocTab, setLegalDocTab] = useState<LegalDocumentKey>('user_agreement')
+  const [editLang, setEditLang] = useState<EditLanguage>('ru')
+  const [footerLang, setFooterLang] = useState<EditLanguage>('ru')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [legalSaveBusy, setLegalSaveBusy] = useState(false)
   const [footerSaveBusy, setFooterSaveBusy] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   async function load() {
-    const data = await api<InstanceSettings>('/instance/settings')
-    setSettings(data)
-    setSavedLegalDocs(savedLegalDocsFromSettings(data))
+    setLoading(true)
+    try {
+      const data = await api<InstanceSettings>('/instance/settings')
+      setSettings(data)
+      setSavedLegalSnapshot(legalDocsAdminSnapshot(data))
+      setSavedFooterSnapshot(footerAdminSnapshot(data))
+    } catch (e) {
+      showError(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
-    load().catch(showError)
+    void load()
   }, [])
 
+  const legalDirty = useMemo(
+    () => (settings && savedLegalSnapshot ? legalDocsAdminDirty(savedLegalSnapshot, settings) : false),
+    [savedLegalSnapshot, settings],
+  )
+
+  const footerDirty = useMemo(
+    () => (settings && savedFooterSnapshot ? footerAdminDirty(savedFooterSnapshot, settings) : false),
+    [savedFooterSnapshot, settings],
+  )
+
+  const currentDocDirty = useMemo(
+    () =>
+      settings && savedLegalSnapshot
+        ? legalDocAdminDirty(savedLegalSnapshot, settings, legalDocTab)
+        : false,
+    [legalDocTab, savedLegalSnapshot, settings],
+  )
+
+  const currentDocWillReaccept = useMemo(() => {
+    if (!settings || !savedLegalSnapshot) return false
+    return legalDocChangeRequiresReacceptance(
+      savedLegalSnapshot.docs[legalDocTab],
+      savedLegalDocsFromSettings(settings)[legalDocTab],
+    )
+  }, [legalDocTab, savedLegalSnapshot, settings])
+
   function onLegalSaveClick() {
-    if (!settings || !savedLegalDocs) return
-    if (legalDocsChangeRequiresReacceptance(savedLegalDocs, settings)) {
+    if (!settings || !savedLegalSnapshot) return
+    if (legalDocsChangeRequiresReacceptance(savedLegalSnapshot.docs, settings)) {
       setConfirmOpen(true)
       return
     }
     void saveLegalDocuments()
+  }
+
+  function resetLegalEdits() {
+    if (!settings || !savedLegalSnapshot) return
+    const { docs, published } = savedLegalSnapshot
+    setSettings({
+      ...settings,
+      user_agreement_text_en: docs.user_agreement.en,
+      user_agreement_text_ru: docs.user_agreement.ru,
+      user_agreement_published: published.user_agreement,
+      personal_data_consent_text_en: docs.personal_data_consent.en,
+      personal_data_consent_text_ru: docs.personal_data_consent.ru,
+      personal_data_consent_published: published.personal_data_consent,
+      privacy_policy_text_en: docs.privacy_policy.en,
+      privacy_policy_text_ru: docs.privacy_policy.ru,
+      privacy_policy_published: published.privacy_policy,
+    })
+  }
+
+  function resetFooterEdits() {
+    if (!settings || !savedFooterSnapshot) return
+    setSettings({
+      ...settings,
+      landing_footer_text_en: savedFooterSnapshot.en,
+      landing_footer_text_ru: savedFooterSnapshot.ru,
+      landing_footer_published: savedFooterSnapshot.published,
+    })
   }
 
   async function saveLegalDocuments() {
@@ -121,7 +199,7 @@ export function InstanceLegalDocumentsTab() {
         }),
       })
       setSettings(data)
-      setSavedLegalDocs(savedLegalDocsFromSettings(data))
+      setSavedLegalSnapshot(legalDocsAdminSnapshot(data))
       setConfirmOpen(false)
       toast.success(t('profile.saved'))
       await refresh()
@@ -145,6 +223,7 @@ export function InstanceLegalDocumentsTab() {
         }),
       })
       setSettings(data)
+      setSavedFooterSnapshot(footerAdminSnapshot(data))
       toast.success(t('profile.saved'))
     } catch (e) {
       showError(e)
@@ -153,104 +232,196 @@ export function InstanceLegalDocumentsTab() {
     }
   }
 
-  if (!settings) return null
+  if (loading) {
+    return (
+      <AdminPage>
+        <p className="muted">{t('common.loading')}</p>
+      </AdminPage>
+    )
+  }
+
+  if (!settings || !savedLegalSnapshot || !savedFooterSnapshot) return null
+
+  const docFields = LEGAL_DOC_FIELDS[legalDocTab]
+  const docPublished = legalDocPublished(settings, legalDocTab)
+  const savedDoc = savedLegalSnapshot.docs[legalDocTab]
+  const showPreviewLink =
+    savedLegalSnapshot.published[legalDocTab] && legalDocHasContent(savedDoc)
+  const editValue =
+    editLang === 'en'
+      ? (settings[docFields.en] as string | null) || ''
+      : (settings[docFields.ru] as string | null) || ''
+  const footerValue =
+    footerLang === 'en'
+      ? settings.landing_footer_text_en || ''
+      : settings.landing_footer_text_ru || ''
 
   return (
     <AdminPage>
-      <div className="card stack">
-        <p className="muted">{t('instance.legalDocumentsHint')}</p>
-        <Segmented
-          variant="segment"
-          ariaLabel={t('instance.legalDocumentsTitle')}
-          value={legalDocTab}
-          onChange={setLegalDocTab}
-          options={LEGAL_DOCUMENT_KEYS.map((key) => ({
-            value: key,
-            label: t(`legalDocuments.tabs.${LEGAL_DOCUMENT_I18N[key]}`),
-          }))}
-        />
-        <p className="muted">
-          {t('instance.legalDocumentVersion', {
-            version: settings[LEGAL_DOC_FIELDS[legalDocTab].version] ?? 0,
+      <AdminFormCard title={t('instance.legalDocumentsTitle')} lead={t('instance.legalDocumentsHint')}>
+        <div className="legal-doc-tabs auth-segment" role="tablist" aria-label={t('instance.legalDocumentsTitle')}>
+          {LEGAL_DOCUMENT_KEYS.map((key) => {
+            const snapshot = savedLegalDocsFromSettings(settings)[key]
+            const hasContent = legalDocHasContent(snapshot)
+            const published = legalDocPublished(settings, key)
+            const changed = legalDocAdminDirty(savedLegalSnapshot, settings, key)
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={legalDocTab === key}
+                className={legalDocTab === key ? 'active' : undefined}
+                onClick={() => setLegalDocTab(key)}
+              >
+                <span className="legal-doc-tab-label">
+                  {t(`legalDocuments.tabs.${LEGAL_DOCUMENT_I18N[key]}`)}
+                </span>
+                <span className="legal-doc-tab-badges">
+                  {!hasContent ? <span className="badge warn">{t('instance.legalDocumentEmpty')}</span> : null}
+                  {!published ? <span className="badge">{t('instance.legalDocumentHidden')}</span> : null}
+                  {changed ? <span className="badge wait">{t('instance.legalDocumentChanged')}</span> : null}
+                </span>
+              </button>
+            )
           })}
-        </p>
-        <label className="profile-check-row">
-          <input
-            type="checkbox"
-            checked={(settings[LEGAL_DOC_FIELDS[legalDocTab].published] as boolean | undefined) ?? true}
-            onChange={(e) =>
-              setSettings({
-                ...settings,
-                [LEGAL_DOC_FIELDS[legalDocTab].published]: e.target.checked,
-              })
-            }
-          />
-          {t('instance.legalDocumentPublish')}
-        </label>
+        </div>
+
+        <div className="legal-doc-toolbar">
+          <div className="legal-doc-toolbar-meta">
+            <span className="badge">
+              {t('instance.legalDocumentVersion', {
+                version: settings[docFields.version] ?? 0,
+              })}
+            </span>
+            {currentDocDirty ? (
+              <span className="badge wait">{t('instance.legalDocumentUnsaved')}</span>
+            ) : null}
+            {currentDocWillReaccept && currentDocDirty ? (
+              <span className="badge warn">{t('instance.legalDocumentReaccept')}</span>
+            ) : null}
+          </div>
+          <div className="legal-doc-toolbar-actions">
+            <label className="profile-check-row legal-doc-publish">
+              <input
+                type="checkbox"
+                checked={docPublished}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    [docFields.published]: e.target.checked,
+                  })
+                }
+              />
+              {t('instance.legalDocumentPublish')}
+            </label>
+            {showPreviewLink ? (
+              <Link
+                className="btn legal-doc-preview-link"
+                to={legalDocPath(legalDocTab)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('instance.legalDocumentPreviewLink')}
+              </Link>
+            ) : null}
+          </div>
+        </div>
+
+        <Segmented
+          variant="outline"
+          ariaLabel={t('instance.legalDocumentLanguage')}
+          value={editLang}
+          onChange={setEditLang}
+          options={[
+            { value: 'ru', label: t('lang.ru') },
+            { value: 'en', label: t('lang.en') },
+          ]}
+        />
+
         <AgreementEditorPair
-          label={t('instance.userAgreementEn')}
-          value={(settings[LEGAL_DOC_FIELDS[legalDocTab].en] as string | null) || ''}
+          label={editLang === 'en' ? t('instance.userAgreementEn') : t('instance.userAgreementRu')}
+          value={editValue}
           onChange={(value) =>
-            setSettings({ ...settings, [LEGAL_DOC_FIELDS[legalDocTab].en]: value })
+            setSettings({
+              ...settings,
+              [editLang === 'en' ? docFields.en : docFields.ru]: value,
+            })
           }
         />
-        <AgreementEditorPair
-          label={t('instance.userAgreementRu')}
-          value={(settings[LEGAL_DOC_FIELDS[legalDocTab].ru] as string | null) || ''}
-          onChange={(value) =>
-            setSettings({ ...settings, [LEGAL_DOC_FIELDS[legalDocTab].ru]: value })
-          }
-        />
-        <div className="row">
+
+        <div className="row legal-doc-actions">
           <button
             className="primary"
             type="button"
-            disabled={legalSaveBusy}
+            disabled={legalSaveBusy || !legalDirty}
             onClick={() => onLegalSaveClick()}
           >
             {t('instance.legalDocumentsSave')}
           </button>
+          {legalDirty ? (
+            <button type="button" disabled={legalSaveBusy} onClick={() => resetLegalEdits()}>
+              {t('common.cancel')}
+            </button>
+          ) : null}
         </div>
-      </div>
+      </AdminFormCard>
 
-      <div className="card stack">
-        <h2 className="legal-section-title">{t('instance.landingExtraTitle')}</h2>
-        <p className="muted">{t('instance.landingExtraHint')}</p>
-        <label className="profile-check-row">
-          <input
-            type="checkbox"
-            checked={settings.landing_footer_published ?? true}
-            onChange={(e) =>
-              setSettings({ ...settings, landing_footer_published: e.target.checked })
-            }
-          />
-          {t('instance.legalDocumentPublish')}
-        </label>
+      <AdminFormCard title={t('instance.landingExtraTitle')} lead={t('instance.landingExtraHint')}>
+        <div className="legal-doc-toolbar">
+          <div className="legal-doc-toolbar-meta">
+            {footerDirty ? <span className="badge wait">{t('instance.legalDocumentUnsaved')}</span> : null}
+          </div>
+          <label className="profile-check-row legal-doc-publish">
+            <input
+              type="checkbox"
+              checked={settings.landing_footer_published ?? true}
+              onChange={(e) =>
+                setSettings({ ...settings, landing_footer_published: e.target.checked })
+              }
+            />
+            {t('instance.legalDocumentPublish')}
+          </label>
+        </div>
+
+        <Segmented
+          variant="outline"
+          ariaLabel={t('instance.legalDocumentLanguage')}
+          value={footerLang}
+          onChange={setFooterLang}
+          options={[
+            { value: 'ru', label: t('lang.ru') },
+            { value: 'en', label: t('lang.en') },
+          ]}
+        />
+
         <AgreementEditorPair
-          label={t('instance.userAgreementEn')}
-          value={settings.landing_footer_text_en || ''}
-          onChange={(landing_footer_text_en) =>
-            setSettings({ ...settings, landing_footer_text_en })
+          label={footerLang === 'en' ? t('instance.userAgreementEn') : t('instance.userAgreementRu')}
+          value={footerValue}
+          onChange={(value) =>
+            setSettings({
+              ...settings,
+              [footerLang === 'en' ? 'landing_footer_text_en' : 'landing_footer_text_ru']: value,
+            })
           }
         />
-        <AgreementEditorPair
-          label={t('instance.userAgreementRu')}
-          value={settings.landing_footer_text_ru || ''}
-          onChange={(landing_footer_text_ru) =>
-            setSettings({ ...settings, landing_footer_text_ru })
-          }
-        />
-        <div className="row">
+
+        <div className="row legal-doc-actions">
           <button
             className="primary"
             type="button"
-            disabled={footerSaveBusy}
+            disabled={footerSaveBusy || !footerDirty}
             onClick={() => void saveLandingFooter()}
           >
             {t('instance.landingExtraSave')}
           </button>
+          {footerDirty ? (
+            <button type="button" disabled={footerSaveBusy} onClick={() => resetFooterEdits()}>
+              {t('common.cancel')}
+            </button>
+          ) : null}
         </div>
-      </div>
+      </AdminFormCard>
 
       {confirmOpen ? (
         <ConfirmDialog

@@ -1897,6 +1897,63 @@ button.org-delete-btn:hover { text-decoration: underline; }
   margin: 0;
   font-size: 1.05rem;
 }
+.legal-doc-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.legal-doc-tabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.35rem;
+  min-height: 3.25rem;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  text-align: left;
+  white-space: normal;
+}
+.legal-doc-tab-label { display: block; }
+.legal-doc-tab-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.legal-doc-tab-badges .badge {
+  font-size: 0.68rem;
+  padding: 0.08rem 0.35rem;
+}
+.legal-doc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafbfc;
+}
+.legal-doc-toolbar-meta,
+.legal-doc-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+}
+.legal-doc-publish {
+  margin: 0;
+  font-size: 0.88rem;
+}
+.legal-doc-preview-link {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.65rem;
+}
+.legal-doc-actions {
+  gap: 0.5rem;
+}
+@media (max-width: 900px) {
+  .legal-doc-tabs { grid-template-columns: 1fr; }
+}
 .landing-footer-links {
   display: flex;
   flex-wrap: wrap;

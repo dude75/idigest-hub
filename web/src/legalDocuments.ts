@@ -88,6 +88,72 @@ export function legalDocsChangeRequiresReacceptance(saved: SavedLegalDocs, setti
   return LEGAL_DOCUMENT_KEYS.some((key) => legalDocChangeRequiresReacceptance(saved[key], current[key]))
 }
 
+export type LegalDocsAdminSnapshot = {
+  docs: SavedLegalDocs
+  published: Record<LegalDocumentKey, boolean>
+}
+
+export type FooterAdminSnapshot = {
+  en: string | null
+  ru: string | null
+  published: boolean
+}
+
+export function legalDocPublished(settings: InstanceSettings, key: LegalDocumentKey): boolean {
+  return (settings[LEGAL_DOC_FIELDS[key].published] as boolean | undefined) ?? true
+}
+
+export function legalDocsAdminSnapshot(settings: InstanceSettings): LegalDocsAdminSnapshot {
+  return {
+    docs: savedLegalDocsFromSettings(settings),
+    published: Object.fromEntries(
+      LEGAL_DOCUMENT_KEYS.map((key) => [key, legalDocPublished(settings, key)]),
+    ) as Record<LegalDocumentKey, boolean>,
+  }
+}
+
+export function footerAdminSnapshot(settings: InstanceSettings): FooterAdminSnapshot {
+  return {
+    en: settings.landing_footer_text_en,
+    ru: settings.landing_footer_text_ru,
+    published: settings.landing_footer_published ?? true,
+  }
+}
+
+export function legalDocHasContent(doc: SavedLegalDoc): boolean {
+  return Boolean(legalDocTextTrim(doc.en) || legalDocTextTrim(doc.ru))
+}
+
+function legalDocAdminFieldsEqual(saved: SavedLegalDoc, current: SavedLegalDoc): boolean {
+  return (
+    legalDocTextTrim(saved.en) === legalDocTextTrim(current.en) &&
+    legalDocTextTrim(saved.ru) === legalDocTextTrim(current.ru)
+  )
+}
+
+export function legalDocAdminDirty(
+  saved: LegalDocsAdminSnapshot,
+  settings: InstanceSettings,
+  key: LegalDocumentKey,
+): boolean {
+  const current = legalDocsAdminSnapshot(settings)
+  if (saved.published[key] !== current.published[key]) return true
+  return !legalDocAdminFieldsEqual(saved.docs[key], current.docs[key])
+}
+
+export function legalDocsAdminDirty(saved: LegalDocsAdminSnapshot, settings: InstanceSettings): boolean {
+  return LEGAL_DOCUMENT_KEYS.some((key) => legalDocAdminDirty(saved, settings, key))
+}
+
+export function footerAdminDirty(saved: FooterAdminSnapshot, settings: InstanceSettings): boolean {
+  const current = footerAdminSnapshot(settings)
+  return (
+    saved.published !== current.published ||
+    legalDocTextTrim(saved.en) !== legalDocTextTrim(current.en) ||
+    legalDocTextTrim(saved.ru) !== legalDocTextTrim(current.ru)
+  )
+}
+
 export function legalDocDownloadName(key: LegalDocumentKey, version: number): string {
   return `${key.replace(/_/g, '-')}-v${version}.md`
 }
