@@ -780,8 +780,13 @@ def accept_user_agreement(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
+    from app.deps import _password_expired
     from app.services.user_agreement import user_agreement_required
 
+    if not ctx.is_instance_admin and (
+        ctx.user.must_change_password or _password_expired(ctx.user, ctx.org)
+    ):
+        ctx.raise_error(ErrorCode.must_change_password)
     settings = get_instance_settings(db)
     if not user_agreement_required(
         user=ctx.user,

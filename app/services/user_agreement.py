@@ -23,6 +23,15 @@ def agreement_active(settings: InstanceSettings) -> bool:
     return bool(en or ru)
 
 
+def agreement_acceptance_status(user: User, settings: InstanceSettings) -> str | None:
+    if not agreement_active(settings):
+        return None
+    accepted = user.user_agreement_accepted_version or 0
+    if accepted >= settings.user_agreement_version:
+        return "accepted"
+    return "pending"
+
+
 def user_agreement_required(
     *,
     user: User,

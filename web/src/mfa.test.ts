@@ -171,6 +171,13 @@ describe('resolveAuthBlockPath', () => {
     expect(
       resolveAuthBlockPath({
         ...baseMe,
+        must_change_password: true,
+        user_agreement_required: true,
+      }),
+    ).toBe('/change-password')
+    expect(
+      resolveAuthBlockPath({
+        ...baseMe,
         mfa_enrollment_required: true,
         user_agreement_required: true,
       }),

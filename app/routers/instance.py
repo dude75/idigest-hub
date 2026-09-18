@@ -806,6 +806,7 @@ def list_orgs(
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
+    settings = get_instance_settings(db)
     rows = db.scalars(select(Organization).options(joinedload(Organization.tariff)).order_by(Organization.created_at)).all()
     items = []
     for org in rows:
@@ -819,7 +820,7 @@ def list_orgs(
         for membership in members:
             user = db.get(User, membership.user_id)
             if user:
-                payload["members"].append(user_public(user, membership.role))
+                payload["members"].append(user_public(user, membership.role, instance_settings=settings))
         items.append(payload)
     return {"items": items, "hidden_count": _count_hidden_orgs(ctx, db)}
 

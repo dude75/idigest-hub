@@ -196,6 +196,7 @@
     "resetCooldown": "You can request another reset link in {{minutes}} min.",
     "resetDone": "Password updated. You can sign in.",
     "mustChange": "You must set a new password before continuing.",
+    "badgeMustChangePassword": "Password change required",
     "modeEmail": "Email",
     "modeSso": "SSO",
     "orgId": "Organization ID",
@@ -478,7 +479,9 @@
     "lead": "Please read and accept the user agreement to continue.",
     "acceptLabel": "I have read and accept the user agreement",
     "continue": "Continue",
-    "empty": "No agreement text is configured."
+    "empty": "No agreement text is configured.",
+    "badgeAccepted": "Agreement accepted",
+    "badgeBlocked": "Agreement pending"
   },
   "profile": {
     "title": "Profile",

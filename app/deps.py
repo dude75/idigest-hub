@@ -226,7 +226,8 @@ def require_auth(
                 abort(ctx.locale, ErrorCode.must_change_password)
     from app.services.mfa import mfa_enrollment_required
 
-    if mfa_enrollment_required(user=ctx.user, org=ctx.org, membership=ctx.membership):
+    mfa_required = mfa_enrollment_required(user=ctx.user, org=ctx.org, membership=ctx.membership)
+    if mfa_required:
         path = request.url.path.rstrip("/") or "/"
         if (request.method, path) not in ALLOWED_WHEN_MFA_ENROLLMENT and not path.startswith("/api/v1/auth/mfa"):
             if path != "/api/v1/me":
@@ -234,7 +235,8 @@ def require_auth(
     from app.services.user_agreement import user_agreement_required
 
     settings = get_instance_settings(db)
-    if user_agreement_required(
+    defer_agreement = (must_change and not ctx.is_instance_admin) or mfa_required
+    if not defer_agreement and user_agreement_required(
         user=ctx.user,
         org=ctx.org,
         membership=ctx.membership,

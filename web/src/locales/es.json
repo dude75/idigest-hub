@@ -196,6 +196,7 @@
     "resetCooldown": "Puede solicitar otro enlace en {{minutes}} min.",
     "resetDone": "Contraseña actualizada. Puede entrar.",
     "mustChange": "Debe establecer una nueva contraseña.",
+    "badgeMustChangePassword": "Cambio de contraseña requerido",
     "modeEmail": "Correo",
     "modeSso": "SSO",
     "orgId": "ID de organización",
@@ -478,7 +479,9 @@
     "lead": "Lea y acepte el acuerdo de usuario para continuar.",
     "acceptLabel": "He leído y acepto el acuerdo de usuario",
     "continue": "Continuar",
-    "empty": "No hay texto de acuerdo configurado."
+    "empty": "No hay texto de acuerdo configurado.",
+    "badgeAccepted": "Acuerdo aceptado",
+    "badgeBlocked": "Acuerdo pendiente"
   },
   "profile": {
     "title": "Perfil",

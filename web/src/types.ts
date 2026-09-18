@@ -28,6 +28,7 @@ export type User = {
   is_instance_admin: boolean
   role: string | null
   auth_provider: string
+  user_agreement_status?: 'accepted' | 'pending' | null
 }
 
 export type Tariff = {

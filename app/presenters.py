@@ -9,6 +9,7 @@ from typing import Any
 from app.models import (
     ApiToken,
     Audio,
+    InstanceSettings,
     Organization,
     Skill,
     Summary,
@@ -24,8 +25,13 @@ from app.services.sso import org_sso_public
 from app.timeutil import isoformat_utc
 
 
-def user_public(user: User, role: str | None = None) -> dict[str, Any]:
-    return {
+def user_public(
+    user: User,
+    role: str | None = None,
+    *,
+    instance_settings: InstanceSettings | None = None,
+) -> dict[str, Any]:
+    body: dict[str, Any] = {
         "id": user.id,
         "email": user.email,
         "locale": user.locale,
@@ -43,6 +49,11 @@ def user_public(user: User, role: str | None = None) -> dict[str, Any]:
         "role": role,
         "auth_provider": user.auth_provider,
     }
+    if instance_settings is not None:
+        from app.services.user_agreement import agreement_acceptance_status
+
+        body["user_agreement_status"] = agreement_acceptance_status(user, instance_settings)
+    return body
 
 
 def tariff_public(tariff: Tariff, org_count: int | None = None) -> dict[str, Any]:

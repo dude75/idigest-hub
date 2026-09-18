@@ -5,6 +5,7 @@ import { useAuth } from '../../auth'
 import { AdminPage } from '../../components/AdminSection'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Modal } from '../../components/Modal'
+import { UserStatusBadges } from '../../components/UserAgreementBadge'
 import { OrgLedgerModal } from '../../components/OrgLedgerModal'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import type { Org, OrgLedger, Tariff, User } from '../../types'
@@ -335,6 +336,7 @@ export function InstanceOrgsTab() {
                       <li className="org-user" key={u.id}>
                         <span className="org-user-email" title={u.email}>{u.email}</span>
                         <span className="badge">{u.role}</span>
+                        <UserStatusBadges user={u} />
                         {!u.is_instance_admin && (
                           <button
                             type="button"

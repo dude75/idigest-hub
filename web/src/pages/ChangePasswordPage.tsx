@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { AuthPageShell } from '../components/AuthPageShell'
-import { resolveAuthContinuationPath } from '../routes'
+import { resolveAuthBlockPath, resolveAuthContinuationPath } from '../routes'
 import { showError } from '../util'
 
 export function ChangePasswordPage() {
@@ -16,7 +16,16 @@ export function ChangePasswordPage() {
   const [busy, setBusy] = useState(false)
   const forced = Boolean(me?.must_change_password)
 
-  if (ready && !me) return <Navigate to="/login" replace />
+  if (!ready) return <p className="page muted">{t('common.loading')}</p>
+  if (!me) return <Navigate to="/login" replace />
+
+  const block = resolveAuthBlockPath(me)
+  if (block === '/enroll-2fa') return <Navigate to="/enroll-2fa" replace />
+  if (block === '/accept-agreement') return <Navigate to="/accept-agreement" replace />
+  if (block === '/login') return <Navigate to="/login" replace />
+  if (block !== '/change-password') {
+    return <Navigate to={resolveAuthContinuationPath(me)} replace />
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()
