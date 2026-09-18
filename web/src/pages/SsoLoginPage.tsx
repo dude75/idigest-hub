@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api, ApiError } from '../api'
 import { useAuth } from '../auth'
 import { AuthPageShell } from '../components/AuthPageShell'
-import { resolveHomePath } from '../routes'
+import { resolveAuthContinuationPath } from '../routes'
 import { errorText, showError } from '../util'
 
 type SsoInfo = {
@@ -34,7 +34,7 @@ export function SsoLoginPage() {
   }, [orgId])
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
-  if (ready && me) return <Navigate to={me.must_change_password ? '/change-password' : resolveHomePath(me)} replace />
+  if (ready && me) return <Navigate to={resolveAuthContinuationPath(me)} replace />
   if (!orgId) return <Navigate to="/login" replace />
 
   function startSso() {

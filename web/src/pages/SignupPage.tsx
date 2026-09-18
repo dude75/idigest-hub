@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { AuthPageShell } from '../components/AuthPageShell'
-import { resolveHomePath } from '../routes'
+import { resolveAuthContinuationPath } from '../routes'
 import type { Tariff } from '../types'
 import { showError } from '../util'
 
@@ -34,7 +34,7 @@ export function SignupPage() {
   }, [wanted])
 
   if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
-  if (ready && me) return <Navigate to={resolveHomePath(me)} replace />
+  if (ready && me) return <Navigate to={resolveAuthContinuationPath(me)} replace />
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault()

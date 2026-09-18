@@ -473,6 +473,13 @@
     "enrollRequired": "Your organization requires 2FA before you can use the hub.",
     "tokenStepUp": "Enter your authenticator code to create an API token."
   },
+  "agreement": {
+    "title": "User agreement",
+    "lead": "Please read and accept the user agreement to continue.",
+    "acceptLabel": "I have read and accept the user agreement",
+    "continue": "Continue",
+    "empty": "No agreement text is configured."
+  },
   "profile": {
     "title": "Profile",
     "kpiOrg": "Organization",
@@ -699,6 +706,11 @@
     "timezoneHint": "Timestamps are converted from UTC storage to the selected GMT offset for display.",
     "sessionTtlHours": "Session TTL (hours)",
     "sessionTtlHint": "Sliding browser session lifetime. Each authenticated request extends expiry. Enterprise deployments typically use 8–24 hours (default 24). Max 336 hours (14 days).",
+    "userAgreementTitle": "User agreement",
+    "userAgreementHint": "Organization members must accept this agreement before using the service. Editing the text bumps the version and requires re-acceptance.",
+    "userAgreementEn": "Text (English)",
+    "userAgreementRu": "Text (Russian)",
+    "userAgreementVersion": "Current version: {{version}}",
     "rateLimitTitle": "Rate limiting",
     "rateLimitHint": "0 disables a rule. Per-IP uses the client address (TCP peer, or X-Forwarded-For when TRUSTED_PROXIES is set in .env). Browser sessions are not API-rate-limited; Bearer tokens are.",
     "rateLimitEnabled": "Enable rate limiting",
@@ -857,6 +869,7 @@
     "mfa_challenge_invalid": "Invalid or expired sign-in challenge. Sign in again.",
     "mfa_step_up_required": "Enter your authenticator code to continue.",
     "mfa_enrollment_required": "Set up two-factor authentication before continuing.",
+    "user_agreement_required": "Accept the user agreement before continuing.",
     "rate_limited": "Too many attempts. Try again later.",
     "last_org_admin": "The last active organization admin cannot be removed, demoted, or disabled.",
     "tariff_in_use": "This tariff is still used by organizations.",

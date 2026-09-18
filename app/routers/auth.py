@@ -291,8 +291,21 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
     )
     from app.datetime_format import resolve_date_time_prefs
     from app.services.transcribe_models import aggregate_instance_models, resolve_transcribe_models
+    from app.services.user_agreement import agreement_active, agreement_text, user_agreement_required
 
     settings = get_instance_settings(db)
+    agreement_pending = user_agreement_required(
+        user=ctx.user,
+        org=ctx.org,
+        membership=ctx.membership,
+        settings=settings,
+    )
+    agreement_payload = None
+    if agreement_pending:
+        agreement_payload = {
+            "version": settings.user_agreement_version,
+            "text": agreement_text(settings, ctx.locale),
+        }
     return {
         "user": user_public(ctx.user, role),
         "org": org_public(ctx.org, usage=usage, public_base_url=_public_base_url(db)) if ctx.org else None,
@@ -312,6 +325,9 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
         "mfa_enabled": totp_enabled(ctx.user),
         "mfa_required": org_mfa_required(user=ctx.user, org=ctx.org, membership=ctx.membership),
         "mfa_enrollment_required": enrollment_required,
+        "user_agreement_required": agreement_pending,
+        "user_agreement": agreement_payload,
+        "user_agreement_version": settings.user_agreement_version if agreement_active(settings) else None,
     }
 
 
@@ -759,6 +775,28 @@ def mfa_setup_start(db: Session = Depends(get_session, scope="function"), ctx: A
     return {"secret": secret, "otpauth_uri": uri}
 
 
+@router.post("/auth/agreement/accept")
+def accept_user_agreement(
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    from app.services.user_agreement import user_agreement_required
+
+    settings = get_instance_settings(db)
+    if not user_agreement_required(
+        user=ctx.user,
+        org=ctx.org,
+        membership=ctx.membership,
+        settings=settings,
+    ):
+        ctx.raise_error(ErrorCode.validation_error)
+    ctx.user.user_agreement_accepted_version = settings.user_agreement_version
+    ctx.user.updated_at = utcnow()
+    db.flush()
+    write_audit(db, "auth.agreement.accept", ctx, {"version": settings.user_agreement_version})
+    return _me_payload(ctx, db)
+
+
 @router.post("/auth/mfa/setup/confirm")
 def mfa_setup_confirm(
     body: MfaConfirmBody,
@@ -917,6 +955,15 @@ def create_token(
         ctx.raise_error(ErrorCode.must_change_password)
     if mfa_enrollment_required(user=ctx.user, org=ctx.org, membership=ctx.membership):
         ctx.raise_error(ErrorCode.mfa_enrollment_required)
+    from app.services.user_agreement import user_agreement_required
+
+    if user_agreement_required(
+        user=ctx.user,
+        org=ctx.org,
+        membership=ctx.membership,
+        settings=get_instance_settings(db),
+    ):
+        ctx.raise_error(ErrorCode.user_agreement_required)
     from app.services.billing import org_api_enabled
 
     if not org_api_enabled(ctx.org):

@@ -74,6 +74,9 @@ const baseMe: Me = {
   mfa_enabled: false,
   mfa_required: false,
   mfa_enrollment_required: false,
+  user_agreement_required: false,
+  user_agreement: null,
+  user_agreement_version: null,
   must_change_password: false,
 }
 

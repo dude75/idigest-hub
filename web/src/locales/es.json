@@ -473,6 +473,13 @@
     "enrollRequired": "Su organización exige 2FA antes de usar el hub.",
     "tokenStepUp": "Introduzca el código del autenticador para crear un token API."
   },
+  "agreement": {
+    "title": "Acuerdo de usuario",
+    "lead": "Lea y acepte el acuerdo de usuario para continuar.",
+    "acceptLabel": "He leído y acepto el acuerdo de usuario",
+    "continue": "Continuar",
+    "empty": "No hay texto de acuerdo configurado."
+  },
   "profile": {
     "title": "Perfil",
     "kpiOrg": "Organización",
@@ -699,6 +706,11 @@
     "timezoneHint": "Las marcas de tiempo se convierten de UTC al desplazamiento GMT seleccionado para mostrarlas.",
     "sessionTtlHours": "TTL de sesión (horas)",
     "sessionTtlHint": "Duración deslizante de la sesión del navegador; cada solicitud autenticada extiende la caducidad. En entornos enterprise suele usarse 8–24 horas (predeterminado 24). Máximo 336 horas (14 días).",
+    "userAgreementTitle": "Acuerdo de usuario",
+    "userAgreementHint": "Los miembros de la organización deben aceptar este acuerdo antes de usar el servicio. Editar el texto incrementa la versión y exige nueva aceptación.",
+    "userAgreementEn": "Texto (inglés)",
+    "userAgreementRu": "Texto (ruso)",
+    "userAgreementVersion": "Versión actual: {{version}}",
     "rateLimitTitle": "Límite de frecuencia",
     "rateLimitHint": "0 desactiva la regla. Per-IP usa la IP del cliente (TCP o X-Forwarded-For con TRUSTED_PROXIES en .env). Las sesiones cookie no se limitan como API; los tokens Bearer sí.",
     "rateLimitEnabled": "Activar límite de frecuencia",
@@ -857,6 +869,7 @@
     "mfa_challenge_invalid": "Desafío de inicio de sesión no válido o caducado. Inicie sesión de nuevo.",
     "mfa_step_up_required": "Introduzca el código del autenticador para continuar.",
     "mfa_enrollment_required": "Configure la autenticación de dos factores antes de continuar.",
+    "user_agreement_required": "Acepte el acuerdo de usuario antes de continuar.",
     "rate_limited": "Demasiados intentos. Inténtelo más tarde.",
     "last_org_admin": "No se puede eliminar, degradar ni desactivar al último administrador activo.",
     "tariff_in_use": "Esta tarifa aún la usan organizaciones.",

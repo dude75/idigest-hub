@@ -13,7 +13,7 @@ import { DEFAULT_IMPORT_AUDIO_BITRATE_KBPS } from './constants'
 
 export function InstanceSettingsTab() {
   const { t } = useTranslation()
-  const { me } = useAuth()
+  const { me, refresh } = useAuth()
   const [settings, setSettings] = useState<InstanceSettings | null>(null)
   const [smtpPassword, setSmtpPassword] = useState('')
   const [proxyPassword, setProxyPassword] = useState('')
@@ -155,6 +155,8 @@ export function InstanceSettingsTab() {
           session_ttl_hours: settings.session_ttl_hours,
           date_time_format: settings.date_time_format,
           timezone: settings.timezone,
+          user_agreement_text_en: settings.user_agreement_text_en,
+          user_agreement_text_ru: settings.user_agreement_text_ru,
           ...(smtpPassword ? { smtp_password: smtpPassword } : {}),
           ...(proxyPassword ? { download_proxy_password: proxyPassword } : {}),
         }),
@@ -162,6 +164,8 @@ export function InstanceSettingsTab() {
       setSettings(normalizeSettings(data))
       setSmtpPassword('')
       setProxyPassword('')
+      toast.success(t('profile.saved'))
+      await refresh()
     } catch (e) {
       showError(e)
     }
@@ -454,6 +458,32 @@ export function InstanceSettingsTab() {
             </select>
           </label>
           <p className="muted">{t('instance.timezoneHint')}</p>
+        </div>
+      </details>
+
+      <details className="fold org-fold card">
+        <summary className="org-fold-summary">
+          <span>{t('instance.userAgreementTitle')}</span>
+        </summary>
+        <div className="stack fold-body">
+          <p className="muted">{t('instance.userAgreementHint')}</p>
+          <p className="muted">{t('instance.userAgreementVersion', { version: settings.user_agreement_version ?? 0 })}</p>
+          <label>
+            {t('instance.userAgreementEn')}
+            <textarea
+              rows={8}
+              value={settings.user_agreement_text_en || ''}
+              onChange={(e) => setSettings({ ...settings, user_agreement_text_en: e.target.value })}
+            />
+          </label>
+          <label>
+            {t('instance.userAgreementRu')}
+            <textarea
+              rows={8}
+              value={settings.user_agreement_text_ru || ''}
+              onChange={(e) => setSettings({ ...settings, user_agreement_text_ru: e.target.value })}
+            />
+          </label>
         </div>
       </details>
 

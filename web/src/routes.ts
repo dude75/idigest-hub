@@ -128,11 +128,14 @@ export function localAuthProfileVisible(me: Me | null): boolean {
   return me.user.role === 'org_admin'
 }
 
-/** Redirect target while sign-in is incomplete (password change or 2FA enrollment). */
-export function resolveAuthBlockPath(me: Me | null): '/login' | '/change-password' | '/enroll-2fa' | null {
+/** Redirect target while sign-in is incomplete (password change, 2FA enrollment, or agreement). */
+export function resolveAuthBlockPath(
+  me: Me | null,
+): '/login' | '/change-password' | '/enroll-2fa' | '/accept-agreement' | null {
   if (!me) return '/login'
   if (me.must_change_password) return '/change-password'
   if (me.mfa_enrollment_required) return '/enroll-2fa'
+  if (me.user_agreement_required) return '/accept-agreement'
   return null
 }
 

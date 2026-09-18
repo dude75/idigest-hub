@@ -644,14 +644,39 @@ th { color: var(--muted); font-weight: 550; }
 }
 .modal-actions { margin-top: 0.75rem; flex-shrink: 0; }
 .worker-impact-modal,
-.share-dialog {
+.share-dialog,
+.agreement-modal {
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 .worker-impact-modal { width: min(560px, 100%); gap: 0.75rem; }
-.worker-impact-head { flex-shrink: 0; }
-.worker-impact-modal .modal-actions { margin-top: 0; }
+.agreement-modal { width: min(840px, 100%); gap: 0.75rem; }
+.worker-impact-head,
+.agreement-head { flex-shrink: 0; }
+.worker-impact-modal .modal-actions,
+.agreement-modal .modal-actions { margin-top: 0; }
+.agreement-head h2 { margin: 0; font-size: 1.15rem; line-height: 1.3; }
+.agreement-lead { margin: 0.35rem 0 0; font-size: 0.88rem; line-height: 1.4; }
+.agreement-text {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem 0.85rem;
+  background: #f8fafc;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.agreement-accept {
+  flex-shrink: 0;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.agreement-accept input { margin-top: 0.15rem; }
+.agreement-actions { justify-content: flex-end; }
 .share-dialog .share-dialog-footer { margin-top: 0; }
 .worker-impact-head h2 { margin: 0; font-size: 1.15rem; line-height: 1.3; }
 .worker-impact-subhead {

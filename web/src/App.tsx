@@ -5,6 +5,7 @@ import { useAuth } from './auth'
 import { Shell } from './components/Shell'
 import { AudioPage } from './pages/AudioPage'
 import { ChangePasswordPage } from './pages/ChangePasswordPage'
+import { AcceptAgreementPage } from './pages/AcceptAgreementPage'
 import { Enroll2faPage } from './pages/Enroll2faPage'
 import { Verify2faPage } from './pages/Verify2faPage'
 import { ForgotPage } from './pages/ForgotPage'
@@ -56,6 +57,7 @@ function Gate({ children }: { children: ReactNode }) {
   const block = resolveAuthBlockPath(me)
   if (block === '/change-password') return <Navigate to="/change-password" replace />
   if (block === '/enroll-2fa') return <Navigate to="/enroll-2fa" replace />
+  if (block === '/accept-agreement') return <Navigate to="/accept-agreement" replace />
   return children
 }
 
@@ -72,6 +74,7 @@ export default function App() {
       <Route path="/change-password" element={<ChangePasswordPage />} />
       <Route path="/verify-2fa" element={<Verify2faPage />} />
       <Route path="/enroll-2fa" element={<Enroll2faPage />} />
+      <Route path="/accept-agreement" element={<AcceptAgreementPage />} />
       <Route
         path="/app"
         element={

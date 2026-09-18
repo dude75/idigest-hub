@@ -110,6 +110,9 @@ export type Me = {
   mfa_enabled: boolean
   mfa_required: boolean
   mfa_enrollment_required: boolean
+  user_agreement_required: boolean
+  user_agreement: { version: number; text: string } | null
+  user_agreement_version: number | null
 }
 
 export type ShareRecord = {
@@ -374,6 +377,9 @@ export type InstanceSettings = {
   rate_limit_api_tasks_ip: number
   date_time_format: string
   timezone: string
+  user_agreement_text_en: string | null
+  user_agreement_text_ru: string | null
+  user_agreement_version: number
 }
 
 export type JobStats = {

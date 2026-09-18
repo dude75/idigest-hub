@@ -45,6 +45,7 @@
   "mfa_not_configured": "Two-factor authentication is not set up.",
   "mfa_step_up_required": "Enter your authenticator code to continue.",
   "mfa_enrollment_required": "Set up two-factor authentication before continuing.",
+  "user_agreement_required": "Accept the user agreement before continuing.",
   "mfa_challenge_invalid": "Invalid or expired sign-in challenge. Sign in again.",
   "secrets_misconfigured": "Server secrets are not configured. Contact the operator.",
   "csrf_invalid": "Invalid or missing CSRF token. Refresh the page and try again.",

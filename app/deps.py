@@ -35,6 +35,14 @@ ALLOWED_WHEN_MFA_ENROLLMENT = {
     ("PATCH", "/api/v1/me"),
 }
 
+ALLOWED_WHEN_AGREEMENT_PENDING = {
+    ("POST", "/api/v1/auth/agreement/accept"),
+    ("POST", "/api/v1/auth/logout"),
+    ("DELETE", "/api/v1/impersonate"),
+    ("GET", "/api/v1/me"),
+    ("PATCH", "/api/v1/me"),
+}
+
 
 @dataclass
 class AuthContext:
@@ -142,6 +150,15 @@ def resolve_auth(request: Request, db: Session = Depends(get_session, scope="fun
             org, membership = load_org_bundle(db, user)
             if user.must_change_password or _password_expired(user, org):
                 abort(locale, ErrorCode.must_change_password)
+            from app.services.user_agreement import user_agreement_required
+
+            if user_agreement_required(
+                user=user,
+                org=org,
+                membership=membership,
+                settings=get_instance_settings(db),
+            ):
+                abort(locale, ErrorCode.user_agreement_required)
             from app.services.billing import org_api_enabled
 
             if not org_api_enabled(org):
@@ -214,6 +231,19 @@ def require_auth(
         if (request.method, path) not in ALLOWED_WHEN_MFA_ENROLLMENT and not path.startswith("/api/v1/auth/mfa"):
             if path != "/api/v1/me":
                 abort(ctx.locale, ErrorCode.mfa_enrollment_required)
+    from app.services.user_agreement import user_agreement_required
+
+    settings = get_instance_settings(db)
+    if user_agreement_required(
+        user=ctx.user,
+        org=ctx.org,
+        membership=ctx.membership,
+        settings=settings,
+    ):
+        path = request.url.path.rstrip("/") or "/"
+        if (request.method, path) not in ALLOWED_WHEN_AGREEMENT_PENDING:
+            if path != "/api/v1/me":
+                abort(ctx.locale, ErrorCode.user_agreement_required)
     return ctx
 
 

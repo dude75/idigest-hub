@@ -139,6 +139,8 @@ class SettingsPatch(BaseModel):
     session_ttl_hours: int | None = None
     date_time_format: str | None = None
     timezone: str | None = None
+    user_agreement_text_en: str | None = None
+    user_agreement_text_ru: str | None = None
 
 
 class CreateOrgBody(BaseModel):
@@ -630,6 +632,9 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "session_ttl_hours": s.session_ttl_hours,
         "date_time_format": s.date_time_format,
         "timezone": s.timezone,
+        "user_agreement_text_en": s.user_agreement_text_en,
+        "user_agreement_text_ru": s.user_agreement_text_ru,
+        "user_agreement_version": s.user_agreement_version,
         **rate_limits_public(s),
     }
 
@@ -703,6 +708,10 @@ def patch_settings(
             s.timezone = normalize_timezone(str(tz) if tz is not None else None)
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
+    if "user_agreement_text_en" in data or "user_agreement_text_ru" in data:
+        from app.services.user_agreement import apply_agreement_text_patch
+
+        apply_agreement_text_patch(s, data)
     for key, value in data.items():
         setattr(s, key, value)
     if "asr_model" in body.model_dump(exclude_unset=True) or "diarization_model" in body.model_dump(exclude_unset=True):

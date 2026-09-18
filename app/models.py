@@ -78,6 +78,9 @@ class InstanceSettings(Base):
     session_ttl_hours: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
     date_time_format: Mapped[str] = mapped_column(String(16), default="eu_24h", nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), default="GMT+0", nullable=False)
+    user_agreement_text_en: Mapped[str | None] = mapped_column(Text)
+    user_agreement_text_ru: Mapped[str | None] = mapped_column(Text)
+    user_agreement_version: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     active_dek_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("data_encryption_keys.id"))
 
 
@@ -126,6 +129,7 @@ class User(Base):
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     totp_secret_encrypted: Mapped[str | None] = mapped_column(Text)
     totp_enabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    user_agreement_accepted_version: Mapped[int | None] = mapped_column(Integer)
     is_instance_admin: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

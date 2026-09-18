@@ -69,6 +69,9 @@ const baseMe: Me = {
   mfa_enabled: false,
   mfa_required: false,
   mfa_enrollment_required: false,
+  user_agreement_required: false,
+  user_agreement: null,
+  user_agreement_version: null,
   must_change_password: false,
   impersonating: false,
 }
@@ -161,6 +164,17 @@ describe('resolveAuthBlockPath', () => {
 
   it('returns enroll path when org requires mfa', () => {
     expect(resolveAuthBlockPath({ ...baseMe, mfa_enrollment_required: true })).toBe('/enroll-2fa')
+  })
+
+  it('returns agreement path after password and mfa gates', () => {
+    expect(resolveAuthBlockPath({ ...baseMe, user_agreement_required: true })).toBe('/accept-agreement')
+    expect(
+      resolveAuthBlockPath({
+        ...baseMe,
+        mfa_enrollment_required: true,
+        user_agreement_required: true,
+      }),
+    ).toBe('/enroll-2fa')
   })
 
   it('returns null when auth is complete', () => {
