@@ -516,6 +516,7 @@
     "transcribeHint": "Anule los modelos ASR y de diarización para sus tareas.",
     "transcribeDiarizationInherit": "Predeterminado de la instancia ({{value}})",
     "transcribePreview": "Efectivo: ASR {{asr}}, diarización {{diarization}}",
+    "transcribeComboInvalid": "Ningún worker ofrece esta pareja de modelos. Elija otra combinación o habilite ambos modelos en un worker de transcripción.",
     "dateTimeTitle": "Fecha y hora",
     "dateTimeHint": "Cómo se muestran las marcas de tiempo en la app. Use el valor de la instancia para seguir al administrador.",
     "dateTimeFormat": "Formato",
@@ -604,6 +605,7 @@
     "allowNewOrgs": "Permitir nuevas organizaciones",
     "publicBaseUrl": "URL pública",
     "serviceModelsTitle": "Modelos de servicio",
+    "serviceModelsInvalid": "Ningún worker atiende el ASR y la diarización seleccionados a la vez.",
     "serviceModelsHint": "Modelos predeterminados para tareas nuevas. Las opciones provienen de los workers transcribe registrados.",
     "asr": "Modelo ASR",
     "diarization": "Modelo de diarización",
@@ -743,7 +745,10 @@
       "dispatched": "Enviando al worker",
       "worker_queue": "En cola en el worker",
       "waitHint": "La tarea arrancará sola cuando haya un worker disponible. Puede cancelar mientras espera.",
-      "waitHintShort": "Esperando worker disponible"
+      "waitHintShort": "Esperando worker disponible",
+      "no_matching_worker": "Sin worker para modelos",
+      "noMatchingWorkerHint": "Ningún worker de transcripción atiende ASR {{asr}} + diarización {{diarization}} juntos. Habilite ambos en un worker o cambie la configuración.",
+      "noMatchingWorkerShort": "Sin worker para los modelos seleccionados"
     },
     "unsupportedHostAdmin": "{{platform}} está desactivado en esta instancia.",
     "unsupportedHostUnknown": "Esta plataforma no está soportada: {{host}}.",

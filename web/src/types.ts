@@ -86,9 +86,15 @@ export type TranscribePrefs = {
   instance_diarization_model: string | null
 }
 
+export type DispatchablePair = {
+  asr_model: string
+  diarization_model: string | null
+}
+
 export type TranscribeModels = {
   asr_models: string[]
   diarization_models: string[]
+  dispatchable_pairs?: DispatchablePair[]
 }
 
 export type Me = {
@@ -298,6 +304,7 @@ export type InstanceSettings = {
   diarization_model: string | null
   asr_models: string[]
   diarization_models: string[]
+  dispatchable_pairs?: DispatchablePair[]
   import_enabled: boolean
   import_platforms: ImportPlatform[]
   download_proxy_url: string | null

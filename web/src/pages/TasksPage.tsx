@@ -4,7 +4,7 @@ import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import type { Org, Task, User } from '../types'
 import { ListRow } from '../components/ListRow'
-import { isTaskWaitingOnWorkers, taskStatusBadgeClass, taskStatusBadgeLabel } from '../taskStage'
+import { isTaskMissingWorkerForModels, isTaskWaitingOnWorkers, taskStatusBadgeClass, taskStatusBadgeLabel } from '../taskStage'
 import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage, taskIsRetriable } from '../util'
 
 const PAGE_SIZES = [10, 50, 100] as const
@@ -187,6 +187,8 @@ export function TasksPage() {
                 <p className="muted import-error-meta">{taskErrorDetailBrief(task)}</p>
               )}
             </div>
+          ) : isTaskMissingWorkerForModels(task) ? (
+            <p className="err task-row-hint">{t('task.workerStage.noMatchingWorkerShort')}</p>
           ) : isTaskWaitingOnWorkers(task) ? (
             <p className="muted task-row-hint">{t('task.workerStage.waitHintShort')}</p>
           ) : undefined

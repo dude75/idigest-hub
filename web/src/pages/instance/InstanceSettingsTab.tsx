@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '../../api'
 import { useAuth } from '../../auth'
 import type { InstanceSettings } from '../../types'
 import { AdminPage } from '../../components/AdminSection'
+import { diarizationOptionsForAsr, isDispatchableCombo } from '../../transcribeModels'
 import { showError } from '../../util'
 import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../../util/timezones'
@@ -43,6 +44,16 @@ export function InstanceSettingsTab() {
   useEffect(() => {
     void load()
   }, [])
+
+  const availableDiarizationModels = useMemo(() => {
+    if (!settings) return []
+    return diarizationOptionsForAsr(settings, settings.asr_model)
+  }, [settings])
+
+  const serviceModelsValid = useMemo(() => {
+    if (!settings) return true
+    return isDispatchableCombo(settings, settings.asr_model, settings.diarization_model)
+  }, [settings])
 
   function smtpTestPayload() {
     if (!settings) return null
@@ -195,7 +206,15 @@ export function InstanceSettingsTab() {
             {t('instance.asr')}
             <select
               value={settings.asr_model}
-              onChange={(e) => setSettings({ ...settings, asr_model: e.target.value })}
+              onChange={(e) => {
+                const nextAsr = e.target.value
+                const allowedDiar = diarizationOptionsForAsr(settings, nextAsr)
+                const nextDiar =
+                  settings.diarization_model && allowedDiar.includes(settings.diarization_model)
+                    ? settings.diarization_model
+                    : null
+                setSettings({ ...settings, asr_model: nextAsr, diarization_model: nextDiar })
+              }}
               disabled={settings.asr_models.length === 0}
             >
               {settings.asr_models.length === 0 ? (
@@ -215,11 +234,12 @@ export function InstanceSettingsTab() {
               disabled={settings.diarization_models.length === 0}
             >
               <option value="">{t('instance.diarizationOff')}</option>
-              {settings.diarization_models.map((modelId) => (
+              {availableDiarizationModels.map((modelId) => (
                 <option key={modelId} value={modelId}>{modelId}</option>
               ))}
             </select>
           </label>
+          {!serviceModelsValid ? <p className="err">{t('instance.serviceModelsInvalid')}</p> : null}
         </div>
       </details>
 
@@ -485,7 +505,7 @@ export function InstanceSettingsTab() {
       </div>
 
       <div className="card">
-        <button className="primary" type="button" onClick={() => void saveSettings()}>{t('common.save')}</button>
+        <button className="primary" type="button" disabled={!serviceModelsValid} onClick={() => void saveSettings()}>{t('common.save')}</button>
       </div>
     </AdminPage>
   )

@@ -14,6 +14,12 @@ import {
   type DefaultRoute,
 } from '../routes'
 import type { ApiToken, DateTimeFormatId, DateTimePrefs } from '../types'
+import {
+  diarizationOptionsForAsr,
+  isDispatchableCombo,
+  resolveEffectiveAsr,
+  resolveEffectiveDiarization,
+} from '../transcribeModels'
 import { fmtDate, formatInteger, showError } from '../util'
 import { DATE_TIME_FORMATS, formatDateTime } from '../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../util/timezones'
@@ -108,6 +114,19 @@ export function ProfilePage() {
     }
     return formatDateTime(new Date().toISOString(), prefs, i18n.language)
   }, [me, dateTimeFormat, timezone, i18n.language])
+
+  const availableDiarizationModels = useMemo(() => {
+    if (!me) return []
+    const asr = resolveEffectiveAsr(asrModel, me.transcribe_prefs)
+    return diarizationOptionsForAsr(me.transcribe_models, asr)
+  }, [me, asrModel])
+
+  const transcribeComboValid = useMemo(() => {
+    if (!me) return true
+    const asr = resolveEffectiveAsr(asrModel, me.transcribe_prefs)
+    const diar = resolveEffectiveDiarization(diarizationModel, me.transcribe_prefs)
+    return isDispatchableCombo(me.transcribe_models, asr, diar)
+  }, [me, asrModel, diarizationModel])
 
   async function saveDefaultRoute() {
     setRouteOk(false)
@@ -326,7 +345,14 @@ export function ProfilePage() {
                 value={asrModel}
                 onChange={(e) => {
                   setTranscribeOk(false)
-                  setAsrModelLocal(e.target.value)
+                  const nextAsr = e.target.value
+                  setAsrModelLocal(nextAsr)
+                  if (!me) return
+                  const effectiveAsr = resolveEffectiveAsr(nextAsr, me.transcribe_prefs)
+                  const allowedDiar = diarizationOptionsForAsr(me.transcribe_models, effectiveAsr)
+                  if (diarizationModel !== 'inherit' && diarizationModel !== 'off' && !allowedDiar.includes(diarizationModel)) {
+                    setDiarizationModelLocal('inherit')
+                  }
                 }}
               >
                 <option value="inherit">
@@ -352,19 +378,22 @@ export function ProfilePage() {
                   })}
                 </option>
                 <option value="off">{t('instance.diarizationOff')}</option>
-                {me.transcribe_models.diarization_models.map((modelId) => (
+                {availableDiarizationModels.map((modelId) => (
                   <option key={modelId} value={modelId}>{modelId}</option>
                 ))}
               </select>
             </label>
             <p className="muted">
               {t('profile.transcribePreview', {
-                asr: me.transcribe_prefs.asr_model,
-                diarization: me.transcribe_prefs.diarization_model || t('instance.diarizationOff'),
+                asr: resolveEffectiveAsr(asrModel, me.transcribe_prefs),
+                diarization: resolveEffectiveDiarization(diarizationModel, me.transcribe_prefs) || t('instance.diarizationOff'),
               })}
             </p>
+            {!transcribeComboValid ? (
+              <p className="err">{t('profile.transcribeComboInvalid')}</p>
+            ) : null}
             <div className="profile-actions">
-              <button className="primary" type="button" onClick={() => void saveTranscribePrefs()}>
+              <button className="primary" type="button" disabled={!transcribeComboValid} onClick={() => void saveTranscribePrefs()}>
                 {t('common.save')}
               </button>
               {transcribeOk && <p className="ok">{t('profile.saved')}</p>}

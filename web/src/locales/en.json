@@ -516,6 +516,7 @@
     "transcribeHint": "Override ASR and diarization models for your tasks.",
     "transcribeDiarizationInherit": "Instance default ({{value}})",
     "transcribePreview": "Effective: ASR {{asr}}, diarization {{diarization}}",
+    "transcribeComboInvalid": "No worker offers this model pair. Choose another combination or enable both models on one transcribe worker.",
     "dateTimeTitle": "Date & time",
     "dateTimeHint": "How timestamps are shown across the app. Leave on instance default to follow your administrator.",
     "dateTimeFormat": "Format",
@@ -604,6 +605,7 @@
     "allowNewOrgs": "Allow new organizations",
     "publicBaseUrl": "Public base URL",
     "serviceModelsTitle": "Service models",
+    "serviceModelsInvalid": "No worker serves the selected ASR and diarization together.",
     "serviceModelsHint": "Default models for new tasks. Options come from registered transcribe workers.",
     "asr": "ASR model",
     "diarization": "Diarization model",
@@ -743,7 +745,10 @@
       "dispatched": "Handing off to worker",
       "worker_queue": "Queued on worker",
       "waitHint": "The task will start automatically when a worker is available. You can cancel while waiting.",
-      "waitHintShort": "Waiting for an available worker"
+      "waitHintShort": "Waiting for an available worker",
+      "no_matching_worker": "No worker for models",
+      "noMatchingWorkerHint": "No transcribe worker serves ASR {{asr}} + diarization {{diarization}} together. Enable both on one worker or change settings.",
+      "noMatchingWorkerShort": "No worker for selected models"
     },
     "unsupportedHostAdmin": "{{platform}} is disabled on this instance.",
     "unsupportedHostUnknown": "This hosting platform is not supported: {{host}}.",

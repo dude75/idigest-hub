@@ -516,6 +516,7 @@
     "transcribeHint": "Переопределите модели ASR и диаризации для своих задач.",
     "transcribeDiarizationInherit": "По умолчанию инстанса ({{value}})",
     "transcribePreview": "Сейчас: ASR {{asr}}, диаризация {{diarization}}",
+    "transcribeComboInvalid": "Нет воркера с такой парой моделей. Выберите другую комбинацию или добавьте модели на одном transcribe-воркере.",
     "dateTimeTitle": "Дата и время",
     "dateTimeHint": "Как отображаются метки времени в приложении. Оставьте значение инстанса, чтобы следовать настройке администратора.",
     "dateTimeFormat": "Формат",
@@ -604,6 +605,7 @@
     "allowNewOrgs": "Разрешить новые организации",
     "publicBaseUrl": "Публичный URL",
     "serviceModelsTitle": "Сервисные модели",
+    "serviceModelsInvalid": "Нет воркера, который одновременно обслуживает выбранные ASR и диаризацию.",
     "serviceModelsHint": "Модели по умолчанию для новых задач. Список формируется из воркеров transcribe.",
     "asr": "Модель ASR",
     "diarization": "Модель диаризации",
@@ -743,7 +745,10 @@
       "dispatched": "Передаётся на воркер",
       "worker_queue": "В очереди на воркере",
       "waitHint": "Задача запустится автоматически, когда появится свободный воркер. Пока ждёт — можно отменить.",
-      "waitHintShort": "Ждёт свободный воркер"
+      "waitHintShort": "Ждёт свободный воркер",
+      "no_matching_worker": "Нет воркера для моделей",
+      "noMatchingWorkerHint": "Ни один transcribe-воркер не обслуживает пару ASR {{asr}} + диаризация {{diarization}}. Добавьте обе модели на одном воркере или измените настройки.",
+      "noMatchingWorkerShort": "Нет воркера для выбранных моделей"
     },
     "unsupportedHostAdmin": "{{platform}} отключён на этом инстансе.",
     "unsupportedHostUnknown": "Хостинг не поддерживается: {{host}}.",

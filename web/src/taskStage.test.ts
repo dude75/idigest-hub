@@ -38,4 +38,11 @@ describe('taskStage', () => {
     expect(taskStageLabelKey(running)).toBe('task.pipeline.transcribing')
     expect(taskStatusBadgeClass(running)).toBe('badge warn')
   })
+
+  it('marks missing worker for model pair as config error', () => {
+    const stuck = task({ type: 'transcribe', status: 'queued', meta: { stage: 'no_matching_worker' } })
+    expect(isTaskWaitingOnWorkers(stuck)).toBe(false)
+    expect(taskStageLabelKey(stuck)).toBe('task.workerStage.no_matching_worker')
+    expect(taskStatusBadgeClass(stuck)).toBe('badge err')
+  })
 })

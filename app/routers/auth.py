@@ -864,7 +864,7 @@ def patch_me(
                 ctx.raise_error(ErrorCode.validation_error)
         ctx.user.updated_at = utcnow()
     if "asr_model" in data or "diarization_model" in data:
-        from app.services.transcribe_models import aggregate_instance_models
+        from app.services.transcribe_models import aggregate_instance_models, resolve_transcribe_models, validate_dispatchable_models
 
         available = aggregate_instance_models(db)
         if "asr_model" in data:
@@ -889,6 +889,15 @@ def patch_me(
                     ctx.raise_error(ErrorCode.validation_error)
                 ctx.user.diarization_model = diar
             ctx.user.updated_at = utcnow()
+        prefs = resolve_transcribe_models(ctx.user, get_instance_settings(db))
+        try:
+            validate_dispatchable_models(
+                db,
+                asr=prefs["asr_model"],
+                diar=prefs["diarization_model"],
+            )
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
     return _me_payload(ctx, db)
 
 

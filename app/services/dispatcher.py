@@ -123,12 +123,17 @@ def _engines(node: WorkerNode) -> dict[str, str]:
 
 def transcribe_pool_state(nodes: list[WorkerNode], asr: str, diar: str | None) -> str:
     """empty | waiting | ready. waiting = enabled nodes exist but engines unavailable (no timeout)."""
+    from app.services.transcribe_models import worker_offers_model
+
     enabled = [n for n in nodes if n.enabled and n.type == "transcribe"]
     if not enabled:
         return "empty"
+    offering = [n for n in enabled if worker_offers_model(n, asr=asr, diar=diar)]
+    if not offering:
+        return "empty"
     ready: list[WorkerNode] = []
     waiting = False
-    for node in enabled:
+    for node in offering:
         health = node.last_health or {}
         if health.get("_http") != 200:
             waiting = True
@@ -645,7 +650,19 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
     if _maybe_timeout(task, pool, timeout_sec):
         return
     if not candidates:
-        task.meta_json = {"stage": "queued"}
+        from app.services.transcribe_models import worker_offers_model
+
+        asr = task.snap_asr_model or "whisper"
+        diar = task.snap_diarization_model
+        enabled = [n for n in nodes if n.enabled and n.type == "transcribe"]
+        if enabled and not any(worker_offers_model(n, asr=asr, diar=diar) for n in enabled):
+            task.meta_json = {
+                "stage": "no_matching_worker",
+                "asr_model": asr,
+                "diarization_model": diar,
+            }
+        else:
+            task.meta_json = {"stage": "queued"}
         return
 
     tried_payload_too_large = 0

@@ -1,3 +1,5 @@
+import pytest
+
 from tests.conftest import (
     ADMIN_PASSWORD,
     DEFAULT_WORKER_ASR_MODELS,
@@ -101,3 +103,77 @@ def test_task_uses_user_model_snapshot(client, fake_workers):
     row = get_task_row(task.json()["task_id"])
     assert row.snap_asr_model == "gigaam"
     assert row.snap_diarization_model == "pyannote"
+
+
+def test_split_workers_reject_invalid_combo(client):
+    setup_admin(client)
+    add_worker(client, name="asr-a", asr_models=["parakeet"], diarization_models=["nemo"])
+    add_worker(client, name="asr-b", asr_models=["whisper"], diarization_models=["pyannote"])
+
+    bad = client.patch("/api/v1/instance/settings", json={"asr_model": "parakeet", "diarization_model": "pyannote"})
+    assert bad.status_code == 400
+
+
+def test_dispatchable_pairs_listed(client):
+    setup_admin(client)
+    add_worker(client, asr_models=["parakeet"], diarization_models=["nemo"])
+    add_worker(client, asr_models=["whisper"], diarization_models=["pyannote"])
+
+    listed = client.get("/api/v1/instance/transcribe-models")
+    assert listed.status_code == 200, listed.text
+    pairs = {(item["asr_model"], item["diarization_model"]) for item in listed.json()["dispatchable_pairs"]}
+    assert ("parakeet", "nemo") in pairs
+    assert ("whisper", "pyannote") in pairs
+    assert ("parakeet", "pyannote") not in pairs
+
+
+def test_user_rejects_invalid_model_combo(client):
+    setup_admin(client)
+    add_worker(client, asr_models=["parakeet"], diarization_models=["nemo"])
+    add_worker(client, asr_models=["whisper"], diarization_models=["pyannote"])
+    client.patch("/api/v1/instance/settings", json={"asr_model": "parakeet", "diarization_model": "nemo"})
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "combo@example.com", "combopass12", tariff_id).status_code == 200
+    login(client, "combo@example.com", "combopass12")
+
+    bad = client.patch("/api/v1/me", json={"diarization_model": "pyannote"})
+    assert bad.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_dispatch_marks_no_matching_worker(client):
+    setup_admin(client)
+    add_worker(client, name="asr-a", asr_models=["parakeet"], diarization_models=["nemo"])
+    add_worker(client, name="asr-b", asr_models=["whisper"], diarization_models=["pyannote"])
+
+    from sqlalchemy import select
+
+    from app.db import SessionLocal
+    from app.models import Task, WorkerNode, new_id
+    from app.services.dispatcher import dispatch_queued_task
+    from app.timeutil import utcnow
+
+    now = utcnow()
+    db = SessionLocal()
+    try:
+        nodes = list(db.scalars(select(WorkerNode)).all())
+        task = Task(
+            id=new_id(),
+            type="transcribe",
+            status="queued",
+            org_id="org",
+            user_id="user",
+            audio_id="audio",
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            snap_asr_model="parakeet",
+            snap_diarization_model="pyannote",
+        )
+        await dispatch_queued_task(db, task, nodes, timeout_sec=0)
+        assert task.meta_json["stage"] == "no_matching_worker"
+        assert task.meta_json["asr_model"] == "parakeet"
+        assert task.meta_json["diarization_model"] == "pyannote"
+    finally:
+        db.close()

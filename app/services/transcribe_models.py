@@ -77,27 +77,59 @@ def worker_offers_model(node: WorkerNode, *, asr: str, diar: str | None) -> bool
     return True
 
 
-def aggregate_instance_models(db: Session) -> dict[str, list[str]]:
+def _node_model_lists(node: WorkerNode) -> tuple[list[str], list[str]]:
+    node_asr, node_diar = worker_model_lists(node)
+    parsed = parse_worker_engines(node.last_health)
+    asr = node_asr if node_asr is not None else selectable_engine_ids(parsed["asr_models"])
+    diar = node_diar if node_diar is not None else selectable_engine_ids(parsed["diarization_models"])
+    return asr, diar
+
+
+def dispatchable_pairs(nodes: list[WorkerNode]) -> list[dict[str, str | None]]:
+    """ASR/diar pairs that at least one enabled transcribe worker offers together."""
+    pairs: set[tuple[str, str | None]] = set()
+    for node in nodes:
+        if not node.enabled or node.type != "transcribe":
+            continue
+        asr_list, diar_list = _node_model_lists(node)
+        for asr in asr_list:
+            if diar_list:
+                for diar in diar_list:
+                    pairs.add((asr, diar))
+            else:
+                pairs.add((asr, None))
+    return [
+        {"asr_model": asr, "diarization_model": diar}
+        for asr, diar in sorted(pairs, key=lambda item: (item[0], item[1] or ""))
+    ]
+
+
+def has_offering_worker(db: Session, *, asr: str, diar: str | None) -> bool:
+    rows = db.scalars(
+        select(WorkerNode).where(WorkerNode.type == "transcribe", WorkerNode.enabled.is_(True))
+    ).all()
+    return any(worker_offers_model(node, asr=asr, diar=diar) for node in rows)
+
+
+def validate_dispatchable_models(db: Session, *, asr: str, diar: str | None) -> None:
+    if not has_offering_worker(db, asr=asr, diar=diar):
+        raise ValueError("dispatchable_models")
+
+
+def aggregate_instance_models(db: Session) -> dict[str, Any]:
     rows = db.scalars(
         select(WorkerNode).where(WorkerNode.type == "transcribe", WorkerNode.enabled.is_(True))
     ).all()
     asr: set[str] = set()
     diar: set[str] = set()
     for node in rows:
-        node_asr, node_diar = worker_model_lists(node)
-        if node_asr is not None:
-            asr.update(node_asr)
-        else:
-            parsed = parse_worker_engines(node.last_health)
-            asr.update(selectable_engine_ids(parsed["asr_models"]))
-        if node_diar is not None:
-            diar.update(node_diar)
-        else:
-            parsed = parse_worker_engines(node.last_health)
-            diar.update(selectable_engine_ids(parsed["diarization_models"]))
+        node_asr, node_diar = _node_model_lists(node)
+        asr.update(node_asr)
+        diar.update(node_diar)
     return {
         "asr_models": sorted(asr),
         "diarization_models": sorted(diar),
+        "dispatchable_pairs": dispatchable_pairs(rows),
     }
 
 
@@ -116,6 +148,10 @@ def validate_instance_models(
         diar = diarization_model.strip() if isinstance(diarization_model, str) else ""
         if diar and available["diarization_models"] and diar not in available["diarization_models"]:
             raise ValueError("diarization_model")
+    effective_asr = (asr_model or "").strip() or None
+    effective_diar = diarization_model.strip() if isinstance(diarization_model, str) and diarization_model.strip() else None
+    if effective_asr:
+        validate_dispatchable_models(db, asr=effective_asr, diar=effective_diar)
 
 
 def resolve_transcribe_models(user: User, settings: InstanceSettings) -> dict[str, Any]:

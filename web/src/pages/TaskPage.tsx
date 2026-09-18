@@ -10,7 +10,7 @@ import {
   initialTaskFromNav,
   type PipelineNavState,
 } from '../pipeline'
-import { isTaskWaitingOnWorkers, taskStageLabel } from '../taskStage'
+import { isTaskMissingWorkerForModels, isTaskWaitingOnWorkers, taskStageLabel } from '../taskStage'
 import { showError, taskErrorDetail, taskErrorMessage, taskIsRetriable, taskYoutubeClientsTried } from '../util'
 
 const POLL_MS = 1500
@@ -134,6 +134,17 @@ export function TaskPage() {
       <h1>{taskHeading()}</h1>
       {task && isTaskWaitingOnWorkers(task) && (
         <p className="muted task-wait-hint">{t('task.workerStage.waitHint')}</p>
+      )}
+      {task && isTaskMissingWorkerForModels(task) && (
+        <p className="err task-wait-hint">
+          {t('task.workerStage.noMatchingWorkerHint', {
+            asr: typeof task.meta?.asr_model === 'string' ? task.meta.asr_model : '—',
+            diarization:
+              typeof task.meta?.diarization_model === 'string'
+                ? task.meta.diarization_model
+                : t('instance.diarizationOff'),
+          })}
+        </p>
       )}
       {task?.type === 'import' && typeof task.meta?.platform === 'string' && (
         <p className="muted">{task.meta.platform}</p>
