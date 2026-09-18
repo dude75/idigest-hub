@@ -9,7 +9,25 @@ import { diarizationOptionsForAsr, isDispatchableCombo } from '../../transcribeM
 import { showError } from '../../util'
 import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../../util/timezones'
+import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { DEFAULT_IMPORT_AUDIO_BITRATE_KBPS } from './constants'
+
+type SavedAgreement = { en: string | null; ru: string | null }
+
+function agreementTextTrim(value: string | null | undefined): string {
+  return (value || '').trim()
+}
+
+/** Mirrors backend version bump: any non-empty text change requires re-acceptance. */
+export function agreementChangeRequiresReacceptance(saved: SavedAgreement, current: SavedAgreement): boolean {
+  const oldEn = agreementTextTrim(saved.en)
+  const oldRu = agreementTextTrim(saved.ru)
+  const newEn = agreementTextTrim(current.en)
+  const newRu = agreementTextTrim(current.ru)
+  if (newEn === oldEn && newRu === oldRu) return false
+  if (!newEn && !newRu) return false
+  return true
+}
 
 export function InstanceSettingsTab() {
   const { t } = useTranslation()
@@ -19,6 +37,9 @@ export function InstanceSettingsTab() {
   const [proxyPassword, setProxyPassword] = useState('')
   const [smtpTestEmail, setSmtpTestEmail] = useState('')
   const [smtpTestingConnection, setSmtpTestingConnection] = useState(false)
+  const [savedAgreement, setSavedAgreement] = useState<SavedAgreement | null>(null)
+  const [agreementConfirmOpen, setAgreementConfirmOpen] = useState(false)
+  const [saveBusy, setSaveBusy] = useState(false)
 
   function normalizeSettings(data: InstanceSettings): InstanceSettings {
     return {
@@ -35,7 +56,12 @@ export function InstanceSettingsTab() {
   async function load() {
     try {
       const data = await api<InstanceSettings>('/instance/settings')
-      setSettings(normalizeSettings(data))
+      const normalized = normalizeSettings(data)
+      setSettings(normalized)
+      setSavedAgreement({
+        en: normalized.user_agreement_text_en,
+        ru: normalized.user_agreement_text_ru,
+      })
     } catch (e) {
       showError(e)
     }
@@ -112,8 +138,23 @@ export function InstanceSettingsTab() {
     }
   }
 
+  function onSaveClick() {
+    if (!settings || !savedAgreement) return
+    if (
+      agreementChangeRequiresReacceptance(savedAgreement, {
+        en: settings.user_agreement_text_en,
+        ru: settings.user_agreement_text_ru,
+      })
+    ) {
+      setAgreementConfirmOpen(true)
+      return
+    }
+    void saveSettings()
+  }
+
   async function saveSettings() {
     if (!settings) return
+    setSaveBusy(true)
     try {
       const data = await api<InstanceSettings>('/instance/settings', {
         method: 'PATCH',
@@ -161,13 +202,21 @@ export function InstanceSettingsTab() {
           ...(proxyPassword ? { download_proxy_password: proxyPassword } : {}),
         }),
       })
-      setSettings(normalizeSettings(data))
+      const normalized = normalizeSettings(data)
+      setSettings(normalized)
+      setSavedAgreement({
+        en: normalized.user_agreement_text_en,
+        ru: normalized.user_agreement_text_ru,
+      })
       setSmtpPassword('')
       setProxyPassword('')
+      setAgreementConfirmOpen(false)
       toast.success(t('profile.saved'))
       await refresh()
     } catch (e) {
       showError(e)
+    } finally {
+      setSaveBusy(false)
     }
   }
 
@@ -535,8 +584,26 @@ export function InstanceSettingsTab() {
       </div>
 
       <div className="card">
-        <button className="primary" type="button" disabled={!serviceModelsValid} onClick={() => void saveSettings()}>{t('common.save')}</button>
+        <button
+          className="primary"
+          type="button"
+          disabled={!serviceModelsValid || saveBusy}
+          onClick={() => onSaveClick()}
+        >
+          {t('common.save')}
+        </button>
       </div>
+      {agreementConfirmOpen ? (
+        <ConfirmDialog
+          message={t('instance.userAgreementSaveConfirm')}
+          confirmLabel={t('common.save')}
+          busy={saveBusy}
+          onConfirm={() => void saveSettings()}
+          onClose={() => {
+            if (!saveBusy) setAgreementConfirmOpen(false)
+          }}
+        />
+      ) : null}
     </AdminPage>
   )
 }

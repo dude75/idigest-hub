@@ -714,6 +714,7 @@
     "userAgreementEn": "Text (English)",
     "userAgreementRu": "Text (Russian)",
     "userAgreementVersion": "Current version: {{version}}",
+    "userAgreementSaveConfirm": "Saving will update the agreement version. All organization members must accept the agreement again before using the service.",
     "rateLimitTitle": "Rate limiting",
     "rateLimitHint": "0 disables a rule. Per-IP uses the client address (TCP peer, or X-Forwarded-For when TRUSTED_PROXIES is set in .env). Browser sessions are not API-rate-limited; Bearer tokens are.",
     "rateLimitEnabled": "Enable rate limiting",

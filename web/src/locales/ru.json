@@ -714,6 +714,7 @@
     "userAgreementEn": "Текст (английский)",
     "userAgreementRu": "Текст (русский)",
     "userAgreementVersion": "Текущая версия: {{version}}",
+    "userAgreementSaveConfirm": "При сохранении изменится версия соглашения. Все участники организаций должны будут принять его заново перед использованием сервиса.",
     "rateLimitTitle": "Ограничение частоты запросов",
     "rateLimitHint": "0 отключает правило. Per-IP — адрес клиента (TCP peer или X-Forwarded-For при TRUSTED_PROXIES в .env). Cookie-сессии не лимитируются как API; Bearer-токены — да.",
     "rateLimitEnabled": "Включить rate limiting",
