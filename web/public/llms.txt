@@ -1,0 +1,7 @@
+# idigest-hub
+
+> On-premise multi-tenant hub for audio transcription and AI summaries.
+
+## Product
+
+- [Product overview](/product.md): what idigest-hub is, deployment model, features, and audience

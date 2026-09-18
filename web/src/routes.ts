@@ -1,0 +1,173 @@
+import type { TFunction } from 'i18next'
+import { INSTANCE_TABS, type InstanceTab } from './pages/instance/constants'
+import { SECURITY_TABS, type SecurityTab } from './pages/security/constants'
+import type { Me } from './types'
+
+export const LIBRARY_TABS = ['summaries', 'transcripts', 'audio'] as const
+export type LibraryTab = (typeof LIBRARY_TABS)[number]
+
+export const LIBRARY_FIRST_TAB: LibraryTab = LIBRARY_TABS[0]
+
+export function libraryPath(tab: LibraryTab = LIBRARY_FIRST_TAB, source?: string | null): string {
+  const base = `/app/library/${tab}`
+  if (source) return `${base}?source=${encodeURIComponent(source)}`
+  return base
+}
+
+export const LIBRARY_DEFAULT = libraryPath(LIBRARY_FIRST_TAB)
+
+export function isLibraryTab(value: string | undefined): value is LibraryTab {
+  return LIBRARY_TABS.includes(value as LibraryTab)
+}
+
+export function instancePath(tab: InstanceTab = 'stats'): string {
+  return tab === 'stats' ? '/app/instance' : `/app/instance?tab=${tab}`
+}
+
+export function isInstanceTab(value: string | undefined): value is InstanceTab {
+  return INSTANCE_TABS.includes(value as InstanceTab)
+}
+
+export function securityPath(tab: SecurityTab = 'audit'): string {
+  return tab === 'audit' ? '/app/security' : `/app/security?tab=${tab}`
+}
+
+export function isSecurityTab(value: string | undefined): value is SecurityTab {
+  return SECURITY_TABS.includes(value as SecurityTab)
+}
+
+export const DEFAULT_ROUTES = [
+  'library/summaries',
+  'library/transcripts',
+  'library/audio',
+  'skills',
+  'org',
+  'stats',
+  'tasks',
+  'instance/stats',
+  'instance/workers',
+  'instance/tariffs',
+  'instance/orgs',
+  'instance/settings',
+  'instance/baseSkills',
+  'instance',
+  'security/audit',
+  'security/encryption',
+] as const
+export type DefaultRoute = (typeof DEFAULT_ROUTES)[number]
+
+const LEGACY_DEFAULT_ROUTE = 'library'
+const LEGACY_INSTANCE_ROUTE = 'instance'
+
+export function normalizeDefaultRoute(value: string | undefined): DefaultRoute | undefined {
+  if (value === LEGACY_DEFAULT_ROUTE) return 'library/audio'
+  if (value === LEGACY_INSTANCE_ROUTE) return 'instance/stats'
+  return isDefaultRoute(value) ? value : undefined
+}
+
+export function defaultRoutePath(route: DefaultRoute): string {
+  if (route.startsWith('library/')) {
+    const tab = route.slice('library/'.length)
+    if (isLibraryTab(tab)) return libraryPath(tab)
+  }
+  if (route.startsWith('instance/')) {
+    const tab = route.slice('instance/'.length)
+    if (isInstanceTab(tab)) return instancePath(tab)
+  }
+  if (route.startsWith('security/')) {
+    const tab = route.slice('security/'.length)
+    if (isSecurityTab(tab)) return securityPath(tab)
+  }
+  switch (route) {
+    case 'skills':
+      return '/app/skills'
+    case 'org':
+      return '/app/org'
+    case 'stats':
+      return '/app/stats'
+    case 'tasks':
+      return '/app/tasks'
+    case 'instance':
+      return instancePath('stats')
+    default:
+      return LIBRARY_DEFAULT
+  }
+}
+
+export function allowedDefaultRoutes(me: Me | null): DefaultRoute[] {
+  const routes: DefaultRoute[] = []
+  if (me?.org) {
+    for (const tab of LIBRARY_TABS) routes.push(`library/${tab}`)
+    routes.push('skills', 'org')
+    if (me.user.role === 'org_admin') routes.push('stats')
+  }
+  if (Boolean(me?.user.is_instance_admin && !me?.impersonating)) {
+    for (const tab of INSTANCE_TABS) routes.push(`instance/${tab}`)
+    for (const tab of SECURITY_TABS) routes.push(`security/${tab}`)
+  }
+  routes.push('tasks')
+  return routes
+}
+
+export function resolveLoginPath(me: Me | null): string {
+  const org = me?.org
+  if (org?.id && org.sso?.enabled) {
+    return `/sso/${org.id}`
+  }
+  return '/login'
+}
+
+/** Profile sections for Hub password change and TOTP 2FA. */
+export function localAuthProfileVisible(me: Me | null): boolean {
+  if (!me) return false
+  const ssoEnabled = Boolean(me.org?.sso?.enabled)
+  if (me.user.auth_provider === 'oidc') return !ssoEnabled
+  if (me.user.auth_provider !== 'local') return false
+  if (me.user.is_instance_admin) return true
+  if (!ssoEnabled) return true
+  return me.user.role === 'org_admin'
+}
+
+/** Redirect target while sign-in is incomplete (password change or 2FA enrollment). */
+export function resolveAuthBlockPath(me: Me | null): '/login' | '/change-password' | '/enroll-2fa' | null {
+  if (!me) return '/login'
+  if (me.must_change_password) return '/change-password'
+  if (me.mfa_enrollment_required) return '/enroll-2fa'
+  return null
+}
+
+/** Where to send the user after login, password change, or 2FA verify/enroll. */
+export function resolveAuthContinuationPath(me: Me | null): string {
+  const blocked = resolveAuthBlockPath(me)
+  if (blocked && blocked !== '/login') return blocked
+  return resolveHomePath(me)
+}
+
+export function resolveHomePath(me: Me | null): string {
+  const allowed = allowedDefaultRoutes(me)
+  const stored = normalizeDefaultRoute(me?.user.default_route)
+  if (stored && allowed.includes(stored)) return defaultRoutePath(stored)
+  if (me?.org) return LIBRARY_DEFAULT
+  if (Boolean(me?.user.is_instance_admin && !me?.impersonating)) return instancePath('stats')
+  return '/app/tasks'
+}
+
+export function isDefaultRoute(value: string | undefined): value is DefaultRoute {
+  return DEFAULT_ROUTES.includes(value as DefaultRoute)
+}
+
+export function defaultRouteLabel(route: DefaultRoute, t: TFunction): string {
+  if (route.startsWith('library/')) {
+    const tab = route.slice('library/'.length)
+    if (isLibraryTab(tab)) return `${t('nav.library')} · ${t(`library.${tab}`)}`
+  }
+  if (route.startsWith('instance/')) {
+    const tab = route.slice('instance/'.length)
+    if (isInstanceTab(tab)) return `${t('nav.instance')} · ${t(`instance.${tab}`)}`
+  }
+  if (route.startsWith('security/')) {
+    const tab = route.slice('security/'.length)
+    if (isSecurityTab(tab)) return `${t('nav.security')} · ${t(`security.${tab}`)}`
+  }
+  return t(`nav.${route}`)
+}

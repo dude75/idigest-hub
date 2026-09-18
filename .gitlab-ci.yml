@@ -1,0 +1,174 @@
+# GitLab CI/CD for self-hosted GitLab.
+# Auditor-facing overview: SECURITY.md · SECURITY.ru.md
+
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_DRIVER: overlay2
+  # Override on the deploy host or in server-side .env
+  HUB_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
+default:
+  interruptible: true
+
+# --- Lint ---
+
+lint:frontend:
+  stage: lint
+  image: node:22-alpine
+  cache:
+    key:
+      files:
+        - web/package-lock.json
+    paths:
+      - web/node_modules/
+  script:
+    - cd web && npm ci && npm run lint
+
+# --- Test ---
+
+test:backend:
+  stage: test
+  image: python:3.12-slim
+  cache:
+    key:
+      files:
+        - requirements.txt
+    paths:
+      - .cache/pip
+  script:
+    - pip install -r requirements.txt
+    - pytest -v --tb=short
+
+test:frontend:
+  stage: test
+  image: node:22-alpine
+  cache:
+    key:
+      files:
+        - web/package-lock.json
+    paths:
+      - web/node_modules/
+  script:
+    - cd web && npm ci && npm run build
+
+# --- Security (enable templates in GitLab Admin → Security & Compliance) ---
+
+include:
+  - template: Security/SAST.gitlab-ci.yml
+  - template: Security/Dependency-Scanning.gitlab-ci.yml
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+# --- Build ---
+
+build:docker:
+  stage: build
+  image: docker:27
+  services:
+    - docker:27-dind
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+  script:
+    - >
+      docker build
+      -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+      -t "$CI_REGISTRY_IMAGE:latest"
+      .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+
+# --- Deploy helpers ---
+
+.deploy_compose:
+  stage: deploy
+  image: alpine:3.20
+  before_script:
+    - apk add --no-cache openssh-client bash docker-cli docker-cli-compose
+    - eval "$(ssh-agent -s)"
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh && chmod 700 ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - |
+      scp docker-compose.yml deploy/compose-deploy.sh "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+      ssh "$DEPLOY_USER@$DEPLOY_HOST" bash -s <<EOF
+        set -euo pipefail
+        cd "$DEPLOY_PATH"
+        chmod +x compose-deploy.sh
+        echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+        export HUB_IMAGE="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+        export COMPOSE_PROFILES="${COMPOSE_PROFILES:-}"
+        ./compose-deploy.sh
+      EOF
+
+deploy:compose:staging:
+  extends: .deploy_compose
+  environment:
+    name: staging
+    url: $STAGING_URL
+  variables:
+    DEPLOY_HOST: $STAGING_DEPLOY_HOST
+    DEPLOY_USER: $STAGING_DEPLOY_USER
+    DEPLOY_PATH: $STAGING_DEPLOY_PATH
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+  needs:
+    - job: build:docker
+
+deploy:compose:production:
+  extends: .deploy_compose
+  environment:
+    name: production
+    url: $PRODUCTION_URL
+  variables:
+    DEPLOY_HOST: $PRODUCTION_DEPLOY_HOST
+    DEPLOY_USER: $PRODUCTION_DEPLOY_USER
+    DEPLOY_PATH: $PRODUCTION_DEPLOY_PATH
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+    - if: $CI_COMMIT_TAG
+      when: manual
+  needs:
+    - job: build:docker
+
+# Kubernetes deploy — enable when manifests exist in deploy/k8s/
+deploy:kubernetes:
+  stage: deploy
+  image:
+    name: bitnami/kubectl:latest
+    entrypoint: [""]
+  environment:
+    name: production
+    url: $PRODUCTION_URL
+  rules:
+    - if: $K8S_DEPLOY_ENABLED == "true" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+    - if: $K8S_DEPLOY_ENABLED == "true" && $CI_COMMIT_TAG
+      when: manual
+  needs:
+    - job: build:docker
+  script:
+    - echo "Deploy $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA to Kubernetes"
+    - mkdir -p ~/.kube
+    - echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
+    - >
+      kubectl set image deployment/idigest-hub
+      idigest-hub="$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+      -n "${K8S_NAMESPACE:-idigest-hub}"
+    - >
+      kubectl rollout status deployment/idigest-hub
+      -n "${K8S_NAMESPACE:-idigest-hub}"
+      --timeout=300s

@@ -1,0 +1,53 @@
+# idigest-hub — документация (русский)
+
+**Язык:** [English](../en/README.md) · [Русский](README.md)
+
+Локальный multi-tenant control plane над [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker).
+
+**Быстрый старт:** [README проекта](../../README.ru.md)
+
+## Compliance (аудиторы)
+
+- [Краткий обзор enterprise-безопасности](compliance/auditor-brief.md) — домены контроля, индекс доказательств, mapping ISO/SOC, shared responsibility
+- [SECURITY.ru.md](../../SECURITY.ru.md) — политика CI/CD и управление уязвимостями
+
+## Архитектура
+
+- [Обзор](architecture/overview.md) — компоненты, tenancy, поток данных
+- [Поток запросов](architecture/request-flow.md) — auth, задачи, dispatcher
+- [Безопасность](architecture/security.md) — envelope encryption, ротация KEK/DEK, сессии, rate limit
+
+## Доменная модель
+
+- [Роли и доступ](domain/roles-and-access.md)
+- [Организации](domain/organizations.md)
+- [Биллинг и тарифы](domain/billing.md)
+- [Библиотека (audio / transcripts / summaries)](domain/library.md)
+- [Скилы](domain/skills.md)
+- [Задачи](domain/tasks.md)
+
+## Справочник API
+
+- [Обзор API](api/README.md) — ошибки, auth, индекс
+- [Auth](api/auth.md)
+- [Tasks](api/tasks.md)
+- [Library](api/library.md)
+- [Organization](api/org.md)
+- [Instance admin](api/instance.md)
+- [Skills](api/skills.md)
+- [Public summary links (guest)](api/public.md)
+
+## Эксплуатация
+
+- [Деплой](operations/deployment.md)
+- [Мониторинг](operations/monitoring.md)
+- [Воркеры](operations/workers.md)
+- [База данных](operations/database.md)
+- [Troubleshooting](operations/troubleshooting.md)
+
+## Разработка
+
+- [Локальная настройка](development/setup.md)
+- [Backend](development/backend.md)
+- [Frontend](development/frontend.md)
+- [Тесты](development/testing.md)

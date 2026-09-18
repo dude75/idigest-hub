@@ -1,0 +1,315 @@
+# idigest-hub
+
+Локальный (on-premise) **multi-tenant control plane** над [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker). Пользователи ходят только в хаб. Хаб владеет органами, ролями, кошельками, скилами, артефактами и своей очередью задач (`POST` → **202** + `task_id` → poll). Воркеры остаются внешними.
+
+**Язык:** [English](README.md) · [Русский](README.ru.md)
+
+**Документация:** [docs/](docs/README.md) (English · Русский) · **Безопасность (аудиторы):** [SECURITY.ru.md](SECURITY.ru.md) · [Краткий обзор](docs/ru/compliance/auditor-brief.md)
+
+## Что это
+
+- Signup по умолчанию **открыт**. Из коробки — SQLite (`DATABASE_URL=sqlite:///./data/hub.db`). PostgreSQL — через ту же переменную.
+- Один `instance_admin` создаётся при первом запуске (`/setup`). Остальные живут в организации (`org_admin` / `org_member`).
+- Пользователи не видят URL и API-токены воркеров. Instance admin подключает воркеры в UI (базовый URL + bearer-токен).
+- FastAPI отдаёт собранную SPA с того же origin (`web/dist`). Session cookie — HttpOnly + `SameSite=Lax`, без CORS.
+- HTTP-порт по умолчанию **8080**, чтобы не пересечься с воркерами на `8000`.
+- Compose поднимает **только хаб** и volume `./data` (PostgreSQL опционально, profile `pg`). Воркеров в этот стек не класть.
+- **Single sign-on (SSO):** **OIDC**, совместимый с **Keycloak**, на уровне организации. Настраивает **org_admin** в **Org**; участники входят по `{public_url}/sso/{org_id}`.
+- **Двухфакторная аутентификация (2FA):** опциональный **TOTP** для local-пользователей; org_admin может требовать 2FA для организации (`mfa_required`). SSO-пользователи используют MFA IdP.
+
+## Требования
+
+- Python **3.12**
+- Виртуальное окружение `.venv` (только `./.venv/bin/python` и `./.venv/bin/pip`)
+- **Node.js** (22+) для сборки SPA в `web/`
+- Диск под `./data`: файл SQLite, логи, загрузки аудио; для PostgreSQL в Compose — `./data/pg` (в git не коммитится)
+
+## Установка и запуск
+
+```bash
+python3.12 -m venv .venv
+./.venv/bin/pip install -U pip
+./.venv/bin/pip install -r requirements.txt
+
+cd web
+npm ci
+npm run build
+cd ..
+```
+
+Скопируйте `.env.example` → `.env` и заполните секреты (см. [`.env`](#env)). Файл не коммитить. Затем:
+
+```bash
+./.venv/bin/python -m app.serve
+```
+
+`HOST` и `PORT` — из `.env` (по умолчанию `127.0.0.1:8080`). Launcher всегда поднимает **один** uvicorn worker. В проде SPA отдаётся из `web/dist` этим же процессом. Опциональный HTTPS: задайте оба `SSL_CERTFILE` и `SSL_KEYFILE` (пути к PEM; самоподписанный сертификат подходит).
+
+Для разработки UI оставьте API на `8080` и запустите Vite (проксирует `/api` на хаб):
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Дальше откройте URL Vite (обычно `http://127.0.0.1:5173`).
+
+Проверка:
+
+```bash
+curl -s http://127.0.0.1:8080/api/v1/health
+```
+
+В JSON — `version` (как в `version.txt`). Docker: [Docker Compose](#docker-compose).
+
+## Метрики (Prometheus / Grafana)
+
+`GET /metrics` — текст Prometheus. Process collectors плюс прикладные gauges/counters/histograms (очередь задач, зарегистрированные воркеры с точки зрения хаба, dispatcher, HTTP). Воркеры скрейпятся **отдельно** из своих репозиториев — не через хаб.
+
+```bash
+curl -s -H "Authorization: Bearer $METRICS_TOKEN" "http://127.0.0.1:8080/metrics"
+```
+
+| Переменная | Смысл |
+| ---------- | ----- |
+| `METRICS_ENABLED` | Прикладные метрики. По умолчанию `true`. `false` / `0` / `no` — только process collectors; endpoint остаётся. |
+| `METRICS_TOKEN` | Bearer для scrape. Обязателен; пусто — `/metrics` отвечает 401. |
+
+Grafana: импорт [`grafana/dashboards/idigest-hub.json`](grafana/dashboards/idigest-hub.json) (Dashboards → New → Import), datasource — Prometheus заказчика. Пример scrape: [`deploy/prometheus/scrape.example.yml`](deploy/prometheus/scrape.example.yml). Подробнее: [docs/ru/operations/monitoring.md](docs/ru/operations/monitoring.md).
+
+## Первичная настройка
+
+Пока bootstrap не сделан, откройте **`/setup`** в UI (`http://127.0.0.1:8080/setup`) и создайте instance admin с `INSTANCE_BOOTSTRAP_TOKEN` из `.env`.
+
+Тот же вызов по HTTP:
+
+```bash
+curl -sS -X POST http://127.0.0.1:8080/api/v1/setup \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@example.com","password":"choose-a-long-password","bootstrap_token":"'"$INSTANCE_BOOTSTRAP_TOKEN"'","locale":"ru"}'
+```
+
+Можно выполнить **один раз**. Повтор — HTTP **409** `setup_already_done`. Второго instance admin нет.
+
+## Публичный URL (instance admin)
+
+После `/setup` задайте **Публичный URL** в **Instance → Settings**. Это внешний базовый адрес хаба (схема + хост + порт, без `/` в конце), например `https://hub.example.com` или `http://127.0.0.1:8080` для локального HTTP.
+
+**Зачем нужен**
+
+| Функция | Без публичного URL |
+| ------- | ------------------ |
+| **SSO** (redirect URI, ссылка входа для участников) | Ссылки не собираются; настройка SSO в org показывает ошибку |
+| **Письмо сброса пароля** | Выключено (`recovery_disabled`) — одного SMTP недостаточно |
+| **Публичные ссылки на summary** | Гостевые URL не собираются |
+
+URL должен совпадать с тем, как хаб видят пользователи и Keycloak. В проде — **HTTPS** и `COOKIE_SECURE=true`. Локально по HTTP достаточно `COOKIE_SECURE=false` (по умолчанию).
+
+## Single sign-on (SSO)
+
+У каждой организации может быть **OIDC SSO** (ориентир — **Keycloak**). **Org admin** → **Org** → **Single sign-on (Keycloak)**:
+
+1. Instance admin задаёт **Публичный URL** (см. выше).
+2. Org admin копирует **Redirect URI** со страницы Org в клиент Keycloak (**Valid redirect URIs**).
+3. Org admin вставляет **Issuer URL**, **Client ID** и **Client secret** из Keycloak и сохраняет.
+4. По готовности включает **SSO включён**.
+
+**Вход участников:** `{public_url}/sso/{org_id}` (появляется на странице Org после задания публичного URL).
+
+**Пароль при настроенном SSO:** только **org_admin** (аварийный вход). **org_member** после включения SSO входит через IdP; auto-provision по email из Keycloak.
+
+## Двухфакторная аутентификация (2FA)
+
+Local-пользователи могут включить **TOTP 2FA** в **Profile → Security**. Org admin может требовать 2FA для организации (**Org → Settings**, `mfa_required`), когда SSO выключен. SSO и org-wide политика 2FA взаимоисключены — для SSO используйте MFA IdP.
+
+Login с 2FA: пароль → `/verify-2fa` (TOTP или recovery code). Принудительная настройка: `/enroll-2fa`, если политика org включена, а 2FA ещё не настроена. Создание API token требует TOTP step-up при включённой 2FA.
+
+Подробнее: [docs/ru/api/auth.md](docs/ru/api/auth.md#двухфакторная-аутентификация-totp), [архитектура безопасности](docs/ru/architecture/security.md#двухфакторная-аутентификация-totp).
+
+## Публичные ссылки на summary
+
+Владелец summary может выдать **read-only гостевой URL** (опционально PIN и срок). Нужны **Публичный URL** и org `allow_public_links` (org_admin может отключить). Управление — в диалоге шаринга summary или на странице **Public links** (`/app/public-links`).
+
+Гостевой URL: `{public_url}/public/summary/{token}`. API: [docs/ru/api/public.md](docs/ru/api/public.md).
+
+## `.env`
+
+Имена переменных — в `.env`. **Реальные токены не класть в git и не копировать в README.** Смена значения требует перезапуска процесса.
+
+| Переменная                   | Смысл                                                                                                                                                            |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HUB_SECRET`                 | KEK для envelope encryption (см. ниже). Только оператор; не через UI. Неверный/пустой секрет **блокирует старт**, если есть DEK или зашифрованные данные.         |
+| `HUB_SECRET_PREV`            | Прежний `HUB_SECRET` только при ротации KEK. Переобёртка DEK при старте. Удалить после Security → Encryption, когда нет pending re-wrap.                       |
+| `INSTANCE_BOOTSTRAP_TOKEN`   | Одноразовый секрет для `POST /api/v1/setup` / UI `/setup`. Пустой или неверный — `bootstrap_invalid`.                                                            |
+| `SESSION_SECRET`             | Перец для хешей сессий и API-токенов. Смена инвалидирует уже выданные cookie и токены.                                                                           |
+| `HOST`                       | Интерфейс (`127.0.0.1` локально; в Docker — `0.0.0.0`).                                                                                                          |
+| `PORT`                       | Порт (по умолчанию `8080`). HTTP без TLS; HTTPS, если заданы оба `SSL_*`.                                                                                        |
+| `SSL_CERTFILE`               | Путь к PEM-сертификату. HTTPS только когда заданы **оба** пути (self-signed или CA).                                                                             |
+| `SSL_KEYFILE`                | Путь к PEM private key. В паре с `SSL_CERTFILE` включает HTTPS.                                                                                                   |
+| `SSL_KEYFILE_PASSWORD`       | Опциональный пароль зашифрованного private key.                                                                                                                  |
+| `DATA_DIR`                   | Корень персистентных данных (по умолчанию `./data`): логи и (при `STORAGE_BACKEND=local`) загрузки `{DATA_DIR}/uploads/{audio_id}/`. Файл SQLite — в этом дереве при URL по умолчанию. |
+| `STORAGE_BACKEND`            | Хранилище audio: `local` (по умолчанию) или `s3`. Воркеры не меняются — hub по-прежнему стримит файл на transcribe-воркер. |
+| `S3_ENDPOINT`                | URL S3-compatible API (пусто для AWS). |
+| `S3_BUCKET`                  | Имя bucket для audio. Обязателен при `STORAGE_BACKEND=s3`. |
+| `S3_REGION`                  | Регион (зависит от провайдера). |
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | Ключи доступа к object storage. |
+| `S3_SSE`                     | SSE-заголовок при upload. Пусто (по умолчанию) = не отправлять; encryption на bucket (рекомендуется для Yandex). AWS: `AES256`. Yandex: `aws:kms` + `S3_SSE_KMS_KEY_ID`. |
+| `S3_SSE_KMS_KEY_ID`          | ID ключа KMS при `S3_SSE=aws:kms` (Yandex Object Storage). |
+| `DATABASE_URL`               | SQLAlchemy URL (по умолчанию `sqlite:///./data/hub.db`). Для PostgreSQL: `postgresql+psycopg://user:pass@host:5432/db`. **Смена URL — другая БД с другими данными**, автоматической миграции SQLite ↔ PostgreSQL нет. |
+| `SQLITE_PATH`                | Legacy fallback, если `DATABASE_URL` пуст (по умолчанию `./data/hub.db`). Лучше задавать `DATABASE_URL`. |
+| `LOG_DIR`                    | Каталог прикладных логов (по умолчанию `./data/logs`).                                                                                                           |
+| `LOG_ENABLED`                | Прикладной лог-файл + app-logger. По умолчанию `true`. `false` / `0` / `no` — выкл.                                                                              |
+| `LOG_MAX_BYTES`              | Ротация `app.log` при превышении размера в байтах. По умолчанию `5242880` (5 MiB).                                                                               |
+| `LOG_BACKUP_COUNT`           | Сколько архивов хранить (`app.log.1` … `app.log.N`). По умолчанию `5`.                                                                                           |
+| `COOKIE_SECURE`              | Флаг `Secure` у session cookie. По умолчанию `false` (локальный HTTP). За HTTPS ставьте `true`.                                                                  |
+| `TRUSTED_PROXIES`            | IP/CIDR reverse proxy через запятую; им доверяют заголовки `X-Forwarded-For` / `X-Real-IP` для per-IP лимитов. Пусто = не доверять (только TCP peer).          |
+| `METRICS_ENABLED`              | Прикладные метрики на `GET /metrics`. По умолчанию `true`. `false` / `0` / `no` — только process collectors.                                                     |
+| `METRICS_TOKEN`                | Bearer для Prometheus scrape. Обязателен; пусто — `/metrics` отвечает 401.                                                                                     |
+
+Всё, что должно пережить рестарт, лежит в `./data` (SQLite `hub.db` или `./data/pg` для PostgreSQL в Compose, логи). При **`STORAGE_BACKEND=local`** (по умолчанию) загрузки audio — в `{DATA_DIR}/uploads/{audio_id}/`; монтируйте `./data` в Docker. При **`STORAGE_BACKEND=s3`** audio в object storage (SSE at rest); hub-поду volume для uploads не нужен — только БД и логи. Контейнер Compose пишет `./data` от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
+
+Чувствительные поля БД — **envelope encryption** (Fernet): **DEK** шифрует строки; **KEK** = `SHA-256(HUB_SECRET)` оборачивает DEK в `data_encryption_keys`. Формат: `v1:{dek_id}:…`. API отдаёт plaintext авторизованным клиентам. **Audio** — `STORAGE_BACKEND`: local plain; `s3` — SSE на bucket. Защита БД при утечке дампа без `.env`.
+
+**Ротация KEK** (`HUB_SECRET`): новый секрет + `HUB_SECRET_PREV` (старый), рестарт — переобёртка DEK при старте; колонки данных не перешифровываются. **Ротация DEK** (компрометация): instance admin → **Security → Encryption** → добавить DEK → перешифровать и удалить старые. Храните backup `.env`; неверные секреты не дают стартовать hub с зашифрованными данными.
+
+## Подключить воркеры
+
+Compose воркеры **не** поднимает. Запустите [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker) отдельно, затем зарегистрируйте их в UI хаба **Instance** (после `/setup`):
+
+1. Поднимите каждый воркер со своим `.env` (`API_TOKEN`, у summarize ещё `BASE_URL` / `API_KEY` / `MODEL`).
+2. Под instance admin: Instance → воркеры → добавить ноду:
+   - `type`: `transcribe` или `summarize`
+   - `base_url`: адрес, который видит **процесс хаба**, не браузер. Если хаб в Docker, а воркер на хосте: `http://host.docker.internal:8000`.
+   - `api_token`: `API_TOKEN` этого воркера
+   - `weight` / `enabled` по необходимости
+3. Пользователи хаба эти поля не видят. Хаб копирует результат в свою БД и затем делает `DELETE` задачи на воркере.
+
+`GET /metrics` воркеров через хаб **не** проксировать. Скрейпите каждый воркер напрямую (Bearer `API_TOKEN` воркера).
+
+## Docker Compose
+
+Один образ (`idigest-hub:latest`). Стадия Node собирает `web/dist`; стадия Python отдаёт API + SPA. Процесс идёт от **uid/gid 1001** (не root). Compose монтирует `./data:/data`.
+
+По умолчанию хаб на SQLite (`DATABASE_URL=sqlite:////data/hub.db` в контейнере). PostgreSQL — отдельный сервис под profile **`pg`**, данные в `./data/pg` на хосте.
+
+### Подготовка
+
+1. Скопируйте `.env.example` → `.env` и заполните `HUB_SECRET` / `INSTANCE_BOOTSTRAP_TOKEN` / `SESSION_SECRET` (см. [`.env`](#env)).
+2. Создайте каталоги данных, если их ещё нет (SQLite, логи, загрузки). Compose монтирует `./data:/data`.
+
+   ```bash
+   mkdir -p data/uploads data/logs
+   ```
+
+   Процесс в контейнере — **uid/gid 1001**. Этот пользователь должен писать в `./data`.
+   Если каталог уже есть от старого контейнера от root, один раз поправьте владельца:
+
+   ```bash
+   sudo chown -R 1001:1001 ./data
+   ```
+
+   Не делайте chmod `777`. `docker compose down` каталог `./data` не удаляет.
+3. Compose ставит `COOKIE_SECURE=false` для локального HTTP. За HTTPS поставьте `COOKIE_SECURE=true` в `docker-compose.yml` (или уберите override и задайте в `.env`).
+
+### Запуск (SQLite, по умолчанию)
+
+```bash
+docker compose up --build
+```
+
+Фон: `-d`, логи: `docker compose logs -f`. Порт: `8080:8080`. Дальше откройте `http://127.0.0.1:8080/setup`.
+
+### Запуск (PostgreSQL)
+
+В `.env`:
+
+```env
+DATABASE_URL=postgresql+psycopg://hub:hub@postgres:5432/hub
+POSTGRES_USER=hub
+POSTGRES_PASSWORD=hub
+POSTGRES_DB=hub
+```
+
+Затем:
+
+```bash
+docker compose --profile pg up --build
+```
+
+PostgreSQL хранит файлы в `./data/pg` (bind mount). Загрузки и логи — по-прежнему `./data/uploads` и `./data/logs`. Это **отдельная** БД от SQLite: при возврате к обычному `docker compose up` пользователи и задачи не переносятся.
+
+Если PostgreSQL не стартует из‑за прав, один раз на хосте:
+
+```bash
+sudo chown -R 999:999 ./data/pg
+```
+
+### Остановка
+
+```bash
+docker compose down
+```
+
+`./data` на хосте не удаляется. После образа от root перед следующим `up` выполните `sudo chown -R 1001:1001 ./data`, если в логах `Permission denied` на `/data`.
+
+## Ограничение частоты запросов
+
+Хаб опционально ограничивает частоту запросов **в памяти процесса** (один worker Uvicorn — см. [Установка и запуск](#установка-и-запуск)). После рестарта счётчики обнуляются. Фоновая очистка удаляет протухшие bucket'ы; в RAM хранится не более **20 000** bucket'ов (при переполнении удаляются самые старые).
+
+**Настройка:** instance admin → **Instance** → **Settings**. Общий переключатель: **Enable rate limiting**. **`0`** отключает конкретное правило.
+
+### Что ограничивается
+
+| Трафик | Ключи | Примечание |
+| ------ | ----- | ---------- |
+| Auth (`/auth/login`, signup, reset, `/setup`) | **email**, **IP клиента**, **global** | До тяжёлой работы (bcrypt на login). |
+| Программный API | только **`Authorization: Bearer`** | **user id**, **IP**, **global**; отдельно `POST /tasks/transcribe` и `POST /tasks/summarize`. Cookie-сессия **не** попадает под API-limit. |
+| Публичные ссылки summary (`/public/summary/*`) | **IP клиента**, **global** | Гостевой доступ без auth; отдельный bucket для PIN. |
+
+При превышении: HTTP **429**, `error.code = rate_limited`, заголовок `Retry-After` (секунды).
+
+### Значения по умолчанию
+
+| Правило | На email / user | На IP | Global | Окно |
+| ------- | --------------- | ----- | ------ | ---- |
+| Login | 30 / мин | 60 / мин | 500 / мин | 1 мин |
+| Signup | 10 / мин | 20 / мин | 100 / мин | 1 мин |
+| Reset пароля | 3 / час | 10 / час | 50 / час | 1 час |
+| Reset confirm | — | 30 / час | 100 / час | 1 час |
+| Setup | — | 5 / час | 10 / час | 1 час |
+| Bearer API | 120 / мин | 300 / мин | 2000 / мин | 1 мин |
+| Создание task | 30 / мин | 60 / мин | — | 1 мин |
+| Просмотр public link | — | 300 / час | 5000 / час | 1 час |
+| PIN public link | — | 60 / час | — | 1 час |
+
+### IP клиента за reverse proxy
+
+По умолчанию hub использует **адрес TCP-соединения** (`request.client.host`). При пустом `TRUSTED_PROXIES` (дефолт) forwarded-заголовки **игнорируются** — безопасно, если hub доступен из интернета напрямую.
+
+Когда перед hub стоит nginx (или другой reverse proxy):
+
+1. Hub слушает только localhost (`127.0.0.1:8080`), чтобы клиенты не обходили прокси.
+2. В `.env`: `TRUSTED_PROXIES=127.0.0.1,::1` (адреса TCP peer прокси; на том же хосте — loopback).
+3. Прокси шлёт `X-Forwarded-For` и `X-Real-IP`. Пример конфига: [`deploy/nginx/idigest-hub.conf.example`](deploy/nginx/idigest-hub.conf.example).
+
+Per-IP лимиты тогда считают реальный IP клиента. Лимиты по email/user работают в любом случае. Без `TRUSTED_PROXIES` и без передачи IP прокси все пользователи делят один IP. Значение **`0`** в Instance → Settings отключает конкретный bucket.
+
+Грубое ограничение по IP на **reverse proxy** тоже допустимо; для работы hub настройки прокси **не обязательны**.
+
+### Эксплуатация
+
+- Всегда **`--workers 1`**: лимиты на процесс.
+- `/api/v1/health` и статика не лимитируются.
+
+## Типичные ошибки
+
+| Что видно                                                            | Смысл                                                                                            |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| HTTP **401**, `error.code = bootstrap_invalid`                       | Нет/неверный `INSTANCE_BOOTSTRAP_TOKEN` на `/setup`.                                             |
+| HTTP **409**, `error.code = setup_already_done`                      | Instance admin уже есть. Логиньтесь.                                                             |
+| HTTP **403**, `error.code = signup_disabled`                         | Instance admin закрыл новые орги или нет неархивного signup-тарифа.                              |
+| Hub падает при старте с `FATAL: HUB_SECRET…`                         | Пустой или неверный KEK при наличии DEK/данных. Восстановите `HUB_SECRET` и/или задайте `HUB_SECRET_PREV` при ротации. См. [Security](docs/ru/architecture/security.md). |
+| Job перешифровки failed / старые DEK остались                        | Ошибка в Security → Encryption. Повторите re-encrypt. |
+| `Permission denied` на `/data/...` (`hub.db`, `logs`, `uploads`)     | Хостовый `./data` недоступен на запись uid 1001. `sudo chown -R 1001:1001 ./data` и рестарт. Не chmod `777`. |
+| HTTP **429**, `error.code = rate_limited`                              | Слишком много запросов; подождите `Retry-After` или поднимите лимиты в Instance → Settings.                  |

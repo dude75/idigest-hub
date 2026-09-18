@@ -1,0 +1,57 @@
+import { useState, type FormEvent } from 'react'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { api } from '../api'
+import { useAuth } from '../auth'
+import { AuthPageShell } from '../components/AuthPageShell'
+import { showError } from '../util'
+
+export function ResetPage() {
+  const { t } = useTranslation()
+  const { ready, bootstrapDone } = useAuth()
+  const [params] = useSearchParams()
+  const token = params.get('token') || ''
+  const [password, setPassword] = useState('')
+  const [ok, setOk] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  if (ready && !bootstrapDone) return <Navigate to="/setup" replace />
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault()
+    setBusy(true)
+    try {
+      await api('/auth/password/reset/confirm', {
+        method: 'POST',
+        body: JSON.stringify({ token, new_password: password }),
+      })
+      setOk(true)
+    } catch (e) {
+      showError(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <AuthPageShell>
+      <form className="card auth-card stack" onSubmit={(e) => void onSubmit(e)}>
+        <h1>{t('auth.reset')}</h1>
+        {ok ? (
+          <>
+            <p className="ok">{t('auth.resetDone')}</p>
+            <Link to="/login">{t('auth.login')}</Link>
+          </>
+        ) : (
+          <>
+            <label>
+              {t('auth.newPassword')}
+              <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
+            </label>
+            <button className="primary" disabled={busy || !token} type="submit">{t('common.save')}</button>
+          </>
+        )}
+      </form>
+    </AuthPageShell>
+  )
+}

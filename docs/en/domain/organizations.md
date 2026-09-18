@@ -1,0 +1,114 @@
+# Organizations
+
+An **organization** is the billing and data isolation boundary. Every regular user belongs to exactly one org via `memberships`.
+
+## Creation paths
+
+### Signup (`POST /auth/signup`)
+
+1. Instance must be bootstrapped (`bootstrap_done`)
+2. `allow_new_orgs` must be true
+3. At least one non-archived tariff with `available_on_signup=true`
+4. Creates user + personal org (`is_personal=true`, name from email local-part)
+5. User becomes `org_admin`
+6. Initial balance = `signup_credit` (or `0` if tariff is `unlimited`)
+
+### Org admin invites (`POST /org/users`)
+
+Org admin creates users with email, password, role (`org_admin` | `org_member`), locale. New user is added to **the same org**. UI can generate a password; admin reset returns a one-time temporary password in a modal.
+
+### Instance admin provisioning (`POST /orgs`)
+
+Instance admin creates a team org from **Instance → Organizations**:
+
+1. Org name, tariff (any non-archived), initial `org_admin` email + password
+2. Optional `is_personal` flag (informational, default `false`)
+3. Initial balance = tariff `signup_credit` (or `0` if unlimited)
+4. Admin user gets `must_change_password=true`
+
+Audit: `org.create`.
+
+### Instance admin deletion (`POST /orgs/{org_id}/delete`)
+
+Cascading delete of the org and all data: members (except instance admins), artifacts, tasks, skills, shares, public links, usage events. Active tasks are canceled or marked `skip_persist`. Requires body `{ "confirm_name": "<exact org name>" }`. Audit: `org.delete`.
+
+Instance admin can also hide orgs from their list (`POST /orgs/{id}/hide`, `/unhide`) — UI-only, no data change.
+
+## Org profile
+
+| Field | Editable by | Notes |
+| ----- | ----------- | ----- |
+| `name` | org_admin | Display name |
+| `tariff_id` | org_admin (self) or instance_admin | Must be non-archived and `available_on_signup` for self-service |
+| `password_ttl_days` | org_admin | `0` = disabled; forces periodic password change |
+| `mfa_required` | org_admin | When `true`, local-auth members must enroll TOTP 2FA; incompatible with SSO |
+| `allow_public_links` | org_admin | When `false`, disables public summary guest URLs for the org |
+| `balance` | instance_admin (wallet) | Decimal(12,2), floored to cents on charge |
+
+GET `/org` returns org + embedded tariff + usage total (`sum(usage_events.amount)`).
+
+## Tariff change
+
+**Org admin** — `PATCH /org/tariff`: only tariffs that are active and flagged `available_on_signup`.
+
+**Instance admin** — `PATCH /orgs/{org_id}/tariff`: can assign any non-archived tariff.
+
+Changing tariff does **not** alter snapshotted prices on existing tasks.
+
+## User lifecycle
+
+| Action | Endpoint | Notes |
+| ------ | -------- | ----- |
+| Change role | `PATCH /org/users/{id}` | Cannot demote last org admin |
+| Disable | `POST /org/users/{id}/disable` | Invalidates sessions + API tokens |
+| Enable | `POST /org/users/{id}/enable` | |
+| Admin reset password | `POST /org/users/{id}/reset-password` | Generates random password; response includes `password` once; `must_change_password=true`; revokes sessions + API tokens |
+| Admin reset 2FA | `POST /org/users/{id}/reset-mfa` | Clears TOTP enrollment; revokes sessions + API tokens |
+| Offboard | `POST /org/users/{id}/offboard` | See below |
+
+## Offboarding
+
+`POST /org/users/{id}/offboard` body:
+
+| action | Behavior |
+| ------ | -------- |
+| `transfer` | Reassign artifacts to `target_user_id` (same org) |
+| `wipe` | Hard-delete user's content |
+
+Guard: cannot offboard last org admin without replacement.
+
+## Statistics
+
+`GET /org/stats?from=YYYY-MM-DD&to=YYYY-MM-DD` — org_admin only.
+
+Aggregates `usage_events` by day, user, kind (`transcribe` | `summarize`). Optional filters: `user_id`, `kind`.
+
+Instance-level stats: `GET /instance/stats` with date/org/user/kind filters (instance admin). Wallet ledger: `GET /orgs/{org_id}/ledger`.
+
+## Single sign-on (SSO)
+
+Each org may enable **OIDC SSO** (Keycloak-compatible):
+
+1. Instance admin sets **Public URL** in Instance → Settings.
+2. Org admin configures issuer, client ID, and secret in Org → SSO; copies **callback URL** into Keycloak.
+3. When `sso_enabled`, `org_member` users sign in at `{public_url}/sso/{org_id}`; password login is blocked for them (`sso_login_required`).
+4. `org_admin` retains password login as break-glass.
+5. SSO and org `mfa_required` are mutually exclusive — enabling SSO clears the 2FA policy; Hub TOTP is not applied to SSO users (use IdP MFA).
+
+GET `/org` embeds `sso: { configured, enabled, login_url }`. Auto-provision creates new members on first SSO login (email from IdP).
+
+## Signup disable
+
+Instance admin sets `allow_new_orgs=false` or archives all signup tariffs → new signups return `signup_disabled` (HTTP 403).
+
+Existing orgs continue to operate.
+
+## Personal vs team orgs
+
+`is_personal=true` for signup-created orgs. No behavioral difference in API — flag is informational for UI.
+
+## Related pages
+
+- [Billing](billing.md)
+- [Roles and access](roles-and-access.md)
+- [Org API](../api/org.md)

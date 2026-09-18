@@ -1,0 +1,11 @@
+# Example Prometheus scrape config for idigest-hub only.
+# Add to your Prometheus server; workers are scraped separately from their own repos.
+
+scrape_configs:
+  - job_name: idigest-hub
+    metrics_path: /metrics
+    scheme: http
+    authorization:
+      credentials: "${IDIGEST_HUB_METRICS_TOKEN}"
+    static_configs:
+      - targets: ["127.0.0.1:8080"]

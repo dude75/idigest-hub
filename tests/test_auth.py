@@ -1,0 +1,304 @@
+from tests.conftest import (
+    ADMIN_EMAIL,
+    ADMIN_PASSWORD,
+    create_tariff,
+    default_tariff_id,
+    err_code,
+    login,
+    login_ready,
+    logout,
+    me,
+    setup_admin,
+    signup,
+)
+
+
+def test_bootstrap_only_once(client):
+    setup_admin(client)
+    again = client.post(
+        "/api/v1/setup",
+        json={"email": "other@example.com", "password": "otherpass", "bootstrap_token": "boot"},
+    )
+    assert again.status_code == 409
+    assert err_code(again) == "setup_already_done"
+
+
+def test_signup_creates_org_named_local_part(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    response = signup(client, "alice@example.com", "alicepass", tariff_id)
+    assert response.status_code == 200, response.text
+    payload = me(client)
+    assert payload["user"]["role"] == "org_admin"
+    assert payload["user"]["email"] == "alice@example.com"
+    assert payload["org"]["name"] == "alice"
+    assert payload["org"]["balance"] == "0.00"
+
+
+def test_signup_disabled_when_allow_new_orgs_false(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    patched = client.patch("/api/v1/instance/settings", json={"allow_new_orgs": False})
+    assert patched.status_code == 200, patched.text
+    response = signup(client, "bob@example.com", "bobpass1", tariff_id)
+    assert response.status_code == 403
+    assert err_code(response) == "signup_disabled"
+
+
+def test_signup_tariffs_include_org_count(client):
+    setup_admin(client)
+    default_id = default_tariff_id(client)
+    spare = create_tariff(client, name="Spare plan")
+
+    logout(client)
+    assert signup(client, "a@example.com", "apass1234", default_id).status_code == 200
+    logout(client)
+    assert signup(client, "b@example.com", "bpass1234", default_id).status_code == 200
+    logout(client)
+    assert signup(client, "c@example.com", "cpass1234", spare["id"]).status_code == 200
+
+    listed = client.get("/api/v1/auth/signup-tariffs")
+    assert listed.status_code == 200
+    items = {item["id"]: item for item in listed.json()["items"]}
+    assert items[default_id]["org_count"] == 2
+    assert items[spare["id"]]["org_count"] == 1
+
+
+def test_signup_disabled_without_signup_tariffs(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    archived = client.post(f"/api/v1/tariffs/{tariff_id}/archive")
+    assert archived.status_code == 200, archived.text
+    listed = client.get("/api/v1/auth/signup-tariffs")
+    assert listed.status_code == 200
+    assert listed.json()["items"] == []
+    response = signup(client, "carol@example.com", "carolpass", tariff_id)
+    assert response.status_code == 403
+    assert err_code(response) == "signup_disabled"
+
+
+def test_last_org_admin_cannot_delete_demote_or_disable(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    lead = me(client)
+    lead_id = lead["user"]["id"]
+
+    demote = client.patch(f"/api/v1/org/users/{lead_id}", json={"role": "org_member"})
+    assert demote.status_code == 409
+    assert err_code(demote) == "last_org_admin"
+
+    disable = client.post(f"/api/v1/org/users/{lead_id}/disable")
+    assert disable.status_code == 409
+    assert err_code(disable) == "last_org_admin"
+
+    offboard = client.post(f"/api/v1/org/users/{lead_id}/offboard", json={"action": "wipe"})
+    assert offboard.status_code == 409
+    assert err_code(offboard) == "last_org_admin"
+
+    created = client.post(
+        "/api/v1/org/users",
+        json={"email": "second@example.com", "password": "secondpass", "role": "org_admin"},
+    )
+    assert created.status_code == 200, created.text
+    second_id = created.json()["id"]
+
+    disabled = client.post(f"/api/v1/org/users/{second_id}/disable")
+    assert disabled.status_code == 200, disabled.text
+    assert disabled.json()["disabled"] is True
+
+    still_last = client.post(f"/api/v1/org/users/{lead_id}/disable")
+    assert still_last.status_code == 409
+    assert err_code(still_last) == "last_org_admin"
+
+
+def test_disable_kills_cookie_and_tokens_enable_does_not_resurrect(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    admin_token = client.post("/api/v1/auth/tokens", json={"name": "admin"}).json()["token"]
+    member = client.post(
+        "/api/v1/org/users",
+        json={"email": "member@example.com", "password": "memberpass", "role": "org_member"},
+    )
+    assert member.status_code == 200, member.text
+    member_id = member.json()["id"]
+
+    logout(client)
+    login_ready(client, "member@example.com", "memberpass")
+    token_resp = client.post("/api/v1/auth/tokens", json={"name": "cli"})
+    assert token_resp.status_code == 200, token_resp.text
+    member_token = token_resp.json()["token"]
+    assert client.get("/api/v1/me").status_code == 200
+
+    disable = client.post(
+        f"/api/v1/org/users/{member_id}/disable",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert disable.status_code == 200, disable.text
+
+    cookie_me = client.get("/api/v1/me")
+    assert cookie_me.status_code == 401
+    assert err_code(cookie_me) == "unauthorized"
+
+    token_me = client.get("/api/v1/me", headers={"Authorization": f"Bearer {member_token}"})
+    assert token_me.status_code == 401
+    assert err_code(token_me) == "unauthorized"
+
+    enable = client.post(
+        f"/api/v1/org/users/{member_id}/enable",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    assert enable.status_code == 200, enable.text
+
+    still_cookie = client.get("/api/v1/me")
+    assert still_cookie.status_code == 401
+    assert err_code(still_cookie) == "unauthorized"
+
+    still_token = client.get("/api/v1/me", headers={"Authorization": f"Bearer {member_token}"})
+    assert still_token.status_code == 401
+    assert err_code(still_token) == "unauthorized"
+
+    login(client, "member@example.com", "memberpass")
+    assert client.get("/api/v1/me").status_code == 200
+    fresh = client.post("/api/v1/auth/tokens", json={"name": "after"})
+    assert fresh.status_code == 200, fresh.text
+    assert client.get("/api/v1/me", headers={"Authorization": f"Bearer {fresh.json()['token']}"}).status_code == 200
+
+
+def test_password_change_revokes_other_sessions_and_tokens(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "user@example.com", "userpass1", tariff_id).status_code == 200
+    login(client, "user@example.com", "userpass1")
+    old_cookie = client.cookies.get("hub_session")
+    token_resp = client.post("/api/v1/auth/tokens", json={"name": "cli"})
+    assert token_resp.status_code == 200, token_resp.text
+    api_token = token_resp.json()["token"]
+
+    changed = client.post(
+        "/api/v1/auth/password/change",
+        json={"current_password": "userpass1", "new_password": "newpass12"},
+    )
+    assert changed.status_code == 200, changed.text
+    assert client.get("/api/v1/me").status_code == 200
+
+    stale_session = client.get("/api/v1/me", cookies={"hub_session": old_cookie})
+    assert stale_session.status_code == 401
+    assert err_code(stale_session) == "unauthorized"
+
+    stale_token = client.get("/api/v1/me", headers={"Authorization": f"Bearer {api_token}"})
+    assert stale_token.status_code == 401
+    assert err_code(stale_token) == "unauthorized"
+
+
+def test_must_change_password_blocks_api_until_changed(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    created = client.post(
+        "/api/v1/org/users",
+        json={"email": "forced@example.com", "password": "forcedpass", "role": "org_member"},
+    )
+    assert created.status_code == 200, created.text
+    assert created.json()["must_change_password"] is True
+
+    logout(client)
+    login(client, "forced@example.com", "forcedpass")
+    allowed = client.get("/api/v1/me")
+    assert allowed.status_code == 200
+    assert allowed.json()["must_change_password"] is True
+
+    blocked = client.get("/api/v1/audios")
+    assert blocked.status_code == 403
+    assert err_code(blocked) == "must_change_password"
+
+    changed = client.post("/api/v1/auth/password/change", json={"new_password": "newpass12"})
+    assert changed.status_code == 200, changed.text
+    after = client.get("/api/v1/audios")
+    assert after.status_code == 200, after.text
+    assert me(client)["must_change_password"] is False
+
+
+def test_patch_default_route(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "routes@example.com", "routespass1", tariff_id).status_code == 200
+    payload = me(client)
+    assert payload["user"]["default_route"] == "library/audio"
+
+    patched = client.patch("/api/v1/me", json={"default_route": "library/transcripts"})
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["user"]["default_route"] == "library/transcripts"
+
+    legacy = client.patch("/api/v1/me", json={"default_route": "library"})
+    assert legacy.status_code == 200, legacy.text
+    assert legacy.json()["user"]["default_route"] == "library/audio"
+
+    tasks = client.patch("/api/v1/me", json={"default_route": "tasks"})
+    assert tasks.status_code == 200, tasks.text
+    assert tasks.json()["user"]["default_route"] == "tasks"
+
+    blocked = client.patch("/api/v1/me", json={"default_route": "instance/workers"})
+    assert blocked.status_code == 400
+    assert err_code(blocked) == "validation_error"
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    workers = client.patch("/api/v1/me", json={"default_route": "instance/workers"})
+    assert workers.status_code == 200, workers.text
+    assert workers.json()["user"]["default_route"] == "instance/workers"
+
+    legacy_instance = client.patch("/api/v1/me", json={"default_route": "instance"})
+    assert legacy_instance.status_code == 200, legacy_instance.text
+    assert legacy_instance.json()["user"]["default_route"] == "instance/stats"
+
+    encryption = client.patch("/api/v1/me", json={"default_route": "security/encryption"})
+    assert encryption.status_code == 200, encryption.text
+    assert encryption.json()["user"]["default_route"] == "security/encryption"
+
+
+def test_password_reset_routes_recovery_disabled_without_smtp(client):
+    setup_admin(client)
+    request = client.post("/api/v1/auth/password/reset/request", json={"email": ADMIN_EMAIL})
+    assert request.status_code == 403
+    assert err_code(request) == "recovery_disabled"
+
+    confirm = client.post(
+        "/api/v1/auth/password/reset/confirm",
+        json={"token": "nope", "new_password": "newpass12"},
+    )
+    assert confirm.status_code in {403, 404}
+    if confirm.status_code == 403:
+        assert err_code(confirm) == "recovery_disabled"
+
+
+def _enable_password_recovery(client):
+    setup_admin(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "public_base_url": "https://hub.example.com",
+            "smtp_host": "smtp.example.com",
+            "smtp_from": "noreply@example.com",
+        },
+    )
+    logout(client)
+
+
+def test_password_reset_cooldown_skips_duplicate_email(client, monkeypatch):
+    _enable_password_recovery(client)
+    sent: list[str] = []
+
+    def _send_mail(_db, to_email, _subject, _body):
+        sent.append(to_email)
+
+    monkeypatch.setattr("app.routers.auth.send_mail", _send_mail)
+
+    first = client.post("/api/v1/auth/password/reset/request", json={"email": ADMIN_EMAIL})
+    assert first.status_code == 200
+    assert sent == [ADMIN_EMAIL]
+
+    second = client.post("/api/v1/auth/password/reset/request", json={"email": ADMIN_EMAIL})
+    assert second.status_code == 200
+    assert sent == [ADMIN_EMAIL]

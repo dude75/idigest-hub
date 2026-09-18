@@ -1,0 +1,129 @@
+# API overview
+
+Base path: **`/api/v1`**
+
+When `OPENAPI_ENABLED=true` (default): interactive schema at `{origin}/openapi.json`, Swagger UI at `{origin}/docs` — use **Authorize** for session cookie (`hub_session`) or Bearer API token (`idg_…` from `POST /auth/tokens`). Set `OPENAPI_ENABLED=false` in production to disable both.
+
+Cookie-authenticated mutations require header `X-CSRF-Token` matching the `hub_csrf` cookie (the SPA sends it automatically). Bearer API requests are exempt.
+
+## Response envelope
+
+### Success
+
+Most endpoints return JSON objects directly, e.g. `{ "status": "ok" }` or entity payloads.
+
+Task create returns **202** with task body (not wrapped).
+
+### Error
+
+```json
+{
+  "status": "error",
+  "error": {
+    "code": "not_found",
+    "message": "Human-readable localized message"
+  }
+}
+```
+
+`message` follows `Accept-Language` / user locale (`en`, `ru`, `es`).
+
+## Authentication
+
+| Method | Header / cookie | Rate limited |
+| ------ | ----------------- | ------------ |
+| Session | Cookie `hub_session` | Auth endpoints; upload + task create share Bearer write limits |
+| API token | `Authorization: Bearer <token>` | Yes (Bearer + write limits on upload/tasks) |
+
+Unauthenticated requests to protected routes → **401** `unauthorized`.
+
+## Common HTTP status codes
+
+| Status | When |
+| ------ | ---- |
+| 200 | OK |
+| 202 | Task accepted |
+| 400 | `validation_error`, bad input |
+| 401 | Auth failures, `bootstrap_invalid` |
+| 403 | `forbidden`, `signup_disabled`, `api_disabled`, `must_change_password` |
+| 404 | `not_found` |
+| 409 | `conflict`, `email_taken`, `setup_already_done`, `task_running`, … |
+| 413 | `payload_too_large`, `text_too_long` |
+| 429 | `rate_limited`, `insufficient_balance` |
+
+## Error codes
+
+| code | HTTP | Meaning |
+| ---- | ---- | ------- |
+| `unauthorized` | 401 | Missing/invalid session or token |
+| `invalid_credentials` | 401 | Wrong email/password |
+| `bootstrap_invalid` | 401 | Wrong bootstrap token on setup |
+| `forbidden` | 403 | Insufficient role |
+| `must_change_password` | 403 | Password change required |
+| `signup_disabled` | 403 | Signup closed |
+| `recovery_disabled` | 403 | SMTP or Public URL not configured |
+| `sso_login_required` | 403 | Password login blocked; use org SSO |
+| `sso_disabled` | 403 | SSO not enabled for org |
+| `sso_misconfigured` | 400 | Missing issuer/client/secret or Public URL |
+| `sso_state_invalid` | 400 | Invalid or expired OAuth state |
+| `sso_email_missing` | 400 | IdP token lacks email claim |
+| `sso_user_wrong_org` | 403 | Existing user belongs to another org |
+| `mfa_required` | 200 | Login response status — TOTP challenge needed (not an error envelope) |
+| `invalid_totp` | 401 | Wrong TOTP or recovery code |
+| `mfa_challenge_invalid` | 401 | Missing, expired, or unknown MFA login challenge |
+| `mfa_step_up_required` | 403 | API token create needs `totp_code` |
+| `mfa_enrollment_required` | 403 | Org requires 2FA; enroll before other API calls |
+| `mfa_not_configured` | 403 | 2FA action requested but TOTP not set up |
+| `api_disabled` | 403 | Tariff disables API |
+| `not_found` | 404 | Resource or route |
+| `validation_error` | 400 | Invalid body/query |
+| `invalid_file` | 400 | Bad upload |
+| `payload_too_large` | 413 | Upload too big |
+| `text_too_long` | 413 | Summarize input too large |
+| `insufficient_balance` | 429 | Wallet empty |
+| `rate_limited` | 429 | Too many requests (+ `Retry-After`) |
+| `setup_already_done` | 409 | Bootstrap already completed |
+| `email_taken` | 409 | Duplicate email |
+| `tariff_not_available` | 400 | Invalid tariff choice |
+| `last_org_admin` | 409 | Would remove last admin |
+| `tariff_in_use` | 409 | Cannot delete tariff |
+| `last_tariff` | 409 | Cannot delete last tariff |
+| `task_running` | 409 | Cancel rejected |
+| `conflict` | 409 | Generic conflict |
+| `public_base_url_missing` | 400 | Public URL not set (public links, SSO) |
+| `public_links_disabled` | 403 | Org disabled public links |
+| `invalid_pin` | 401 | Wrong public link PIN |
+
+Task-level errors (worker pipeline) appear on task object as `error.code`, not always in this enum.
+
+## Health
+
+```
+GET /api/v1/health
+```
+
+No auth. Returns `{ "status": "ok", "version": "..." }`.
+
+## Endpoint index
+
+| Area | Doc |
+| ---- | --- |
+| Setup, auth, me, tokens | [auth.md](auth.md) |
+| Tasks | [tasks.md](tasks.md) |
+| Audio, transcripts, summaries, shares | [library.md](library.md) |
+| Public summary links (guest) | [public.md](public.md) |
+| Organization admin | [org.md](org.md) |
+| Instance admin | [instance.md](instance.md) |
+| Skills catalog | [skills.md](skills.md) |
+
+## Conventions
+
+- UUIDs as strings everywhere
+- Money as decimal strings in JSON (`"12.34"`)
+- Timestamps ISO 8601 with timezone
+- Email normalized to lowercase on write
+
+## Related pages
+
+- [Security](../architecture/security.md)
+- [Development setup](../development/setup.md)
