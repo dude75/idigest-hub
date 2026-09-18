@@ -20,6 +20,7 @@ export type User = {
   timezone: string | null
   asr_model: string | null
   diarization_model: string | null
+  show_only_my_items: boolean
   disabled: boolean
   must_change_password: boolean
   mfa_enabled: boolean

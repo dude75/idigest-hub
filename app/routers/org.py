@@ -108,12 +108,15 @@ def org_stats(
         start, end = parse_org_stats_range(from_day, to_day)
     except ValueError:
         ctx.raise_error(ErrorCode.validation_error)
+    effective_user_id = (user_id or "").strip() or None
+    if effective_user_id is None and ctx.user.show_only_my_items:
+        effective_user_id = ctx.user.id
     return org_usage_stats(
         db,
         org.id,
         start=start,
         end=end,
-        user_id=(user_id or "").strip() or None,
+        user_id=effective_user_id,
         kind=(kind or "").strip() or None,
     )
 
@@ -176,7 +179,9 @@ def org_public_links(
 
     items = []
     for link, summary, owner in list_org_public_links(db, org.id):
-        if not ctx.is_org_admin and summary.owner_user_id != ctx.user.id:
+        if summary.owner_user_id != ctx.user.id and (
+            not ctx.is_org_admin or ctx.user.show_only_my_items
+        ):
             continue
         items.append(link_org_list_item(link, summary, owner, org, db))
     return {"items": items}

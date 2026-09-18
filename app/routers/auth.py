@@ -164,6 +164,7 @@ class MePatchBody(BaseModel):
     timezone: str | None = None
     asr_model: str | None = None
     diarization_model: str | None = Field(default=None)
+    show_only_my_items: bool | None = None
 
 
 def _norm_email(email: str) -> str:
@@ -898,6 +899,9 @@ def patch_me(
             )
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
+    if "show_only_my_items" in data and data["show_only_my_items"] is not None:
+        ctx.user.show_only_my_items = bool(data["show_only_my_items"])
+        ctx.user.updated_at = utcnow()
     return _me_payload(ctx, db)
 
 

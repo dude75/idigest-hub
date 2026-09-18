@@ -56,6 +56,43 @@ def _insert_transcript_and_summary(org_id: str, user_id: str, audio_id: str | No
         db.close()
 
 
+def test_org_admin_show_only_my_items_filters_library(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    admin_audio = upload_audio(client)
+    assert admin_audio.status_code == 200, admin_audio.text
+    admin_audio_id = admin_audio.json()["id"]
+
+    member = client.post(
+        "/api/v1/org/users",
+        json={"email": "member@example.com", "password": "memberpass1", "role": "org_member"},
+    )
+    assert member.status_code == 200, member.text
+    logout(client)
+    login_ready(client, "member@example.com", "memberpass1")
+    member_audio = upload_audio(client)
+    assert member_audio.status_code == 200, member_audio.text
+    member_audio_id = member_audio.json()["id"]
+
+    logout(client)
+    login_ready(client, "lead@example.com", "leadpass1")
+    all_items = client.get("/api/v1/audios")
+    assert all_items.status_code == 200
+    assert {admin_audio_id, member_audio_id}.issubset(item["id"] for item in all_items.json()["items"])
+
+    scoped = client.patch("/api/v1/me", json={"show_only_my_items": True})
+    assert scoped.status_code == 200, scoped.text
+    own_items = client.get("/api/v1/audios")
+    assert own_items.status_code == 200
+    ids = [item["id"] for item in own_items.json()["items"]]
+    assert admin_audio_id in ids
+    assert member_audio_id not in ids
+
+    still_readable = client.get(f"/api/v1/audios/{member_audio_id}")
+    assert still_readable.status_code == 200, still_readable.text
+
+
 def test_org_admin_sees_member_hidden_audio_unhide_restores(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

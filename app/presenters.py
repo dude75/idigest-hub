@@ -34,6 +34,7 @@ def user_public(user: User, role: str | None = None) -> dict[str, Any]:
         "timezone": user.timezone,
         "asr_model": user.asr_model,
         "diarization_model": user.diarization_model,
+        "show_only_my_items": user.show_only_my_items,
         "disabled": user.disabled_at is not None,
         "must_change_password": user.must_change_password,
         "mfa_enabled": user.totp_enabled_at is not None,

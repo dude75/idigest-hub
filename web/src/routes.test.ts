@@ -19,6 +19,7 @@ const baseMe: Me = {
     timezone: null,
     asr_model: null,
     diarization_model: null,
+    show_only_my_items: false,
     disabled: false,
     must_change_password: false,
     mfa_enabled: false,

@@ -53,6 +53,10 @@ def is_hidden(db: Session, user_id: str, object_type: str, object_id: str) -> bo
     return row is not None
 
 
+def org_admin_own_items_only(ctx: AuthContext) -> bool:
+    return ctx.is_org_admin and ctx.user.show_only_my_items
+
+
 def can_read_object(
     ctx: AuthContext,
     db: Session,

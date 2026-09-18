@@ -120,6 +120,7 @@ class User(Base):
     timezone: Mapped[str | None] = mapped_column(String(64))
     asr_model: Mapped[str | None] = mapped_column(String(32))
     diarization_model: Mapped[str | None] = mapped_column(String(32))
+    show_only_my_items: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
