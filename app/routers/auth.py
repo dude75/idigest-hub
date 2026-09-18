@@ -301,7 +301,7 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
         settings=settings,
     )
     agreement_payload = None
-    if agreement_pending:
+    if agreement_active(settings) and ctx.membership is not None and ctx.org is not None:
         agreement_payload = {
             "version": settings.user_agreement_version,
             "text": agreement_text(settings, ctx.locale),

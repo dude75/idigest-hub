@@ -665,9 +665,11 @@ th { color: var(--muted); font-weight: 550; }
   background: #f8fafc;
   font-size: 0.9rem;
   line-height: 1.55;
-  white-space: pre-wrap;
   word-break: break-word;
 }
+.agreement-text .summary-md :first-child { margin-top: 0; }
+.agreement-text .summary-md :last-child { margin-bottom: 0; }
+.profile-agreement-text { max-height: 24rem; overflow: auto; }
 .agreement-accept {
   flex-shrink: 0;
   align-items: flex-start;

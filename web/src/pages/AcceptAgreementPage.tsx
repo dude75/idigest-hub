@@ -6,6 +6,7 @@ import { useAuth } from '../auth'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { Modal } from '../components/Modal'
 import { resolveAuthBlockPath, resolveAuthContinuationPath } from '../routes'
+import { MarkdownBody } from '../markdown'
 import { showError } from '../util'
 
 export function AcceptAgreementPage() {
@@ -58,7 +59,9 @@ export function AcceptAgreementPage() {
         </header>
 
         <div className="modal-body">
-          <div className="agreement-text">{text || t('agreement.empty')}</div>
+          <div className="agreement-text">
+            {text ? <MarkdownBody text={text} /> : t('agreement.empty')}
+          </div>
         </div>
 
         <label className="row agreement-accept">

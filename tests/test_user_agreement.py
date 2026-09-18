@@ -47,6 +47,8 @@ def test_user_agreement_blocks_org_member_until_accepted(client: TestClient):
     assert accepted.status_code == 200, accepted.text
     payload = accepted.json()
     assert payload["user_agreement_required"] is False
+    assert payload["user_agreement"]["text"] == "Terms EN"
+    assert payload["user_agreement"]["version"] == 1
 
     allowed = client.get("/api/v1/audios")
     assert allowed.status_code == 200, allowed.text

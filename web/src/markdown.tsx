@@ -16,3 +16,14 @@ export function MarkdownBody({ text }: { text: string }) {
     </div>
   )
 }
+
+export function downloadMarkdown(text: string, filename: string): void {
+  const body = unwrapMarkdownFence(text)
+  const blob = new Blob([body], { type: 'text/markdown;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename.endsWith('.md') ? filename : `${filename}.md`
+  link.click()
+  URL.revokeObjectURL(url)
+}
