@@ -18,6 +18,8 @@ export type User = {
   default_route: string
   date_time_format: string | null
   timezone: string | null
+  asr_model: string | null
+  diarization_model: string | null
   disabled: boolean
   must_change_password: boolean
   mfa_enabled: boolean
@@ -75,12 +77,28 @@ export type Org = {
   hidden?: boolean
 }
 
+export type TranscribePrefs = {
+  asr_model: string
+  diarization_model: string | null
+  asr_source: 'user' | 'instance'
+  diarization_source: 'user' | 'instance'
+  instance_asr_model: string
+  instance_diarization_model: string | null
+}
+
+export type TranscribeModels = {
+  asr_models: string[]
+  diarization_models: string[]
+}
+
 export type Me = {
   user: User
   org: Org | null
   impersonating: boolean
   actor: User | null
   date_time_prefs: DateTimePrefs
+  transcribe_prefs: TranscribePrefs
+  transcribe_models: TranscribeModels
   must_change_password: boolean
   mfa_enabled: boolean
   mfa_required: boolean
@@ -231,6 +249,20 @@ export type Worker = {
   last_health: Record<string, unknown> | null
   last_seen_version: string | null
   last_health_at: string | null
+  asr_models: string[]
+  diarization_models: string[]
+}
+
+export type WorkerEngineOption = {
+  id: string
+  status: string
+}
+
+export type WorkerProbeResult = {
+  authorized: boolean
+  health_status: number
+  asr_models?: WorkerEngineOption[]
+  diarization_models?: WorkerEngineOption[]
 }
 
 export type ImportPlatform = {
@@ -264,6 +296,8 @@ export type InstanceSettings = {
   smtp_tls: boolean
   asr_model: string
   diarization_model: string | null
+  asr_models: string[]
+  diarization_models: string[]
   import_enabled: boolean
   import_platforms: ImportPlatform[]
   download_proxy_url: string | null

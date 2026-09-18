@@ -13,6 +13,8 @@ const baseMe: Me = {
     default_route: 'library/audio',
     date_time_format: null,
     timezone: null,
+    asr_model: null,
+    diarization_model: null,
     disabled: false,
     must_change_password: false,
     mfa_enabled: false,
@@ -25,6 +27,18 @@ const baseMe: Me = {
     timezone_source: 'instance',
     instance_format: 'eu_24h',
     instance_timezone: 'GMT+0',
+  },
+  transcribe_prefs: {
+    asr_model: 'whisper',
+    diarization_model: 'pyannote',
+    asr_source: 'instance',
+    diarization_source: 'instance',
+    instance_asr_model: 'whisper',
+    instance_diarization_model: 'pyannote',
+  },
+  transcribe_models: {
+    asr_models: ['whisper'],
+    diarization_models: ['pyannote'],
   },
   org: {
     id: 'o1',

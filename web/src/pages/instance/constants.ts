@@ -16,6 +16,8 @@ export const emptyWorker = {
   api_token: '',
   weight: 1,
   enabled: true,
+  asr_models: [] as string[],
+  diarization_models: [] as string[],
 }
 
 export const emptyOrg = {

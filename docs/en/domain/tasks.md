@@ -50,6 +50,21 @@ Prerequisites:
 
 Immediate `locked_tick` after insert tries to dispatch without waiting for background loop.
 
+## Transcription models (snapshot)
+
+Transcribe and import-with-transcribe tasks store models at creation time:
+
+| Field | Source |
+| ----- | ------ |
+| `snap_asr_model` | User `asr_model` if set, else instance `asr_model` |
+| `snap_diarization_model` | User `diarization_model` if set (`""` = disabled), else instance `diarization_model` |
+
+Resolution order: **user profile → instance settings**. Changing settings or profile later does not affect already-queued tasks.
+
+Available choices are the union of models registered on enabled transcribe workers. Instance admin sets defaults in **Instance → Settings → Service models**. Users may override in **Profile → Transcription models** (inherit / off / specific model).
+
+Clients cannot pass models in `POST /tasks/transcribe` — only the resolved defaults apply.
+
 ## Poll
 
 `GET /tasks/{task_id}` — triggers tick when status is `queued` or `running`.
@@ -98,10 +113,12 @@ Worker choice among candidates:
 2. Score by `in_flight / weight` (lower is better)
 3. Tie-break toward higher `weight`
 
-Transcribe candidates require engine map from worker `/health`:
+Transcribe candidates must satisfy **all** of:
 
-- `snap_asr_model` (default `whisper`) status `loaded`
-- `snap_diarization_model` (optional) status `loaded`
+1. Node type `transcribe`, enabled
+2. `snap_asr_model` in node’s `asr_models_json` (or legacy: inferred from `/health`)
+3. If `snap_diarization_model` is set — same for diarization list
+4. `/health` reports both engines as `loaded`
 
 Summarize candidates require `/ready` HTTP 200.
 

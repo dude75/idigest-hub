@@ -188,11 +188,19 @@ Auto-provision: первый SSO-вход с неизвестным email соз
   "user": {
     "id", "email", "locale", "default_route",
     "date_time_format", "timezone",
+    "asr_model", "diarization_model",
     "disabled", "must_change_password", "is_instance_admin", "role"
   },
   "org": { ... } | null,
   "impersonating": false,
   "actor": { ... } | null,
+  "date_time_prefs": { ... },
+  "transcribe_prefs": {
+    "asr_model", "diarization_model",
+    "asr_source", "diarization_source",
+    "instance_asr_model", "instance_diarization_model"
+  },
+  "transcribe_models": { "asr_models": [], "diarization_models": [] },
   "must_change_password": false,
   "mfa_enabled": false,
   "mfa_required": false,
@@ -211,7 +219,9 @@ Auto-provision: первый SSO-вход с неизвестным email соз
   "locale": "es",
   "default_route": "tasks",
   "date_time_format": "us_12h",
-  "timezone": "GMT+3"
+  "timezone": "GMT+3",
+  "asr_model": "parakeet",
+  "diarization_model": ""
 }
 ```
 
@@ -220,6 +230,10 @@ Auto-provision: первый SSO-вход с неизвестным email соз
 `date_time_format`: `eu_24h` | `us_12h` | `iso` | `relative`, или `null` — наследовать default инстанса.
 
 `timezone`: `GMT-12` … `GMT+14`, или `null` — наследовать default инстанса. Разрешённые значения возвращаются в GET `/me`.
+
+`asr_model`: id модели из `transcribe_models.asr_models`, или `null` — наследовать default инстанса.
+
+`diarization_model`: id из `transcribe_models.diarization_models`, `null` — наследовать default инстанса, или `""` — отключить диаризацию для своих задач.
 
 ## Резервная копия профиля
 

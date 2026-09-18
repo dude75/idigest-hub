@@ -160,9 +160,13 @@ def summarize_pool_state(nodes: list[WorkerNode]) -> str:
 
 
 def transcribe_candidates(nodes: list[WorkerNode], asr: str, diar: str | None) -> list[WorkerNode]:
+    from app.services.transcribe_models import worker_offers_model
+
     out: list[WorkerNode] = []
     for node in nodes:
         if not node.enabled or node.type != "transcribe":
+            continue
+        if not worker_offers_model(node, asr=asr, diar=diar):
             continue
         engines = _engines(node)
         asr_st = engines.get(asr, "disabled")

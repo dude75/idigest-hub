@@ -38,11 +38,11 @@ snap_price_per_audio_sec
 snap_price_per_summarize_job
 snap_price_per_1k_summary_chars
 snap_max_upload_bytes
-snap_asr_model          # transcribe only, from instance settings
-snap_diarization_model  # transcribe only
+snap_asr_model          # transcribe only, user override or instance default
+snap_diarization_model  # transcribe only, user override or instance default
 ```
 
-Transcribe uses instance ASR/diarization settings at creation time; summarize snapshots do not include models.
+Transcribe resolves models at creation (user profile → instance settings) and snapshots them; summarize snapshots do not include models.
 
 ## Pricing formulas
 

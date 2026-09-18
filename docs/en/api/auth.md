@@ -188,11 +188,19 @@ Admin reset (clears 2FA without user code): [Org reset-MFA](org.md#post-orgusers
   "user": {
     "id", "email", "locale", "default_route",
     "date_time_format", "timezone",
+    "asr_model", "diarization_model",
     "disabled", "must_change_password", "is_instance_admin", "role"
   },
   "org": { ... } | null,
   "impersonating": false,
   "actor": { ... } | null,
+  "date_time_prefs": { ... },
+  "transcribe_prefs": {
+    "asr_model", "diarization_model",
+    "asr_source", "diarization_source",
+    "instance_asr_model", "instance_diarization_model"
+  },
+  "transcribe_models": { "asr_models": [], "diarization_models": [] },
   "must_change_password": false,
   "mfa_enabled": false,
   "mfa_required": false,
@@ -211,7 +219,9 @@ When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, 
   "locale": "es",
   "default_route": "tasks",
   "date_time_format": "us_12h",
-  "timezone": "GMT+3"
+  "timezone": "GMT+3",
+  "asr_model": "parakeet",
+  "diarization_model": ""
 }
 ```
 
@@ -220,6 +230,10 @@ When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, 
 `date_time_format`: `eu_24h` | `us_12h` | `iso` | `relative`, or `null` to inherit instance default.
 
 `timezone`: `GMT-12` … `GMT+14`, or `null` to inherit instance default. Resolved values are returned on GET `/me`.
+
+`asr_model`: model id from `transcribe_models.asr_models`, or `null` to inherit instance default.
+
+`diarization_model`: model id from `transcribe_models.diarization_models`, `null` to inherit instance default, or `""` to disable diarization for your tasks.
 
 ## Profile backup
 

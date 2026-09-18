@@ -25,7 +25,7 @@ Extended from [README — Typical errors](../../../README.md#typical-errors).
 
 | Symptom | Cause | Fix |
 | ------- | ----- | --- |
-| `queued` long time, `waiting_engine` | ASR/diarization loading | Wait for worker engines `loaded` |
+| `queued` long time, `waiting_engine` | No worker with full model set, or engines loading | Ensure one transcribe node offers both snapshotted ASR and diarization (if any) and reports them `loaded` in `/health` |
 | `queued` → `dispatch_timeout` | No enabled workers 1h | Register/fix workers |
 | `running` forever | Worker hung | Check worker logs; restart worker |
 | `pipeline_error` | Worker processing failed | Worker logs; retry new task |

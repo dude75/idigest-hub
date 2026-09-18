@@ -172,6 +172,9 @@ async def create_transcribe(
         ctx.raise_error(ErrorCode.not_found)
     tariff = assert_can_accept_task(ctx, org, ctx.locale)
     settings = get_instance_settings(db)
+    from app.services.transcribe_models import resolve_transcribe_models
+
+    models = resolve_transcribe_models(ctx.user, settings)
     skill_ids = list(body.skill_ids or [])
     if skill_ids:
         _validate_summarize_skills(ctx, db, org, skill_ids)
@@ -187,7 +190,7 @@ async def create_transcribe(
         queued_at=now,
         created_at=now,
         updated_at=now,
-        **snapshot_fields(tariff, settings.asr_model, settings.diarization_model),
+        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
     )
     db.add(task)
     db.flush()
@@ -225,6 +228,9 @@ async def create_import(
         assert_can_accept_task(ctx, org, ctx.locale)
         if body.skill_ids:
             _validate_summarize_skills(ctx, db, org, body.skill_ids)
+    from app.services.transcribe_models import resolve_transcribe_models
+
+    models = resolve_transcribe_models(ctx.user, settings)
     tariff = org.tariff
     now = utcnow()
     meta: dict = {"url": url, "stage": "queued"}
@@ -241,7 +247,7 @@ async def create_import(
         created_at=now,
         updated_at=now,
         meta_json=meta,
-        **snapshot_fields(tariff, settings.asr_model, settings.diarization_model),
+        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
     )
     db.add(task)
     db.flush()

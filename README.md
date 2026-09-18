@@ -182,8 +182,11 @@ Compose does **not** start workers. Run [itranscribe-worker](https://github.com/
    - `type`: `transcribe` or `summarize`
    - `base_url`: URL the **hub process** can reach (not the browser). Example if the hub is in Docker and the worker is on the host: `http://host.docker.internal:8000`.
    - `api_token`: that worker’s `API_TOKEN`
+   - For **transcribe**: test connection, then select which ASR and diarization models this node serves (from the worker’s `/health`).
    - `weight` / `enabled` as needed
-3. Hub users never see these fields. The hub copies results into its own DB, then `DELETE`s the worker task.
+3. Instance → settings → **Service models**: pick default ASR/diarization from the union of registered transcribe workers.
+4. Users may override models in **Profile** (optional). Models are snapshotted onto each new transcribe task.
+5. Hub users never see worker URLs or tokens. The hub copies results into its own DB, then `DELETE`s the worker task.
 
 Do **not** proxy worker `GET /metrics` through the hub. Scrape each worker directly (Bearer `API_TOKEN` on the worker).
 

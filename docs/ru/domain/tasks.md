@@ -50,6 +50,21 @@ stateDiagram-v2
 
 Немедленный `locked_tick` после insert пытается dispatch без ожидания фонового цикла.
 
+## Модели транскрибации (snapshot)
+
+Задачи transcribe и import с transcribe фиксируют модели при создании:
+
+| Поле | Источник |
+| ---- | -------- |
+| `snap_asr_model` | `asr_model` пользователя, если задан; иначе `asr_model` инстанса |
+| `snap_diarization_model` | `diarization_model` пользователя, если задан (`""` = выкл.); иначе значение инстанса |
+
+Порядок: **профиль пользователя → настройки инстанса**. Смена настроек или профиля не меняет уже поставленные в очередь задачи.
+
+Доступные варианты — объединение моделей всех включённых transcribe-воркеров. Defaults задаёт instance admin в **Instance → Settings → Сервисные модели**. Пользователь может переопределить в **Profile → Модели транскрибации** (наследовать / выкл. / конкретная модель).
+
+Клиент не передаёт модели в `POST /tasks/transcribe` — применяются только resolved defaults.
+
 ## Polling
 
 `GET /tasks/{task_id}` — запускает tick, когда status `queued` или `running`.
@@ -98,10 +113,12 @@ stateDiagram-v2
 2. Оценка по `in_flight / weight` (меньше — лучше)
 3. Tie-break в сторону большего `weight`
 
-Кандидаты transcribe требуют engine map из `/health` воркера:
+Кандидат transcribe должен удовлетворять **всем** условиям:
 
-- `snap_asr_model` (по умолчанию `whisper`) status `loaded`
-- `snap_diarization_model` (опционально) status `loaded`
+1. Тип `transcribe`, enabled
+2. `snap_asr_model` есть в `asr_models_json` ноды (legacy: выводится из `/health`)
+3. Если задан `snap_diarization_model` — то же для списка диаризации
+4. `/health` отдаёт оба engine в статусе `loaded`
 
 Кандидаты summarize требуют `/ready` HTTP 200.
 

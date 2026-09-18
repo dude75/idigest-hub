@@ -111,12 +111,15 @@ def test_queue_full_stays_queued_without_dispatch_timeout(client, fake_workers):
 def test_engines_unavailable_stays_queued_without_dispatch_timeout(client, fake_workers):
     setup_admin(client)
     tariff_id = default_tariff_id(client)
-    add_worker(client)
+    worker = add_worker(client)
     fake_workers.health = {
         "status": "ok",
         "version": "x",
         "engines": {**LOADED_ENGINES, "whisper": "unavailable"},
     }
+    from tests.conftest import seed_node_health
+
+    seed_node_health(worker["id"], fake_workers.health)
     logout(client)
     assert signup(client, "wait@example.com", "waitpass1", tariff_id).status_code == 200
     audio = upload_audio(client)

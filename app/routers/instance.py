@@ -45,6 +45,15 @@ class WorkerBody(BaseModel):
     api_token: str | None = None
     weight: int = 1
     enabled: bool = True
+    asr_models: list[str] | None = None
+    diarization_models: list[str] | None = None
+
+
+class WorkerProbeBody(BaseModel):
+    type: str
+    base_url: str
+    api_token: str | None = None
+    worker_id: str | None = None
 
 
 class TariffBody(BaseModel):
@@ -152,6 +161,46 @@ def _admin(ctx: AuthContext) -> None:
     ctx.require_instance_admin()
 
 
+def _resolve_worker_token(body: WorkerProbeBody | WorkerBody, node: WorkerNode | None, db: Session, ctx: AuthContext) -> str:
+    from app.crypto import decrypt_str
+
+    if body.api_token:
+        return body.api_token
+    if node is not None:
+        return decrypt_str(node.api_token_encrypted, db)
+    ctx.raise_error(ErrorCode.validation_error)
+
+
+def _apply_transcribe_worker_models(
+    node: WorkerNode,
+    body: WorkerBody,
+    *,
+    probe_health: dict | None,
+    ctx: AuthContext,
+) -> None:
+    from app.services.transcribe_models import normalize_model_ids, parse_worker_engines, selectable_engine_ids
+
+    if body.type != "transcribe":
+        node.asr_models_json = None
+        node.diarization_models_json = None
+        return
+    if body.asr_models is None and body.diarization_models is None:
+        return
+    parsed = parse_worker_engines(probe_health or node.last_health)
+    allowed_asr = set(selectable_engine_ids(parsed["asr_models"]))
+    allowed_diar = set(selectable_engine_ids(parsed["diarization_models"]))
+    asr = normalize_model_ids(body.asr_models, allowed=allowed_asr)
+    diar = normalize_model_ids(body.diarization_models, allowed=allowed_diar)
+    if body.asr_models is not None and not asr:
+        ctx.raise_error(ErrorCode.validation_error)
+    if body.diarization_models is not None and body.diarization_models and not diar:
+        ctx.raise_error(ErrorCode.validation_error)
+    if body.asr_models is not None:
+        node.asr_models_json = asr
+    if body.diarization_models is not None:
+        node.diarization_models_json = diar
+
+
 def _org_count(db: Session, tariff_id: str) -> int:
     return int(db.scalar(select(func.count()).select_from(Organization).where(Organization.tariff_id == tariff_id)) or 0)
 
@@ -163,21 +212,82 @@ def list_workers(db: Session = Depends(get_session, scope="function"), ctx: Auth
     return {"items": [worker_public(row) for row in rows]}
 
 
+@router.get("/instance/transcribe-models")
+def list_transcribe_models(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    from app.services.transcribe_models import aggregate_instance_models
+
+    _admin(ctx)
+    settings = get_instance_settings(db)
+    available = aggregate_instance_models(db)
+    return {
+        **available,
+        "default_asr_model": settings.asr_model,
+        "default_diarization_model": settings.diarization_model,
+    }
+
+
+@router.post("/workers/probe")
+async def probe_worker(
+    body: WorkerProbeBody,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    from app.services.transcribe_models import parse_worker_engines
+    from app.services.workers import WorkerClientError, get_health_url, verify_worker_token
+
+    _admin(ctx)
+    if body.type not in {"transcribe", "summarize"}:
+        ctx.raise_error(ErrorCode.validation_error)
+    node = db.get(WorkerNode, body.worker_id) if body.worker_id else None
+    if body.worker_id and node is None:
+        ctx.raise_error(ErrorCode.not_found)
+    base_url = body.base_url.rstrip("/")
+    token = _resolve_worker_token(body, node, db, ctx)
+    try:
+        await verify_worker_token(base_url, token)
+    except WorkerClientError as exc:
+        if exc.status_code == 401:
+            ctx.raise_error(ErrorCode.validation_error)
+        raise
+    status, health = await get_health_url(base_url)
+    if status != 200:
+        ctx.raise_error(ErrorCode.validation_error)
+    payload: dict = {"authorized": True, "health_status": status}
+    if body.type == "transcribe":
+        payload.update(parse_worker_engines(health))
+    return payload
+
+
 @router.post("/workers")
-def create_worker(
+async def create_worker(
     body: WorkerBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
+    from app.services.dispatcher import refresh_node_health
+    from app.services.workers import WorkerClientError, verify_worker_token
+
     _admin(ctx)
     if body.type not in {"transcribe", "summarize"}:
         ctx.raise_error(ErrorCode.validation_error)
     if not body.api_token:
         ctx.raise_error(ErrorCode.validation_error)
+    base_url = body.base_url.rstrip("/")
+    if body.type == "transcribe":
+        try:
+            await verify_worker_token(base_url, body.api_token)
+        except WorkerClientError as exc:
+            if exc.status_code == 401:
+                ctx.raise_error(ErrorCode.validation_error)
+            raise
+        if not body.asr_models:
+            ctx.raise_error(ErrorCode.validation_error)
     now = utcnow()
     node = WorkerNode(
         id=new_id(),
         type=body.type,
         name=body.name.strip(),
-        base_url=body.base_url.rstrip("/"),
+        base_url=base_url,
         api_token_encrypted=encrypt_str(body.api_token, db),
         weight=max(body.weight, 1),
         enabled=body.enabled,
@@ -186,30 +296,54 @@ def create_worker(
     )
     db.add(node)
     db.flush()
+    if body.type == "transcribe":
+        await refresh_node_health(db, node)
+        _apply_transcribe_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
     return worker_public(node)
 
 
 @router.patch("/workers/{worker_id}")
-def patch_worker(
+async def patch_worker(
     worker_id: str,
     body: WorkerBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
+    from app.services.dispatcher import refresh_node_health
+    from app.services.workers import WorkerClientError, verify_worker_token
+
     _admin(ctx)
     node = db.get(WorkerNode, worker_id)
     if node is None:
         ctx.raise_error(ErrorCode.not_found)
     if body.type not in {"transcribe", "summarize"}:
         ctx.raise_error(ErrorCode.validation_error)
+    base_url = body.base_url.rstrip("/")
+    old_base_url = node.base_url
+    token = _resolve_worker_token(body, node, db, ctx)
+    if body.type == "transcribe" and (body.api_token or base_url != old_base_url):
+        try:
+            await verify_worker_token(base_url, token)
+        except WorkerClientError as exc:
+            if exc.status_code == 401:
+                ctx.raise_error(ErrorCode.validation_error)
+            raise
     node.type = body.type
     node.name = body.name.strip()
-    node.base_url = body.base_url.rstrip("/")
+    node.base_url = base_url
     if body.api_token:
         node.api_token_encrypted = encrypt_str(body.api_token, db)
     node.weight = max(body.weight, 1)
     node.enabled = body.enabled
     node.updated_at = utcnow()
+    if body.type == "transcribe" and (
+        body.api_token or base_url != old_base_url or body.asr_models is not None or body.diarization_models is not None
+    ):
+        await refresh_node_health(db, node)
+        _apply_transcribe_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
+    elif body.type != "transcribe":
+        node.asr_models_json = None
+        node.diarization_models_json = None
     return worker_public(node)
 
 
@@ -358,6 +492,7 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
     _admin(ctx)
     s = get_instance_settings(db)
     from app.services.import_platforms import DEFAULT_IMPORT_AUDIO_BITRATE_KBPS, admin_platforms
+    from app.services.transcribe_models import aggregate_instance_models
 
     proxy_url = s.download_proxy_url or ""
     bitrate = s.import_audio_bitrate_kbps
@@ -375,6 +510,7 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "smtp_tls": s.smtp_tls,
         "asr_model": s.asr_model,
         "diarization_model": s.diarization_model,
+        **aggregate_instance_models(db),
         "import_enabled": s.import_enabled,
         "import_platforms": admin_platforms(s),
         "download_proxy_url": s.download_proxy_url,
@@ -460,6 +596,13 @@ def patch_settings(
             ctx.raise_error(ErrorCode.validation_error)
     for key, value in data.items():
         setattr(s, key, value)
+    if "asr_model" in body.model_dump(exclude_unset=True) or "diarization_model" in body.model_dump(exclude_unset=True):
+        from app.services.transcribe_models import validate_instance_models
+
+        try:
+            validate_instance_models(db, asr_model=s.asr_model, diarization_model=s.diarization_model)
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
     invalidate_rate_limit_cache()
     invalidate_session_ttl_cache()
     return get_settings_ep(db, ctx)

@@ -20,9 +20,12 @@ SAMPLE_M4A_BYTES = b"\x00" * 4 + b"ftyp" + b"M4A " + b"\x00" * 32
 LOADED_ENGINES = {
     "whisper": "loaded",
     "gigaam": "loaded",
+    "parakeet": "loaded",
     "nemo": "loaded",
     "pyannote": "loaded",
 }
+DEFAULT_WORKER_ASR_MODELS = ["whisper", "gigaam", "parakeet"]
+DEFAULT_WORKER_DIARIZATION_MODELS = ["nemo", "pyannote"]
 
 
 @pytest.fixture
@@ -57,6 +60,20 @@ def client(tmp_path, monkeypatch):
     dispatcher._inflight_ticks.clear()
 
     from app.main import app
+
+    async def _verify_worker_token(_base_url: str, _api_token: str) -> None:
+        return None
+
+    async def _get_health_url(_base_url: str) -> tuple[int, dict[str, Any]]:
+        return 200, {"status": "ok", "version": "x", "engines": dict(LOADED_ENGINES)}
+
+    async def _get_health(_db, _node) -> tuple[int, dict[str, Any]]:
+        return 200, {"status": "ok", "version": "x", "engines": dict(LOADED_ENGINES)}
+
+    monkeypatch.setattr("app.services.workers.verify_worker_token", _verify_worker_token)
+    monkeypatch.setattr("app.services.workers.get_health_url", _get_health_url)
+    monkeypatch.setattr("app.services.workers.get_health", _get_health)
+    monkeypatch.setattr("app.services.dispatcher.get_health", _get_health)
 
     with TestClient(app) as test_client:
         _attach_csrf_client(test_client)
@@ -216,18 +233,23 @@ def add_worker(
     name: str = "worker-1",
     base_url: str = "http://worker.test",
     api_token: str = "tok",
+    asr_models: list[str] | None = None,
+    diarization_models: list[str] | None = None,
 ) -> dict:
-    response = client.post(
-        "/api/v1/workers",
-        json={
-            "type": type,
-            "name": name,
-            "base_url": base_url,
-            "api_token": api_token,
-            "weight": 1,
-            "enabled": True,
-        },
-    )
+    payload: dict[str, Any] = {
+        "type": type,
+        "name": name,
+        "base_url": base_url,
+        "api_token": api_token,
+        "weight": 1,
+        "enabled": True,
+    }
+    if type == "transcribe":
+        payload["asr_models"] = asr_models if asr_models is not None else list(DEFAULT_WORKER_ASR_MODELS)
+        payload["diarization_models"] = (
+            diarization_models if diarization_models is not None else list(DEFAULT_WORKER_DIARIZATION_MODELS)
+        )
+    response = client.post("/api/v1/workers", json=payload)
     assert response.status_code == 200, response.text
     return response.json()
 
@@ -377,16 +399,25 @@ class FakeWorkers:
         self.nodes_polled: list[str] = []
 
     def install(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        for name in (
+        dispatcher_names = (
             "get_health",
             "get_ready",
             "post_transcribe",
             "post_summarize",
             "get_task",
             "delete_task",
-        ):
+        )
+        worker_names = (*dispatcher_names, "verify_worker_token", "get_health_url")
+        for name in dispatcher_names:
             monkeypatch.setattr(f"app.services.dispatcher.{name}", getattr(self, name))
+        for name in worker_names:
             monkeypatch.setattr(f"app.services.workers.{name}", getattr(self, name))
+
+    async def verify_worker_token(self, _base_url: str, _api_token: str) -> None:
+        return None
+
+    async def get_health_url(self, _base_url: str) -> tuple[int, dict[str, Any]]:
+        return self.health_status, dict(self.health)
 
     async def get_health(self, _db, node) -> tuple[int, dict[str, Any]]:
         return self.health_status, dict(self.health)

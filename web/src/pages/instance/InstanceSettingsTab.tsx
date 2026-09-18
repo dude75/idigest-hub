@@ -24,6 +24,8 @@ export function InstanceSettingsTab() {
       ...data,
       date_time_format: data.date_time_format ?? 'eu_24h',
       timezone: data.timezone ?? 'GMT+0',
+      asr_models: data.asr_models ?? [],
+      diarization_models: data.diarization_models ?? [],
       import_audio_bitrate_kbps: data.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
       smtp_password_configured: data.smtp_password_configured ?? false,
     }
@@ -188,8 +190,36 @@ export function InstanceSettingsTab() {
           <span>{t('instance.serviceModelsTitle')}</span>
         </summary>
         <div className="stack fold-body">
-          <label>{t('instance.asr')}<input value={settings.asr_model} onChange={(e) => setSettings({ ...settings, asr_model: e.target.value })} /></label>
-          <label>{t('instance.diarization')}<input value={settings.diarization_model || ''} onChange={(e) => setSettings({ ...settings, diarization_model: e.target.value || null })} /></label>
+          <p className="muted">{t('instance.serviceModelsHint')}</p>
+          <label>
+            {t('instance.asr')}
+            <select
+              value={settings.asr_model}
+              onChange={(e) => setSettings({ ...settings, asr_model: e.target.value })}
+              disabled={settings.asr_models.length === 0}
+            >
+              {settings.asr_models.length === 0 ? (
+                <option value={settings.asr_model}>{settings.asr_model}</option>
+              ) : (
+                settings.asr_models.map((modelId) => (
+                  <option key={modelId} value={modelId}>{modelId}</option>
+                ))
+              )}
+            </select>
+          </label>
+          <label>
+            {t('instance.diarization')}
+            <select
+              value={settings.diarization_model || ''}
+              onChange={(e) => setSettings({ ...settings, diarization_model: e.target.value || null })}
+              disabled={settings.diarization_models.length === 0}
+            >
+              <option value="">{t('instance.diarizationOff')}</option>
+              {settings.diarization_models.map((modelId) => (
+                <option key={modelId} value={modelId}>{modelId}</option>
+              ))}
+            </select>
+          </label>
         </div>
       </details>
 

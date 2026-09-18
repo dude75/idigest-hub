@@ -162,6 +162,8 @@ class MePatchBody(BaseModel):
     default_route: str | None = None
     date_time_format: str | None = None
     timezone: str | None = None
+    asr_model: str | None = None
+    diarization_model: str | None = Field(default=None)
 
 
 def _norm_email(email: str) -> str:
@@ -287,6 +289,7 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
         membership=ctx.membership,
     )
     from app.datetime_format import resolve_date_time_prefs
+    from app.services.transcribe_models import aggregate_instance_models, resolve_transcribe_models
 
     settings = get_instance_settings(db)
     return {
@@ -295,6 +298,8 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
         "impersonating": ctx.impersonating,
         "actor": user_public(ctx.actor) if ctx.impersonating else None,
         "date_time_prefs": resolve_date_time_prefs(ctx.user, settings),
+        "transcribe_prefs": resolve_transcribe_models(ctx.user, settings),
+        "transcribe_models": aggregate_instance_models(db),
         "must_change_password": ctx.user.must_change_password
         or (
             ctx.org is not None
@@ -858,6 +863,32 @@ def patch_me(
             except ValueError:
                 ctx.raise_error(ErrorCode.validation_error)
         ctx.user.updated_at = utcnow()
+    if "asr_model" in data or "diarization_model" in data:
+        from app.services.transcribe_models import aggregate_instance_models
+
+        available = aggregate_instance_models(db)
+        if "asr_model" in data:
+            asr = data["asr_model"]
+            if asr is None or not str(asr).strip():
+                ctx.user.asr_model = None
+            else:
+                asr = str(asr).strip()
+                if available["asr_models"] and asr not in available["asr_models"]:
+                    ctx.raise_error(ErrorCode.validation_error)
+                ctx.user.asr_model = asr
+            ctx.user.updated_at = utcnow()
+        if "diarization_model" in data:
+            diar = data["diarization_model"]
+            if diar is None:
+                ctx.user.diarization_model = None
+            elif not str(diar).strip():
+                ctx.user.diarization_model = ""
+            else:
+                diar = str(diar).strip()
+                if available["diarization_models"] and diar not in available["diarization_models"]:
+                    ctx.raise_error(ErrorCode.validation_error)
+                ctx.user.diarization_model = diar
+            ctx.user.updated_at = utcnow()
     return _me_payload(ctx, db)
 
 

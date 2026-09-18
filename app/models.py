@@ -118,6 +118,8 @@ class User(Base):
     default_route: Mapped[str] = mapped_column(String(32), default="library/audio", nullable=False)
     date_time_format: Mapped[str | None] = mapped_column(String(16))
     timezone: Mapped[str | None] = mapped_column(String(64))
+    asr_model: Mapped[str | None] = mapped_column(String(32))
+    diarization_model: Mapped[str | None] = mapped_column(String(32))
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -252,6 +254,8 @@ class WorkerNode(Base):
     last_health: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     last_seen_version: Mapped[str | None] = mapped_column(String(64))
     last_health_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    asr_models_json: Mapped[list[Any] | None] = mapped_column(JSON)
+    diarization_models_json: Mapped[list[Any] | None] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

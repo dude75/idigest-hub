@@ -93,6 +93,30 @@ async def get_health(db: Session | None, node: WorkerNode) -> tuple[int, dict[st
     return response.status_code, _parse_json(response)
 
 
+async def get_health_url(base_url: str) -> tuple[int, dict[str, Any]]:
+    url = base_url.rstrip("/") + "/health"
+    async with httpx2.AsyncClient(timeout=_timeout()) as client:
+        response = await client.get(url)
+    return response.status_code, _parse_json(response)
+
+
+async def verify_worker_token(base_url: str, api_token: str) -> None:
+    """Raise WorkerClientError if the worker rejects the Bearer token."""
+    url = base_url.rstrip("/") + "/tasks"
+    headers = {"Authorization": f"Bearer {api_token}"}
+    try:
+        async with httpx2.AsyncClient(timeout=_timeout()) as client:
+            response = await client.get(url, headers=headers)
+    except httpx2.TimeoutException as exc:
+        raise WorkerClientError("timeout") from exc
+    except httpx2.HTTPError as exc:
+        raise WorkerClientError("http") from exc
+    if response.status_code == 401:
+        raise WorkerClientError("error_status", 401, _parse_json(response))
+    if response.status_code >= 500:
+        raise WorkerClientError("http", response.status_code, _parse_json(response))
+
+
 async def get_ready(db: Session | None, node: WorkerNode) -> int:
     url = node.base_url.rstrip("/") + "/ready"
     _release(db)

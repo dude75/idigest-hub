@@ -38,11 +38,11 @@ snap_price_per_audio_sec
 snap_price_per_summarize_job
 snap_price_per_1k_summary_chars
 snap_max_upload_bytes
-snap_asr_model          # только transcribe, из настроек инстанса
-snap_diarization_model  # только transcribe
+snap_asr_model          # только transcribe, переопределение пользователя или default инстанса
+snap_diarization_model  # только transcribe, переопределение пользователя или default инстанса
 ```
 
-Transcribe использует настройки ASR/diarization инстанса на момент создания; summarize-снимки модели не включают.
+Transcribe при создании разрешает модели (профиль → инстанс) и фиксирует их в snapshot; summarize модели не включает.
 
 ## Формулы ценообразования
 

@@ -32,6 +32,8 @@ def user_public(user: User, role: str | None = None) -> dict[str, Any]:
         "default_route": user.default_route,
         "date_time_format": user.date_time_format,
         "timezone": user.timezone,
+        "asr_model": user.asr_model,
+        "diarization_model": user.diarization_model,
         "disabled": user.disabled_at is not None,
         "must_change_password": user.must_change_password,
         "mfa_enabled": user.totp_enabled_at is not None,
@@ -99,6 +101,8 @@ def worker_public(node: WorkerNode) -> dict[str, Any]:
         "last_health": node.last_health,
         "last_seen_version": node.last_seen_version,
         "last_health_at": isoformat_utc(node.last_health_at),
+        "asr_models": list(node.asr_models_json or []),
+        "diarization_models": list(node.diarization_models_json or []),
     }
 
 

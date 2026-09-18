@@ -6,7 +6,22 @@
 
 ### GET `/workers`
 
-Список worker nodes (без api_token в ответе).
+Список worker nodes (без api_token в ответе). У transcribe-нод в ответе `asr_models[]`, `diarization_models[]` и `last_health`.
+
+### POST `/workers/probe`
+
+Проверка URL и токена перед сохранением. Тело:
+
+```json
+{
+  "type": "transcribe",
+  "base_url": "http://host.docker.internal:8000",
+  "api_token": "worker-secret",
+  "worker_id": "uuid"
+}
+```
+
+`worker_id` опционален при редактировании — если `api_token` не передан, используется сохранённый. Ответ: `{ "authorized": true, "asr_models": [{ "id", "status" }], "diarization_models": [...] }`. Выбирать можно модели со статусом `loaded` или `unavailable`.
 
 ### POST `/workers`
 
@@ -16,16 +31,18 @@
   "name": "GPU node 1",
   "base_url": "http://host.docker.internal:8000",
   "api_token": "worker-secret",
+  "asr_models": ["whisper", "parakeet"],
+  "diarization_models": ["pyannote"],
   "weight": 2,
   "enabled": true
 }
 ```
 
-`type`: `transcribe` | `summarize`. Token шифруется at rest.
+`type`: `transcribe` | `summarize`. Token шифруется at rest. Transcribe: `asr_models` обязателен (непустой); модели проверяются по `/health` воркера.
 
 ### PATCH `/workers/{id}`
 
-Обновление полей; omit `api_token`, чтобы сохранить существующий.
+Обновление полей; omit `api_token`, чтобы сохранить существующий. Transcribe: передать `asr_models` / `diarization_models`, чтобы заменить набор моделей ноды.
 
 ### DELETE `/workers/{id}`
 
@@ -123,9 +140,22 @@ Query (те же правила дат, что у stats):
 
 ## Settings
 
+### GET `/instance/transcribe-models`
+
+Объединение моделей всех включённых transcribe-воркеров плюс defaults инстанса:
+
+```json
+{
+  "asr_models": ["whisper", "parakeet"],
+  "diarization_models": ["pyannote"],
+  "default_asr_model": "whisper",
+  "default_diarization_model": "pyannote"
+}
+```
+
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, ASR models, import settings, `date_time_format`, `timezone`, rate limit matrix. Также `smtp_configured`: true только при host, from-address **и** `public_base_url` (нужно для писем сброса пароля и public summary links).
+SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, модели транскрибации по умолчанию (`asr_model`, `diarization_model`), списки доступных моделей (`asr_models[]`, `diarization_models[]`), import settings, `date_time_format`, `timezone`, rate limit matrix. Также `smtp_configured`: true только при host, from-address **и** `public_base_url` (нужно для писем сброса пароля и public summary links).
 
 ### PATCH `/instance/settings`
 
@@ -133,7 +163,7 @@ SMTP host/port/user/from/tls (password не возвращается), `allow_ne
 
 - `allow_new_orgs`, `public_base_url`
 - SMTP: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`
-- Models: `asr_model`, `diarization_model`
+- Models: `asr_model`, `diarization_model` (должны быть в объединённом списке воркеров, если воркеры есть; пустой `diarization_model` отключает диаризацию)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)
 - Import: `import_enabled`, `import_allowed_extractors`, `download_proxy_*`, `download_cookies_path`, `import_audio_bitrate_kbps`
 - Session: `session_ttl_hours`

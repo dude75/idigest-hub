@@ -33,6 +33,9 @@ export function ProfilePage() {
   const [dateTimeOk, setDateTimeOk] = useState(false)
   const [dateTimeFormat, setDateTimeFormatLocal] = useState<'inherit' | DateTimeFormatId>('inherit')
   const [timezone, setTimezoneLocal] = useState<'inherit' | string>('inherit')
+  const [asrModel, setAsrModelLocal] = useState<'inherit' | string>('inherit')
+  const [diarizationModel, setDiarizationModelLocal] = useState<'inherit' | 'off' | string>('inherit')
+  const [transcribeOk, setTranscribeOk] = useState(false)
   const [defaultRoute, setDefaultRouteLocal] = useState<DefaultRoute>(() => {
     const stored = normalizeDefaultRoute(me?.user.default_route)
     const allowed = allowedDefaultRoutes(me)
@@ -90,6 +93,10 @@ export function ProfilePage() {
         : 'inherit',
     )
     setTimezoneLocal(me.user.timezone || 'inherit')
+    setAsrModelLocal(me.user.asr_model || 'inherit')
+    if (me.user.diarization_model == null) setDiarizationModelLocal('inherit')
+    else if (me.user.diarization_model === '') setDiarizationModelLocal('off')
+    else setDiarizationModelLocal(me.user.diarization_model)
   }, [me])
 
   const dateTimePreview = useMemo(() => {
@@ -117,10 +124,31 @@ export function ProfilePage() {
     setDateTimeOk(false)
     setRouteOk(false)
     setOk(false)
+    setTranscribeOk(false)
     try {
       await setDateTimeFormat(dateTimeFormat === 'inherit' ? null : dateTimeFormat)
       await setTimezone(timezone === 'inherit' ? null : timezone)
       setDateTimeOk(true)
+    } catch (e) {
+      showError(e)
+    }
+  }
+
+  async function saveTranscribePrefs() {
+    setTranscribeOk(false)
+    setRouteOk(false)
+    setOk(false)
+    setDateTimeOk(false)
+    try {
+      await api('/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          asr_model: asrModel === 'inherit' ? null : asrModel,
+          diarization_model: diarizationModel === 'inherit' ? null : diarizationModel === 'off' ? '' : diarizationModel,
+        }),
+      })
+      await refresh()
+      setTranscribeOk(true)
     } catch (e) {
       showError(e)
     }
@@ -289,6 +317,60 @@ export function ProfilePage() {
             {routeOk && <p className="ok">{t('profile.saved')}</p>}
           </div>
         </AdminFormCard>
+
+        {me && (me.transcribe_models.asr_models.length > 0 || me.transcribe_models.diarization_models.length > 0) && (
+          <AdminFormCard title={t('profile.transcribeTitle')} lead={t('profile.transcribeHint')}>
+            <label>
+              {t('instance.asr')}
+              <select
+                value={asrModel}
+                onChange={(e) => {
+                  setTranscribeOk(false)
+                  setAsrModelLocal(e.target.value)
+                }}
+              >
+                <option value="inherit">
+                  {t('profile.dateTimeInherit', { value: me.transcribe_prefs.instance_asr_model })}
+                </option>
+                {me.transcribe_models.asr_models.map((modelId) => (
+                  <option key={modelId} value={modelId}>{modelId}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              {t('instance.diarization')}
+              <select
+                value={diarizationModel}
+                onChange={(e) => {
+                  setTranscribeOk(false)
+                  setDiarizationModelLocal(e.target.value)
+                }}
+              >
+                <option value="inherit">
+                  {t('profile.transcribeDiarizationInherit', {
+                    value: me.transcribe_prefs.instance_diarization_model || t('instance.diarizationOff'),
+                  })}
+                </option>
+                <option value="off">{t('instance.diarizationOff')}</option>
+                {me.transcribe_models.diarization_models.map((modelId) => (
+                  <option key={modelId} value={modelId}>{modelId}</option>
+                ))}
+              </select>
+            </label>
+            <p className="muted">
+              {t('profile.transcribePreview', {
+                asr: me.transcribe_prefs.asr_model,
+                diarization: me.transcribe_prefs.diarization_model || t('instance.diarizationOff'),
+              })}
+            </p>
+            <div className="profile-actions">
+              <button className="primary" type="button" onClick={() => void saveTranscribePrefs()}>
+                {t('common.save')}
+              </button>
+              {transcribeOk && <p className="ok">{t('profile.saved')}</p>}
+            </div>
+          </AdminFormCard>
+        )}
 
         <AdminFormCard title={t('profile.dateTimeTitle')} lead={t('profile.dateTimeHint')}>
           <label>

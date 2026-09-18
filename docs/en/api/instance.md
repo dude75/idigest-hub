@@ -6,7 +6,22 @@ Auth required. Caller must be **instance_admin** (not impersonating).
 
 ### GET `/workers`
 
-List worker nodes (no api_token in response).
+List worker nodes (no api_token in response). Transcribe nodes include `asr_models[]`, `diarization_models[]`, and `last_health`.
+
+### POST `/workers/probe`
+
+Test worker URL + token before save. Body:
+
+```json
+{
+  "type": "transcribe",
+  "base_url": "http://host.docker.internal:8000",
+  "api_token": "worker-secret",
+  "worker_id": "uuid"
+}
+```
+
+`worker_id` optional on edit — uses stored token when `api_token` omitted. Returns `{ "authorized": true, "asr_models": [{ "id", "status" }], "diarization_models": [...] }`. Status `loaded` or `unavailable` models are selectable.
 
 ### POST `/workers`
 
@@ -16,16 +31,18 @@ List worker nodes (no api_token in response).
   "name": "GPU node 1",
   "base_url": "http://host.docker.internal:8000",
   "api_token": "worker-secret",
+  "asr_models": ["whisper", "parakeet"],
+  "diarization_models": ["pyannote"],
   "weight": 2,
   "enabled": true
 }
 ```
 
-`type`: `transcribe` | `summarize`. Token encrypted at rest.
+`type`: `transcribe` | `summarize`. Token encrypted at rest. Transcribe: `asr_models` required (non-empty); models validated against worker `/health`.
 
 ### PATCH `/workers/{id}`
 
-Update fields; omit `api_token` to keep existing.
+Update fields; omit `api_token` to keep existing. Transcribe: send `asr_models` / `diarization_models` to replace the node’s offered model set.
 
 ### DELETE `/workers/{id}`
 
@@ -123,9 +140,22 @@ Returns `{ "entries": [...], "total_spent", "total_topup", "net" }`. Entry types
 
 ## Settings
 
+### GET `/instance/transcribe-models`
+
+Union of models offered by enabled transcribe workers, plus instance defaults:
+
+```json
+{
+  "asr_models": ["whisper", "parakeet"],
+  "diarization_models": ["pyannote"],
+  "default_asr_model": "whisper",
+  "default_diarization_model": "pyannote"
+}
+```
+
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, ASR models, import settings, `date_time_format`, `timezone`, rate limit matrix. Also `smtp_configured`: true only when host, from-address, **and** `public_base_url` are set (required for password reset emails and public summary links).
+SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, default transcription models (`asr_model`, `diarization_model`), available model lists (`asr_models[]`, `diarization_models[]`), import settings, `date_time_format`, `timezone`, rate limit matrix. Also `smtp_configured`: true only when host, from-address, **and** `public_base_url` are set (required for password reset emails and public summary links).
 
 ### PATCH `/instance/settings`
 
@@ -133,7 +163,7 @@ Partial update. Fields include:
 
 - `allow_new_orgs`, `public_base_url`
 - SMTP: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`
-- Models: `asr_model`, `diarization_model`
+- Models: `asr_model`, `diarization_model` (must be in aggregated worker lists when workers exist; empty `diarization_model` disables diarization)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)
 - Import: `import_enabled`, `import_allowed_extractors`, `download_proxy_*`, `download_cookies_path`, `import_audio_bitrate_kbps`
 - Session: `session_ttl_hours`

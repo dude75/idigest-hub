@@ -25,7 +25,7 @@
 
 | Симптом | Причина | Решение |
 | ------- | ------- | ------- |
-| `queued` долго, `waiting_engine` | ASR/diarization загружается | Дождитесь worker engines `loaded` |
+| `queued` долго, `waiting_engine` | Нет воркера с полным набором моделей или engines грузятся | Нужна transcribe-нода, которая обслуживает и ASR, и диаризацию из snapshot задачи (если задана), и отдаёт их как `loaded` в `/health` |
 | `queued` → `dispatch_timeout` | Нет enabled workers 1h | Зарегистрируйте/исправьте workers |
 | `running` forever | Worker завис | Проверьте worker logs; перезапустите worker |
 | `pipeline_error` | Worker processing failed | Worker logs; создайте новую task |
