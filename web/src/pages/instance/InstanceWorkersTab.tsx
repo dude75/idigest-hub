@@ -7,7 +7,7 @@ import { WorkerHealthBadge, isWorkerHealthy, isWorkerUnhealthy } from '../../com
 import type { Worker, WorkerEngineOption, WorkerProbeResult } from '../../types'
 import { formatInteger, showError } from '../../util'
 import { emptyWorker } from './constants'
-import { WorkerDeleteModal } from './WorkerDeleteModal'
+import { WorkerImpactModal } from './WorkerImpactModal'
 
 const SELECTABLE_STATUSES = new Set(['loaded', 'unavailable'])
 
@@ -24,7 +24,11 @@ export function InstanceWorkersTab() {
   const [probing, setProbing] = useState(false)
   const [probe, setProbe] = useState<WorkerProbeResult | null>(null)
   const [probeOk, setProbeOk] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<Worker | null>(null)
+  const [impactModal, setImpactModal] = useState<{
+    mode: 'delete' | 'change'
+    worker: Worker
+    changeBody?: Record<string, unknown>
+  } | null>(null)
 
   async function load() {
     try {
@@ -96,34 +100,45 @@ export function InstanceWorkersTab() {
     }
   }
 
-  async function saveWorker() {
-    try {
-      const body: Record<string, unknown> = {
-        type: wform.type,
-        name: wform.name,
-        base_url: wform.base_url,
-        weight: Number(wform.weight),
-        enabled: wform.enabled,
-      }
-      if (wform.api_token.trim()) body.api_token = wform.api_token.trim()
-      if (wform.type === 'transcribe') {
-        body.asr_models = wform.asr_models
-        body.diarization_models = wform.diarization_models
-      }
-      if (editW) {
-        await api(`/workers/${editW}`, { method: 'PATCH', body: JSON.stringify(body) })
-      } else {
-        await api('/workers', { method: 'POST', body: JSON.stringify(body) })
-      }
-      setWform(emptyWorker)
-      setEditW(null)
-      setFormOpen(false)
-      setProbe(null)
-      setProbeOk(false)
-      await load()
-    } catch (e) {
-      showError(e)
+  function buildWorkerBody(): Record<string, unknown> {
+    const body: Record<string, unknown> = {
+      type: wform.type,
+      name: wform.name,
+      base_url: wform.base_url,
+      weight: Number(wform.weight),
+      enabled: wform.enabled,
     }
+    if (wform.api_token.trim()) body.api_token = wform.api_token.trim()
+    if (wform.type === 'transcribe') {
+      body.asr_models = wform.asr_models
+      body.diarization_models = wform.diarization_models
+    }
+    return body
+  }
+
+  async function saveWorkerDirect(body: Record<string, unknown>, workerId: string | null) {
+    if (workerId) {
+      await api(`/workers/${workerId}`, { method: 'PATCH', body: JSON.stringify(body) })
+    } else {
+      await api('/workers', { method: 'POST', body: JSON.stringify(body) })
+    }
+    setWform(emptyWorker)
+    setEditW(null)
+    setFormOpen(false)
+    setProbe(null)
+    setProbeOk(false)
+    await load()
+  }
+
+  function requestSaveWorker() {
+    const body = buildWorkerBody()
+    if (editW) {
+      const worker = workers.find((item) => item.id === editW)
+      if (!worker) return
+      setImpactModal({ mode: 'change', worker, changeBody: body })
+      return
+    }
+    void saveWorkerDirect(body, null).catch(showError)
   }
 
   function startEdit(w: Worker) {
@@ -245,7 +260,7 @@ export function InstanceWorkersTab() {
           {t('instance.enabled')}
         </label>
         <div className="row">
-          <button className="primary" type="button" disabled={!canSaveTranscribe} onClick={() => void saveWorker()}>{editW ? t('common.save') : t('common.create')}</button>
+          <button className="primary" type="button" disabled={!canSaveTranscribe} onClick={() => requestSaveWorker()}>{editW ? t('common.save') : t('common.create')}</button>
           {editW ? <button type="button" onClick={cancelEdit}>{t('common.cancel')}</button> : null}
         </div>
         </div>
@@ -285,7 +300,7 @@ export function InstanceWorkersTab() {
                     <td className="table-actions">
                       <div className="row">
                         <button type="button" onClick={() => startEdit(w)}>{t('common.edit')}</button>
-                        <button type="button" className="danger" onClick={() => setDeleteTarget(w)}>{t('common.delete')}</button>
+                        <button type="button" className="danger" onClick={() => setImpactModal({ mode: 'delete', worker: w })}>{t('common.delete')}</button>
                       </div>
                     </td>
                   </tr>
@@ -296,11 +311,27 @@ export function InstanceWorkersTab() {
         ) : null}
       </AdminTableCard>
 
-      {deleteTarget ? (
-        <WorkerDeleteModal
-          worker={deleteTarget}
-          onClose={() => setDeleteTarget(null)}
-          onDeleted={load}
+      {impactModal ? (
+        <WorkerImpactModal
+          mode={impactModal.mode}
+          worker={impactModal.worker}
+          changeBody={impactModal.changeBody}
+          onClose={() => setImpactModal(null)}
+          onConfirm={async ({ remediation } = {}) => {
+            if (impactModal.mode === 'delete') {
+              await api(`/workers/${impactModal.worker.id}`, {
+                method: 'DELETE',
+                body: remediation ? JSON.stringify({ remediation }) : undefined,
+              })
+              await load()
+              return
+            }
+            const body = {
+              ...(impactModal.changeBody ?? buildWorkerBody()),
+              ...(remediation ? { remediation } : {}),
+            }
+            await saveWorkerDirect(body, impactModal.worker.id)
+          }}
         />
       ) : null}
     </AdminPage>

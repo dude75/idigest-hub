@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Body, Depends, Query
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
@@ -38,6 +38,11 @@ from app.timeutil import utcnow
 router = APIRouter()
 
 
+class WorkerRemediation(BaseModel):
+    asr_model: str
+    diarization_model: str | None = None
+
+
 class WorkerBody(BaseModel):
     type: str
     name: str = ""
@@ -47,6 +52,11 @@ class WorkerBody(BaseModel):
     enabled: bool = True
     asr_models: list[str] | None = None
     diarization_models: list[str] | None = None
+    remediation: WorkerRemediation | None = None
+
+
+class WorkerDeleteBody(BaseModel):
+    remediation: WorkerRemediation | None = None
 
 
 class WorkerProbeBody(BaseModel):
@@ -306,6 +316,7 @@ async def create_worker(
 async def patch_worker(
     worker_id: str,
     body: WorkerBody,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
@@ -316,6 +327,9 @@ async def patch_worker(
     node = db.get(WorkerNode, worker_id)
     if node is None:
         ctx.raise_error(ErrorCode.not_found)
+    from app.services.worker_impact import _with_worker_state
+
+    nodes_before = [_with_worker_state(row) for row in db.scalars(select(WorkerNode)).all()]
     if body.type not in {"transcribe", "summarize"}:
         ctx.raise_error(ErrorCode.validation_error)
     base_url = body.base_url.rstrip("/")
@@ -344,14 +358,34 @@ async def patch_worker(
     elif body.type != "transcribe":
         node.asr_models_json = None
         node.diarization_models_json = None
-    return worker_public(node)
+    remediation_result = None
+    if body.remediation is not None:
+        nodes_after = list(db.scalars(select(WorkerNode)).all())
+        try:
+            from app.services.worker_impact import apply_transcribe_remediation
+
+            remediation_result = apply_transcribe_remediation(
+                db,
+                after_nodes=nodes_after,
+                before_nodes=nodes_before,
+                focus_worker_id=node.id,
+                asr_model=body.remediation.asr_model,
+                diarization_model=body.remediation.diarization_model,
+            )
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
+    _schedule_worker_remediation_tick(background_tasks, remediation_result)
+    payload = worker_public(node)
+    if remediation_result is not None:
+        payload["remediation"] = remediation_result
+    return payload
 
 
 @router.get("/workers/{worker_id}/delete-impact")
 def worker_delete_impact(
     worker_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
-    from app.services.worker_delete import compute_worker_delete_impact
+    from app.services.worker_impact import compute_worker_delete_impact
 
     _admin(ctx)
     node = db.get(WorkerNode, worker_id)
@@ -360,16 +394,78 @@ def worker_delete_impact(
     return compute_worker_delete_impact(db, node)
 
 
+@router.post("/workers/{worker_id}/change-impact")
+def worker_change_impact(
+    worker_id: str,
+    body: WorkerBody,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    from app.services.worker_impact import compute_worker_change_impact
+
+    _admin(ctx)
+    node = db.get(WorkerNode, worker_id)
+    if node is None:
+        ctx.raise_error(ErrorCode.not_found)
+    if body.type not in {"transcribe", "summarize"}:
+        ctx.raise_error(ErrorCode.validation_error)
+    if body.type == "transcribe" and not body.asr_models:
+        ctx.raise_error(ErrorCode.validation_error)
+    return compute_worker_change_impact(
+        db,
+        node,
+        type=body.type,
+        enabled=body.enabled,
+        asr_models=body.asr_models,
+        diarization_models=body.diarization_models,
+    )
+
+
+def _schedule_worker_remediation_tick(background_tasks: BackgroundTasks | None, remediation_result: dict | None) -> None:
+    if background_tasks is None or not remediation_result:
+        return
+    if remediation_result.get("tasks_updated"):
+        from app.services.dispatcher import schedule_locked_tick
+
+        schedule_locked_tick(background_tasks, refresh_health=True, wait=False)
+
+
 @router.delete("/workers/{worker_id}")
 def delete_worker(
-    worker_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+    worker_id: str,
+    background_tasks: BackgroundTasks,
+    body: WorkerDeleteBody | None = Body(default=None),
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
     node = db.get(WorkerNode, worker_id)
     if node is None:
         ctx.raise_error(ErrorCode.not_found)
+    all_nodes = list(db.scalars(select(WorkerNode)).all())
+    after_nodes = [row for row in all_nodes if row.id != node.id]
+    remediation = body.remediation if body else None
+    remediation_result = None
+    if remediation is not None:
+        try:
+            from app.services.worker_impact import apply_transcribe_remediation
+
+            remediation_result = apply_transcribe_remediation(
+                db,
+                after_nodes=after_nodes,
+                before_nodes=all_nodes,
+                focus_worker_id=node.id,
+                asr_model=remediation.asr_model,
+                diarization_model=remediation.diarization_model,
+            )
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
     db.delete(node)
-    return {"status": "ok"}
+    _schedule_worker_remediation_tick(background_tasks, remediation_result)
+    payload: dict = {"status": "ok"}
+    if remediation_result is not None:
+        payload["remediation"] = remediation_result
+    return payload
 
 
 @router.get("/tariffs")

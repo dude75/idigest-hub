@@ -1,6 +1,6 @@
-import pytest
+import json
 
-from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD, add_worker, login, setup_admin, signup, upload_audio
+from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD, add_worker, get_task_row, login, setup_admin, signup, upload_audio
 
 
 def test_delete_impact_reports_lost_pair(client):
@@ -64,6 +64,149 @@ def test_delete_impact_affected_user_and_task(client, fake_workers):
     assert body["affected_users_count"] >= 1
     assert body["affected_tasks_count"] >= 1
     assert any(user["email"] == "impact@example.com" for user in body["affected_users"])
+
+
+def test_change_impact_reports_lost_pair(client):
+    setup_admin(client)
+    worker = add_worker(client, name="combo", asr_models=["parakeet", "whisper"], diarization_models=["pyannote"])
+    add_worker(client, name="other", asr_models=["whisper"], diarization_models=["nemo"])
+
+    impact = client.post(
+        f"/api/v1/workers/{worker['id']}/change-impact",
+        json={
+            "type": "transcribe",
+            "name": "combo",
+            "base_url": worker["base_url"],
+            "weight": 1,
+            "enabled": True,
+            "asr_models": ["whisper"],
+            "diarization_models": ["pyannote"],
+        },
+    )
+    assert impact.status_code == 200, impact.text
+    body = impact.json()
+    assert body["action"] == "change"
+    assert {"asr_model": "parakeet", "diarization_model": "pyannote"} in body["lost_model_pairs"]
+
+
+def test_change_impact_disable_matches_delete(client):
+    setup_admin(client)
+    worker = add_worker(client, name="combo", asr_models=["parakeet"], diarization_models=["pyannote"])
+    add_worker(client, name="other", asr_models=["whisper"], diarization_models=["nemo"])
+
+    change = client.post(
+        f"/api/v1/workers/{worker['id']}/change-impact",
+        json={
+            "type": "transcribe",
+            "name": "combo",
+            "base_url": worker["base_url"],
+            "weight": 1,
+            "enabled": False,
+            "asr_models": ["parakeet"],
+            "diarization_models": ["pyannote"],
+        },
+    )
+    delete = client.get(f"/api/v1/workers/{worker['id']}/delete-impact")
+    assert change.status_code == 200, change.text
+    assert delete.status_code == 200, delete.text
+    assert change.json()["lost_model_pairs"] == delete.json()["lost_model_pairs"]
+
+
+def test_delete_impact_suggests_replacement(client):
+    setup_admin(client)
+    add_worker(client, name="keeper", asr_models=["whisper"], diarization_models=["nemo"])
+    doomed = add_worker(client, name="doomed", asr_models=["parakeet"], diarization_models=["pyannote"])
+
+    impact = client.get(f"/api/v1/workers/{doomed['id']}/delete-impact")
+    assert impact.status_code == 200, impact.text
+    body = impact.json()
+    assert body["can_remediate"] is True
+    assert body["suggested_replacement"] == {"asr_model": "whisper", "diarization_model": "nemo"}
+    assert {"asr_model": "whisper", "diarization_model": "nemo"} in body["available_pairs"]
+
+
+def test_delete_with_remediation_updates_user_and_task(client, fake_workers):
+    fake_workers.transcribe_mode = "queue_full"
+    setup_admin(client)
+    doomed = add_worker(client, name="only-combo", asr_models=["parakeet"], diarization_models=["pyannote"])
+    add_worker(client, name="other", asr_models=["whisper"], diarization_models=["nemo"])
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "impact@example.com", "impactpass12", tariff_id).status_code == 200
+    login(client, "impact@example.com", "impactpass12")
+    client.patch("/api/v1/me", json={"asr_model": "parakeet", "diarization_model": "pyannote"})
+    audio = upload_audio(client)
+    task = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert task.status_code == 202, task.text
+    task_id = task.json()["task_id"]
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    deleted = client.request(
+        "DELETE",
+        f"/api/v1/workers/{doomed['id']}",
+        content=json.dumps({"remediation": {"asr_model": "whisper", "diarization_model": "nemo"}}),
+        headers={
+            "Content-Type": "application/json",
+            "X-CSRF-Token": client.cookies.get("hub_csrf") or "",
+        },
+    )
+    assert deleted.status_code == 200, deleted.text
+    remediation = deleted.json()["remediation"]
+    assert remediation["users_updated"] >= 1
+    assert remediation["tasks_updated"] >= 1
+
+    login(client, "impact@example.com", "impactpass12")
+    me = client.get("/api/v1/me").json()
+    assert me["user"]["asr_model"] == "whisper"
+    assert me["user"]["diarization_model"] == "nemo"
+
+    row = get_task_row(task_id)
+    assert row.snap_asr_model == "whisper"
+    assert row.snap_diarization_model == "nemo"
+
+
+def test_patch_with_remediation_updates_entities(client, fake_workers):
+    fake_workers.transcribe_mode = "queue_full"
+    setup_admin(client)
+    worker = add_worker(client, name="combo", asr_models=["parakeet", "whisper"], diarization_models=["pyannote"])
+    add_worker(client, name="other", asr_models=["whisper"], diarization_models=["nemo"])
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "patch@example.com", "patchpass12", tariff_id).status_code == 200
+    login(client, "patch@example.com", "patchpass12")
+    client.patch("/api/v1/me", json={"asr_model": "parakeet", "diarization_model": "pyannote"})
+    audio = upload_audio(client)
+    task = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert task.status_code == 202, task.text
+    task_id = task.json()["task_id"]
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    patched = client.patch(
+        f"/api/v1/workers/{worker['id']}",
+        json={
+            "type": "transcribe",
+            "name": "combo",
+            "base_url": worker["base_url"],
+            "weight": 1,
+            "enabled": True,
+            "asr_models": ["whisper"],
+            "diarization_models": ["pyannote"],
+            "remediation": {"asr_model": "whisper", "diarization_model": "nemo"},
+        },
+    )
+    assert patched.status_code == 200, patched.text
+    remediation = patched.json()["remediation"]
+    assert remediation["users_updated"] >= 1
+    assert remediation["tasks_updated"] >= 1
+
+    login(client, "patch@example.com", "patchpass12")
+    me = client.get("/api/v1/me").json()
+    assert me["user"]["asr_model"] == "whisper"
+    assert me["user"]["diarization_model"] == "nemo"
+
+    row = get_task_row(task_id)
+    assert row.snap_asr_model == "whisper"
+    assert row.snap_diarization_model == "nemo"
 
 
 def test_delete_impact_last_summarize_worker(client):

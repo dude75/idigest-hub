@@ -416,6 +416,7 @@ def test_worker_error_codes_mapped_not_raw(client, fake_workers):
 
 def test_dispatch_uses_snap_asr_model_after_settings_change(client, fake_workers):
     setup_admin(client)
+    add_worker(client)
     tariff_id = default_tariff_id(client)
     logout(client)
     assert signup(client, "asr@example.com", "asrpass12", tariff_id).status_code == 200

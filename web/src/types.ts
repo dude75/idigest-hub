@@ -286,12 +286,21 @@ export type WorkerDeleteImpactTask = {
   on_worker?: boolean
 }
 
+export type WorkerRemediationPayload = {
+  asr_model: string
+  diarization_model: string | null
+}
+
 export type WorkerDeleteImpact = {
+  action?: 'delete' | 'change'
   worker: Pick<Worker, 'id' | 'name' | 'type' | 'enabled' | 'base_url'>
   blocking: boolean
   remaining_transcribe_workers?: number
   remaining_summarize_workers?: number
   lost_model_pairs?: DispatchablePair[]
+  available_pairs?: DispatchablePair[]
+  suggested_replacement?: DispatchablePair | null
+  can_remediate?: boolean
   instance_defaults_broken?: boolean
   instance_defaults?: { asr_model: string; diarization_model: string | null }
   affected_users?: WorkerDeleteImpactUser[]

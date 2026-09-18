@@ -1,4 +1,15 @@
-from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD, default_tariff_id, err_code, login, me, setup_admin, signup, upload_audio
+from tests.conftest import (
+    ADMIN_EMAIL,
+    ADMIN_PASSWORD,
+    default_tariff_id,
+    err_code,
+    login,
+    logout,
+    me,
+    setup_admin,
+    signup,
+    upload_audio,
+)
 
 
 def test_me_includes_date_time_prefs(client):
@@ -51,6 +62,9 @@ def test_instance_date_time_settings_and_user_override(client):
 
 def test_library_created_at_is_utc_z(client):
     setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "utc@example.com", "utcpass1234", tariff_id).status_code == 200
     audio = upload_audio(client)
     assert audio.status_code == 200, audio.text
     created_at = audio.json()["created_at"]

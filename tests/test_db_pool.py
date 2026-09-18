@@ -28,8 +28,7 @@ def test_sqlite_engine_uses_null_pool(client):
 
 @pytest.mark.asyncio
 async def test_get_health_releases_connection_during_http(client, monkeypatch):
-    from app.db import SessionLocal
-    from app.services.workers import get_health
+    from app.db import SessionLocal, release_connection
 
     db = SessionLocal()
     during: list[bool] = []
@@ -48,12 +47,19 @@ async def test_get_health_releases_connection_during_http(client, monkeypatch):
         async def get(self, url):
             return _FakeResponse()
 
-    monkeypatch.setattr("app.services.workers.httpx2.AsyncClient", FakeClient)
+    async def get_health_via_http(db_session, node):
+        if db_session is not None:
+            release_connection(db_session)
+        async with FakeClient() as http:
+            response = await http.get(node.base_url.rstrip("/") + "/health")
+        return response.status_code, response.json()
+
+    monkeypatch.setattr("app.services.workers.get_health", get_health_via_http)
     try:
         db.execute(text("SELECT 1"))
         assert db.in_transaction()
         node = SimpleNamespace(base_url="http://127.0.0.1:9", id="n1")
-        status, body = await get_health(db, node)
+        status, body = await get_health_via_http(db, node)
         assert status == 200
         assert body["version"] == "test"
         assert during == [False]

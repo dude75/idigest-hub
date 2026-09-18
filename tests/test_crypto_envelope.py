@@ -22,7 +22,7 @@ from app.models import DataEncryptionKey, EncryptionJob, InstanceSettings, Worke
 from app.timeutil import utcnow
 from app.services.crypto_bootstrap import CryptoConfigError, bootstrap_encryption, validate_crypto_config
 from app.services.crypto_reencrypt import reset_crypto_reencrypt, wait_reencrypt_job
-from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD, open_db, setup_admin
+from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD, add_worker, open_db, setup_admin
 
 
 def _login_admin(client):
@@ -62,11 +62,7 @@ def test_encrypt_decrypt_roundtrip(client):
 
 def test_worker_token_encrypted_with_dek(client):
     _login_admin(client)
-    r = client.post(
-        "/api/v1/workers",
-        json={"type": "transcribe", "name": "w1", "base_url": "http://127.0.0.1:9001", "api_token": "tok123"},
-    )
-    assert r.status_code == 200
+    add_worker(client, name="w1", base_url="http://127.0.0.1:9001", api_token="tok123")
     from app.db import SessionLocal, get_engine
 
     get_engine()
@@ -82,10 +78,7 @@ def test_worker_token_encrypted_with_dek(client):
 
 def test_add_dek_and_reencrypt_job(client):
     _login_admin(client)
-    client.post(
-        "/api/v1/workers",
-        json={"type": "transcribe", "name": "w2", "base_url": "http://127.0.0.1:9002", "api_token": "tok456"},
-    )
+    add_worker(client, name="w2", base_url="http://127.0.0.1:9002", api_token="tok456")
     from app.db import SessionLocal, get_engine
 
     get_engine()
