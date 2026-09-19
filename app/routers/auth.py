@@ -851,6 +851,7 @@ def mfa_setup_confirm(
 @router.post("/auth/mfa/disable")
 def mfa_disable(
     body: MfaDisableBody,
+    response: Response,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
@@ -867,6 +868,7 @@ def mfa_disable(
     disable_totp(db, ctx.user)
     revoke_user_auth(db, ctx.user.id)
     write_audit(db, "auth.mfa.disable", ctx, {})
+    clear_auth_cookies(response)
     return {"status": "ok"}
 
 

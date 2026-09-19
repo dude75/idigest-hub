@@ -213,8 +213,50 @@ def test_mfa_disable_success_when_not_required(client):
         json={"password": ADMIN_PASSWORD, "code": pyotp.TOTP(secret).now()},
     )
     assert disable.status_code == 200, disable.text
+    stale = client.get("/api/v1/me")
+    assert stale.status_code == 401, stale.text
     login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     assert me(client)["mfa_enabled"] is False
+
+
+def test_org_admin_reset_password_after_member_disabled_mfa(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    signup(client, "owner@example.com", "ownerpass12", tariff_id)
+    login_ready(client, "owner@example.com", "ownerpass12")
+    created = client.post(
+        "/api/v1/org/users",
+        json={"email": "member@example.com", "password": "memberpass12", "role": "org_member"},
+    )
+    assert created.status_code == 200, created.text
+    member_id = created.json()["id"]
+    logout(client)
+    login_ready(client, "member@example.com", "memberpass12")
+    secret, _ = _enable_mfa(client)
+    logout(client)
+    login(client, "member@example.com", "memberpass12")
+    challenge_id = _start_mfa_login(client, "member@example.com", "memberpass12")
+    client.post(
+        "/api/v1/auth/mfa/verify",
+        json={"challenge_id": challenge_id, "code": pyotp.TOTP(secret).now()},
+    )
+    disable = client.post(
+        "/api/v1/auth/mfa/disable",
+        json={"password": "memberpass12", "code": pyotp.TOTP(secret).now()},
+    )
+    assert disable.status_code == 200, disable.text
+    logout(client)
+    login(client, "owner@example.com", "ownerpass12")
+    reset = client.post(f"/api/v1/org/users/{member_id}/reset-password")
+    assert reset.status_code == 200, reset.text
+    temp = reset.json()["password"]
+    logout(client)
+    assert client.post(
+        "/api/v1/auth/login",
+        json={"email": "member@example.com", "password": "memberpass12"},
+    ).status_code == 401
+    assert login(client, "member@example.com", temp).status_code == 200
+    assert me(client)["must_change_password"] is True
 
 
 def test_mfa_status_endpoint(client):

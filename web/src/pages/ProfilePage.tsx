@@ -260,7 +260,7 @@ export function ProfilePage() {
       })
       setDisablePw('')
       setDisableCode('')
-      await refresh()
+      await logout()
     } catch (err) {
       showError(err)
     } finally {

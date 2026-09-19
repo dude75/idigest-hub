@@ -232,9 +232,14 @@ export function OrgPage() {
   }
 
   async function resetPw(user: User) {
-    const r = await api<{ password: string }>(`/org/users/${user.id}/reset-password`, { method: 'POST' })
-    setTempPw({ email: user.email, password: r.password })
-    setMfaResetOk(null)
+    try {
+      const r = await api<{ password: string }>(`/org/users/${user.id}/reset-password`, { method: 'POST' })
+      setTempPw({ email: user.email, password: r.password })
+      setMfaResetOk(null)
+      await load()
+    } catch (e) {
+      showError(e)
+    }
   }
 
   async function confirmResetMfa() {
