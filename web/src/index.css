@@ -1231,29 +1231,41 @@ button.org-delete-btn:hover { text-decoration: underline; }
   user-select: none;
 }
 .org-users[open] > summary { color: var(--ink); }
-.org-users-list {
-  list-style: none;
-  margin: 0.35rem 0 0;
-  padding: 0;
-  display: grid;
-  gap: 0.2rem;
+.org-users-table-wrap {
+  margin-top: 0.35rem;
 }
-.org-user {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.82rem;
+.org-users-table {
+  font-size: 0.78rem;
 }
-.org-user-email {
-  flex: 1;
-  min-width: 0;
+.org-users-table th,
+.org-users-table td {
+  padding: 0.35rem 0.45rem;
+  vertical-align: middle;
+}
+.org-users-table td.org-users-email {
+  max-width: 14rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.org-user button {
+.org-users-table td.org-users-status {
+  white-space: nowrap;
+}
+.org-users-table td.org-users-status .badge + .badge {
+  margin-left: 0.2rem;
+}
+.org-users-table td.org-users-action {
+  white-space: nowrap;
+  width: 1%;
+}
+.org-users-table select {
+  font-size: 0.75rem;
+  max-width: 8rem;
+}
+.org-users-table button {
   padding: 0.15rem 0.4rem;
   font-size: 0.75rem;
+  white-space: nowrap;
 }
 @media (max-width: 720px) {
   .org-ops-toolbar { grid-template-columns: 1fr; }

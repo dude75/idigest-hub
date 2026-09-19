@@ -442,6 +442,7 @@
       "user_enable": "Usuario activado",
       "user_offboard_transfer": "Offboard: transferencia",
       "user_offboard_wipe": "Offboard: borrado",
+      "user_account_delete": "Cuenta eliminada",
       "audio_wipe": "Audio eliminado",
       "transcript_wipe": "Transcripción eliminada",
       "transcript_rename": "Transcripción renombrada",
@@ -551,7 +552,16 @@
     "dateTimeFormat": "Formato",
     "timezone": "Zona horaria",
     "dateTimeInherit": "Predeterminado de la instancia ({{value}})",
-    "dateTimePreview": "Vista previa: {{sample}}"
+    "dateTimePreview": "Vista previa: {{sample}}",
+    "deleteAccount": "Eliminar cuenta",
+    "deleteAccountLead": "Eliminar permanentemente su cuenta y todos sus datos. No se puede deshacer.",
+    "deleteAccountConfirm": "Eliminar mi cuenta permanentemente",
+    "deleteAccountPassword": "Contraseña actual",
+    "deleteAccountTotp": "Código de autenticación",
+    "deleteAccountSuccessor": "Nuevo administrador de la organización",
+    "deleteAccountSuccessorHint": "Es el único administrador. Elija quién gestionará la organización después.",
+    "deleteAccountWillDeleteOrg": "Es el único miembro. Se eliminará la organización y todos sus datos.",
+    "deleteAccountBusy": "Eliminando…"
   },
   "dateTime": {
     "format": {
@@ -907,6 +917,7 @@
     "user_agreement_required": "Acepte los documentos legales obligatorios antes de continuar.",
     "rate_limited": "Demasiados intentos. Inténtelo más tarde.",
     "last_org_admin": "No se puede eliminar, degradar ni desactivar al último administrador activo.",
+    "org_admin_successor_required": "Antes de eliminar su cuenta, elija otro miembro de la organización como administrador.",
     "tariff_in_use": "Esta tarifa aún la usan organizaciones.",
     "last_tariff": "No se puede eliminar la última tarifa.",
     "task_running": "No se puede cancelar una tarea en ejecución.",

@@ -10,6 +10,7 @@
   "account_wiped": "La cuenta se eliminó; el resultado no se guardó.",
   "must_change_password": "Debe cambiar la contraseña antes de continuar.",
   "last_org_admin": "No se puede eliminar, degradar ni desactivar al último administrador activo.",
+  "org_admin_successor_required": "Antes de eliminar su cuenta, elija otro miembro de la organización como administrador.",
   "tariff_in_use": "Este tarifa aún la usan organizaciones.",
   "last_tariff": "No se puede eliminar la última tarifa.",
   "task_running": "No se puede cancelar una tarea en ejecución.",

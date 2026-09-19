@@ -20,6 +20,7 @@ class ErrorCode(str, Enum):
     account_wiped = "account_wiped"
     must_change_password = "must_change_password"
     last_org_admin = "last_org_admin"
+    org_admin_successor_required = "org_admin_successor_required"
     tariff_in_use = "tariff_in_use"
     last_tariff = "last_tariff"
     task_running = "task_running"
@@ -76,6 +77,7 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.payload_too_large: 413,
     ErrorCode.must_change_password: 403,
     ErrorCode.last_org_admin: 409,
+    ErrorCode.org_admin_successor_required: 400,
     ErrorCode.tariff_in_use: 409,
     ErrorCode.last_tariff: 409,
     ErrorCode.task_running: 409,

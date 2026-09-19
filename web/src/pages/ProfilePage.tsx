@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../components/AdminSection'
+import { Modal } from '../components/Modal'
 import { MfaSetupPanel } from '../components/MfaSetupPanel'
 import { Segmented } from '../components/Segmented'
 import { StatCard, StatGrid } from '../components/StatCard'
@@ -24,9 +26,16 @@ import { fmtDate, formatInteger, showError } from '../util'
 import { DATE_TIME_FORMATS, formatDateTime } from '../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../util/timezones'
 
+type AccountDeletePreview = {
+  requires_successor: boolean
+  will_delete_org: boolean
+  candidates: { id: string; email: string; role: string }[]
+}
+
 export function ProfilePage() {
   const { t, i18n } = useTranslation()
-  const { me, refresh, setDefaultRoute, setDateTimeFormat, setTimezone, setShowOnlyMyItems } = useAuth()
+  const nav = useNavigate()
+  const { me, refresh, setDefaultRoute, setDateTimeFormat, setTimezone, setShowOnlyMyItems, logout } = useAuth()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [tokens, setTokens] = useState<ApiToken[]>([])
@@ -64,6 +73,15 @@ export function ProfilePage() {
   const [mfaBusy, setMfaBusy] = useState(false)
   const [tokenTotp, setTokenTotp] = useState('')
   const [tokenTotpOpen, setTokenTotpOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deletePreview, setDeletePreview] = useState<AccountDeletePreview | null>(null)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteTotp, setDeleteTotp] = useState('')
+  const [deleteSuccessor, setDeleteSuccessor] = useState('')
+  const [deleteBusy, setDeleteBusy] = useState(false)
+
+  const canDeleteAccount = Boolean(me && !me.user.is_instance_admin)
+  const showLocalAuthDelete = localAuthProfileVisible(me)
 
   const orgLabel = useMemo(() => {
     if (!me?.org) return t('profile.noOrg')
@@ -267,6 +285,43 @@ export function ProfilePage() {
       await load()
     } catch (e) {
       showError(e)
+    }
+  }
+
+  async function openDeleteAccount() {
+    setDeletePassword('')
+    setDeleteTotp('')
+    setDeleteSuccessor('')
+    setDeleteOpen(true)
+    try {
+      const preview = await api<AccountDeletePreview>('/me/account-delete')
+      setDeletePreview(preview)
+      if (preview.candidates.length === 1) setDeleteSuccessor(preview.candidates[0].id)
+    } catch (e) {
+      setDeleteOpen(false)
+      showError(e)
+    }
+  }
+
+  async function confirmDeleteAccount() {
+    setDeleteBusy(true)
+    try {
+      const body: {
+        password?: string
+        totp_code?: string
+        successor_user_id?: string
+      } = {}
+      if (showLocalAuthDelete && deletePassword) body.password = deletePassword
+      if (me?.mfa_enabled && deleteTotp.trim()) body.totp_code = deleteTotp.trim()
+      if (deletePreview?.requires_successor) body.successor_user_id = deleteSuccessor
+      await api('/me/account-delete', { method: 'POST', body: JSON.stringify(body) })
+      setDeleteOpen(false)
+      await logout()
+      nav('/login', { replace: true })
+    } catch (e) {
+      showError(e)
+    } finally {
+      setDeleteBusy(false)
     }
   }
 
@@ -721,6 +776,96 @@ export function ProfilePage() {
           </p>
         )}
       </AdminTableCard>
+
+      {canDeleteAccount && (
+        <AdminFormCard title={t('profile.deleteAccount')} lead={t('profile.deleteAccountLead')}>
+          <button type="button" className="danger" onClick={() => void openDeleteAccount()}>
+            {t('profile.deleteAccount')}
+          </button>
+        </AdminFormCard>
+      )}
+
+      {deleteOpen && deletePreview && (
+        <Modal
+          onClose={() => {
+            if (deleteBusy) return
+            setDeleteOpen(false)
+          }}
+          closeOnBackdrop={!deleteBusy}
+          panelClassName="stack"
+        >
+          <h2>{t('profile.deleteAccount')}</h2>
+          <p className="err">{t('profile.deleteAccountLead')}</p>
+          {deletePreview.will_delete_org && (
+            <p className="err">{t('profile.deleteAccountWillDeleteOrg')}</p>
+          )}
+          {deletePreview.requires_successor && (
+            <>
+              <p className="muted">{t('profile.deleteAccountSuccessorHint')}</p>
+              <label>
+                {t('profile.deleteAccountSuccessor')}
+                <select
+                  required
+                  value={deleteSuccessor}
+                  disabled={deleteBusy}
+                  onChange={(e) => setDeleteSuccessor(e.target.value)}
+                >
+                  {deletePreview.candidates.length > 1 && (
+                    <option value="">{t('org.target')}</option>
+                  )}
+                  {deletePreview.candidates.map((c) => (
+                    <option key={c.id} value={c.id}>{c.email}</option>
+                  ))}
+                </select>
+              </label>
+            </>
+          )}
+          {showLocalAuthDelete && (
+            <label>
+              {t('profile.deleteAccountPassword')}
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={deletePassword}
+                disabled={deleteBusy}
+                onChange={(e) => setDeletePassword(e.target.value)}
+              />
+            </label>
+          )}
+          {me?.mfa_enabled && (
+            <label>
+              {t('profile.deleteAccountTotp')}
+              <input
+                type="text"
+                required
+                autoComplete="one-time-code"
+                value={deleteTotp}
+                disabled={deleteBusy}
+                onChange={(e) => setDeleteTotp(e.target.value)}
+              />
+            </label>
+          )}
+          <div className="row modal-actions">
+            <button
+              type="button"
+              className="danger"
+              disabled={
+                deleteBusy
+                || (deletePreview.requires_successor && !deleteSuccessor)
+                || (showLocalAuthDelete && !deletePassword)
+                || (Boolean(me?.mfa_enabled) && !deleteTotp.trim())
+              }
+              onClick={() => void confirmDeleteAccount()}
+            >
+              {deleteBusy ? t('profile.deleteAccountBusy') : t('profile.deleteAccountConfirm')}
+            </button>
+            <button type="button" disabled={deleteBusy} onClick={() => setDeleteOpen(false)}>
+              {t('common.cancel')}
+            </button>
+          </div>
+        </Modal>
+      )}
 
     </AdminPage>
   )

@@ -331,47 +331,88 @@ export function InstanceOrgsTab() {
               {(o.members || []).length > 0 && (
                 <details className="org-users">
                   <summary>{t('instance.users')}</summary>
-                  <ul className="org-users-list">
-                    {(o.members || []).map((u) => (
-                      <li className="org-user" key={u.id}>
-                        <span className="org-user-email" title={u.email}>{u.email}</span>
-                        <span className="badge">{u.role}</span>
-                        <UserStatusBadges user={u} />
-                        {!u.is_instance_admin && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) })
-                                .then(() => refresh())
-                                .catch(showError)
-                            }
-                          >
-                            {t('instance.impersonate')}
-                          </button>
-                        )}
-                        {u.role === 'org_admin' && !u.is_instance_admin && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              void api<{ password: string }>(`/orgs/${o.id}/users/${u.id}/reset-password`, { method: 'POST' })
-                                .then((r) => setTempPw({ email: u.email, password: r.password, kind: 'reset' }))
-                                .catch(showError)
-                            }
-                          >
-                            {t('org.resetPassword')}
-                          </button>
-                        )}
-                        {u.auth_provider === 'local' && (u.mfa_configured ?? u.mfa_enabled) && !u.is_instance_admin && (
-                          <button
-                            type="button"
-                            onClick={() => setMfaResetTarget({ orgId: o.id, user: u })}
-                          >
-                            {t('org.resetMfa')}
-                          </button>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="stats-table-wrap org-users-table-wrap">
+                    <table className="stats-table org-users-table">
+                      <thead>
+                        <tr>
+                          <th>{t('common.email')}</th>
+                          <th>{t('common.role')}</th>
+                          <th>{t('common.status')}</th>
+                          <th>{t('instance.impersonate')}</th>
+                          <th>{t('org.resetPassword')}</th>
+                          <th>{t('org.resetMfa')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(o.members || []).map((u) => (
+                          <tr key={u.id}>
+                            <td className="org-users-email" title={u.email}>{u.email}</td>
+                            <td>
+                              {!u.is_instance_admin ? (
+                                <select
+                                  value={u.role ?? 'org_member'}
+                                  onChange={(e) =>
+                                    void api(`/orgs/${o.id}/users/${u.id}`, {
+                                      method: 'PATCH',
+                                      body: JSON.stringify({ role: e.target.value }),
+                                    })
+                                      .then(load)
+                                      .catch(showError)
+                                  }
+                                >
+                                  <option value="org_admin">{t('org.roleAdmin')}</option>
+                                  <option value="org_member">{t('org.roleMember')}</option>
+                                </select>
+                              ) : (
+                                <span className="badge">{u.role}</span>
+                              )}
+                            </td>
+                            <td className="org-users-status">
+                              <UserStatusBadges user={u} />
+                            </td>
+                            <td className="org-users-action">
+                              {!u.is_instance_admin ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) })
+                                      .then(() => refresh())
+                                      .catch(showError)
+                                  }
+                                >
+                                  {t('instance.impersonate')}
+                                </button>
+                              ) : null}
+                            </td>
+                            <td className="org-users-action">
+                              {u.role === 'org_admin' && !u.is_instance_admin ? (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    void api<{ password: string }>(`/orgs/${o.id}/users/${u.id}/reset-password`, { method: 'POST' })
+                                      .then((r) => setTempPw({ email: u.email, password: r.password, kind: 'reset' }))
+                                      .catch(showError)
+                                  }
+                                >
+                                  {t('org.resetPassword')}
+                                </button>
+                              ) : null}
+                            </td>
+                            <td className="org-users-action">
+                              {u.auth_provider === 'local' && (u.mfa_configured ?? u.mfa_enabled) && !u.is_instance_admin ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setMfaResetTarget({ orgId: o.id, user: u })}
+                                >
+                                  {t('org.resetMfa')}
+                                </button>
+                              ) : null}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </details>
               )}
             </section>

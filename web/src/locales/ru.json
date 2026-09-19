@@ -442,6 +442,7 @@
       "user_enable": "Включение пользователя",
       "user_offboard_transfer": "Offboard: передача",
       "user_offboard_wipe": "Offboard: удаление",
+      "user_account_delete": "Удаление аккаунта",
       "audio_wipe": "Удаление аудио",
       "transcript_wipe": "Удаление транскрипта",
       "transcript_rename": "Переименование транскрипта",
@@ -551,7 +552,16 @@
     "dateTimeFormat": "Формат",
     "timezone": "Часовой пояс",
     "dateTimeInherit": "По умолчанию инстанса ({{value}})",
-    "dateTimePreview": "Пример: {{sample}}"
+    "dateTimePreview": "Пример: {{sample}}",
+    "deleteAccount": "Удалить аккаунт",
+    "deleteAccountLead": "Безвозвратно удалить аккаунт и все ваши данные. Восстановление невозможно.",
+    "deleteAccountConfirm": "Удалить мой аккаунт навсегда",
+    "deleteAccountPassword": "Текущий пароль",
+    "deleteAccountTotp": "Код аутентификации",
+    "deleteAccountSuccessor": "Новый администратор организации",
+    "deleteAccountSuccessorHint": "Вы единственный администратор. Выберите, кто будет управлять организацией после вашего ухода.",
+    "deleteAccountWillDeleteOrg": "Вы единственный участник. Организация и все её данные будут удалены.",
+    "deleteAccountBusy": "Удаление…"
   },
   "dateTime": {
     "format": {
@@ -907,6 +917,7 @@
     "user_agreement_required": "Примите обязательные юридические документы перед продолжением.",
     "rate_limited": "Слишком много попыток. Попробуйте позже.",
     "last_org_admin": "Последнего активного администратора организации нельзя удалить, понизить или отключить.",
+    "org_admin_successor_required": "Перед удалением аккаунта назначьте другого участника организации администратором.",
     "tariff_in_use": "На этом тарифе ещё есть организации.",
     "last_tariff": "Последний тариф инстанса удалить нельзя.",
     "task_running": "Запущенную задачу отменить нельзя.",

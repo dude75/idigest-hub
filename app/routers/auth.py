@@ -168,6 +168,12 @@ class MePatchBody(BaseModel):
     show_only_my_items: bool | None = None
 
 
+class AccountDeleteBody(BaseModel):
+    password: str | None = None
+    totp_code: str | None = None
+    successor_user_id: str | None = None
+
+
 def _norm_email(email: str) -> str:
     return str(email).strip().lower()
 
@@ -971,6 +977,68 @@ def patch_me(
         ctx.user.show_only_my_items = bool(data["show_only_my_items"])
         ctx.user.updated_at = utcnow()
     return _me_payload(ctx, db)
+
+
+def _verify_account_delete_step_up(ctx: AuthContext, db: Session, body: AccountDeleteBody) -> None:
+    if ctx.via_api_token or ctx.impersonating:
+        ctx.raise_error(ErrorCode.forbidden)
+    if ctx.user.is_instance_admin:
+        ctx.raise_error(ErrorCode.forbidden)
+    if ctx.user.password_hash:
+        if not body.password or not verify_password(body.password, ctx.user.password_hash):
+            ctx.raise_error(ErrorCode.invalid_credentials)
+    if totp_enabled(ctx.user):
+        code = (body.totp_code or "").strip()
+        if not code:
+            ctx.raise_error(ErrorCode.mfa_step_up_required)
+        if not verify_user_totp(ctx.user, code, db) and not consume_recovery_code(db, ctx.user, code):
+            ctx.raise_error(ErrorCode.invalid_totp)
+
+
+@router.get("/me/account-delete")
+def account_delete_preview_route(
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    if ctx.via_api_token or ctx.impersonating or ctx.user.is_instance_admin:
+        ctx.raise_error(ErrorCode.forbidden)
+    from app.services.account_delete import account_delete_preview
+
+    return account_delete_preview(db, ctx.user, ctx.membership, ctx.org)
+
+
+@router.post("/me/account-delete")
+def account_delete(
+    body: AccountDeleteBody,
+    response: Response,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _verify_account_delete_step_up(ctx, db, body)
+    from app.services.account_delete import account_delete_preview, delete_user_account
+
+    preview = account_delete_preview(db, ctx.user, ctx.membership, ctx.org)
+    write_audit(
+        db,
+        "user.account.delete",
+        ctx,
+        {
+            "user_id": ctx.user.id,
+            "org_id": ctx.org.id if ctx.org else None,
+            "will_delete_org": preview["will_delete_org"],
+            "successor_user_id": body.successor_user_id,
+        },
+    )
+    result = delete_user_account(
+        db,
+        ctx.user,
+        ctx.membership,
+        ctx.org,
+        successor_user_id=body.successor_user_id,
+        locale=ctx.locale,
+    )
+    clear_auth_cookies(response)
+    return result
 
 
 @router.post("/auth/tokens")

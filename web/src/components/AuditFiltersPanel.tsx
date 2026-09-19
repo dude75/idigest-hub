@@ -18,6 +18,7 @@ export const AUDIT_ACTIONS = [
   'user.enable',
   'user.offboard.transfer',
   'user.offboard.wipe',
+  'user.account.delete',
   'audio.wipe',
   'transcript.wipe',
   'transcript.rename',

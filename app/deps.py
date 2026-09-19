@@ -23,6 +23,8 @@ ALLOWED_WHEN_MUST_CHANGE = {
     ("DELETE", "/api/v1/impersonate"),
     ("GET", "/api/v1/me"),
     ("PATCH", "/api/v1/me"),
+    ("GET", "/api/v1/me/account-delete"),
+    ("POST", "/api/v1/me/account-delete"),
 }
 
 ALLOWED_WHEN_MFA_ENROLLMENT = {
@@ -33,6 +35,8 @@ ALLOWED_WHEN_MFA_ENROLLMENT = {
     ("DELETE", "/api/v1/impersonate"),
     ("GET", "/api/v1/me"),
     ("PATCH", "/api/v1/me"),
+    ("GET", "/api/v1/me/account-delete"),
+    ("POST", "/api/v1/me/account-delete"),
 }
 
 ALLOWED_WHEN_AGREEMENT_PENDING = {
@@ -41,6 +45,8 @@ ALLOWED_WHEN_AGREEMENT_PENDING = {
     ("DELETE", "/api/v1/impersonate"),
     ("GET", "/api/v1/me"),
     ("PATCH", "/api/v1/me"),
+    ("GET", "/api/v1/me/account-delete"),
+    ("POST", "/api/v1/me/account-delete"),
 }
 
 

@@ -22,7 +22,7 @@ from app.deps import (
 )
 from app.errors import ApiError, ErrorCode
 from app.models import HiddenItem, Membership, Organization, Task, Tariff, UsageEvent, User, WorkerNode, new_id
-from app.services.access import is_hidden
+from app.services.access import guard_last_org_admin, is_hidden
 from app.money import parse_money
 from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.routers.auth import revoke_user_auth, seed_default_tariff
@@ -176,6 +176,10 @@ class OrgTariffBody(BaseModel):
 
 class OrgDeleteBody(BaseModel):
     confirm_name: str
+
+
+class OrgUserRoleBody(BaseModel):
+    role: str
 
 
 class ImpersonateBody(BaseModel):
@@ -1056,6 +1060,39 @@ def reset_org_user_mfa(
     revoke_user_auth(db, user.id)
     write_audit(db, "user.mfa.reset", ctx, {"user_id": user.id, "org_id": org.id})
     return user_public(user, membership.role)
+
+
+@router.patch("/orgs/{org_id}/users/{user_id}")
+def patch_org_user_role(
+    org_id: str,
+    user_id: str,
+    body: OrgUserRoleBody,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _admin(ctx)
+    org = db.get(Organization, org_id)
+    membership = db.scalar(
+        select(Membership).where(Membership.org_id == org_id, Membership.user_id == user_id)
+    )
+    user = db.get(User, user_id)
+    if org is None or membership is None or user is None:
+        ctx.raise_error(ErrorCode.not_found)
+    if user.is_instance_admin or user.disabled_at is not None:
+        ctx.raise_error(ErrorCode.forbidden)
+    if body.role not in {"org_admin", "org_member"}:
+        ctx.raise_error(ErrorCode.validation_error)
+    if membership.role == "org_admin" and body.role == "org_member":
+        guard_last_org_admin(db, org.id, user_id, ctx.locale)
+    membership.role = body.role
+    write_audit(
+        db,
+        "user.role",
+        ctx,
+        {"user_id": user.id, "org_id": org.id, "role": body.role, "by": "instance_admin"},
+    )
+    settings = get_instance_settings(db)
+    return user_public(user, membership.role, instance_settings=settings)
 
 
 @router.patch("/orgs/{org_id}/tariff")

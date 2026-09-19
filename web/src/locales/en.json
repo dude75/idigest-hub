@@ -442,6 +442,7 @@
       "user_enable": "User enabled",
       "user_offboard_transfer": "Offboard: transfer",
       "user_offboard_wipe": "Offboard: wipe",
+      "user_account_delete": "Account deleted",
       "audio_wipe": "Audio deleted",
       "transcript_wipe": "Transcript deleted",
       "transcript_rename": "Transcript renamed",
@@ -551,7 +552,16 @@
     "dateTimeFormat": "Format",
     "timezone": "Timezone",
     "dateTimeInherit": "Instance default ({{value}})",
-    "dateTimePreview": "Preview: {{sample}}"
+    "dateTimePreview": "Preview: {{sample}}",
+    "deleteAccount": "Delete account",
+    "deleteAccountLead": "Permanently delete your account and all your data. This cannot be undone.",
+    "deleteAccountConfirm": "Delete my account permanently",
+    "deleteAccountPassword": "Current password",
+    "deleteAccountTotp": "Authentication code",
+    "deleteAccountSuccessor": "New organization admin",
+    "deleteAccountSuccessorHint": "You are the only admin. Choose who will manage the organization after you leave.",
+    "deleteAccountWillDeleteOrg": "You are the only member. Your organization and all its data will be deleted.",
+    "deleteAccountBusy": "Deleting…"
   },
   "dateTime": {
     "format": {
@@ -907,6 +917,7 @@
     "user_agreement_required": "Accept the required legal documents before continuing.",
     "rate_limited": "Too many attempts. Try again later.",
     "last_org_admin": "The last active organization admin cannot be removed, demoted, or disabled.",
+    "org_admin_successor_required": "Choose another organization member to become admin before deleting your account.",
     "tariff_in_use": "This tariff is still used by organizations.",
     "last_tariff": "The last tariff cannot be deleted.",
     "task_running": "A running task cannot be canceled.",
