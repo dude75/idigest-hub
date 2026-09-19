@@ -268,12 +268,13 @@ def patch_org_sso(
 @router.get("/org/users")
 def list_users(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     org, _ = ctx.require_org()
+    settings = get_instance_settings(db)
     memberships = db.scalars(select(Membership).where(Membership.org_id == org.id)).all()
     items = []
     for membership in memberships:
         user = db.get(User, membership.user_id)
         if user:
-            items.append(user_public(user, membership.role))
+            items.append(user_public(user, membership.role, instance_settings=settings))
     return {"items": items}
 
 

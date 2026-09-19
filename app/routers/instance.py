@@ -688,6 +688,56 @@ def preview_agreement_markdown(
     return {"text": normalize_agreement_markdown(body.text.strip())}
 
 
+@router.get("/instance/legal-documents/{key}/versions")
+def list_legal_document_versions_ep(
+    key: str,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _admin(ctx)
+    from app.services.user_agreement import LEGAL_DOCUMENT_KEYS, legal_document_version_summary, list_legal_document_versions
+
+    if key not in LEGAL_DOCUMENT_KEYS:
+        ctx.raise_error(ErrorCode.not_found)
+    rows = list_legal_document_versions(db, key)  # type: ignore[arg-type]
+    author_ids = {row.created_by_user_id for row in rows if row.created_by_user_id}
+    emails: dict[str, str] = {}
+    if author_ids:
+        for user in db.scalars(select(User).where(User.id.in_(author_ids))).all():
+            emails[user.id] = user.email
+    return {
+        "key": key,
+        "items": [
+            legal_document_version_summary(row, author_email=emails.get(row.created_by_user_id or ""))
+            for row in rows
+        ],
+    }
+
+
+@router.get("/instance/legal-documents/{key}/versions/{version}")
+def get_legal_document_version_ep(
+    key: str,
+    version: int,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _admin(ctx)
+    from app.services.user_agreement import LEGAL_DOCUMENT_KEYS, get_legal_document_version, legal_document_version_detail
+
+    if key not in LEGAL_DOCUMENT_KEYS:
+        ctx.raise_error(ErrorCode.not_found)
+    if version <= 0:
+        ctx.raise_error(ErrorCode.not_found)
+    row = get_legal_document_version(db, key, version)  # type: ignore[arg-type]
+    if row is None:
+        ctx.raise_error(ErrorCode.not_found)
+    author_email = None
+    if row.created_by_user_id:
+        author = db.get(User, row.created_by_user_id)
+        author_email = author.email if author else None
+    return legal_document_version_detail(row, author_email=author_email)
+
+
 @router.patch("/instance/settings")
 def patch_settings(
     body: SettingsPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
@@ -759,7 +809,7 @@ def patch_settings(
             ctx.raise_error(ErrorCode.validation_error)
     from app.services.user_agreement import apply_legal_documents_patch
 
-    apply_legal_documents_patch(s, data)
+    apply_legal_documents_patch(s, data, db=db, created_by_user_id=ctx.user.id)
     for key, value in data.items():
         setattr(s, key, value)
     if "asr_model" in body.model_dump(exclude_unset=True) or "diarization_model" in body.model_dump(exclude_unset=True):

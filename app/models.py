@@ -100,6 +100,21 @@ class InstanceSettings(Base):
     active_dek_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("data_encryption_keys.id"))
 
 
+class LegalDocumentVersion(Base):
+    __tablename__ = "legal_document_versions"
+    __table_args__ = (UniqueConstraint("document_key", "version", name="uq_legal_document_versions_key_version"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    document_key: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    text_en: Mapped[str | None] = mapped_column(Text)
+    text_ru: Mapped[str | None] = mapped_column(Text)
+    text_es: Mapped[str | None] = mapped_column(Text)
+    published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_by_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"))
+
+
 class DataEncryptionKey(Base):
     __tablename__ = "data_encryption_keys"
 

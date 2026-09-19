@@ -325,6 +325,89 @@ def test_signup_accepts_all_active_legal_documents(client: TestClient):
     assert allowed.status_code == 200, allowed.text
 
 
+def test_legal_document_versions_archived_on_save(client: TestClient):
+    setup_admin(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    first = client.patch(
+        "/api/v1/instance/settings",
+        json={"user_agreement_text_en": "Terms v1"},
+    )
+    assert first.status_code == 200, first.text
+    second = client.patch(
+        "/api/v1/instance/settings",
+        json={"user_agreement_text_en": "Terms v2"},
+    )
+    assert second.status_code == 200, second.text
+
+    listed = client.get("/api/v1/instance/legal-documents/user_agreement/versions")
+    assert listed.status_code == 200, listed.text
+    versions = {item["version"] for item in listed.json()["items"]}
+    assert versions == {1, 2}
+
+    detail = client.get("/api/v1/instance/legal-documents/user_agreement/versions/1")
+    assert detail.status_code == 200, detail.text
+    assert detail.json()["text_en"] == "Terms v1"
+    assert detail.json()["created_by_email"] == ADMIN_EMAIL
+
+
+def test_org_users_include_legal_acceptance_versions(client: TestClient):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    signup(client, "acceptance@example.com", "acceptancepass1", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    client.patch("/api/v1/instance/settings", json={"user_agreement_text_en": "Terms EN"})
+    logout(client)
+
+    login_ready(client, "acceptance@example.com", "acceptancepass1")
+    client.post("/api/v1/auth/agreement/accept")
+    logout(client)
+
+    login_ready(client, "acceptance@example.com", "acceptancepass1")
+    users = client.get("/api/v1/org/users")
+    assert users.status_code == 200, users.text
+    me_row = next(item for item in users.json()["items"] if item["email"] == "acceptance@example.com")
+    assert me_row["user_agreement_status"] == "accepted"
+    assert me_row["legal_documents_acceptance"][0]["accepted_version"] == 1
+
+
+def test_clear_and_republish_agreement_requires_reacceptance(client: TestClient):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    signup(client, "repub@example.com", "repubpass123", tariff_id)
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    client.patch("/api/v1/instance/settings", json={"user_agreement_text_en": "Terms v1"})
+    logout(client)
+
+    login_ready(client, "repub@example.com", "repubpass123")
+    client.post("/api/v1/auth/agreement/accept")
+    assert me(client)["user_agreement_required"] is False
+    logout(client)
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    cleared = client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "user_agreement_text_en": "",
+            "user_agreement_text_ru": "",
+            "user_agreement_text_es": "",
+        },
+    )
+    assert cleared.status_code == 200, cleared.text
+    assert cleared.json()["user_agreement_version"] == 1
+    republished = client.patch(
+        "/api/v1/instance/settings",
+        json={"user_agreement_text_en": "Terms NEW"},
+    )
+    assert republished.status_code == 200, republished.text
+    assert republished.json()["user_agreement_version"] == 2
+    logout(client)
+
+    login(client, "repub@example.com", "repubpass123")
+    assert me(client)["user_agreement_required"] is True
+
+
 def test_privacy_policy_version_bump_requires_reacceptance(client: TestClient):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

@@ -34,6 +34,7 @@ import {
 } from '../../legalDocuments'
 import { showError } from '../../util'
 import { useAgreementPreview } from './useAgreementPreview'
+import { LegalDocumentHistoryModal } from './LegalDocumentHistoryModal'
 
 const LEGAL_LANG_OPTIONS = LEGAL_DOC_LOCALES.map((value) => ({
   value,
@@ -104,6 +105,7 @@ export function InstanceLegalDocumentsTab() {
   const [footerLang, setFooterLang] = useState<LegalDocLocale>('ru')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [legalSaveBusy, setLegalSaveBusy] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const [footerSaveBusy, setFooterSaveBusy] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -336,6 +338,9 @@ export function InstanceLegalDocumentsTab() {
                 {t('instance.legalDocumentPreviewLink')}
               </Link>
             ) : null}
+            <button type="button" className="btn" onClick={() => setHistoryOpen(true)}>
+              {t('instance.legalDocumentHistory')}
+            </button>
           </div>
         </div>
 
@@ -433,6 +438,10 @@ export function InstanceLegalDocumentsTab() {
           ) : null}
         </div>
       </AdminFormCard>
+
+      {historyOpen ? (
+        <LegalDocumentHistoryModal documentKey={legalDocTab} onClose={() => setHistoryOpen(false)} />
+      ) : null}
 
       {confirmOpen ? (
         <ConfirmDialog

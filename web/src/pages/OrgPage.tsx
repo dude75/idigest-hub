@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { Modal } from '../components/Modal'
 import { StatCard, StatGrid } from '../components/StatCard'
 import { TariffDetails } from '../components/TariffDetails'
+import { UserStatusBadges } from '../components/UserAgreementBadge'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Org, OrgSsoAdmin, Tariff, User } from '../types'
 import { formatDecimal, formatInteger, showError, WalletLabel } from '../util'
@@ -549,11 +550,14 @@ export function OrgPage() {
                     )}
                   </td>
                   <td>
-                    {u.disabled ? (
-                      <span className="badge err">{t('org.statusDisabled')}</span>
-                    ) : (
-                      <span className="badge out">{t('org.statusActive')}</span>
-                    )}
+                    <div className="row wrap">
+                      {!u.disabled &&
+                      u.user_agreement_status !== 'pending' &&
+                      u.user_agreement_status !== 'accepted' ? (
+                        <span className="badge out">{t('org.statusActive')}</span>
+                      ) : null}
+                      <UserStatusBadges user={u} />
+                    </div>
                   </td>
                   {admin && (
                     <td>

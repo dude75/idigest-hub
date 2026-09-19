@@ -29,6 +29,29 @@ export type User = {
   role: string | null
   auth_provider: string
   user_agreement_status?: 'accepted' | 'pending' | null
+  legal_documents_acceptance?: LegalDocumentAcceptance[] | null
+}
+
+export type LegalDocumentAcceptance = {
+  key: 'user_agreement' | 'personal_data_consent' | 'privacy_policy'
+  accepted_version: number
+  current_version: number
+  pending: boolean
+}
+
+export type LegalDocumentVersionSummary = {
+  version: number
+  published: boolean
+  created_at: string
+  created_by_user_id: string | null
+  created_by_email: string | null
+}
+
+export type LegalDocumentVersionDetail = LegalDocumentVersionSummary & {
+  key: 'user_agreement' | 'personal_data_consent' | 'privacy_policy'
+  text_en: string | null
+  text_ru: string | null
+  text_es: string | null
 }
 
 export type Tariff = {

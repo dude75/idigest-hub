@@ -3,9 +3,13 @@
 from __future__ import annotations
 
 import re
-from typing import Literal
+from typing import Any, Literal
 
-from app.models import InstanceSettings, Membership, Organization, User
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models import InstanceSettings, LegalDocumentVersion, Membership, Organization, User
+from app.timeutil import isoformat_utc, utcnow
 
 LegalDocumentKey = Literal["user_agreement", "personal_data_consent", "privacy_policy"]
 
@@ -134,13 +138,37 @@ def any_document_active(settings: InstanceSettings) -> bool:
     return any(document_active(settings, key) for key in LEGAL_DOCUMENT_KEYS)
 
 
+def _acceptance_pending(*, accepted: int, version: int) -> bool:
+    """True when the user has not accepted the current document version."""
+    return accepted != version
+
+
+def legal_documents_acceptance_public(user: User, settings: InstanceSettings) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    for key in LEGAL_DOCUMENT_KEYS:
+        if not document_active(settings, key):
+            continue
+        spec = LEGAL_DOCUMENT_SPECS[key]
+        accepted = getattr(user, spec["accepted"]) or 0
+        version = getattr(settings, spec["version"])
+        items.append(
+            {
+                "key": key,
+                "accepted_version": accepted,
+                "current_version": version,
+                "pending": _acceptance_pending(accepted=accepted, version=version),
+            }
+        )
+    return items
+
+
 def document_pending(user: User, settings: InstanceSettings, key: LegalDocumentKey) -> bool:
     if not document_active(settings, key):
         return False
     spec = LEGAL_DOCUMENT_SPECS[key]
     accepted = getattr(user, spec["accepted"]) or 0
     version = getattr(settings, spec["version"])
-    return accepted < version
+    return _acceptance_pending(accepted=accepted, version=version)
 
 
 def pending_legal_document_keys(user: User, settings: InstanceSettings) -> list[LegalDocumentKey]:
@@ -161,7 +189,7 @@ def member_legal_documents(user: User, settings: InstanceSettings, locale: str) 
                 "version": version,
                 "text": document_text(settings, key, locale),
                 "accepted_version": accepted,
-                "pending": accepted < version,
+                "pending": _acceptance_pending(accepted=accepted, version=version),
             }
         )
     return docs
@@ -196,7 +224,106 @@ def user_agreement_required(
     return bool(pending_legal_document_keys(user, settings))
 
 
-def _apply_document_text_patch(settings: InstanceSettings, key: LegalDocumentKey, data: dict) -> None:
+def _document_version_texts(settings: InstanceSettings, key: LegalDocumentKey) -> tuple[str | None, str | None, str | None]:
+    spec = LEGAL_DOCUMENT_SPECS[key]
+    return (
+        getattr(settings, spec["text_en"]),
+        getattr(settings, spec["text_ru"]),
+        getattr(settings, spec["text_es"]),
+    )
+
+
+def persist_legal_document_version(
+    db: Session,
+    *,
+    key: LegalDocumentKey,
+    version: int,
+    settings: InstanceSettings,
+    created_by_user_id: str | None,
+) -> None:
+    spec = LEGAL_DOCUMENT_SPECS[key]
+    existing = db.scalar(
+        select(LegalDocumentVersion.id).where(
+            LegalDocumentVersion.document_key == key,
+            LegalDocumentVersion.version == version,
+        )
+    )
+    if existing is not None:
+        return
+    text_en, text_ru, text_es = _document_version_texts(settings, key)
+    db.add(
+        LegalDocumentVersion(
+            document_key=key,
+            version=version,
+            text_en=text_en,
+            text_ru=text_ru,
+            text_es=text_es,
+            published=bool(getattr(settings, spec["published"])),
+            created_at=utcnow(),
+            created_by_user_id=created_by_user_id,
+        )
+    )
+
+
+def list_legal_document_versions(db: Session, key: LegalDocumentKey) -> list[LegalDocumentVersion]:
+    return list(
+        db.scalars(
+            select(LegalDocumentVersion)
+            .where(LegalDocumentVersion.document_key == key)
+            .order_by(LegalDocumentVersion.version.desc())
+        ).all()
+    )
+
+
+def get_legal_document_version(db: Session, key: LegalDocumentKey, version: int) -> LegalDocumentVersion | None:
+    return db.scalar(
+        select(LegalDocumentVersion).where(
+            LegalDocumentVersion.document_key == key,
+            LegalDocumentVersion.version == version,
+        )
+    )
+
+
+def legal_document_version_summary(row: LegalDocumentVersion, *, author_email: str | None = None) -> dict[str, Any]:
+    return {
+        "version": row.version,
+        "published": row.published,
+        "created_at": isoformat_utc(row.created_at),
+        "created_by_user_id": row.created_by_user_id,
+        "created_by_email": author_email,
+    }
+
+
+def legal_document_version_detail(row: LegalDocumentVersion, *, author_email: str | None = None) -> dict[str, Any]:
+    body = legal_document_version_summary(row, author_email=author_email)
+    body.update(
+        {
+            "key": row.document_key,
+            "text_en": row.text_en,
+            "text_ru": row.text_ru,
+            "text_es": row.text_es,
+        }
+    )
+    return body
+
+
+def archived_legal_document_text(row: LegalDocumentVersion, locale: str) -> str:
+    return _localized_markdown(
+        locale=locale,
+        en=row.text_en or "",
+        ru=row.text_ru or "",
+        es=row.text_es or "",
+    )
+
+
+def _apply_document_text_patch(
+    settings: InstanceSettings,
+    key: LegalDocumentKey,
+    data: dict,
+    *,
+    db: Session | None = None,
+    created_by_user_id: str | None = None,
+) -> None:
     spec = LEGAL_DOCUMENT_SPECS[key]
     version_field = spec["version"]
     text_fields = [spec[field] for field in LEGAL_DOCUMENT_TEXT_FIELDS]
@@ -214,23 +341,41 @@ def _apply_document_text_patch(settings: InstanceSettings, key: LegalDocumentKey
     for field, value in zip(text_fields, new_values, strict=True):
         setattr(settings, field, value or None)
 
-    if not any(new_values):
-        setattr(settings, version_field, 0)
-    elif changed:
-        had_text = bool(any(old_values))
-        current_version = getattr(settings, version_field)
-        setattr(settings, version_field, max(1, current_version + 1) if had_text else 1)
+    if changed and any(new_values):
+        current_version = getattr(settings, version_field) or 0
+        new_version = max(1, current_version + 1)
+        setattr(settings, version_field, new_version)
+        if db is not None:
+            persist_legal_document_version(
+                db,
+                key=key,
+                version=new_version,
+                settings=settings,
+                created_by_user_id=created_by_user_id,
+            )
 
 
 def apply_agreement_text_patch(settings: InstanceSettings, data: dict) -> None:
     _apply_document_text_patch(settings, "user_agreement", data)
 
 
-def apply_legal_documents_patch(settings: InstanceSettings, data: dict) -> None:
+def apply_legal_documents_patch(
+    settings: InstanceSettings,
+    data: dict,
+    *,
+    db: Session | None = None,
+    created_by_user_id: str | None = None,
+) -> None:
     for key in LEGAL_DOCUMENT_SPECS:
         spec = LEGAL_DOCUMENT_SPECS[key]
         if any(spec[field] in data for field in LEGAL_DOCUMENT_TEXT_FIELDS):
-            _apply_document_text_patch(settings, key, data)
+            _apply_document_text_patch(
+                settings,
+                key,
+                data,
+                db=db,
+                created_by_user_id=created_by_user_id,
+            )
     apply_landing_footer_patch(settings, data)
 
 

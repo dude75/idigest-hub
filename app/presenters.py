@@ -50,9 +50,10 @@ def user_public(
         "auth_provider": user.auth_provider,
     }
     if instance_settings is not None:
-        from app.services.user_agreement import agreement_acceptance_status
+        from app.services.user_agreement import agreement_acceptance_status, legal_documents_acceptance_public
 
         body["user_agreement_status"] = agreement_acceptance_status(user, instance_settings)
+        body["legal_documents_acceptance"] = legal_documents_acceptance_public(user, instance_settings)
     return body
 
 
