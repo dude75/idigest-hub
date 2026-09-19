@@ -322,6 +322,8 @@
     "resetMfa": "Reset 2FA",
     "resetMfaConfirm": "Reset 2FA for {{email}}? They will sign in with password only and must set up 2FA again if required.",
     "resetMfaDone": "Two-factor authentication reset.",
+    "mfaBadgeOn": "2FA enabled",
+    "mfaBadgePending": "2FA setup incomplete",
     "newPassword": "Temporary password",
     "roleAdmin": "Admin",
     "roleMember": "Member",

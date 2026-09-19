@@ -12,6 +12,7 @@ import type { Org, OrgLedger, Tariff, User } from '../../types'
 import { statsRangeForDays } from '../../util/date'
 import { randomPassword } from '../../util/password'
 import { formatInteger, showError, WalletLabel } from '../../util'
+import { canAdminResetMemberMfa } from '../../mfa'
 import { emptyOrg } from './constants'
 
 export function InstanceOrgsTab() {
@@ -399,7 +400,7 @@ export function InstanceOrgsTab() {
                               ) : null}
                             </td>
                             <td className="org-users-action">
-                              {u.auth_provider === 'local' && (u.mfa_configured ?? u.mfa_enabled) && !u.is_instance_admin ? (
+                              {canAdminResetMemberMfa(u) ? (
                                 <button
                                   type="button"
                                   onClick={() => setMfaResetTarget({ orgId: o.id, user: u })}
@@ -497,9 +498,12 @@ export function InstanceOrgsTab() {
             void api(`/orgs/${mfaResetTarget.orgId}/users/${mfaResetTarget.user.id}/reset-mfa`, { method: 'POST' })
               .then(() => {
                 setMfaResetTarget(null)
-                return refresh()
+                return load()
               })
-              .catch(showError)
+              .catch((e) => {
+                showError(e)
+                return load()
+              })
               .finally(() => setMfaResetBusy(false))
           }}
           onClose={() => setMfaResetTarget(null)}

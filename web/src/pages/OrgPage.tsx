@@ -12,6 +12,7 @@ import { UserStatusBadges } from '../components/UserAgreementBadge'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Org, OrgSsoAdmin, Tariff, User } from '../types'
 import { formatDecimal, formatInteger, showError, WalletLabel } from '../util'
+import { canAdminResetMemberMfa } from '../mfa'
 import { randomPassword } from '../util/password'
 
 function SsoUrlRow({ label, value }: { label: string; value: string }) {
@@ -247,6 +248,7 @@ export function OrgPage() {
       await load()
     } catch (e) {
       showError(e)
+      await load()
     } finally {
       setMfaResetBusy(false)
     }
@@ -582,9 +584,9 @@ export function OrgPage() {
                           {u.disabled ? t('common.enable') : t('common.disable')}
                         </button>
                         <button type="button" onClick={() => void resetPw(u)}>{t('org.resetPassword')}</button>
-                        {(u.mfa_configured ?? u.mfa_enabled) && (u.auth_provider === 'local' || !ssoBlocksMfa) && (
+                        {canAdminResetMemberMfa(u, { ssoBlocksMfa, allowInstanceAdmin: true }) ? (
                           <button type="button" onClick={() => setMfaResetUser(u)}>{t('org.resetMfa')}</button>
-                        )}
+                        ) : null}
                         <button type="button" className="danger" onClick={() => setOffUser(u)}>{t('org.offboard')}</button>
                       </div>
                     </td>

@@ -1,9 +1,19 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { User } from '../types'
+import { mfaMemberState } from '../mfa'
 
 type Props = {
-  user: Pick<User, 'disabled' | 'must_change_password' | 'user_agreement_status' | 'legal_documents_acceptance'>
+  user: Pick<
+    User,
+    | 'disabled'
+    | 'must_change_password'
+    | 'user_agreement_status'
+    | 'legal_documents_acceptance'
+    | 'mfa_enabled'
+    | 'mfa_configured'
+    | 'auth_provider'
+  >
 }
 
 function acceptedVersionLabel(user: Pick<User, 'legal_documents_acceptance'>): string | null {
@@ -34,6 +44,23 @@ export function UserStatusBadges({ user }: Props) {
       {agreementStatus === 'pending' ? (
         <span className="badge err">{t('agreement.badgeBlocked')}</span>
       ) : null}
+      <MfaMemberBadge user={user} />
     </>
   )
+}
+
+function MfaMemberBadge({
+  user,
+}: {
+  user: Pick<User, 'mfa_enabled' | 'mfa_configured' | 'auth_provider'>
+}) {
+  const { t } = useTranslation()
+  const state = mfaMemberState(user)
+  if (state === 'on') {
+    return <span className="badge out">{t('org.mfaBadgeOn')}</span>
+  }
+  if (state === 'pending') {
+    return <span className="badge warn">{t('org.mfaBadgePending')}</span>
+  }
+  return null
 }

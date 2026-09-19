@@ -1,6 +1,12 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import type { Me } from './types'
-import { clearMfaChallengeId, readMfaChallengeId, storeMfaChallengeId } from './mfa'
+import {
+  canAdminResetMemberMfa,
+  clearMfaChallengeId,
+  mfaMemberState,
+  readMfaChallengeId,
+  storeMfaChallengeId,
+} from './mfa'
 import { localAuthProfileVisible, resolveAuthBlockPath, resolveAuthContinuationPath } from './routes'
 
 const baseMe: Me = {
@@ -197,5 +203,40 @@ describe('resolveAuthContinuationPath', () => {
 
   it('routes ready org users to library', () => {
     expect(resolveAuthContinuationPath(baseMe)).toBe('/app/library/audio')
+  })
+})
+
+describe('mfaMemberState', () => {
+  const local = { auth_provider: 'local' as const, is_instance_admin: false, disabled: false }
+
+  it('distinguishes off, pending, and on', () => {
+    expect(mfaMemberState({ ...local, mfa_enabled: false, mfa_configured: false })).toBe('off')
+    expect(mfaMemberState({ ...local, mfa_enabled: false, mfa_configured: true })).toBe('pending')
+    expect(mfaMemberState({ ...local, mfa_enabled: true, mfa_configured: true })).toBe('on')
+  })
+
+  it('ignores SSO users', () => {
+    expect(
+      mfaMemberState({ auth_provider: 'oidc', mfa_enabled: true, mfa_configured: true }),
+    ).toBeNull()
+  })
+})
+
+describe('canAdminResetMemberMfa', () => {
+  const base = {
+    auth_provider: 'local' as const,
+    is_instance_admin: false,
+    disabled: false,
+    mfa_configured: true,
+  }
+
+  it('requires mfa_configured', () => {
+    expect(canAdminResetMemberMfa({ ...base, mfa_configured: false })).toBe(false)
+    expect(canAdminResetMemberMfa(base)).toBe(true)
+  })
+
+  it('blocks instance admins on instance org tab by default', () => {
+    expect(canAdminResetMemberMfa({ ...base, is_instance_admin: true })).toBe(false)
+    expect(canAdminResetMemberMfa({ ...base, is_instance_admin: true }, { allowInstanceAdmin: true })).toBe(true)
   })
 })

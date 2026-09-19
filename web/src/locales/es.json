@@ -322,6 +322,8 @@
     "resetMfa": "Restablecer 2FA",
     "resetMfaConfirm": "¿Restablecer 2FA para {{email}}? Solo podrá iniciar sesión con contraseña y deberá configurar 2FA de nuevo si es obligatorio.",
     "resetMfaDone": "Autenticación de dos factores restablecida.",
+    "mfaBadgeOn": "2FA activada",
+    "mfaBadgePending": "2FA sin completar",
     "newPassword": "Contraseña temporal",
     "roleAdmin": "Admin",
     "roleMember": "Miembro",
