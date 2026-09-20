@@ -458,7 +458,7 @@ class UsageEvent(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id"), nullable=False, index=True)
-    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("users.id"), nullable=True)
     task_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("tasks.id"))
     kind: Mapped[str] = mapped_column(String(32), nullable=False)
     audio_sec: Mapped[float | None] = mapped_column()

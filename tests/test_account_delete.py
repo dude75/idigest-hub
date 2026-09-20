@@ -1,6 +1,9 @@
+from decimal import Decimal
+
 from sqlalchemy import func, select
 
-from app.models import Audio, Membership, Organization, User
+from app.models import Audio, Membership, Organization, UsageEvent, User, new_id
+from app.timeutil import utcnow
 from tests.conftest import (
     default_tariff_id,
     err_code,
@@ -148,3 +151,61 @@ def test_org_member_delete_keeps_org(client):
         assert db.get(User, peer_id) is None
         assert db.get(Organization, org_id) is not None
         assert db.scalar(select(func.count()).select_from(Audio).where(Audio.org_id == org_id)) == 0
+
+
+def test_member_delete_preserves_org_usage_events(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    lead_id = me(client)["user"]["id"]
+
+    member = client.post(
+        "/api/v1/org/users",
+        json={"email": "peer@example.com", "password": "peerpass1", "role": "org_member"},
+    )
+    assert member.status_code == 200, member.text
+    peer_id = member.json()["id"]
+
+    from tests.conftest import open_db
+
+    now = utcnow()
+    with open_db() as db:
+        for user_id, amount in ((lead_id, "30.00"), (peer_id, "20.00")):
+            db.add(
+                UsageEvent(
+                    id=new_id(),
+                    org_id=org_id,
+                    user_id=user_id,
+                    task_id=None,
+                    kind="transcribe",
+                    audio_sec=1.0,
+                    summary_chars=None,
+                    amount=Decimal(amount),
+                    unlimited_skip=False,
+                    created_at=now,
+                )
+            )
+        db.commit()
+
+    logout(client)
+    login_ready(client, "peer@example.com", "peerpass1")
+    deleted = client.post(
+        "/api/v1/me/account-delete",
+        json={"password": "peerpass1"},
+    )
+    assert deleted.status_code == 200, deleted.text
+
+    logout(client)
+    login_ready(client, "lead@example.com", "leadpass1")
+    usage_total = client.get("/api/v1/org").json()["usage"]["total_amount"]
+    assert usage_total == "50.00"
+
+    with open_db() as db:
+        events = list(
+            db.scalars(select(UsageEvent).where(UsageEvent.org_id == org_id)).all()
+        )
+        assert len(events) == 2
+        assert sum(Decimal(str(e.amount)) for e in events) == Decimal("50.00")
+        assert sum(1 for e in events if e.user_id is None) == 1
+        assert sum(1 for e in events if e.user_id == lead_id) == 1

@@ -77,6 +77,8 @@ Each successful charge creates a `usage_events` row:
 
 Org stats and `/org` usage totals aggregate these rows.
 
+When a **member** deletes their account but the organization remains, usage rows for that org are **kept** (amounts and dates); `user_id` and `task_id` are cleared so org billing totals stay aligned with wallet charges. Deleting the **whole organization** removes all its usage events.
+
 ## API access gating
 
 `org.tariff.api_enabled` must be true for:

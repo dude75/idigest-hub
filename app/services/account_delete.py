@@ -82,7 +82,12 @@ def _purge_user_owned_data(db: Session, user: User) -> None:
         else:
             task.skip_persist = True
             task.skip_reason = "account_deleted"
-    db.execute(delete(UsageEvent).where(UsageEvent.user_id == user.id))
+    # Keep org billing rows; drop links to the deleted account and its tasks.
+    db.execute(
+        update(UsageEvent)
+        .where(UsageEvent.user_id == user.id)
+        .values(user_id=None, task_id=None)
+    )
     db.execute(delete(Task).where(Task.user_id == user.id))
     for audio in list(db.scalars(select(Audio).where(Audio.owner_user_id == user.id)).all()):
         hard_delete_audio(db, audio)
