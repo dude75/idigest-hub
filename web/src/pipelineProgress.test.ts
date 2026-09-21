@@ -16,7 +16,22 @@ const transcribeTask = (status: string): Task => ({
   error: null,
 })
 
+const captureTask = (status: string, stage?: string): Task => ({
+  task_id: 'c1',
+  type: 'capture',
+  status,
+  meta: stage ? { stage } : {},
+  transcript_id: null,
+  summary_id: null,
+  error: null,
+})
+
 describe('buildPipelineSteps', () => {
+  it('builds capture → transcribe for meeting ingest', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false, captureTask('running'))
+    expect(steps.map((s) => s.id)).toEqual(['capture', 'transcribe'])
+  })
+
   it('builds import → transcribe → summarize chain', () => {
     const steps = buildPipelineSteps({ transcribe: true, skillIds: ['s1'] }, true)
     expect(steps.map((s) => s.id)).toEqual(['import', 'transcribe', 'summarize'])

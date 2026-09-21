@@ -82,3 +82,23 @@ def resolve_capture_artifact(
     if not filename.lower().endswith(suffix):
         filename = f"{stem}{suffix}"
     return suffix, filename
+
+
+MIN_CAPTURE_ARTIFACT_BYTES = 128
+
+
+def validate_capture_download(content: bytes, headers: dict[str, str]) -> None:
+    """Reject API error bodies and implausibly small capture artifacts."""
+    if not content:
+        raise InvalidAudioContent()
+    if content.lstrip()[:1] == b"{":
+        raise InvalidAudioContent()
+    content_type = (headers.get("content-type") or "").split(";", 1)[0].strip().lower()
+    if content_type in {"application/json", "text/plain", "text/html"}:
+        raise InvalidAudioContent()
+    if len(content) < MIN_CAPTURE_ARTIFACT_BYTES:
+        raise InvalidAudioContent()
+    sniffed = sniff_audio_suffix(content[:_HEADER_LEN])
+    if sniffed is None:
+        raise InvalidAudioContent()
+    validate_audio_header(sniffed, content[:_HEADER_LEN])

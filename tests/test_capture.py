@@ -39,6 +39,16 @@ def _map_jitsi_host(client, worker_id: str, host: str = "meet.example.com") -> N
     assert response.status_code == 200, response.text
 
 
+def test_capture_storage_filename_uses_meeting_room():
+    from app.services.capture_meeting import capture_storage_filename
+
+    assert capture_storage_filename({"meeting_room": "Weekly Standup"}, ".mp3") == "Weekly Standup.mp3"
+    assert (
+        capture_storage_filename({"meeting_url": "https://meet.example.com/My%20Room"}, ".mp3")
+        == "My Room.mp3"
+    )
+
+
 def test_normalize_host_accepts_meeting_url():
     from app.services.capture_meeting import normalize_host
 
@@ -140,7 +150,7 @@ def test_capture_success(client, fake_workers):
     assert audio.status_code == 200
     payload = audio.json()
     assert payload["source_url"] == "https://meet.example.com/room1"
-    assert payload["filename"].endswith(".mp3")
+    assert payload["filename"] == "room1.mp3"
 
 
 def test_org_capture_jitsi_crud(client, fake_workers):
@@ -164,6 +174,39 @@ def test_org_capture_jitsi_crud(client, fake_workers):
     listed = client.get("/api/v1/org/capture/jitsi")
     assert len(listed.json()["items"]) == 1
     assert listed.json()["items"][0]["host"] == "jitsi.example.com"
+
+    host_id = listed.json()["items"][0]["id"]
+    with_app_id = client.put(
+        "/api/v1/org/capture/jitsi",
+        json={
+            "items": [
+                {
+                    "id": host_id,
+                    "host": "jitsi.example.com",
+                    "worker_id": worker["id"],
+                    "jwt_app_id": "miSpy",
+                }
+            ]
+        },
+    )
+    assert with_app_id.status_code == 200, with_app_id.text
+    assert with_app_id.json()["items"][0]["jwt_app_id"] == "miSpy"
+
+    cleared_app_id = client.put(
+        "/api/v1/org/capture/jitsi",
+        json={
+            "items": [
+                {
+                    "id": host_id,
+                    "host": "jitsi.example.com",
+                    "worker_id": worker["id"],
+                    "jwt_app_id": "",
+                }
+            ]
+        },
+    )
+    assert cleared_app_id.status_code == 200, cleared_app_id.text
+    assert cleared_app_id.json()["items"][0]["jwt_app_id"] is None
 
     logout(client)
     login_ready(client, "caporg@example.com", "caporgpass1")
@@ -203,6 +246,335 @@ def test_import_meeting_url_creates_capture_via_import_endpoint(client, fake_wor
     )
     assert response.status_code == 202, response.text
     assert response.json()["type"] == "capture"
+
+
+@pytest.mark.asyncio
+async def test_recover_capture_without_worker_task_requeues(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "caprec1@example.com", "caprec1pass1", tariff_id).status_code == 200
+    user = login_ready(client, "caprec1@example.com", "caprec1pass1")
+    _map_jitsi_host(client, worker["id"])
+
+    from tests.conftest import open_db
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Organization, Task, new_id
+        from app.services.billing import snapshot_fields
+        from app.services.dispatcher import recover_orphaned_tasks
+        from app.timeutil import utcnow
+
+        org = db.get(Organization, user["org"]["id"])
+        assert org is not None
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="running",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=worker["id"],
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={"meeting_url": "https://meet.example.com/room1", "stage": "queued"},
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+
+        await recover_orphaned_tasks(db)
+        db.expire_all()
+        recovered = db.get(Task, task.id)
+        assert recovered is not None
+        assert recovered.status == "queued"
+        assert recovered.worker_id is None
+        assert recovered.worker_task_id is None
+    finally:
+        db.close()
+
+
+@pytest.mark.asyncio
+async def test_recover_capture_worker_still_running_keeps_worker_task(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "caprec2@example.com", "caprec2pass1", tariff_id).status_code == 200
+    user = login_ready(client, "caprec2@example.com", "caprec2pass1")
+
+    from tests.conftest import open_db
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Organization, Task, new_id
+        from app.services.billing import snapshot_fields
+        from app.services.dispatcher import recover_orphaned_tasks
+        from app.timeutil import utcnow
+
+        org = db.get(Organization, user["org"]["id"])
+        assert org is not None
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="running",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=worker["id"],
+            worker_task_id=fake_workers.capture_worker_task_id,
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={
+                "meeting_url": "https://meet.example.com/room1",
+                "stage": "capturing",
+                "connector": "jitsi",
+            },
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+
+        fake_workers.capture_poll_mode = "capturing"
+        await recover_orphaned_tasks(db)
+        db.expire_all()
+        recovered = db.get(Task, task.id)
+        assert recovered is not None
+        assert recovered.status == "running"
+        assert recovered.worker_id == worker["id"]
+        assert recovered.worker_task_id == fake_workers.capture_worker_task_id
+        assert recovered.meta_json["stage"] == "capturing"
+    finally:
+        db.close()
+        fake_workers.capture_poll_mode = "success"
+
+
+@pytest.mark.asyncio
+async def test_capture_stop_calls_worker_without_local_thread(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "capstop@example.com", "capstoppass1", tariff_id).status_code == 200
+    user = login_ready(client, "capstop@example.com", "capstoppass1")
+    _map_jitsi_host(client, worker["id"])
+
+    from tests.conftest import open_db
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Organization, Task, new_id
+        from app.services.billing import snapshot_fields
+        from app.timeutil import utcnow
+
+        org = db.get(Organization, user["org"]["id"])
+        assert org is not None
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="running",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=worker["id"],
+            worker_task_id=fake_workers.capture_worker_task_id,
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={
+                "meeting_url": "https://meet.example.com/room1",
+                "stage": "capturing",
+                "connector": "jitsi",
+            },
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+        hub_task_id = task.id
+    finally:
+        db.close()
+
+    from app.services.capture_runner import reset_capture_runner
+
+    reset_capture_runner()
+    fake_workers.capture_stop_calls.clear()
+
+    response = client.post(f"/api/v1/tasks/{hub_task_id}/stop")
+    assert response.status_code == 202, response.text
+    assert fake_workers.capture_worker_task_id in fake_workers.capture_stop_calls
+    body = response.json()
+    assert body["meta"]["stop_requested"] is True
+
+
+@pytest.mark.asyncio
+async def test_recover_capture_honors_stop_requested(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "caprec3@example.com", "caprec3pass1", tariff_id).status_code == 200
+    user = login_ready(client, "caprec3@example.com", "caprec3pass1")
+
+    from tests.conftest import open_db
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Organization, Task, new_id
+        from app.services.billing import snapshot_fields
+        from app.services.dispatcher import recover_orphaned_tasks
+        from app.timeutil import utcnow
+
+        org = db.get(Organization, user["org"]["id"])
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="running",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=worker["id"],
+            worker_task_id=fake_workers.capture_worker_task_id,
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={
+                "meeting_url": "https://meet.example.com/room1",
+                "stage": "capturing",
+                "stop_requested": True,
+                "connector": "jitsi",
+            },
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+
+        fake_workers.capture_stop_calls.clear()
+        fake_workers.capture_poll_mode = "capturing"
+        await recover_orphaned_tasks(db)
+        assert fake_workers.capture_worker_task_id in fake_workers.capture_stop_calls
+        db.expire_all()
+        recovered = db.get(Task, task.id)
+        assert recovered is not None
+        assert recovered.meta_json["stage"] == "finalizing"
+    finally:
+        db.close()
+        fake_workers.capture_poll_mode = "success"
+
+
+@pytest.mark.asyncio
+async def test_recover_capture_dispatched_without_worker_id_fails(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "caplost@example.com", "caplostpass1", tariff_id).status_code == 200
+    user = login_ready(client, "caplost@example.com", "caplostpass1")
+
+    from tests.conftest import open_db
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Organization, Task, new_id
+        from app.services.billing import snapshot_fields
+        from app.services.dispatcher import recover_orphaned_tasks
+        from app.timeutil import utcnow
+
+        org = db.get(Organization, user["org"]["id"])
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="running",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=worker["id"],
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={"meeting_url": "https://meet.example.com/room1", "stage": "capturing"},
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+
+        await recover_orphaned_tasks(db)
+        db.expire_all()
+        recovered = db.get(Task, task.id)
+        assert recovered is not None
+        assert recovered.status == "error"
+        assert recovered.error_code == "pipeline_error"
+    finally:
+        db.close()
+
+
+def test_maybe_start_capture_resumes_running_task(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "caprun@example.com", "caprunpass1", tariff_id).status_code == 200
+    user = login_ready(client, "caprun@example.com", "caprunpass1")
+
+    from tests.conftest import open_db
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Organization, Task, new_id
+        from app.services.billing import snapshot_fields
+        from app.services.capture_runner import _bg_threads, maybe_start_capture, reset_capture_runner
+        from app.timeutil import utcnow
+
+        reset_capture_runner()
+        org = db.get(Organization, user["org"]["id"])
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="running",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=worker["id"],
+            worker_task_id=fake_workers.capture_worker_task_id,
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={
+                "meeting_url": "https://meet.example.com/room1",
+                "stage": "finalizing",
+                "connector": "jitsi",
+            },
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+
+        maybe_start_capture(db, task)
+        assert task.id in _bg_threads
+    finally:
+        db.close()
+        reset_capture_runner()
 
 
 def test_import_meeting_url_without_capture_enabled(client):

@@ -46,7 +46,12 @@ export function taskStageLabelKey(task: Task): string | null {
     return `task.importStage.${stage}`
   }
   if (task.type === 'capture') {
-    const stage = typeof task.meta?.stage === 'string' ? task.meta.stage : task.status
+    let stage = typeof task.meta?.stage === 'string' ? task.meta.stage : task.status
+    const workerStatus =
+      typeof task.meta?.worker_capture_status === 'string' ? task.meta.worker_capture_status : null
+    if (workerStatus === 'success' && (stage === 'finalizing' || stage === 'capturing' || stage === 'running')) {
+      stage = 'downloading'
+    }
     return `task.captureStage.${stage}`
   }
   if (task.type !== 'transcribe' && task.type !== 'summarize') return null

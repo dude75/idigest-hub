@@ -4,19 +4,38 @@ import { activePipeline, loadPipelineRun, type IngestPipeline } from '../pipelin
 import { isTaskProcessingOnWorker, isTaskWaitingOnWorkers } from '../taskStage'
 import type { Task } from '../types'
 
-export type PipelineStepId = 'import' | 'transcribe' | 'summarize'
+export type PipelineStepId = 'import' | 'capture' | 'transcribe' | 'summarize'
 
 export type PipelineStep = {
   id: PipelineStepId
   labelKey: string
 }
 
-export function buildPipelineSteps(pipeline: IngestPipeline, showImport: boolean): PipelineStep[] {
+export function pipelineIngestStepId(task: Task | null, showImport: boolean): PipelineStepId | null {
+  if (task?.type === 'capture') return 'capture'
+  if (showImport || task?.type === 'import') return 'import'
+  return null
+}
+
+export function buildPipelineSteps(
+  pipeline: IngestPipeline,
+  showImport: boolean,
+  task: Task | null = null,
+): PipelineStep[] {
   const steps: PipelineStep[] = []
-  if (showImport) steps.push({ id: 'import', labelKey: 'task.type.import' })
+  const ingestId = pipelineIngestStepId(task, showImport)
+  if (ingestId === 'capture') steps.push({ id: 'capture', labelKey: 'task.type.capture' })
+  else if (ingestId === 'import') steps.push({ id: 'import', labelKey: 'task.type.import' })
   if (pipeline.transcribe) steps.push({ id: 'transcribe', labelKey: 'task.type.transcribe' })
   if (pipeline.skillIds.length > 0) steps.push({ id: 'summarize', labelKey: 'task.type.summarize' })
   return steps
+}
+
+function pipelineCurrentStepId(task: Task): PipelineStepId {
+  if (task.type === 'capture') return 'capture'
+  if (task.type === 'import') return 'import'
+  if (task.type === 'summarize') return 'summarize'
+  return 'transcribe'
 }
 
 export function pipelineStepStatus(
@@ -26,7 +45,7 @@ export function pipelineStepStatus(
 ): 'pending' | 'waiting' | 'active' | 'done' {
   if (!task) return 'pending'
   const idx = steps.findIndex((s) => s.id === step)
-  const currentIdx = steps.findIndex((s) => s.id === task.type)
+  const currentIdx = steps.findIndex((s) => s.id === pipelineCurrentStepId(task))
   if (currentIdx < 0) {
     if (task.status === 'success') return 'done'
     return 'pending'
@@ -36,7 +55,7 @@ export function pipelineStepStatus(
   if (task.status === 'success') return 'done'
   if (isTaskWaitingOnWorkers(task)) return 'waiting'
   if (task.status === 'queued' || task.status === 'running') {
-    if (task.type === 'import') return 'active'
+    if (task.type === 'import' || task.type === 'capture') return 'active'
     if (isTaskProcessingOnWorker(task) || task.status === 'running') return 'active'
     return 'waiting'
   }
@@ -52,13 +71,15 @@ export function shouldShowPipelineProgress(steps: PipelineStep[], inPipelineRun:
 export function PipelineProgress({ task }: { task: Task | null }) {
   const { t } = useTranslation()
   const pipeline = activePipeline()
-  const [showImport, setShowImport] = useState(() => task?.type === 'import')
+  const [showImport, setShowImport] = useState(
+    () => task?.type === 'import' || task?.type === 'capture',
+  )
 
   useEffect(() => {
-    if (task?.type === 'import') setShowImport(true)
+    if (task?.type === 'import' || task?.type === 'capture') setShowImport(true)
   }, [task?.type])
 
-  const steps = buildPipelineSteps(pipeline, showImport)
+  const steps = buildPipelineSteps(pipeline, showImport, task)
   const inPipelineRun = loadPipelineRun() !== null
 
   if (!shouldShowPipelineProgress(steps, inPipelineRun)) return null

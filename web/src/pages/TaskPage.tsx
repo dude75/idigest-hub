@@ -173,7 +173,10 @@ export function TaskPage() {
           )}
         </div>
       )}
-      {task?.type === 'capture' && task.status === 'running' && (
+      {task?.type === 'capture' &&
+        task.status === 'running' &&
+        task.meta?.worker_capture_status !== 'success' &&
+        task.meta?.stage !== 'downloading' && (
         <button type="button" className="primary" onClick={() => void stopCapture()}>{t('task.captureStop')}</button>
       )}
       {task && (task.status === 'queued' || task.status === 'running') && (

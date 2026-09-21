@@ -152,7 +152,7 @@ export function OrgPage() {
       id: row.id,
       host: row.host,
       worker_id: row.worker_id,
-      jwt_app_id: row.jwt_app_id || undefined,
+      jwt_app_id: row.jwt_app_id ?? null,
     }
   }
 
@@ -215,7 +215,7 @@ export function OrgPage() {
     const draftFields: Record<string, unknown> = {
       host,
       worker_id,
-      jwt_app_id: captureDraft.jwt_app_id.trim() || undefined,
+      jwt_app_id: captureDraft.jwt_app_id.trim() || null,
     }
     if (captureDraft.jwt_secret.trim()) {
       draftFields.jwt_secret = captureDraft.jwt_secret.trim()
@@ -583,7 +583,7 @@ export function OrgPage() {
                               <tr key={row.id}>
                                 <td>{row.host}</td>
                                 <td><code>{row.worker_id}</code></td>
-                                <td>{row.jwt_app_id || '—'}</td>
+                                <td>{row.jwt_app_id ?? 'chat'}</td>
                                 <td>{row.jwt_secret_configured ? t('org.captureJwtSaved') : '—'}</td>
                                 <td className="table-actions">
                                   <button

@@ -16,7 +16,7 @@ from app.services.workers import WorkerClientError
 ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASSWORD = "adminpass1"
 SAMPLE_WAV_BYTES = b"RIFF" + b"\x00\x00\x00\x00" + b"WAVE" + b"\x00" * 32
-SAMPLE_MP3_BYTES = b"ID3" + b"\x03\x00" + b"\x00" * 9 + b"\x00" * 32
+SAMPLE_MP3_BYTES = b"ID3" + b"\x03\x00" + b"\x00" * 9 + b"\x00" * 114
 SAMPLE_M4A_BYTES = b"\x00" * 4 + b"ftyp" + b"M4A " + b"\x00" * 32
 LOADED_ENGINES = {
     "whisper": "loaded",
@@ -419,6 +419,7 @@ class FakeWorkers:
         self.capture_worker_task_id = "cap-w1"
         self.capture_artifact = SAMPLE_MP3_BYTES
         self.last_capture_display_name = ""
+        self.capture_stop_calls: list[str] = []
         self.ready_status = 200
         self.transcribe_mode = "queued"
         self.summarize_mode = "success"
@@ -571,15 +572,24 @@ class FakeWorkers:
     async def get_capture_task(self, _db, node, worker_task_id: str) -> tuple[int, dict[str, Any]]:
         if self.capture_poll_mode == "404":
             return 404, {}
-        if self.capture_poll_mode in {"running", "queued"}:
+        if self.capture_poll_mode in {"running", "queued", "capturing", "finalizing"}:
             return 200, {"status": self.capture_poll_mode}
+        artifact_size = len(self.capture_artifact)
         return 200, {
             "status": "success",
             "meta": {"task_id": worker_task_id, "duration_sec": 12.0},
+            "artifact": {
+                "ready": True,
+                "filename": "capture.mp3",
+                "content_type": "audio/mpeg",
+                "size_bytes": artifact_size,
+            },
         }
 
     async def stop_capture_task(self, _db, node, worker_task_id: str) -> tuple[int, dict[str, Any]]:
-        return 200, {"status": "running", "meta": {"task_id": worker_task_id}}
+        self.capture_stop_calls.append(worker_task_id)
+        self.capture_poll_mode = "finalizing"
+        return 200, {"status": "finalizing", "meta": {"task_id": worker_task_id}}
 
     async def delete_capture_task(self, _db, node, worker_task_id: str) -> int:
         return 200

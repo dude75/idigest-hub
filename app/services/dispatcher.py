@@ -508,7 +508,7 @@ async def recover_orphaned_tasks(db: Session) -> None:
 
     log.info("recover orphaned tasks count=%d", len(running))
     for task in running:
-        if task.type in {"import", "capture"}:
+        if task.type == "import":
             task.status = "queued"
             meta = dict(task.meta_json or {})
             meta["stage"] = "queued"
@@ -517,6 +517,11 @@ async def recover_orphaned_tasks(db: Session) -> None:
             task.worker_task_id = None
             task.updated_at = utcnow()
             log.info("recover task=%s type=%s running->queued", task.id, task.type)
+            continue
+        if task.type == "capture":
+            from app.services.capture_runner import recover_capture_task
+
+            await recover_capture_task(db, task, nodes)
             continue
         await _recover_worker_task(db, task, nodes)
 
@@ -820,7 +825,7 @@ async def tick_once(db: Session, task_id: str | None = None, *, refresh_health: 
     if task_id:
         query = query.where(Task.id == task_id)
     tasks = list(db.scalars(query).all())
-    from app.services.capture_runner import maybe_start_capture
+    from app.services.capture_runner import maybe_start_capture, try_finish_capture_task
     from app.services.import_runner import maybe_start_import
 
     for task in tasks:
@@ -829,8 +834,8 @@ async def tick_once(db: Session, task_id: str | None = None, *, refresh_health: 
                 maybe_start_import(db, task)
             continue
         if task.type == "capture":
-            if task.status == "queued":
-                maybe_start_capture(db, task)
+            await try_finish_capture_task(db, task)
+            maybe_start_capture(db, task)
             continue
         if task.status == "running" and task.worker_task_id:
             await poll_running_task(db, task, nodes)

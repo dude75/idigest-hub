@@ -157,12 +157,9 @@ def _task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
         if audio_filename is None and row.type == "import":
             audio_filename = _import_display_name(row.meta_json)
         if audio_filename is None and row.type == "capture":
-            meta = row.meta_json or {}
-            room = meta.get("meeting_room")
-            if isinstance(room, str) and room.strip():
-                audio_filename = f"{room.strip()}.m4a"
-            elif isinstance(meta.get("meeting_url"), str):
-                audio_filename = _import_display_name(meta)
+            from app.services.capture_meeting import capture_storage_filename
+
+            audio_filename = capture_storage_filename(row.meta_json, ".mp3")
         extra[row.id] = {
             "owner_email": user.email if user else None,
             "org_name": org.name if org else None,
@@ -567,7 +564,7 @@ def _validate_task_source(ctx: AuthContext, db: Session, org: Organization, task
 
 
 @router.post("/tasks/{task_id}/stop", status_code=202)
-def stop_capture_task(
+async def stop_capture_task(
     task_id: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
@@ -582,15 +579,9 @@ def stop_capture_task(
         ctx.raise_error(ErrorCode.validation_error)
     if task.status != "running":
         ctx.raise_error(ErrorCode.task_running)
-    from app.services.capture_runner import request_capture_stop
+    from app.services.capture_runner import apply_capture_stop
 
-    request_capture_stop(task.id)
-    meta = dict(task.meta_json or {})
-    meta["stage"] = meta.get("stage") or "capturing"
-    meta["stop_requested"] = True
-    task.meta_json = meta
-    task.updated_at = utcnow()
-    db.flush()
+    await apply_capture_stop(db, task)
     db.commit()
     schedule_locked_tick(background_tasks, task.id, refresh_health=False, wait=False)
     return task_public(task)
@@ -638,8 +629,11 @@ async def retry_task(
 
 
 @router.delete("/tasks/{task_id}")
-def cancel_task(
-    task_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+async def cancel_task(
+    task_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     task = db.get(Task, task_id)
     if task is None:
@@ -659,12 +653,16 @@ def cancel_task(
     if task.type == "capture":
         if task.status not in {"queued", "running"}:
             ctx.raise_error(ErrorCode.task_running)
-        from app.services.capture_runner import request_capture_cancel
+        from app.services.capture_runner import forward_capture_cancel, request_capture_cancel
 
         request_capture_cancel(task.id)
+        await forward_capture_cancel(db, task)
         task.status = "error"
         task.error_code = "canceled"
         task.updated_at = utcnow()
+        db.flush()
+        db.commit()
+        schedule_locked_tick(background_tasks, task.id, refresh_health=False, wait=False)
         return task_public(task)
     if task.status != "queued" or task.worker_task_id:
         ctx.raise_error(ErrorCode.task_running)

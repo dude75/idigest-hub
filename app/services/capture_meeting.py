@@ -5,7 +5,8 @@ from __future__ import annotations
 import re
 import time
 from dataclasses import dataclass
-from urllib.parse import urlparse
+from typing import Any
+from urllib.parse import unquote, urlparse
 
 import jwt
 from sqlalchemy import select
@@ -14,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.crypto import decrypt_str, encrypt_str
 from app.models import OrgCaptureJitsiHost, Organization, WorkerNode
 from app.services.capture_platforms import allowed_connectors, catalog_entry
+from app.services.export import safe_filename
 from app.services.import_platforms import host_from_url
 
 _MEETING_URL_RE = re.compile(r"^https?://", re.I)
@@ -111,6 +113,29 @@ def find_org_jitsi_host(db: Session, org_id: str, meeting_host: str) -> OrgCaptu
         if normalize_host(row.host) == target:
             return row
     return None
+
+
+def capture_storage_filename(meta: dict[str, Any] | None, suffix: str) -> str:
+    """Library filename from conference room name (Jitsi path segment), not worker artifact name."""
+    normalized = suffix.lower() if suffix.startswith(".") else f".{suffix.lower()}"
+    if normalized not in {".mp3", ".m4a", ".wav"}:
+        normalized = ".mp3"
+    return f"{capture_storage_stem(meta)}{normalized}"
+
+
+def capture_storage_stem(meta: dict[str, Any] | None) -> str:
+    data = meta if isinstance(meta, dict) else {}
+    room = data.get("meeting_room")
+    if isinstance(room, str) and room.strip():
+        return safe_filename(unquote(room.strip()), fallback="capture")
+    url = data.get("meeting_url")
+    if isinstance(url, str) and url.strip():
+        try:
+            _, parsed_room = parse_meeting_room(url.strip())
+            return safe_filename(unquote(parsed_room), fallback="capture")
+        except CaptureMeetingError:
+            pass
+    return "capture"
 
 
 def parse_meeting_room(url: str) -> tuple[str, str]:
@@ -236,6 +261,15 @@ def org_capture_worker_choices(db: Session) -> list[dict]:
     return [{"id": row.id, "name": row.name or row.base_url} for row in rows]
 
 
+def normalize_jwt_app_id(raw: object) -> str | None:
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        stripped = raw.strip()
+        return stripped or None
+    return None
+
+
 def replace_org_jitsi_hosts(
     db: Session,
     *,
@@ -277,8 +311,7 @@ def replace_org_jitsi_hosts(
             row.host = host
             row.worker_id = worker_id
             row.updated_at = now
-            if isinstance(jwt_app_id, str):
-                row.jwt_app_id = jwt_app_id.strip() or None
+            row.jwt_app_id = normalize_jwt_app_id(jwt_app_id)
             if clear_secret:
                 row.jwt_secret_encrypted = None
             elif isinstance(jwt_secret, str) and jwt_secret.strip():
@@ -293,7 +326,7 @@ def replace_org_jitsi_hosts(
                 host=host,
                 worker_id=worker_id,
                 jwt_secret_encrypted=secret_encrypted,
-                jwt_app_id=(jwt_app_id.strip() if isinstance(jwt_app_id, str) and jwt_app_id.strip() else None),
+                jwt_app_id=normalize_jwt_app_id(jwt_app_id),
                 created_at=now,
                 updated_at=now,
             )
