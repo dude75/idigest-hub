@@ -115,6 +115,52 @@ def test_meet_jitsi_public_url_parsing():
     assert room == "IncorrectToysSpellAbove"
 
 
+def test_meet_jitsi_skips_org_jwt(client, fake_workers):
+    from tests.conftest import me, open_db
+
+    from app.models import Organization
+    from app.services.capture_meeting import resolve_capture_target
+
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "jwtskip@example.com", "jwtskippass1", tariff_id).status_code == 200
+    login_ready(client, "jwtskip@example.com", "jwtskippass1")
+    put = client.put(
+        "/api/v1/org/capture/jitsi",
+        json={
+            "items": [
+                {
+                    "host": "meet.jit.si",
+                    "worker_id": worker["id"],
+                    "jwt_secret": "test-secret",
+                    "jwt_app_id": "chat",
+                }
+            ]
+        },
+    )
+    assert put.status_code == 200, put.text
+
+    org_id = me(client)["org"]["id"]
+    db = open_db()
+    try:
+        org = db.get(Organization, org_id)
+        assert org is not None
+
+        target = resolve_capture_target(
+            db,
+            org=org,
+            meeting_url="https://meet.jit.si/IncorrectToysSpellAbove",
+            pin="",
+            settings_allowed=["jitsi"],
+        )
+        assert target.jwt is None
+    finally:
+        db.close()
+
+
 def test_capture_meet_jitsi_requires_org_host_map(client, fake_workers):
     setup_admin(client)
     worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")

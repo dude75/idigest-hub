@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     WORKER_HTTP_TIMEOUT_SEC: float = 30.0
     WORKER_UPLOAD_TIMEOUT_SEC: float = 300.0
     # icapture-worker POST /capture blocks until Jitsi join completes.
-    WORKER_CAPTURE_TIMEOUT_SEC: float = 180.0
+    WORKER_CAPTURE_TIMEOUT_SEC: float = 660.0
     # Max seconds for ffprobe/ffmpeg when extracting audio from an uploaded video.
     VIDEO_EXTRACT_FFMPEG_TIMEOUT_SEC: int = 3600
 

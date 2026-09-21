@@ -212,7 +212,8 @@ def resolve_capture_target(
         raise CaptureMeetingError("meeting_host_not_configured")
 
     token: str | None = None
-    if row.jwt_secret_encrypted:
+    # Public meet.jit.si uses guest XMPP; org JWT breaks icapture-worker join (hub-only symptom).
+    if row.jwt_secret_encrypted and normalize_host(host) != "meet.jit.si":
         secret = decrypt_str(row.jwt_secret_encrypted, db)
         app_id = (row.jwt_app_id or _DEFAULT_JWT_APP_ID).strip() or _DEFAULT_JWT_APP_ID
         token = _sign_jitsi_jwt(secret=secret, app_id=app_id, room=room, display_name=display_name)
