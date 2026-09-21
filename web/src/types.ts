@@ -295,6 +295,27 @@ export type Worker = {
   capture_connectors: string[]
 }
 
+export type WorkersTypeSummary = {
+  total: number
+  enabled: number
+  available: number
+}
+
+export type WorkersListSummary = {
+  total: number
+  enabled: number
+  available: number
+  by_type: {
+    transcribe: WorkersTypeSummary
+    summarize: WorkersTypeSummary
+    capture: WorkersTypeSummary
+  }
+  hub_limits: {
+    import_max_concurrent: number
+    capture_max_concurrent: number
+  }
+}
+
 export type WorkerEngineOption = {
   id: string
   status: string

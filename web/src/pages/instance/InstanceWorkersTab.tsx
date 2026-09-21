@@ -4,7 +4,7 @@ import { api } from '../../api'
 import { AdminPage, AdminTableCard } from '../../components/AdminSection'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import { WorkerHealthBadge, isWorkerHealthy, isWorkerUnhealthy } from '../../components/WorkerHealthBadge'
-import type { Worker, WorkerEngineOption, WorkerProbeResult } from '../../types'
+import type { Worker, WorkerEngineOption, WorkerProbeResult, WorkersListSummary } from '../../types'
 import { formatInteger, showError } from '../../util'
 import { emptyWorker } from './constants'
 import { WorkerImpactModal } from './WorkerImpactModal'
@@ -18,6 +18,7 @@ function selectableEngines(models: WorkerEngineOption[] | undefined) {
 export function InstanceWorkersTab() {
   const { t } = useTranslation()
   const [workers, setWorkers] = useState<Worker[]>([])
+  const [workersSummary, setWorkersSummary] = useState<WorkersListSummary | null>(null)
   const [wform, setWform] = useState(emptyWorker)
   const [editW, setEditW] = useState<string | null>(null)
   const [formOpen, setFormOpen] = useState(false)
@@ -32,7 +33,9 @@ export function InstanceWorkersTab() {
 
   async function load() {
     try {
-      setWorkers((await api<{ items: Worker[] }>('/workers')).items)
+      const result = await api<{ items: Worker[]; summary: WorkersListSummary }>('/workers')
+      setWorkers(result.items)
+      setWorkersSummary(result.summary)
     } catch (e) {
       showError(e)
     }
@@ -43,11 +46,32 @@ export function InstanceWorkersTab() {
   }, [])
 
   const summary = useMemo(() => ({
-    total: workers.length,
-    enabled: workers.filter((w) => w.enabled).length,
+    total: workersSummary?.total ?? workers.length,
+    enabled: workersSummary?.enabled ?? workers.filter((w) => w.enabled).length,
+    available: workersSummary?.available ?? 0,
     healthy: workers.filter((w) => isWorkerHealthy(w)).length,
     unhealthy: workers.filter((w) => isWorkerUnhealthy(w)).length,
-  }), [workers])
+    byType: workersSummary?.by_type,
+    hubLimits: workersSummary?.hub_limits,
+  }), [workers, workersSummary])
+
+  const availableDetailTitle = useMemo(() => {
+    if (!summary.byType) return undefined
+    const lines = [
+      `${t('task.type.transcribe')}: ${formatInteger(summary.byType.transcribe.available)} / ${formatInteger(summary.byType.transcribe.enabled)}`,
+      `${t('task.type.summarize')}: ${formatInteger(summary.byType.summarize.available)} / ${formatInteger(summary.byType.summarize.enabled)}`,
+      `${t('task.type.capture')}: ${formatInteger(summary.byType.capture.available)} / ${formatInteger(summary.byType.capture.enabled)}`,
+    ]
+    if (summary.hubLimits) {
+      lines.push(
+        t('instance.workersHubImportLimit', { count: formatInteger(summary.hubLimits.import_max_concurrent) }),
+      )
+      lines.push(
+        t('instance.workersHubCaptureLimit', { count: formatInteger(summary.hubLimits.capture_max_concurrent) }),
+      )
+    }
+    return lines.join('\n')
+  }, [summary.byType, summary.hubLimits, t])
 
   const probeAsr = useMemo(() => selectableEngines(probe?.asr_models), [probe])
   const probeDiar = useMemo(() => selectableEngines(probe?.diarization_models), [probe])
@@ -206,7 +230,18 @@ export function InstanceWorkersTab() {
       <StatGrid>
         <StatCard label={t('instance.workersTotal')} value={formatInteger(summary.total)} tone="ops" />
         <StatCard label={t('instance.workersEnabled')} value={formatInteger(summary.enabled)} tone="audio" />
-        <StatCard label={t('instance.workersHealthy')} value={formatInteger(summary.healthy)} tone="transcribe" />
+        <StatCard
+          label={t('instance.workersAvailable')}
+          value={formatInteger(summary.available)}
+          unit={
+            summary.enabled > 0
+              ? t('instance.workersAvailableOfEnabled', { enabled: formatInteger(summary.enabled) })
+              : undefined
+          }
+          title={availableDetailTitle}
+          tone="transcribe"
+        />
+        <StatCard label={t('instance.workersHealthy')} value={formatInteger(summary.healthy)} tone="summarize" />
         <StatCard label={t('instance.workersUnhealthy')} value={formatInteger(summary.unhealthy)} tone="amount" />
       </StatGrid>
 

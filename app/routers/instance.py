@@ -268,8 +268,22 @@ def _org_count(db: Session, tariff_id: str) -> int:
 @router.get("/workers")
 def list_workers(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
-    rows = db.scalars(select(WorkerNode).order_by(WorkerNode.created_at)).all()
-    return {"items": [worker_public(row) for row in rows]}
+    rows = list(db.scalars(select(WorkerNode).order_by(WorkerNode.created_at)).all())
+    from app.services.capture_platforms import allowed_connectors
+    from app.services.capture_runner import MAX_CONCURRENT_CAPTURES
+    from app.services.import_platforms import normalize_import_max_concurrent
+    from app.services.worker_availability import workers_availability_summary
+
+    settings = get_instance_settings(db)
+    return {
+        "items": [worker_public(row) for row in rows],
+        "summary": workers_availability_summary(
+            rows,
+            capture_connectors=allowed_connectors(settings),
+            import_max_concurrent=normalize_import_max_concurrent(settings.import_max_concurrent),
+            capture_max_concurrent=MAX_CONCURRENT_CAPTURES,
+        ),
+    }
 
 
 @router.get("/instance/transcribe-models")
