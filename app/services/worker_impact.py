@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.deps import get_instance_settings
-from app.models import Task, User, WorkerNode
+from app.models import OrgCaptureJitsiHost, Organization, Task, User, WorkerNode
 from app.services.transcribe_models import dispatchable_pairs, resolve_transcribe_models
 from app.timeutil import utcnow
 
@@ -55,6 +55,7 @@ def _with_worker_state(
     enabled: bool | None = None,
     asr_models: list[str] | None = None,
     diarization_models: list[str] | None = None,
+    capture_connectors: list[str] | None = None,
 ) -> WorkerNode:
     snap = copy.copy(node)
     if type is not None:
@@ -65,9 +66,13 @@ def _with_worker_state(
         snap.asr_models_json = asr_models
     if diarization_models is not None:
         snap.diarization_models_json = diarization_models
+    if capture_connectors is not None:
+        snap.capture_connectors_json = capture_connectors
     if snap.type != "transcribe":
         snap.asr_models_json = None
         snap.diarization_models_json = None
+    if snap.type != "capture":
+        snap.capture_connectors_json = None
     return snap
 
 
@@ -139,6 +144,72 @@ def _transcribe_impact(
         "affected_users_count": len(affected_users),
         "affected_tasks": affected_tasks,
         "affected_tasks_count": len(affected_tasks),
+    }
+
+
+def _capture_jitsi_hosts(db: Session, worker_id: str) -> list[OrgCaptureJitsiHost]:
+    return list(
+        db.scalars(select(OrgCaptureJitsiHost).where(OrgCaptureJitsiHost.worker_id == worker_id)).all()
+    )
+
+
+def _capture_jitsi_hosts_detail(db: Session, worker_id: str) -> list[dict[str, str]]:
+    rows = _capture_jitsi_hosts(db, worker_id)
+    if not rows:
+        return []
+    org_ids = {row.org_id for row in rows}
+    names = {
+        org.id: org.name
+        for org in db.scalars(select(Organization).where(Organization.id.in_(org_ids))).all()
+    }
+    out: list[dict[str, str]] = []
+    for row in rows:
+        out.append(
+            {
+                "host": row.host,
+                "org_id": row.org_id,
+                "org_name": (names.get(row.org_id) or "").strip() or row.org_id,
+            }
+        )
+    out.sort(key=lambda item: (item["org_name"].lower(), item["host"]))
+    return out
+
+
+def _capture_tasks(db: Session, worker_id: str) -> list[Task]:
+    return list(
+        db.scalars(
+            select(Task).where(
+                Task.type == "capture",
+                Task.worker_id == worker_id,
+                Task.status.in_(("queued", "running")),
+            )
+        ).all()
+    )
+
+
+def _capture_impact(
+    db: Session,
+    *,
+    worker_id: str,
+    enabled_before: bool,
+    enabled_after: bool,
+    connectors_before: list[str],
+    connectors_after: list[str],
+    action: str,
+) -> dict[str, Any]:
+    jitsi_hosts = _capture_jitsi_hosts_detail(db, worker_id)
+    tasks = _capture_tasks(db, worker_id)
+    losing_jitsi = "jitsi" in connectors_before and "jitsi" not in connectors_after
+    disabling = enabled_before and not enabled_after
+    blocking = bool(jitsi_hosts) and (disabling or losing_jitsi or action == "delete")
+    if tasks and (disabling or action == "delete"):
+        blocking = True
+    return {
+        "blocking": blocking,
+        "capture_jitsi_hosts": jitsi_hosts,
+        "capture_jitsi_hosts_count": len(jitsi_hosts),
+        "capture_tasks_count": len(tasks),
+        "capture_losing_jitsi": losing_jitsi and bool(jitsi_hosts),
     }
 
 
@@ -227,6 +298,25 @@ def _compute_impact(
                 focus_was_enabled=node.enabled,
             )
         )
+    elif worker_type == "capture":
+        snap = after_node if after_node is not None else node
+        if action == "delete":
+            enabled_after = False
+            connectors_after: list[str] = []
+        else:
+            enabled_after = snap.enabled
+            connectors_after = list(snap.capture_connectors_json or [])
+        payload.update(
+            _capture_impact(
+                db,
+                worker_id=node.id,
+                enabled_before=node.enabled,
+                enabled_after=enabled_after,
+                connectors_before=list(node.capture_connectors_json or []),
+                connectors_after=connectors_after,
+                action=action,
+            )
+        )
     payload["blocking"] = bool(payload.get("blocking"))
     return payload
 
@@ -310,6 +400,7 @@ def compute_worker_change_impact(
     enabled: bool,
     asr_models: list[str] | None = None,
     diarization_models: list[str] | None = None,
+    capture_connectors: list[str] | None = None,
 ) -> dict[str, Any]:
     all_nodes = list(db.scalars(select(WorkerNode)).all())
     after_nodes = [
@@ -319,9 +410,26 @@ def compute_worker_change_impact(
             enabled=enabled,
             asr_models=asr_models if type == "transcribe" else None,
             diarization_models=diarization_models if type == "transcribe" else None,
+            capture_connectors=capture_connectors if type == "capture" else None,
         )
         if row.id == node.id
         else row
         for row in all_nodes
     ]
     return _compute_impact(db, node, before_nodes=all_nodes, after_nodes=after_nodes, action="change")
+
+
+def compute_worker_capture_change_impact(
+    db: Session,
+    node: WorkerNode,
+    *,
+    enabled: bool,
+    capture_connectors: list[str] | None,
+) -> dict[str, Any]:
+    return compute_worker_change_impact(
+        db,
+        node,
+        type="capture",
+        enabled=enabled,
+        capture_connectors=capture_connectors,
+    )

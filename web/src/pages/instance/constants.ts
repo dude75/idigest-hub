@@ -26,6 +26,7 @@ export const emptyWorker = {
   enabled: true,
   asr_models: [] as string[],
   diarization_models: [] as string[],
+  capture_connectors: [] as string[],
 }
 
 export const emptyOrg = {

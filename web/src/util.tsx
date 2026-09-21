@@ -12,6 +12,13 @@ type TaskTranslate = (
   opts?: Record<string, unknown> & { defaultValue?: string },
 ) => string
 
+/** Shorten long labels for tables and badges (full text goes in title). */
+export function truncateLabel(text: string, maxLen = 28): string {
+  const value = text.trim()
+  if (value.length <= maxLen) return value
+  return `${value.slice(0, Math.max(1, maxLen - 1))}…`
+}
+
 export function formatInteger(value: number, locale = i18n.language): string {
   const n = Math.round(Number(value) || 0)
   return new Intl.NumberFormat(locale).format(n)

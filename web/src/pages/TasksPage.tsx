@@ -17,7 +17,9 @@ type TaskListResponse = {
 }
 
 function taskHref(task: Task): string {
-  if (task.status === 'success' && task.type === 'import' && task.audio_id) return `/app/audio/${task.audio_id}`
+  if (task.status === 'success' && (task.type === 'import' || task.type === 'capture') && task.audio_id) {
+    return `/app/audio/${task.audio_id}`
+  }
   if (task.status === 'success' && task.transcript_id) return `/app/transcript/${task.transcript_id}`
   if (task.status === 'success' && task.summary_id) return `/app/summary/${task.summary_id}`
   return `/app/task/${task.task_id}`

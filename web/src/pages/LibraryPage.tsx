@@ -4,13 +4,15 @@ import { useTranslation } from 'react-i18next'
 import { api, apiUpload } from '../api'
 import { useAuth } from '../auth'
 import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
-import type { Audio, ImportPlatformsResponse, Summary, Task, Transcript } from '../types'
+import type { Audio, CapturePlatformsResponse, ImportPlatformsResponse, Summary, Task, Transcript } from '../types'
 import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
 import { ListRow } from '../components/ListRow'
 import { Tabs } from '../components/Tabs'
-import { beginPipelineRun, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
+import { beginPipelineRun, captureRequest, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
 import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
+import { ApiError } from '../api'
 import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
+import { shouldRouteImportUrlToCapture } from '../util/captureHost'
 
 type SourceGroup<T> = {
   key: string
@@ -65,6 +67,8 @@ export function LibraryPage() {
   } | null>(null)
   const [importUrl, setImportUrl] = useState('')
   const [importPlatforms, setImportPlatforms] = useState<ImportPlatformsResponse | null>(null)
+  const [capturePin, setCapturePin] = useState('')
+  const [capturePlatforms, setCapturePlatforms] = useState<CapturePlatformsResponse | null>(null)
   const hasOrg = Boolean(me?.org)
 
   async function load(activeTab: LibraryTab = tab) {
@@ -122,14 +126,55 @@ export function LibraryPage() {
     }
   }, [hasOrg])
 
+  useEffect(() => {
+    if (!hasOrg) return
+    let cancelled = false
+    async function loadCapturePlatforms() {
+      try {
+        const data = await api<CapturePlatformsResponse>('/capture/platforms')
+        if (!cancelled) setCapturePlatforms(data)
+      } catch (e) {
+        if (!cancelled) showError(e)
+      }
+    }
+    void loadCapturePlatforms()
+    return () => {
+      cancelled = true
+    }
+  }, [hasOrg])
+
   if (!hasOrg) return <Navigate to={me?.user.is_instance_admin ? '/app/instance' : '/app/profile'} replace />
   if (tabParam && !isLibraryTab(tabParam)) {
     return <Navigate to={LIBRARY_DEFAULT} replace />
   }
 
+  async function submitCaptureUrl(url: string, pin: string) {
+    const trimmed = url.trim()
+    if (!trimmed) return
+    setBusy(true)
+    try {
+      const pipeline = beginPipelineRun()
+      const task = await api<Task>('/tasks/capture', {
+        method: 'POST',
+        body: JSON.stringify(captureRequest(trimmed, pin.trim(), pipeline)),
+      })
+      setCapturePin('')
+      setImportUrl('')
+      nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
+    } catch (e) {
+      showError(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function importFromUrl() {
     const url = importUrl.trim()
     if (!url) return
+    if (shouldRouteImportUrlToCapture(url, captureEnabled)) {
+      await submitCaptureUrl(url, capturePin)
+      return
+    }
     setBusy(true)
     try {
       const pipeline = beginPipelineRun()
@@ -140,6 +185,15 @@ export function LibraryPage() {
       setImportUrl('')
       nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
     } catch (e) {
+      if (
+        captureEnabled &&
+        e instanceof ApiError &&
+        (e.code === 'meeting_use_capture' || e.code === 'unsupported_host') &&
+        shouldRouteImportUrlToCapture(url, true)
+      ) {
+        await submitCaptureUrl(url, capturePin)
+        return
+      }
       showError(e)
     } finally {
       setBusy(false)
@@ -184,10 +238,33 @@ export function LibraryPage() {
   }
 
   const importEnabled = importPlatforms?.enabled === true
+  const captureEnabled = capturePlatforms?.enabled === true
+  const ingestEnabled = importEnabled || captureEnabled
+  const trimmedIngestUrl = importUrl.trim()
+  const ingestToCapture =
+    captureEnabled &&
+    trimmedIngestUrl.length > 0 &&
+    shouldRouteImportUrlToCapture(trimmedIngestUrl, true)
   const proxyBlocked =
     importPlatforms?.download_proxy_required === true &&
     importPlatforms?.download_proxy_available === false
-  const importBlocked = busy || proxyBlocked
+  const ingestSubmitDisabled =
+    busy ||
+    !trimmedIngestUrl ||
+    (!ingestToCapture && (!importEnabled || proxyBlocked))
+  const ingestUrlPlaceholder =
+    importEnabled && captureEnabled
+      ? t('library.ingestUrlPlaceholder')
+      : captureEnabled
+        ? t('library.capturePlaceholder')
+        : t('library.importPlaceholder')
+  const ingestSubmitLabel = busy
+    ? ingestToCapture
+      ? t('library.capturing')
+      : t('library.importing')
+    : ingestToCapture
+      ? t('library.captureSubmit')
+      : t('library.importSubmit')
 
   return (
     <div>
@@ -209,38 +286,55 @@ export function LibraryPage() {
             </div>
           </div>
         )}
-        <div className={`library-ingest-toolbar${importEnabled ? '' : ' upload-only'}`}>
-          {importEnabled && (
+        <div className={`library-ingest-toolbar${ingestEnabled ? '' : ' upload-only'}`}>
+          {ingestEnabled ? (
             <>
               <input
                 className="library-ingest-url"
                 type="url"
                 value={importUrl}
-                placeholder={t('library.importPlaceholder')}
-                disabled={importBlocked}
-                aria-label={t('library.importUrl')}
+                placeholder={ingestUrlPlaceholder}
+                disabled={busy}
+                aria-label={t('library.ingestUrl')}
                 onChange={(e) => setImportUrl(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    if (!proxyBlocked) void importFromUrl()
+                    if (!ingestSubmitDisabled) void importFromUrl()
                   }
                 }}
               />
+              {ingestToCapture && (
+                <input
+                  className="library-capture-pin"
+                  type="password"
+                  value={capturePin}
+                  placeholder={t('library.capturePinPlaceholder')}
+                  disabled={busy}
+                  aria-label={t('library.capturePin')}
+                  autoComplete="off"
+                  onChange={(e) => setCapturePin(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (!ingestSubmitDisabled) void importFromUrl()
+                    }
+                  }}
+                />
+              )}
               <button
                 type="button"
                 className="primary"
-                disabled={importBlocked || !importUrl.trim()}
+                disabled={ingestSubmitDisabled}
                 onClick={() => void importFromUrl()}
               >
-                {busy ? t('library.importing') : t('library.importSubmit')}
+                {ingestSubmitLabel}
               </button>
               <span className="library-ingest-or" aria-hidden="true">
                 {t('library.or')}
               </span>
             </>
-          )}
-          {!importEnabled && (
+          ) : (
             <span className="library-ingest-upload-label">{t('library.uploadFile')}</span>
           )}
           <label

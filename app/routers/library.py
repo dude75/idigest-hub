@@ -47,6 +47,33 @@ from app.timeutil import utcnow
 router = APIRouter()
 
 
+@router.get("/capture/platforms")
+def capture_platforms(
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    org, _ = ctx.require_org()
+    from app.deps import get_instance_settings
+    from app.services.capture_meeting import normalize_host, org_jitsi_hosts_public
+    from app.services.capture_platforms import allowed_connectors, public_connectors
+
+    settings = get_instance_settings(db)
+    allowed = allowed_connectors(settings)
+    jitsi_hosts: list[str] = []
+    if settings.capture_enabled and "jitsi" in allowed:
+        seen: set[str] = set()
+        for item in org_jitsi_hosts_public(db, org.id):
+            host = normalize_host(str(item.get("host") or ""))
+            if host and host not in seen:
+                seen.add(host)
+                jitsi_hosts.append(host)
+    return {
+        "enabled": settings.capture_enabled,
+        "connectors": public_connectors(settings),
+        "jitsi_hosts": jitsi_hosts,
+    }
+
+
 @router.get("/import/platforms")
 def import_platforms(
     db: Session = Depends(get_session, scope="function"),

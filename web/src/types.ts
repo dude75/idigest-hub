@@ -292,6 +292,7 @@ export type Worker = {
   last_health_at: string | null
   asr_models: string[]
   diarization_models: string[]
+  capture_connectors: string[]
 }
 
 export type WorkerEngineOption = {
@@ -304,6 +305,7 @@ export type WorkerProbeResult = {
   health_status: number
   asr_models?: WorkerEngineOption[]
   diarization_models?: WorkerEngineOption[]
+  connectors?: WorkerEngineOption[]
 }
 
 export type WorkerDeleteImpactUser = {
@@ -343,6 +345,10 @@ export type WorkerDeleteImpact = {
   affected_tasks?: WorkerDeleteImpactTask[]
   affected_tasks_count?: number
   last_enabled_worker?: boolean
+  capture_jitsi_hosts?: { host: string; org_id: string; org_name: string }[]
+  capture_jitsi_hosts_count?: number
+  capture_tasks_count?: number
+  capture_losing_jitsi?: boolean
 }
 
 export type ImportPlatform = {
@@ -364,6 +370,31 @@ export type ImportPlatformsResponse = {
   download_proxy_available: boolean
 }
 
+export type CaptureConnector = {
+  id: string
+  label: string
+  enabled: boolean
+}
+
+export type CapturePlatformsResponse = {
+  enabled: boolean
+  connectors: { id: string; label: string }[]
+  jitsi_hosts: string[]
+}
+
+export type OrgCaptureJitsiHost = {
+  id: string
+  host: string
+  worker_id: string
+  jwt_app_id: string | null
+  jwt_secret_configured: boolean
+}
+
+export type OrgCaptureWorkerChoice = {
+  id: string
+  name: string
+}
+
 export type InstanceSettings = {
   allow_new_orgs: boolean
   public_base_url: string | null
@@ -381,6 +412,8 @@ export type InstanceSettings = {
   dispatchable_pairs?: DispatchablePair[]
   import_enabled: boolean
   import_platforms: ImportPlatform[]
+  capture_enabled: boolean
+  capture_connectors: CaptureConnector[]
   download_proxy_url: string | null
   download_proxy_configured: boolean
   download_proxy_enabled: boolean

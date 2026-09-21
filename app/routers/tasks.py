@@ -34,6 +34,8 @@ NON_RETRIABLE_ERROR_CODES = frozenset(
         "invalid_file",
         "invalid_url",
         "proxy_unavailable",
+        "capture_disabled",
+        "meeting_host_not_configured",
     }
 )
 
@@ -50,6 +52,13 @@ class SummarizeBody(BaseModel):
 
 class ImportBody(BaseModel):
     url: str = Field(min_length=8, max_length=2048)
+    transcribe: bool = False
+    skill_ids: list[str] = Field(default_factory=list)
+
+
+class CaptureBody(BaseModel):
+    meeting_url: str = Field(min_length=8, max_length=2048)
+    pin: str = ""
     transcribe: bool = False
     skill_ids: list[str] = Field(default_factory=list)
 
@@ -147,6 +156,13 @@ def _task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
         audio_filename = audio.original_filename if audio else None
         if audio_filename is None and row.type == "import":
             audio_filename = _import_display_name(row.meta_json)
+        if audio_filename is None and row.type == "capture":
+            meta = row.meta_json or {}
+            room = meta.get("meeting_room")
+            if isinstance(room, str) and room.strip():
+                audio_filename = f"{room.strip()}.m4a"
+            elif isinstance(meta.get("meeting_url"), str):
+                audio_filename = _import_display_name(meta)
         extra[row.id] = {
             "owner_email": user.email if user else None,
             "org_name": org.name if org else None,
@@ -212,6 +228,24 @@ async def create_import(
     org, _ = ctx.require_org()
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     settings = get_instance_settings(db)
+    from app.services.capture_meeting import import_url_looks_like_meeting, import_url_routes_to_capture
+
+    if import_url_routes_to_capture(body.url, settings):
+        return await create_capture(
+            CaptureBody(
+                meeting_url=body.url.strip(),
+                pin="",
+                transcribe=body.transcribe,
+                skill_ids=body.skill_ids,
+            ),
+            request,
+            background_tasks,
+            db,
+            ctx,
+        )
+    if import_url_looks_like_meeting(body.url):
+        ctx.raise_error(ErrorCode.capture_disabled)
+
     if not settings.import_enabled:
         ctx.raise_error(ErrorCode.import_disabled)
     from app.services.download_proxy_health import download_proxy_ready
@@ -244,6 +278,82 @@ async def create_import(
         status="queued",
         org_id=org.id,
         user_id=ctx.user.id,
+        skill_ids_json=list(body.skill_ids) or None if body.transcribe and body.skill_ids else None,
+        queued_at=now,
+        created_at=now,
+        updated_at=now,
+        meta_json=meta,
+        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
+    )
+    db.add(task)
+    db.flush()
+    db.commit()
+    schedule_locked_tick(background_tasks, task.id, refresh_health=False)
+    return task_public(task)
+
+
+@router.post("/tasks/capture", status_code=202)
+async def create_capture(
+    body: CaptureBody,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    org, _ = ctx.require_org()
+    enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
+    settings = get_instance_settings(db)
+    if not settings.capture_enabled:
+        ctx.raise_error(ErrorCode.capture_disabled)
+    from app.services.capture_meeting import CaptureMeetingError, resolve_capture_target
+    from app.services.capture_platforms import allowed_connectors
+
+    if body.transcribe:
+        assert_can_accept_task(ctx, org, ctx.locale)
+        if body.skill_ids:
+            _validate_summarize_skills(ctx, db, org, body.skill_ids)
+    try:
+        target = resolve_capture_target(
+            db,
+            org=org,
+            meeting_url=body.meeting_url.strip(),
+            pin=body.pin or "",
+            settings_allowed=allowed_connectors(settings),
+        )
+    except CaptureMeetingError as exc:
+        code = exc.code
+        if code == "capture_disabled":
+            ctx.raise_error(ErrorCode.capture_disabled)
+        if code == "invalid_url":
+            ctx.raise_error(ErrorCode.invalid_url)
+        if code == "meeting_host_not_configured":
+            ctx.raise_error(ErrorCode.meeting_host_not_configured)
+        ctx.raise_error(ErrorCode.pipeline_error)
+
+    from app.services.transcribe_models import resolve_transcribe_models
+
+    models = resolve_transcribe_models(ctx.user, settings)
+    tariff = org.tariff
+    now = utcnow()
+    meta: dict = {
+        "meeting_url": target.meeting_url,
+        "meeting_host": target.meeting_host,
+        "meeting_room": target.meeting_room,
+        "pin": target.pin,
+        "connector": target.connector,
+        "stage": "queued",
+    }
+    if target.jwt:
+        meta["jwt"] = target.jwt
+    if body.transcribe:
+        meta["pipeline_transcribe"] = True
+    task = Task(
+        id=new_id(),
+        type="capture",
+        status="queued",
+        org_id=org.id,
+        user_id=ctx.user.id,
+        worker_id=target.worker.id,
         skill_ids_json=list(body.skill_ids) or None if body.transcribe and body.skill_ids else None,
         queued_at=now,
         created_at=now,
@@ -364,7 +474,7 @@ async def get_task(
     if task is None or not _can_see_task(ctx, task):
         ctx.raise_error(ErrorCode.not_found)
     if task.status in {"queued", "running"}:
-        refresh_health = task.type != "import"
+        refresh_health = task.type not in {"import", "capture"}
         schedule_locked_tick(background_tasks, task.id, refresh_health=refresh_health, wait=False)
     return task_public(task, _task_list_extra(db, [task]).get(task.id))
 
@@ -427,6 +537,45 @@ def _validate_task_source(ctx: AuthContext, db: Session, org: Organization, task
             assert_import_fetch_allowed(url, settings_allowed=allowed_extractors(settings))
         except UrlImportError as exc:
             ctx.raise_error(ErrorCode(exc.code))
+        return
+    if task.type == "capture":
+        settings = get_instance_settings(db)
+        if not settings.capture_enabled:
+            ctx.raise_error(ErrorCode.capture_disabled)
+        meta = task.meta_json or {}
+        if not isinstance(meta.get("meeting_url"), str):
+            ctx.raise_error(ErrorCode.not_found)
+        return
+
+
+@router.post("/tasks/{task_id}/stop", status_code=202)
+def stop_capture_task(
+    task_id: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    task = db.get(Task, task_id)
+    if task is None or not _can_see_task(ctx, task):
+        ctx.raise_error(ErrorCode.not_found)
+    if not _can_manage_task(ctx, task):
+        ctx.raise_error(ErrorCode.forbidden)
+    if task.type != "capture":
+        ctx.raise_error(ErrorCode.validation_error)
+    if task.status != "running":
+        ctx.raise_error(ErrorCode.task_running)
+    from app.services.capture_runner import request_capture_stop
+
+    request_capture_stop(task.id)
+    meta = dict(task.meta_json or {})
+    meta["stage"] = meta.get("stage") or "capturing"
+    meta["stop_requested"] = True
+    task.meta_json = meta
+    task.updated_at = utcnow()
+    db.flush()
+    db.commit()
+    schedule_locked_tick(background_tasks, task.id, refresh_health=False, wait=False)
+    return task_public(task)
 
 
 @router.post("/tasks/{task_id}/retry", status_code=202)
@@ -485,6 +634,16 @@ def cancel_task(
         from app.services.import_runner import request_import_cancel
 
         request_import_cancel(task.id)
+        task.status = "error"
+        task.error_code = "canceled"
+        task.updated_at = utcnow()
+        return task_public(task)
+    if task.type == "capture":
+        if task.status not in {"queued", "running"}:
+            ctx.raise_error(ErrorCode.task_running)
+        from app.services.capture_runner import request_capture_cancel
+
+        request_capture_cancel(task.id)
         task.status = "error"
         task.error_code = "canceled"
         task.updated_at = utcnow()

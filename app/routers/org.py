@@ -52,6 +52,19 @@ class OrgSettingsPatch(BaseModel):
     allow_public_links: bool | None = None
 
 
+class OrgCaptureJitsiHostBody(BaseModel):
+    id: str | None = None
+    host: str
+    worker_id: str
+    jwt_secret: str | None = None
+    jwt_app_id: str | None = None
+    clear_jwt_secret: bool = False
+
+
+class OrgCaptureJitsiReplaceBody(BaseModel):
+    items: list[OrgCaptureJitsiHostBody] = Field(default_factory=list)
+
+
 class OrgSsoPatch(BaseModel):
     issuer: str | None = None
     client_id: str | None = None
@@ -145,6 +158,56 @@ def patch_org_tariff(
     org.tariff = tariff
     write_audit(db, "org.tariff.self", ctx, {"tariff_id": tariff.id})
     return org_public(org, public_base_url=_public_base_url(db))
+
+
+@router.get("/org/capture/jitsi")
+def get_org_capture_jitsi(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    org, _ = ctx.require_org_admin()
+    from app.deps import get_instance_settings
+    from app.services.capture_meeting import org_capture_worker_choices, org_jitsi_hosts_public
+    from app.services.capture_platforms import allowed_connectors
+
+    settings = get_instance_settings(db)
+    return {
+        "allowed": "jitsi" in allowed_connectors(settings),
+        "items": org_jitsi_hosts_public(db, org.id),
+        "workers": org_capture_worker_choices(db),
+    }
+
+
+@router.put("/org/capture/jitsi")
+def replace_org_capture_jitsi(
+    body: OrgCaptureJitsiReplaceBody,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    org, _ = ctx.require_org_admin()
+    from app.deps import get_instance_settings
+    from app.services.capture_meeting import org_jitsi_hosts_public, replace_org_jitsi_hosts
+    from app.services.capture_platforms import allowed_connectors
+
+    settings = get_instance_settings(db)
+    if "jitsi" not in allowed_connectors(settings):
+        ctx.raise_error(ErrorCode.capture_disabled)
+    try:
+        replace_org_jitsi_hosts(
+            db,
+            org_id=org.id,
+            items=[item.model_dump() for item in body.items],
+        )
+    except ValueError as exc:
+        if str(exc).startswith("invalid capture worker"):
+            ctx.raise_error(ErrorCode.invalid_capture_worker)
+        ctx.raise_error(ErrorCode.validation_error)
+    db.commit()
+    from app.services.capture_meeting import org_capture_worker_choices
+
+    return {
+        "items": org_jitsi_hosts_public(db, org.id),
+        "workers": org_capture_worker_choices(db),
+    }
 
 
 @router.patch("/org/settings")

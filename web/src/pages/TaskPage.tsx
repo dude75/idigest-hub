@@ -31,7 +31,7 @@ function redirectAfterSuccess(task: Task, nav: ReturnType<typeof useNavigate>) {
     nav(`/app/summary/${task.summary_id}`, { replace: true })
     return
   }
-  if (task.type === 'import' && task.audio_id) {
+  if ((task.type === 'import' || task.type === 'capture') && task.audio_id) {
     nav(`/app/audio/${task.audio_id}`, { replace: true })
     return
   }
@@ -91,6 +91,16 @@ export function TaskPage() {
       stop = true
     }
   }, [id, nav])
+
+  async function stopCapture() {
+    if (!id) return
+    try {
+      const next = await api<Task>(`/tasks/${id}/stop`, { method: 'POST' })
+      setTask(next)
+    } catch (e) {
+      showError(e)
+    }
+  }
 
   async function cancel() {
     if (!id) return
@@ -162,6 +172,9 @@ export function TaskPage() {
             </details>
           )}
         </div>
+      )}
+      {task?.type === 'capture' && task.status === 'running' && (
+        <button type="button" className="primary" onClick={() => void stopCapture()}>{t('task.captureStop')}</button>
       )}
       {task && (task.status === 'queued' || task.status === 'running') && (
         <button type="button" onClick={() => void cancel()}>{t('task.cancel')}</button>

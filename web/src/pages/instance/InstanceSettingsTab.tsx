@@ -29,6 +29,7 @@ export function InstanceSettingsTab() {
       asr_models: data.asr_models ?? [],
       diarization_models: data.diarization_models ?? [],
       import_audio_bitrate_kbps: data.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
+      capture_connectors: data.capture_connectors ?? [],
       smtp_password_configured: data.smtp_password_configured ?? false,
     }
   }
@@ -155,6 +156,8 @@ export function InstanceSettingsTab() {
           download_proxy_enabled: settings.download_proxy_enabled,
           download_cookies_path: settings.download_cookies_path,
           import_audio_bitrate_kbps: settings.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
+          capture_enabled: settings.capture_enabled,
+          capture_allowed_connectors: settings.capture_connectors.filter((c) => c.enabled).map((c) => c.id),
           session_ttl_hours: settings.session_ttl_hours,
           date_time_format: settings.date_time_format,
           timezone: settings.timezone,
@@ -425,6 +428,45 @@ export function InstanceSettingsTab() {
             >
               {t('instance.importResetDefaults')}
             </button>
+          </div>
+        </div>
+      </details>
+
+      <details className="fold org-fold card">
+        <summary className="org-fold-summary">
+          <span>{t('instance.captureTitle')}</span>
+        </summary>
+        <div className="stack fold-body">
+          <label className="row">
+            <input
+              type="checkbox"
+              checked={settings.capture_enabled}
+              onChange={(e) => setSettings({ ...settings, capture_enabled: e.target.checked })}
+            />
+            {t('instance.captureEnabled')}
+          </label>
+          <p className="muted">{t('instance.captureConnectorsHint')}</p>
+          <div className="stack">
+            {settings.capture_connectors.map((connector) => (
+              <label className="row" key={connector.id}>
+                <input
+                  type="checkbox"
+                  checked={connector.enabled}
+                  disabled={!settings.capture_enabled}
+                  onChange={(e) =>
+                    setSettings({
+                      ...settings,
+                      capture_connectors: settings.capture_connectors.map((item) =>
+                        item.id === connector.id ? { ...item, enabled: e.target.checked } : item,
+                      ),
+                    })
+                  }
+                />
+                <span className="grow">
+                  <strong>{connector.label}</strong>
+                </span>
+              </label>
+            ))}
           </div>
         </div>
       </details>

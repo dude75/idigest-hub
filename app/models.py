@@ -70,6 +70,8 @@ class InstanceSettings(Base):
     rate_limit_public_pin_ip: Mapped[int] = mapped_column(Integer, default=60, nullable=False)
     import_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     import_allowed_extractors_json: Mapped[list[Any] | None] = mapped_column(JSON)
+    capture_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    capture_allowed_connectors_json: Mapped[list[Any] | None] = mapped_column(JSON)
     download_proxy_url: Mapped[str | None] = mapped_column(String(512))
     download_proxy_password_encrypted: Mapped[str | None] = mapped_column(Text)
     download_proxy_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
@@ -294,6 +296,21 @@ class WorkerNode(Base):
     last_health_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     asr_models_json: Mapped[list[Any] | None] = mapped_column(JSON)
     diarization_models_json: Mapped[list[Any] | None] = mapped_column(JSON)
+    capture_connectors_json: Mapped[list[Any] | None] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class OrgCaptureJitsiHost(Base):
+    __tablename__ = "org_capture_jitsi_hosts"
+    __table_args__ = (UniqueConstraint("org_id", "host", name="uq_org_capture_jitsi_host"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    host: Mapped[str] = mapped_column(String(255), nullable=False)
+    worker_id: Mapped[str] = mapped_column(String(36), ForeignKey("worker_nodes.id"), nullable=False)
+    jwt_secret_encrypted: Mapped[str | None] = mapped_column(Text)
+    jwt_app_id: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

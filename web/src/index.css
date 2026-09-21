@@ -273,6 +273,22 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   font-size: 0.8rem;
   line-height: 1.35;
 }
+.library-ingest-section-label {
+  margin: 0.65rem 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.library-ingest-section-label:first-child {
+  margin-top: 0;
+}
+.library-capture-toolbar {
+  margin-bottom: 0.25rem;
+}
+.library-capture-pin {
+  flex: 0 1 6rem;
+  min-width: 4.5rem;
+}
 .library-file-btn {
   justify-content: center;
   flex-shrink: 0;
@@ -801,6 +817,23 @@ th { color: var(--muted); font-weight: 550; }
   border-radius: 5px;
   padding: 0.15rem 0.4rem;
   white-space: nowrap;
+}
+.worker-impact-capture-map {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 0;
+}
+.worker-impact-org-name {
+  max-width: 11rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.worker-impact-capture-sep {
+  flex-shrink: 0;
 }
 .worker-impact-email {
   min-width: 0;

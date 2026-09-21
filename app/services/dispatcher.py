@@ -293,10 +293,10 @@ def _persist_transcript(db: Session, task: Task, payload: dict[str, Any]) -> Tra
     return row
 
 
-def enqueue_transcribe_after_import(db: Session, import_task: Task) -> Task | None:
-    if import_task.type != "import" or import_task.status != "success" or not import_task.audio_id:
+def enqueue_transcribe_after_ingest(db: Session, ingest_task: Task) -> Task | None:
+    if ingest_task.type not in {"import", "capture"} or ingest_task.status != "success" or not ingest_task.audio_id:
         return None
-    meta = dict(import_task.meta_json or {})
+    meta = dict(ingest_task.meta_json or {})
     if meta.get("pipeline_transcribe") is not True:
         return None
     if meta.get("follow_up_task_id"):
@@ -304,43 +304,47 @@ def enqueue_transcribe_after_import(db: Session, import_task: Task) -> Task | No
         if existing is not None:
             return existing
 
-    org = db.get(Organization, import_task.org_id)
+    org = db.get(Organization, ingest_task.org_id)
     if org is None:
         return None
     tariff = org.tariff
     if not tariff.unlimited and org.balance <= 0:
         log.warning(
-            "import pipeline transcribe skipped: insufficient balance task=%s",
-            import_task.id,
+            "ingest pipeline transcribe skipped: insufficient balance task=%s",
+            ingest_task.id,
         )
         return None
 
-    skill_ids = list(import_task.skill_ids_json or [])
+    skill_ids = list(ingest_task.skill_ids_json or [])
     now = utcnow()
     follow_up = Task(
         id=new_id(),
         type="transcribe",
         status="queued",
-        org_id=import_task.org_id,
-        user_id=import_task.user_id,
-        audio_id=import_task.audio_id,
+        org_id=ingest_task.org_id,
+        user_id=ingest_task.user_id,
+        audio_id=ingest_task.audio_id,
         skill_ids_json=skill_ids or None,
         queued_at=now,
         created_at=now,
         updated_at=now,
-        snap_unlimited=import_task.snap_unlimited,
-        snap_price_per_audio_sec=import_task.snap_price_per_audio_sec,
-        snap_price_per_summarize_job=import_task.snap_price_per_summarize_job,
-        snap_price_per_1k_summary_chars=import_task.snap_price_per_1k_summary_chars,
-        snap_max_upload_bytes=import_task.snap_max_upload_bytes,
-        snap_asr_model=import_task.snap_asr_model,
-        snap_diarization_model=import_task.snap_diarization_model,
+        snap_unlimited=ingest_task.snap_unlimited,
+        snap_price_per_audio_sec=ingest_task.snap_price_per_audio_sec,
+        snap_price_per_summarize_job=ingest_task.snap_price_per_summarize_job,
+        snap_price_per_1k_summary_chars=ingest_task.snap_price_per_1k_summary_chars,
+        snap_max_upload_bytes=ingest_task.snap_max_upload_bytes,
+        snap_asr_model=ingest_task.snap_asr_model,
+        snap_diarization_model=ingest_task.snap_diarization_model,
     )
     db.add(follow_up)
     db.flush()
     meta["follow_up_task_id"] = follow_up.id
-    import_task.meta_json = meta
+    ingest_task.meta_json = meta
     return follow_up
+
+
+def enqueue_transcribe_after_import(db: Session, import_task: Task) -> Task | None:
+    return enqueue_transcribe_after_ingest(db, import_task)
 
 
 def _enqueue_summarize_after_transcribe(db: Session, task: Task) -> Task | None:
@@ -504,13 +508,15 @@ async def recover_orphaned_tasks(db: Session) -> None:
 
     log.info("recover orphaned tasks count=%d", len(running))
     for task in running:
-        if task.type == "import":
+        if task.type in {"import", "capture"}:
             task.status = "queued"
             meta = dict(task.meta_json or {})
             meta["stage"] = "queued"
             task.meta_json = meta
+            task.worker_id = None
+            task.worker_task_id = None
             task.updated_at = utcnow()
-            log.info("recover task=%s type=import running->queued", task.id)
+            log.info("recover task=%s type=%s running->queued", task.id, task.type)
             continue
         await _recover_worker_task(db, task, nodes)
 
@@ -814,12 +820,17 @@ async def tick_once(db: Session, task_id: str | None = None, *, refresh_health: 
     if task_id:
         query = query.where(Task.id == task_id)
     tasks = list(db.scalars(query).all())
+    from app.services.capture_runner import maybe_start_capture
     from app.services.import_runner import maybe_start_import
 
     for task in tasks:
         if task.type == "import":
             if task.status == "queued":
                 maybe_start_import(db, task)
+            continue
+        if task.type == "capture":
+            if task.status == "queued":
+                maybe_start_capture(db, task)
             continue
         if task.status == "running" and task.worker_task_id:
             await poll_running_task(db, task, nodes)

@@ -54,6 +54,10 @@ class ErrorCode(str, Enum):
     download_failed = "download_failed"
     video_unavailable = "video_unavailable"
     import_disabled = "import_disabled"
+    capture_disabled = "capture_disabled"
+    meeting_host_not_configured = "meeting_host_not_configured"
+    invalid_capture_worker = "invalid_capture_worker"
+    meeting_use_capture = "meeting_use_capture"
     proxy_unavailable = "proxy_unavailable"
     mfa_required = "mfa_required"
     invalid_totp = "invalid_totp"
@@ -106,6 +110,10 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.download_failed: 502,
     ErrorCode.video_unavailable: 404,
     ErrorCode.import_disabled: 403,
+    ErrorCode.capture_disabled: 403,
+    ErrorCode.meeting_host_not_configured: 400,
+    ErrorCode.invalid_capture_worker: 400,
+    ErrorCode.meeting_use_capture: 400,
     ErrorCode.proxy_unavailable: 503,
     ErrorCode.invalid_totp: 401,
     ErrorCode.mfa_not_configured: 403,

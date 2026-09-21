@@ -134,6 +134,31 @@ export function transcribeRequest(audioId: string, pipeline: IngestPipeline = ac
   return body
 }
 
+export function captureRequest(
+  meetingUrl: string,
+  pin: string,
+  pipeline: IngestPipeline = activePipeline(),
+): {
+  meeting_url: string
+  pin: string
+  transcribe?: boolean
+  skill_ids?: string[]
+} {
+  const body: {
+    meeting_url: string
+    pin: string
+    transcribe?: boolean
+    skill_ids?: string[]
+  } = { meeting_url: meetingUrl, pin }
+  if (pipelineShouldTranscribe(pipeline)) {
+    body.transcribe = true
+    if (pipeline.skillIds.length > 0) {
+      body.skill_ids = [...pipeline.skillIds]
+    }
+  }
+  return body
+}
+
 export function importRequest(url: string, pipeline: IngestPipeline = activePipeline()): {
   url: string
   transcribe?: boolean

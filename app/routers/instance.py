@@ -52,6 +52,7 @@ class WorkerBody(BaseModel):
     enabled: bool = True
     asr_models: list[str] | None = None
     diarization_models: list[str] | None = None
+    capture_connectors: list[str] | None = None
     remediation: WorkerRemediation | None = None
 
 
@@ -135,6 +136,8 @@ class SettingsPatch(BaseModel):
     rate_limit_public_pin_ip: int | None = None
     import_enabled: bool | None = None
     import_allowed_extractors: list[str] | None = None
+    capture_enabled: bool | None = None
+    capture_allowed_connectors: list[str] | None = None
     download_proxy_url: str | None = None
     download_proxy_password: str | None = None
     download_proxy_enabled: bool | None = None
@@ -235,6 +238,28 @@ def _apply_transcribe_worker_models(
         node.diarization_models_json = diar
 
 
+def _apply_capture_worker_models(
+    node: WorkerNode,
+    body: WorkerBody,
+    *,
+    probe_health: dict | None,
+    ctx: AuthContext,
+) -> None:
+    from app.services.capture_platforms import normalize_allowed_connectors, selectable_connector_ids
+
+    if body.type != "capture":
+        node.capture_connectors_json = None
+        return
+    if body.capture_connectors is None:
+        return
+    allowed = set(selectable_connector_ids(probe_health or node.last_health))
+    selected = normalize_allowed_connectors(body.capture_connectors)
+    filtered = [item for item in selected if item in allowed]
+    if body.capture_connectors is not None and not filtered:
+        ctx.raise_error(ErrorCode.validation_error)
+    node.capture_connectors_json = filtered
+
+
 def _org_count(db: Session, tariff_id: str) -> int:
     return int(db.scalar(select(func.count()).select_from(Organization).where(Organization.tariff_id == tariff_id)) or 0)
 
@@ -272,7 +297,7 @@ async def probe_worker(
     from app.services.workers import WorkerClientError, get_health_url, verify_worker_token
 
     _admin(ctx)
-    if body.type not in {"transcribe", "summarize"}:
+    if body.type not in {"transcribe", "summarize", "capture"}:
         ctx.raise_error(ErrorCode.validation_error)
     node = db.get(WorkerNode, body.worker_id) if body.worker_id else None
     if body.worker_id and node is None:
@@ -291,6 +316,14 @@ async def probe_worker(
     payload: dict = {"authorized": True, "health_status": status}
     if body.type == "transcribe":
         payload.update(parse_worker_engines(health))
+    if body.type == "capture":
+        from app.services.capture_platforms import parse_worker_connectors
+
+        connectors = parse_worker_connectors(health)
+        payload["connectors"] = [
+            {"id": key, "status": value, "label": key}
+            for key, value in sorted(connectors.items())
+        ]
     return payload
 
 
@@ -302,19 +335,21 @@ async def create_worker(
     from app.services.workers import WorkerClientError, verify_worker_token
 
     _admin(ctx)
-    if body.type not in {"transcribe", "summarize"}:
+    if body.type not in {"transcribe", "summarize", "capture"}:
         ctx.raise_error(ErrorCode.validation_error)
     if not body.api_token:
         ctx.raise_error(ErrorCode.validation_error)
     base_url = body.base_url.rstrip("/")
-    if body.type == "transcribe":
+    if body.type in {"transcribe", "capture"}:
         try:
             await verify_worker_token(base_url, body.api_token)
         except WorkerClientError as exc:
             if exc.status_code == 401:
                 ctx.raise_error(ErrorCode.validation_error)
             raise
-        if not body.asr_models:
+        if body.type == "transcribe" and not body.asr_models:
+            ctx.raise_error(ErrorCode.validation_error)
+        if body.type == "capture" and not body.capture_connectors:
             ctx.raise_error(ErrorCode.validation_error)
     now = utcnow()
     node = WorkerNode(
@@ -333,6 +368,9 @@ async def create_worker(
     if body.type == "transcribe":
         await refresh_node_health(db, node)
         _apply_transcribe_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
+    if body.type == "capture":
+        await refresh_node_health(db, node)
+        _apply_capture_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
     return worker_public(node)
 
 
@@ -354,12 +392,12 @@ async def patch_worker(
     from app.services.worker_impact import _with_worker_state
 
     nodes_before = [_with_worker_state(row) for row in db.scalars(select(WorkerNode)).all()]
-    if body.type not in {"transcribe", "summarize"}:
+    if body.type not in {"transcribe", "summarize", "capture"}:
         ctx.raise_error(ErrorCode.validation_error)
     base_url = body.base_url.rstrip("/")
     old_base_url = node.base_url
     token = _resolve_worker_token(body, node, db, ctx)
-    if body.type == "transcribe" and (body.api_token or base_url != old_base_url):
+    if body.type in {"transcribe", "capture"} and (body.api_token or base_url != old_base_url):
         try:
             await verify_worker_token(base_url, token)
         except WorkerClientError as exc:
@@ -379,9 +417,16 @@ async def patch_worker(
     ):
         await refresh_node_health(db, node)
         _apply_transcribe_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
-    elif body.type != "transcribe":
+    elif body.type == "capture" and (
+        body.api_token or base_url != old_base_url or body.capture_connectors is not None
+    ):
+        await refresh_node_health(db, node)
+        _apply_capture_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
+    if body.type != "transcribe":
         node.asr_models_json = None
         node.diarization_models_json = None
+    if body.type != "capture":
+        node.capture_connectors_json = None
     remediation_result = None
     if body.remediation is not None:
         nodes_after = list(db.scalars(select(WorkerNode)).all())
@@ -431,8 +476,23 @@ def worker_change_impact(
     node = db.get(WorkerNode, worker_id)
     if node is None:
         ctx.raise_error(ErrorCode.not_found)
-    if body.type not in {"transcribe", "summarize"}:
+    if body.type not in {"transcribe", "summarize", "capture"}:
         ctx.raise_error(ErrorCode.validation_error)
+    if body.type == "capture":
+        from app.services.capture_platforms import normalize_allowed_connectors
+        from app.services.worker_impact import compute_worker_capture_change_impact
+
+        connectors = (
+            normalize_allowed_connectors(body.capture_connectors)
+            if body.capture_connectors is not None
+            else list(node.capture_connectors_json or [])
+        )
+        return compute_worker_capture_change_impact(
+            db,
+            node,
+            enabled=body.enabled,
+            capture_connectors=connectors,
+        )
     if body.type == "transcribe" and not body.asr_models:
         ctx.raise_error(ErrorCode.validation_error)
     return compute_worker_change_impact(
@@ -646,6 +706,10 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         **aggregate_instance_models(db),
         "import_enabled": s.import_enabled,
         "import_platforms": admin_platforms(s),
+        "capture_enabled": s.capture_enabled,
+        "capture_connectors": __import__(
+            "app.services.capture_platforms", fromlist=["admin_connectors"]
+        ).admin_connectors(s),
         "download_proxy_url": s.download_proxy_url,
         "download_proxy_configured": bool(proxy_url.strip()),
         "download_proxy_enabled": s.download_proxy_enabled,
@@ -785,6 +849,14 @@ def patch_settings(
         raw = data.pop("import_allowed_extractors")
         try:
             s.import_allowed_extractors_json = validate_allowed_extractors(list(raw or []))
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
+    if "capture_allowed_connectors" in data:
+        from app.services.capture_platforms import validate_allowed_connectors
+
+        raw = data.pop("capture_allowed_connectors")
+        try:
+            s.capture_allowed_connectors_json = validate_allowed_connectors(list(raw or []))
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
     if "session_ttl_hours" in data:

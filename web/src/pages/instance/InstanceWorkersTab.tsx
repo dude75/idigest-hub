@@ -52,6 +52,18 @@ export function InstanceWorkersTab() {
   const probeAsr = useMemo(() => selectableEngines(probe?.asr_models), [probe])
   const probeDiar = useMemo(() => selectableEngines(probe?.diarization_models), [probe])
 
+  function toggleCaptureConnector(connectorId: string) {
+    const status = probe?.connectors?.find((item) => item.id === connectorId)?.status
+    if (status && !SELECTABLE_STATUSES.has(status)) return
+    setWform((prev) => {
+      const current = prev.capture_connectors
+      const next = current.includes(connectorId)
+        ? current.filter((id) => id !== connectorId)
+        : [...current, connectorId]
+      return { ...prev, capture_connectors: next }
+    })
+  }
+
   function toggleModel(kind: 'asr_models' | 'diarization_models', modelId: string) {
     setWform((prev) => {
       const current = prev[kind]
@@ -92,6 +104,16 @@ export function InstanceWorkersTab() {
           diarization_models: prev.diarization_models.filter((id) => diarIds.includes(id)),
         }))
       }
+      if (wform.type === 'capture') {
+        const connectorIds = selectableEngines(result.connectors).map((item) => item.id)
+        setWform((prev) => {
+          const kept = prev.capture_connectors.filter((id) => connectorIds.includes(id))
+          return {
+            ...prev,
+            capture_connectors: kept.length > 0 ? kept : connectorIds,
+          }
+        })
+      }
     } catch (e) {
       setProbe(null)
       showError(e)
@@ -112,6 +134,9 @@ export function InstanceWorkersTab() {
     if (wform.type === 'transcribe') {
       body.asr_models = wform.asr_models
       body.diarization_models = wform.diarization_models
+    }
+    if (wform.type === 'capture') {
+      body.capture_connectors = wform.capture_connectors
     }
     return body
   }
@@ -155,8 +180,9 @@ export function InstanceWorkersTab() {
       enabled: w.enabled,
       asr_models: w.asr_models || [],
       diarization_models: w.diarization_models || [],
+      capture_connectors: w.capture_connectors || [],
     })
-    if (w.type === 'transcribe') {
+    if (w.type === 'transcribe' || w.type === 'capture') {
       void probeWorker({ workerId: w.id, baseUrl: w.base_url, type: w.type })
     }
   }
@@ -169,9 +195,11 @@ export function InstanceWorkersTab() {
     setProbeOk(false)
   }
 
-  const canSaveTranscribe =
-    wform.type !== 'transcribe' || (probeOk && wform.asr_models.length > 0 && probe !== null)
+  const canSaveWorker =
+    (wform.type !== 'transcribe' || (probeOk && wform.asr_models.length > 0 && probe !== null)) &&
+    (wform.type !== 'capture' || (probeOk && wform.capture_connectors.length > 0 && probe !== null))
   const canProbe = Boolean(wform.base_url.trim() && (wform.api_token.trim() || editW))
+  const allProbeConnectors = useMemo(() => probe?.connectors ?? [], [probe])
 
   return (
     <AdminPage>
@@ -202,6 +230,7 @@ export function InstanceWorkersTab() {
           >
             <option value="transcribe">{t('instance.transcribe')}</option>
             <option value="summarize">{t('instance.summarize')}</option>
+            <option value="capture">{t('instance.capture')}</option>
           </select>
         </label>
         <label>{t('common.name')}<input value={wform.name} onChange={(e) => setWform({ ...wform, name: e.target.value })} /></label>
@@ -254,13 +283,47 @@ export function InstanceWorkersTab() {
             ) : null}
           </>
         ) : null}
+        {wform.type === 'capture' ? (
+          <>
+            <button type="button" disabled={!canProbe || probing} onClick={() => void probeWorker()}>
+              {probing ? t('instance.workerProbing') : t('instance.workerProbe')}
+            </button>
+            {probeOk ? <p className="ok">{t('instance.workerProbeOk')}</p> : null}
+            {probe && wform.type === 'capture' ? (
+              <div className="stack">
+                <p className="muted">{t('instance.captureConnectorsHint')}</p>
+                <fieldset className="stack">
+                  <legend>{t('instance.captureConnectors')}</legend>
+                  {allProbeConnectors.length === 0 ? <p className="muted">{t('instance.workerModelsEmpty')}</p> : null}
+                  {allProbeConnectors.map((item) => {
+                    const selectable = SELECTABLE_STATUSES.has(item.status)
+                    return (
+                      <label className="row" key={item.id}>
+                        <input
+                          type="checkbox"
+                          checked={wform.capture_connectors.includes(item.id)}
+                          disabled={!selectable}
+                          onChange={() => toggleCaptureConnector(item.id)}
+                        />
+                        <span className="grow">
+                          <strong>{item.id}</strong>
+                          <span className="muted"> — {item.status}</span>
+                        </span>
+                      </label>
+                    )
+                  })}
+                </fieldset>
+              </div>
+            ) : null}
+          </>
+        ) : null}
         <label>{t('instance.weight')}<input type="number" min={1} value={wform.weight} onChange={(e) => setWform({ ...wform, weight: Number(e.target.value) })} /></label>
         <label className="row">
           <input type="checkbox" checked={wform.enabled} onChange={(e) => setWform({ ...wform, enabled: e.target.checked })} />
           {t('instance.enabled')}
         </label>
         <div className="row">
-          <button className="primary" type="button" disabled={!canSaveTranscribe} onClick={() => requestSaveWorker()}>{editW ? t('common.save') : t('common.create')}</button>
+          <button className="primary" type="button" disabled={!canSaveWorker} onClick={() => requestSaveWorker()}>{editW ? t('common.save') : t('common.create')}</button>
           {editW ? <button type="button" onClick={cancelEdit}>{t('common.cancel')}</button> : null}
         </div>
         </div>
@@ -292,7 +355,9 @@ export function InstanceWorkersTab() {
                             ...(w.asr_models || []).map((id) => `ASR:${id}`),
                             ...(w.diarization_models || []).map((id) => `D:${id}`),
                           ].join(', ') || '—'
-                        : '—'}
+                        : w.type === 'capture'
+                          ? (w.capture_connectors || []).join(', ') || '—'
+                          : '—'}
                     </td>
                     <td className="num">{formatInteger(w.weight)}</td>
                     <td>{w.enabled ? t('common.yes') : t('common.no')}</td>

@@ -45,6 +45,10 @@ export function taskStageLabelKey(task: Task): string | null {
     const stage = typeof task.meta?.stage === 'string' ? task.meta.stage : task.status
     return `task.importStage.${stage}`
   }
+  if (task.type === 'capture') {
+    const stage = typeof task.meta?.stage === 'string' ? task.meta.stage : task.status
+    return `task.captureStage.${stage}`
+  }
   if (task.type !== 'transcribe' && task.type !== 'summarize') return null
   if (task.status !== 'queued' && task.status !== 'running') return null
 
@@ -71,7 +75,7 @@ export function taskStageLabelKey(task: Task): string | null {
 export function taskStageLabel(task: Task, t: TaskTranslate): string | null {
   const key = taskStageLabelKey(task)
   if (!key) return null
-  if (key.startsWith('task.importStage.')) {
+  if (key.startsWith('task.importStage.') || key.startsWith('task.captureStage.')) {
     const title = typeof task.meta?.title === 'string' && task.meta.title ? `: ${task.meta.title}` : ''
     const translated = t(key, { title, defaultValue: '' })
     return translated || null

@@ -242,6 +242,7 @@ def add_worker(
     api_token: str = "tok",
     asr_models: list[str] | None = None,
     diarization_models: list[str] | None = None,
+    capture_connectors: list[str] | None = None,
 ) -> dict:
     payload: dict[str, Any] = {
         "type": type,
@@ -256,6 +257,8 @@ def add_worker(
         payload["diarization_models"] = (
             diarization_models if diarization_models is not None else list(DEFAULT_WORKER_DIARIZATION_MODELS)
         )
+    if type == "capture":
+        payload["capture_connectors"] = capture_connectors if capture_connectors is not None else ["jitsi"]
     response = client.post("/api/v1/workers", json=payload)
     assert response.status_code == 200, response.text
     return response.json()
@@ -386,7 +389,12 @@ class FakeWorkers:
             "status": "ok",
             "version": "x",
             "engines": dict(LOADED_ENGINES),
+            "connectors": {"jitsi": {"status": "loaded"}},
         }
+        self.capture_mode = "success"
+        self.capture_poll_mode = "success"
+        self.capture_worker_task_id = "cap-w1"
+        self.capture_artifact = SAMPLE_MP3_BYTES
         self.ready_status = 200
         self.transcribe_mode = "queued"
         self.summarize_mode = "success"
@@ -415,10 +423,19 @@ class FakeWorkers:
             "delete_task",
         )
         worker_names = (*dispatcher_names, "verify_worker_token", "get_health_url")
+        capture_names = (
+            "post_capture",
+            "get_capture_task",
+            "stop_capture_task",
+            "delete_capture_task",
+            "download_capture_artifact",
+        )
         for name in dispatcher_names:
             monkeypatch.setattr(f"app.services.dispatcher.{name}", getattr(self, name))
         for name in worker_names:
             monkeypatch.setattr(f"app.services.workers.{name}", getattr(self, name))
+        for name in capture_names:
+            monkeypatch.setattr(f"app.services.capture_workers.{name}", getattr(self, name))
 
     async def verify_worker_token(self, _base_url: str, _api_token: str) -> None:
         return None
@@ -498,6 +515,53 @@ class FakeWorkers:
 
     async def delete_task(self, _db, node, worker_task_id) -> int:
         return 200
+
+    async def post_capture(
+        self,
+        _db,
+        node,
+        *,
+        connector: str,
+        meeting_url: str,
+        pin: str,
+        jwt: str | None,
+        display_name: str,
+    ) -> dict[str, Any]:
+        if self.capture_mode == "queue_full":
+            raise WorkerClientError("queue_full", 503, {"error": {"code": "queue_full"}})
+        if self.capture_mode == "error":
+            return {"status": "error", "error": {"code": self.error_code}, "meta": {"task_id": self.capture_worker_task_id}}
+        return {
+            "status": "running",
+            "meta": {
+                "task_id": self.capture_worker_task_id,
+                "meeting_host": "meet.example.com",
+                "meeting_room": "room1",
+                "connector": connector,
+            },
+        }
+
+    async def get_capture_task(self, _db, node, worker_task_id: str) -> tuple[int, dict[str, Any]]:
+        if self.capture_poll_mode == "404":
+            return 404, {}
+        if self.capture_poll_mode in {"running", "queued"}:
+            return 200, {"status": self.capture_poll_mode}
+        return 200, {
+            "status": "success",
+            "meta": {"task_id": worker_task_id, "duration_sec": 12.0},
+        }
+
+    async def stop_capture_task(self, _db, node, worker_task_id: str) -> tuple[int, dict[str, Any]]:
+        return 200, {"status": "running", "meta": {"task_id": worker_task_id}}
+
+    async def delete_capture_task(self, _db, node, worker_task_id: str) -> int:
+        return 200
+
+    async def download_capture_artifact(self, _db, node, worker_task_id: str) -> tuple[int, bytes, dict[str, str]]:
+        return 200, self.capture_artifact, {
+            "content-disposition": 'attachment; filename="capture.mp3"',
+            "content-type": "audio/mpeg",
+        }
 
 
 @pytest.fixture

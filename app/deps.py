@@ -301,6 +301,7 @@ def cached_session_ttl_sec() -> int:
 def get_instance_settings(db: Session):
     row = db.get(InstanceSettings, 1)
     if row is None:
+        from app.services.capture_platforms import default_allowed_connectors
         from app.services.import_platforms import default_allowed_extractors
 
         row = InstanceSettings(
@@ -311,6 +312,8 @@ def get_instance_settings(db: Session):
             diarization_model="pyannote",
             import_enabled=True,
             import_allowed_extractors_json=default_allowed_extractors(),
+            capture_enabled=False,
+            capture_allowed_connectors_json=default_allowed_connectors(),
             session_ttl_hours=DEFAULT_SESSION_TTL_HOURS,
         )
         db.add(row)

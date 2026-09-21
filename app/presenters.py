@@ -116,6 +116,7 @@ def worker_public(node: WorkerNode) -> dict[str, Any]:
         "last_health_at": isoformat_utc(node.last_health_at),
         "asr_models": list(node.asr_models_json or []),
         "diarization_models": list(node.diarization_models_json or []),
+        "capture_connectors": list(node.capture_connectors_json or []),
     }
 
 

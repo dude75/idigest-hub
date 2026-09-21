@@ -9,7 +9,7 @@ import type {
   WorkerDeleteImpactTask,
   WorkerRemediationPayload,
 } from '../../types'
-import { formatInteger, showError } from '../../util'
+import { formatInteger, showError, truncateLabel } from '../../util'
 
 type Props = {
   mode: 'delete' | 'change'
@@ -41,12 +41,15 @@ type UnavailableItem =
   | { kind: 'last_transcribe' }
   | { kind: 'last_summarize' }
   | { kind: 'summarize_remaining'; count: number }
+  | { kind: 'capture_losing_jitsi' }
 
 type InUseItem =
   | { kind: 'user'; email: string; pair: ModelPair }
   | { kind: 'tasks'; pair: ModelPair; queued: number; running: number; total: number }
   | { kind: 'defaults'; pair: ModelPair }
   | { kind: 'summarize_tasks'; queued: number; running: number; total: number }
+  | { kind: 'capture_host'; host: string; orgName: string }
+  | { kind: 'capture_tasks'; total: number }
 
 function matchesPair(asr: string, diarization: string | null | undefined, pair: DispatchablePair) {
   return pair.asr_model === asr && (pair.diarization_model ?? null) === (diarization ?? null)
@@ -63,6 +66,20 @@ function useImpactSections(
     const tasks = impact.affected_tasks ?? []
     const unavailable: UnavailableItem[] = []
     const inUse: InUseItem[] = []
+
+    if (workerType === 'capture') {
+      if (impact.capture_losing_jitsi) {
+        unavailable.push({ kind: 'capture_losing_jitsi' })
+      }
+      for (const row of impact.capture_jitsi_hosts ?? []) {
+        inUse.push({ kind: 'capture_host', host: row.host, orgName: row.org_name })
+      }
+      const captureTasks = impact.capture_tasks_count ?? 0
+      if (captureTasks > 0) {
+        inUse.push({ kind: 'capture_tasks', total: captureTasks })
+      }
+      return { unavailable, inUse }
+    }
 
     if (workerType === 'transcribe') {
       for (const pair of impact.lost_model_pairs ?? []) {
@@ -88,7 +105,7 @@ function useImpactSections(
       if ((impact.remaining_transcribe_workers ?? 0) === 0 && (impact.lost_model_pairs?.length ?? 0) > 0) {
         unavailable.push({ kind: 'last_transcribe' })
       }
-    } else {
+    } else if (workerType === 'summarize') {
       if (impact.last_enabled_worker) unavailable.push({ kind: 'last_summarize' })
       unavailable.push({ kind: 'summarize_remaining', count: impact.remaining_summarize_workers ?? 0 })
     }
@@ -119,7 +136,7 @@ function useImpactSections(
           total: group.length,
         })
       }
-    } else if (tasks.length > 0) {
+    } else if (workerType === 'summarize' && tasks.length > 0) {
       inUse.push({
         kind: 'summarize_tasks',
         queued: tasks.filter((task) => task.status === 'queued').length,
@@ -202,6 +219,9 @@ function UnavailableRow({
   if (item.kind === 'last_summarize') {
     return <li className="worker-impact-row worker-impact-note warn">{t('instance.workerImpactLastSummarizeWorker')}</li>
   }
+  if (item.kind === 'capture_losing_jitsi') {
+    return <li className="worker-impact-row worker-impact-note warn">{t('instance.workerImpactCaptureLosingJitsi')}</li>
+  }
   return (
     <li className="worker-impact-row worker-impact-note muted">
       {t('instance.workerImpactSummarizeRemaining', { count: formatInteger(item.count) })}
@@ -229,6 +249,25 @@ function InUseRow({
       <li className="worker-impact-row">
         <span className="worker-impact-label">{t('instance.workerImpactDefaultsLabel')}</span>
         <ModelPairChip pair={item.pair} t={t} />
+      </li>
+    )
+  }
+  if (item.kind === 'capture_host') {
+    const full = `${item.orgName} · ${item.host}`
+    return (
+      <li className="worker-impact-row">
+        <span className="worker-impact-capture-map" title={full}>
+          <span className="worker-impact-org-name">{truncateLabel(item.orgName, 24)}</span>
+          <span className="muted worker-impact-capture-sep"> · </span>
+          <code className="worker-impact-pair">{item.host}</code>
+        </span>
+      </li>
+    )
+  }
+  if (item.kind === 'capture_tasks') {
+    return (
+      <li className="worker-impact-row worker-impact-note">
+        {t('instance.workerImpactCaptureTasks', { count: formatInteger(item.total) })}
       </li>
     )
   }
@@ -395,10 +434,16 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
       {!loading && impact ? (
         <>
           <div className={`worker-impact-banner ${impact.blocking ? 'warn' : 'ok'}`}>
-            <p>{impact.blocking ? t('instance.workerImpactBlocking') : t('instance.workerImpactNoImpact')}</p>
+            <p>
+              {impact.blocking
+                ? workerType === 'capture'
+                  ? t('instance.workerImpactCaptureBlocking')
+                  : t('instance.workerImpactBlocking')
+                : t('instance.workerImpactNoImpact')}
+            </p>
           </div>
 
-          {impact.blocking ? (
+          {impact.blocking || (workerType === 'capture' && (impact.capture_jitsi_hosts_count ?? 0) > 0) ? (
             <div className="worker-impact-sections">
               <ImpactSection
                 title={t('instance.workerImpactUnavailableTitle')}
