@@ -71,6 +71,29 @@ def test_capture_platforms(client):
     assert body["jitsi_hosts"] == []
 
 
+def test_org_capture_jitsi_allowed_follows_capture_enabled(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "capallow@example.com", "capallowpass1", tariff_id).status_code == 200
+    login_ready(client, "capallow@example.com", "capallowpass1")
+
+    enabled = client.get("/api/v1/org/capture/jitsi")
+    assert enabled.status_code == 200
+    assert enabled.json()["allowed"] is True
+
+    login_ready(client, "admin@example.com", "adminpass1")
+    off = client.patch("/api/v1/instance/settings", json={"capture_enabled": False})
+    assert off.status_code == 200, off.text
+
+    login_ready(client, "capallow@example.com", "capallowpass1")
+    disabled = client.get("/api/v1/org/capture/jitsi")
+    assert disabled.status_code == 200
+    assert disabled.json()["allowed"] is False
+
+
 def test_capture_disabled(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

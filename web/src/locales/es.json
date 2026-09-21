@@ -333,7 +333,7 @@
     "captureBotDisplayName": "Nombre del bot en la reunión",
     "captureBotDisplayNameDefault": "Transcription Bot",
     "captureBotDisplayNameHint": "Lo ven los participantes cuando el bot entra en Jitsi. Vacío = valor por defecto arriba.",
-    "captureHostHint": "Solo hostname, p. ej. meet.realweb.ru — puede pegar una URL completa y extraeremos el host.",
+    "captureHostHint": "Hostname o URL completa, p. ej. https://meet.example.com/sala — extraeremos el host.",
     "captureWorker": "Worker de capture",
     "captureWorkerPick": "Elija worker…",
     "captureNoWorkers": "No hay workers de capture en esta instancia. Pida al admin de instancia que registre uno (Instance → Workers, tipo Capture).",

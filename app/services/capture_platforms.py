@@ -44,6 +44,11 @@ def allowed_connectors(settings: InstanceSettings) -> list[str]:
     return default_allowed_connectors()
 
 
+def org_jitsi_capture_enabled(settings: InstanceSettings) -> bool:
+    """True when instance admin enabled capture and Jitsi is an allowed connector."""
+    return bool(settings.capture_enabled) and "jitsi" in allowed_connectors(settings)
+
+
 def validate_allowed_connectors(ids: list[str]) -> list[str]:
     out: list[str] = []
     for item in ids:

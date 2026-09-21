@@ -333,7 +333,7 @@
     "captureBotDisplayName": "Имя бота в конференции",
     "captureBotDisplayNameDefault": "Transcription Bot",
     "captureBotDisplayNameHint": "Участники видят это имя, когда бот подключается к Jitsi. Пустое поле — значение по умолчанию выше.",
-    "captureHostHint": "Только hostname, напр. meet.realweb.ru — можно вставить полную ссылку, мы извлечём хост.",
+    "captureHostHint": "Hostname или полная ссылка, напр. https://meet.example.com/комната — мы извлечём хост.",
     "captureWorker": "Capture-воркер",
     "captureWorkerPick": "Выберите воркер…",
     "captureNoWorkers": "На инстансе нет capture-воркеров. Попросите админа инстанса добавить (Instance → Workers, тип Capture).",

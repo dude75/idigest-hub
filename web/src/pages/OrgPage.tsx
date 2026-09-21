@@ -613,7 +613,7 @@ export function OrgPage() {
                         {t('org.captureHost')}
                         <input
                           value={captureDraft.host}
-                          placeholder="meet.realweb.ru"
+                          placeholder="https://meet..."
                           onChange={(e) => setCaptureDraft({ ...captureDraft, host: e.target.value })}
                         />
                       </label>

@@ -168,11 +168,11 @@ def get_org_capture_jitsi(
     org, _ = ctx.require_org_admin()
     from app.deps import get_instance_settings
     from app.services.capture_meeting import org_capture_worker_choices, org_jitsi_hosts_public
-    from app.services.capture_platforms import allowed_connectors
+    from app.services.capture_platforms import org_jitsi_capture_enabled
 
     settings = get_instance_settings(db)
     return {
-        "allowed": "jitsi" in allowed_connectors(settings),
+        "allowed": org_jitsi_capture_enabled(settings),
         "bot_display_name": org.capture_bot_display_name or "",
         "items": org_jitsi_hosts_public(db, org.id),
         "workers": org_capture_worker_choices(db),
@@ -188,10 +188,10 @@ def replace_org_capture_jitsi(
     org, _ = ctx.require_org_admin()
     from app.deps import get_instance_settings
     from app.services.capture_meeting import org_jitsi_hosts_public, replace_org_jitsi_hosts
-    from app.services.capture_platforms import allowed_connectors
+    from app.services.capture_platforms import org_jitsi_capture_enabled
 
     settings = get_instance_settings(db)
-    if "jitsi" not in allowed_connectors(settings):
+    if not org_jitsi_capture_enabled(settings):
         ctx.raise_error(ErrorCode.capture_disabled)
     if body.bot_display_name is not None:
         from app.services.capture_meeting import normalize_capture_bot_display_name
