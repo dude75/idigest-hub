@@ -9,7 +9,11 @@ import { diarizationOptionsForAsr, isDispatchableCombo } from '../../transcribeM
 import { showError } from '../../util'
 import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../../util/timezones'
-import { DEFAULT_IMPORT_AUDIO_BITRATE_KBPS } from './constants'
+import {
+  DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
+  DEFAULT_IMPORT_MAX_CONCURRENT,
+  IMPORT_MAX_CONCURRENT_MAX,
+} from './constants'
 
 export function InstanceSettingsTab() {
   const { t } = useTranslation()
@@ -29,6 +33,7 @@ export function InstanceSettingsTab() {
       asr_models: data.asr_models ?? [],
       diarization_models: data.diarization_models ?? [],
       import_audio_bitrate_kbps: data.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
+      import_max_concurrent: data.import_max_concurrent ?? DEFAULT_IMPORT_MAX_CONCURRENT,
       capture_connectors: data.capture_connectors ?? [],
       smtp_password_configured: data.smtp_password_configured ?? false,
     }
@@ -156,6 +161,7 @@ export function InstanceSettingsTab() {
           download_proxy_enabled: settings.download_proxy_enabled,
           download_cookies_path: settings.download_cookies_path,
           import_audio_bitrate_kbps: settings.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
+          import_max_concurrent: settings.import_max_concurrent ?? DEFAULT_IMPORT_MAX_CONCURRENT,
           capture_enabled: settings.capture_enabled,
           capture_allowed_connectors: settings.capture_connectors.filter((c) => c.enabled).map((c) => c.id),
           session_ttl_hours: settings.session_ttl_hours,
@@ -376,6 +382,26 @@ export function InstanceSettingsTab() {
             />
           </label>
           <p className="muted">{t('instance.importAudioBitrateHint')}</p>
+          <label>
+            {t('instance.importMaxConcurrent')}
+            <input
+              type="number"
+              min={1}
+              max={IMPORT_MAX_CONCURRENT_MAX}
+              value={settings.import_max_concurrent ?? DEFAULT_IMPORT_MAX_CONCURRENT}
+              disabled={!settings.import_enabled}
+              onChange={(e) =>
+                setSettings({
+                  ...settings,
+                  import_max_concurrent: Math.min(
+                    IMPORT_MAX_CONCURRENT_MAX,
+                    Math.max(1, Number(e.target.value) || DEFAULT_IMPORT_MAX_CONCURRENT),
+                  ),
+                })
+              }
+            />
+          </label>
+          <p className="muted">{t('instance.importMaxConcurrentHint')}</p>
           <p className="muted">{t('instance.importPlatformsHint')}</p>
           <div className="stack">
             {settings.import_platforms.map((platform) => (

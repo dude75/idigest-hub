@@ -754,6 +754,8 @@
     "downloadCookiesHint": "Opcional. Exporte cookies del navegador para YouTube si las descargas devuelven HTTP 403.",
     "importAudioBitrate": "Bitrate máximo de audio (kbps, MP3)",
     "importAudioBitrateHint": "0 = mejor disponible. Voz: 64–128. Predeterminado 64.",
+    "importMaxConcurrent": "Importaciones URL en paralelo",
+    "importMaxConcurrentHint": "Cuántas tareas de importación pueden descargar a la vez en esta instancia. Predeterminado 2.",
     "captureTitle": "Grabación de reuniones",
     "captureEnabled": "Activar grabación de reuniones",
     "capture": "Capture",

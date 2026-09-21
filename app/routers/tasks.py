@@ -229,7 +229,25 @@ async def create_import(
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     settings = get_instance_settings(db)
     from app.services.capture_meeting import import_url_looks_like_meeting, import_url_routes_to_capture
+    from app.services.url_import import (
+        UrlImportError,
+        assert_import_fetch_allowed,
+        reject_blocked_import_url,
+        reject_literal_blocked_import_url,
+    )
 
+    try:
+        reject_literal_blocked_import_url(body.url)
+    except UrlImportError as exc:
+        ctx.raise_error(ErrorCode(exc.code))
+
+    if not settings.import_enabled:
+        ctx.raise_error(ErrorCode.import_disabled)
+    from app.services.download_proxy_health import download_proxy_ready
+    from app.services.import_platforms import allowed_extractors
+
+    if not download_proxy_ready(settings, db):
+        ctx.raise_error(ErrorCode.proxy_unavailable)
     if import_url_routes_to_capture(body.url, settings):
         return await create_capture(
             CaptureBody(
@@ -245,15 +263,10 @@ async def create_import(
         )
     if import_url_looks_like_meeting(body.url):
         ctx.raise_error(ErrorCode.capture_disabled)
-
-    if not settings.import_enabled:
-        ctx.raise_error(ErrorCode.import_disabled)
-    from app.services.download_proxy_health import download_proxy_ready
-    from app.services.import_platforms import allowed_extractors
-    from app.services.url_import import UrlImportError, assert_import_fetch_allowed
-
-    if not download_proxy_ready(settings, db):
-        ctx.raise_error(ErrorCode.proxy_unavailable)
+    try:
+        reject_blocked_import_url(body.url)
+    except UrlImportError as exc:
+        ctx.raise_error(ErrorCode(exc.code))
     try:
         url = assert_import_fetch_allowed(
             body.url, settings_allowed=allowed_extractors(settings)

@@ -1,5 +1,7 @@
 export const MAX_UPLOAD = 1073741824
 export const DEFAULT_IMPORT_AUDIO_BITRATE_KBPS = 64
+export const DEFAULT_IMPORT_MAX_CONCURRENT = 2
+export const IMPORT_MAX_CONCURRENT_MAX = 16
 
 export type InstanceTab = 'workers' | 'tariffs' | 'orgs' | 'settings' | 'baseSkills' | 'stats' | 'legalDocuments'
 

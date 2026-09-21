@@ -10,11 +10,13 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.deps import get_instance_settings
 from app.models import Audio, Organization, Task, new_id
 from app.services.import_platforms import (
     allowed_extractors,
     effective_download_proxy,
     normalize_import_audio_bitrate_kbps,
+    normalize_import_max_concurrent,
 )
 from app.services.storage import PayloadTooLarge, get_storage
 from app.services.upload_validation import InvalidAudioContent
@@ -22,8 +24,6 @@ from app.services.url_import import UrlImportError, cleanup_import_path, downloa
 from app.timeutil import utcnow
 
 log = logging.getLogger("app")
-
-MAX_CONCURRENT_IMPORTS = 2
 
 _active: set[str] = set()
 _cancelled: set[str] = set()
@@ -38,8 +38,9 @@ def request_import_cancel(task_id: str) -> None:
     _cancelled.add(task_id)
 
 
-def import_slots_available() -> bool:
-    return len(_active) < MAX_CONCURRENT_IMPORTS
+def import_slots_available(db: Session) -> bool:
+    limit = normalize_import_max_concurrent(get_instance_settings(db).import_max_concurrent)
+    return len(_active) < limit
 
 
 def _update_task_meta(db: Session, task: Task, stage: str, extra: dict[str, Any] | None = None) -> None:
@@ -235,7 +236,7 @@ def maybe_start_import(db: Session, task: Task) -> None:
         return
     if task.id in _active or task.id in _bg_threads:
         return
-    if not import_slots_available():
+    if not import_slots_available(db):
         task.meta_json = {**(task.meta_json or {}), "stage": "queued"}
         return
 

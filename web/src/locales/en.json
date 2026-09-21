@@ -750,6 +750,8 @@
     "downloadCookiesHint": "Optional. Export cookies from your browser for YouTube if downloads return HTTP 403.",
     "importAudioBitrate": "Max audio bitrate (kbps, MP3)",
     "importAudioBitrateHint": "0 = best available. Typical speech: 64–128. Default 64.",
+    "importMaxConcurrent": "Parallel URL imports",
+    "importMaxConcurrentHint": "How many import tasks may download at once on this instance. Default 2.",
     "captureTitle": "Meeting capture",
     "captureEnabled": "Enable meeting capture",
     "capture": "Capture",

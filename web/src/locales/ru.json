@@ -750,6 +750,8 @@
     "downloadCookiesHint": "Необязательно. Экспорт cookies из браузера для YouTube, если скачивание падает с HTTP 403.",
     "importAudioBitrate": "Макс. битрейт аудио (kbps, MP3)",
     "importAudioBitrateHint": "0 = лучшее доступное. Для речи: 64–128. По умолчанию 64.",
+    "importMaxConcurrent": "Параллельных импортов по URL",
+    "importMaxConcurrentHint": "Сколько задач импорта могут одновременно скачивать на этом инстансе. По умолчанию 2.",
     "captureTitle": "Запись встреч",
     "captureEnabled": "Включить запись встреч",
     "capture": "Capture",

@@ -9,6 +9,7 @@ import pytest
 
 from tests.conftest import (
     add_worker,
+    create_tariff,
     default_tariff_id,
     err_code,
     login_ready,
@@ -18,48 +19,6 @@ from tests.conftest import (
     signup,
     wait_task,
 )
-
-
-@pytest.fixture(autouse=True)
-def _mock_catalog_host_dns(monkeypatch):
-    """Keep import validation deterministic without live DNS lookups."""
-
-    real_getaddrinfo = socket.getaddrinfo
-
-    def fake_getaddrinfo(host, port, *args, **kwargs):
-        if host.endswith("youtube.com") or host == "youtu.be":
-            return [
-                (
-                    socket.AF_INET,
-                    socket.SOCK_STREAM,
-                    socket.IPPROTO_TCP,
-                    "",
-                    ("142.250.185.78", port),
-                )
-            ]
-        if host.endswith("tiktok.com"):
-            return [
-                (
-                    socket.AF_INET,
-                    socket.SOCK_STREAM,
-                    socket.IPPROTO_TCP,
-                    "",
-                    ("20.42.73.27", port),
-                )
-            ]
-        if host.endswith("rutube.ru"):
-            return [
-                (
-                    socket.AF_INET,
-                    socket.SOCK_STREAM,
-                    socket.IPPROTO_TCP,
-                    "",
-                    ("185.71.76.0", port),
-                )
-            ]
-        return real_getaddrinfo(host, port, *args, **kwargs)
-
-    monkeypatch.setattr("app.services.url_import.socket.getaddrinfo", fake_getaddrinfo)
 
 
 @pytest.fixture(autouse=True)
@@ -352,6 +311,25 @@ def test_import_audio_bitrate_settings():
     assert _audio_format_selector(0) == "bestaudio/best"
 
 
+def test_import_max_concurrent_settings():
+    from app.services.import_platforms import normalize_import_max_concurrent
+
+    assert normalize_import_max_concurrent(2) == 2
+    assert normalize_import_max_concurrent(None) == 2
+    assert normalize_import_max_concurrent(0) == 1
+    assert normalize_import_max_concurrent(99) == 16
+
+
+def test_instance_settings_import_max_concurrent(client):
+    setup_admin(client)
+    response = client.get("/api/v1/instance/settings")
+    assert response.status_code == 200
+    assert response.json()["import_max_concurrent"] == 2
+    patch = client.patch("/api/v1/instance/settings", json={"import_max_concurrent": 4})
+    assert patch.status_code == 200, patch.text
+    assert patch.json()["import_max_concurrent"] == 4
+
+
 def test_raise_ydl_error_maps_403():
     from app.services.url_import import UrlImportError, _raise_ydl_error
 
@@ -617,3 +595,120 @@ def test_import_unsupported_extractor(client):
     )
     assert response.status_code == 400
     assert err_code(response) == "unsupported_host"
+
+
+def test_pick_import_source_prefers_largest_mp3(tmp_path):
+    from app.services.url_import import _pick_import_source
+
+    (tmp_path / "00000000-0000-0123-abcd-000000000000.info.json").write_text("{}")
+    (tmp_path / "00000000-0000-0123-abcd-000000000000.jpeg").write_bytes(b"\xff" * 32)
+    small = tmp_path / "00000000-0000-0123-abcd-000000000000.mp3"
+    large = tmp_path / "00000000-0000-0123-abcd-000000000001.mp3"
+    small.write_bytes(b"ID3" + b"\x00" * 64)
+    large.write_bytes(b"ID3" + b"\x00" * 4096)
+
+    picked = _pick_import_source(tmp_path)
+    assert picked == large
+
+
+def test_download_audio_payload_too_large_uses_largest_artifact(monkeypatch):
+    from pathlib import Path
+
+    from app.services.url_import import UrlImportError, download_audio
+
+    def fake_probe(url, **kwargs):
+        return {
+            "extractor_key": "Rutube",
+            "platform_label": "Rutube",
+            "host": "rutube.ru",
+            "title": "Clip",
+            "duration_sec": 30.0,
+        }
+
+    def fake_ytdl(url, *, outtmpl=None, download=False, **kwargs):
+        assert download is True
+        assert outtmpl is not None
+        parent = Path(outtmpl).parent
+        (parent / "00000000-0000-0123-abcd-000000000000.info.json").write_text("{}")
+        (parent / "00000000-0000-0123-abcd-000000000000.jpeg").write_bytes(b"\xff" * 64)
+        (parent / "00000000-0000-0123-abcd-000000000000.mp3").write_bytes(b"ID3" + b"\x00" * 512)
+        return {}
+
+    monkeypatch.setattr("app.services.url_import.probe_url", fake_probe)
+    monkeypatch.setattr("app.services.url_import._run_ytdl", fake_ytdl)
+
+    with pytest.raises(UrlImportError) as exc:
+        download_audio(
+            "https://rutube.ru/video/abc/",
+            settings_allowed=["Rutube"],
+            proxy=None,
+            max_audio_bitrate_kbps=64,
+            max_bytes=256,
+        )
+    assert exc.value.code == "payload_too_large"
+    assert exc.value.meta["bytes"] > 256
+
+
+def test_download_audio_rejects_by_duration_before_download(monkeypatch):
+    from app.services.url_import import UrlImportError, download_audio
+
+    def fake_probe(url, **kwargs):
+        return {
+            "extractor_key": "Rutube",
+            "platform_label": "Rutube",
+            "host": "rutube.ru",
+            "title": "Long stream",
+            "duration_sec": 3600.0,
+        }
+
+    def fail_ytdl(*args, **kwargs):
+        raise AssertionError("yt-dlp download should not run when duration exceeds cap")
+
+    monkeypatch.setattr("app.services.url_import.probe_url", fake_probe)
+    monkeypatch.setattr("app.services.url_import._run_ytdl", fail_ytdl)
+
+    with pytest.raises(UrlImportError) as exc:
+        download_audio(
+            "https://rutube.ru/video/abc/",
+            settings_allowed=["Rutube"],
+            proxy=None,
+            max_audio_bitrate_kbps=64,
+            max_bytes=1024,
+        )
+    assert exc.value.code == "payload_too_large"
+
+
+def test_import_task_payload_too_large_after_download(client, tmp_path, monkeypatch):
+    from app.services.url_import import ImportResult
+
+    setup_admin(client)
+    tiny = create_tariff(client, name="TinyImport", max_upload_bytes=256)
+    logout(client)
+    assert signup(client, "tinyimport@example.com", "tinyimportpass1", tiny["id"]).status_code == 200
+    login_ready(client, "tinyimport@example.com", "tinyimportpass1")
+
+    source = tmp_path / "big.mp3"
+    source.write_bytes(b"ID3" + b"\x00" * 512)
+
+    def fake_download(url, **kwargs):
+        assert kwargs["max_bytes"] == 256
+        return ImportResult(
+            source_path=source,
+            suffix=".mp3",
+            original_filename="big.mp3",
+            title="Big",
+            duration_sec=10.0,
+            extractor_key="Rutube",
+            host="rutube.ru",
+            platform_label="Rutube",
+        )
+
+    monkeypatch.setattr("app.services.import_runner.download_audio", fake_download)
+
+    created = client.post(
+        "/api/v1/tasks/import",
+        json={"url": "https://rutube.ru/video/abc123/"},
+    )
+    assert created.status_code == 202, created.text
+    body = wait_task(client, created.json()["task_id"], status="error")
+    assert body["error"]["code"] == "payload_too_large"

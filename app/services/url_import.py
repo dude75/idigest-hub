@@ -147,11 +147,56 @@ def _audio_format_selector(max_bitrate_kbps: int) -> str:
     return "bestaudio/best"
 
 
+_IMPORT_AUDIO_SUFFIXES = frozenset({".mp3", ".m4a", ".opus", ".ogg", ".wav", ".webm", ".mp4", ".mkv", ".aac"})
+
+
+def _effective_import_bitrate_kbps(max_audio_bitrate_kbps: int) -> int:
+    if max_audio_bitrate_kbps > 0:
+        return max_audio_bitrate_kbps
+    return DEFAULT_IMPORT_AUDIO_BITRATE_KBPS
+
+
+def _estimated_import_audio_bytes(duration_sec: float, max_audio_bitrate_kbps: int) -> int:
+    kbps = _effective_import_bitrate_kbps(max_audio_bitrate_kbps)
+    # VBR MP3 can exceed nominal bitrate briefly; small fixed overhead for tags.
+    return int(duration_sec * kbps * 1000 / 8 * 1.1) + 4096
+
+
+def _reject_import_over_size_limit(
+    *,
+    max_bytes: int,
+    duration_sec: float | None,
+    max_audio_bitrate_kbps: int,
+    host: str,
+) -> None:
+    if max_bytes <= 0 or duration_sec is None or duration_sec <= 0:
+        return
+    estimated = _estimated_import_audio_bytes(duration_sec, max_audio_bitrate_kbps)
+    if estimated > max_bytes:
+        raise UrlImportError(
+            "payload_too_large",
+            meta={"host": host, "bytes": estimated, "duration_sec": duration_sec},
+        )
+
+
+def _pick_import_source(tmpdir: Path) -> Path:
+    files = [p for p in tmpdir.iterdir() if p.is_file()]
+    if not files:
+        raise UrlImportError("download_failed")
+    audio = [p for p in files if p.suffix.lower() in _IMPORT_AUDIO_SUFFIXES]
+    if audio:
+        mp3 = [p for p in audio if p.suffix.lower() == ".mp3"]
+        pool = mp3 or audio
+        return max(pool, key=lambda p: p.stat().st_size)
+    return max(files, key=lambda p: p.stat().st_size)
+
+
 def _ydl_opts(
     proxy: str | None,
     *,
     cookies_path: str | None = None,
     max_audio_bitrate_kbps: int = 0,
+    max_bytes: int = 0,
     youtube_clients: list[str] | None = None,
     outtmpl: str | None = None,
     download: bool = False,
@@ -187,6 +232,8 @@ def _ydl_opts(
         ]
     if youtube_clients:
         opts["extractor_args"] = {"youtube": {"player_client": youtube_clients}}
+    if download and max_bytes > 0:
+        opts["max_filesize"] = max_bytes
     return opts
 
 
@@ -203,6 +250,7 @@ def _run_ytdl(
     proxy: str | None,
     cookies_path: str | None,
     max_audio_bitrate_kbps: int,
+    max_bytes: int = 0,
     download: bool,
     outtmpl: str | None = None,
 ) -> dict[str, Any]:
@@ -223,6 +271,7 @@ def _run_ytdl(
             proxy,
             cookies_path=cookies_path,
             max_audio_bitrate_kbps=max_audio_bitrate_kbps,
+            max_bytes=max_bytes,
             youtube_clients=clients,
             outtmpl=outtmpl,
             download=download,
@@ -424,6 +473,25 @@ def _reject_blocked_resolved_ips(host: str, *, port: int) -> None:
             )
 
 
+def reject_literal_blocked_import_url(url: str) -> str:
+    """Reject literal private/link-local IPs before capture URL heuristics."""
+    cleaned = validate_import_url(url)
+    host = host_from_url(cleaned)
+    if host:
+        _reject_literal_blocked_host(host)
+    return cleaned
+
+
+def reject_blocked_import_url(url: str) -> str:
+    """Block SSRF targets for catalog URL import (DNS + literal IPs)."""
+    cleaned = validate_import_url(url)
+    host = host_from_url(cleaned)
+    if host:
+        _reject_literal_blocked_host(host)
+        _reject_blocked_resolved_ips(host, port=_port_from_url(cleaned))
+    return cleaned
+
+
 def assert_import_fetch_allowed(url: str, *, settings_allowed: list[str]) -> str:
     """Reject internal/metadata URLs and non-catalog hosts before yt-dlp runs."""
     cleaned = validate_import_url(url)
@@ -556,6 +624,13 @@ def download_audio(
     if is_canceled and is_canceled():
         raise UrlImportError("canceled")
 
+    _reject_import_over_size_limit(
+        max_bytes=max_bytes,
+        duration_sec=meta.get("duration_sec"),
+        max_audio_bitrate_kbps=max_audio_bitrate_kbps,
+        host=meta["host"],
+    )
+
     if on_progress:
         on_progress(
             "downloading",
@@ -576,6 +651,7 @@ def download_audio(
         proxy=proxy,
         cookies_path=cookies_path,
         max_audio_bitrate_kbps=max_audio_bitrate_kbps,
+        max_bytes=max_bytes,
         download=True,
         outtmpl=outtmpl,
     )
@@ -583,17 +659,14 @@ def download_audio(
     if is_canceled and is_canceled():
         raise UrlImportError("canceled")
 
-    files = sorted(tmpdir.glob("*.mp3"))
-    if not files:
-        files = sorted(p for p in tmpdir.iterdir() if p.is_file())
-    if not files:
-        raise UrlImportError("download_failed", meta={"host": meta["host"]})
+    try:
+        source = _pick_import_source(tmpdir)
+    except UrlImportError as exc:
+        raise UrlImportError("download_failed", meta={"host": meta["host"]}) from exc
 
-    source = files[0]
     size = source.stat().st_size
     if size > max_bytes:
-        source.unlink(missing_ok=True)
-        tmpdir.rmdir()
+        cleanup_import_path(source)
         raise UrlImportError("payload_too_large", meta={"host": meta["host"], "bytes": size})
 
     title = meta.get("title")

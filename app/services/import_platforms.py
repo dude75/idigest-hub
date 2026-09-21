@@ -13,6 +13,16 @@ DEFAULT_IMPORT_AUDIO_BITRATE_KBPS = 64
 IMPORT_AUDIO_BITRATE_MIN_KBPS = 48
 IMPORT_AUDIO_BITRATE_MAX_KBPS = 320
 
+DEFAULT_IMPORT_MAX_CONCURRENT = 2
+IMPORT_MAX_CONCURRENT_MIN = 1
+IMPORT_MAX_CONCURRENT_MAX = 16
+
+
+def normalize_import_max_concurrent(value: int | None) -> int:
+    if value is None:
+        return DEFAULT_IMPORT_MAX_CONCURRENT
+    return max(IMPORT_MAX_CONCURRENT_MIN, min(IMPORT_MAX_CONCURRENT_MAX, int(value)))
+
 
 def normalize_import_audio_bitrate_kbps(value: int | None) -> int:
     """0 = no cap (best available). Otherwise clamp to supported MP3 range."""

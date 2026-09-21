@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import socket
 from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
@@ -26,6 +27,28 @@ LOADED_ENGINES = {
 }
 DEFAULT_WORKER_ASR_MODELS = ["whisper", "gigaam", "parakeet"]
 DEFAULT_WORKER_DIARIZATION_MODELS = ["nemo", "pyannote"]
+
+
+@pytest.fixture(autouse=True)
+def _mock_import_host_dns(monkeypatch):
+    """Deterministic DNS for URL import / SSRF checks in tests."""
+
+    real_getaddrinfo = socket.getaddrinfo
+
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        if host.endswith("youtube.com") or host == "youtu.be":
+            return [
+                (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("142.250.185.78", port))
+            ]
+        if host.endswith("tiktok.com"):
+            return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("20.42.73.27", port))]
+        if host.endswith("rutube.ru"):
+            return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("185.71.76.0", port))]
+        if host in {"meet.example.com", "meet.realweb.ru", "jitsi.example.com"}:
+            return [(socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", ("93.184.216.34", port))]
+        return real_getaddrinfo(host, port, *args, **kwargs)
+
+    monkeypatch.setattr("app.services.url_import.socket.getaddrinfo", fake_getaddrinfo)
 
 
 @pytest.fixture
@@ -435,7 +458,9 @@ class FakeWorkers:
         for name in worker_names:
             monkeypatch.setattr(f"app.services.workers.{name}", getattr(self, name))
         for name in capture_names:
-            monkeypatch.setattr(f"app.services.capture_workers.{name}", getattr(self, name))
+            fn = getattr(self, name)
+            monkeypatch.setattr(f"app.services.capture_workers.{name}", fn)
+            monkeypatch.setattr(f"app.services.capture_runner.{name}", fn)
 
     async def verify_worker_token(self, _base_url: str, _api_token: str) -> None:
         return None

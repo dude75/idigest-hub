@@ -143,6 +143,7 @@ class SettingsPatch(BaseModel):
     download_proxy_enabled: bool | None = None
     download_cookies_path: str | None = None
     import_audio_bitrate_kbps: int | None = None
+    import_max_concurrent: int | None = None
     session_ttl_hours: int | None = None
     date_time_format: str | None = None
     timezone: str | None = None
@@ -684,7 +685,11 @@ def wallet_delta(
 def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
     _admin(ctx)
     s = get_instance_settings(db)
-    from app.services.import_platforms import DEFAULT_IMPORT_AUDIO_BITRATE_KBPS, admin_platforms
+    from app.services.import_platforms import (
+        DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
+        admin_platforms,
+        normalize_import_max_concurrent,
+    )
     from app.services.transcribe_models import aggregate_instance_models
 
     proxy_url = s.download_proxy_url or ""
@@ -715,6 +720,7 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "download_proxy_enabled": s.download_proxy_enabled,
         "download_cookies_path": s.download_cookies_path,
         "import_audio_bitrate_kbps": bitrate,
+        "import_max_concurrent": normalize_import_max_concurrent(s.import_max_concurrent),
         "session_ttl_hours": s.session_ttl_hours,
         "date_time_format": s.date_time_format,
         "timezone": s.timezone,
@@ -843,6 +849,10 @@ def patch_settings(
         from app.services.import_platforms import normalize_import_audio_bitrate_kbps
 
         s.import_audio_bitrate_kbps = normalize_import_audio_bitrate_kbps(data.pop("import_audio_bitrate_kbps"))
+    if "import_max_concurrent" in data:
+        from app.services.import_platforms import normalize_import_max_concurrent
+
+        s.import_max_concurrent = normalize_import_max_concurrent(data.pop("import_max_concurrent"))
     if "import_allowed_extractors" in data:
         from app.services.import_platforms import validate_allowed_extractors
 
