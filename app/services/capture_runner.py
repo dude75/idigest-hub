@@ -46,6 +46,8 @@ _cancelled: set[str] = set()
 _stop_requested: set[str] = set()
 _bg_threads: dict[str, threading.Thread] = {}
 _start_lock = threading.Lock()
+_persist_locks_guard = threading.Lock()
+_persist_locks: dict[str, threading.Lock] = {}
 _DISPATCHED_CAPTURE_STAGES = frozenset({"joining", "capturing", "finalizing", "downloading"})
 
 
@@ -202,6 +204,11 @@ def _hub_stage_for_worker_status(worker_status: str, *, artifact_ready: bool = F
     return "capturing"
 
 
+def _persist_lock(task_id: str) -> threading.Lock:
+    with _persist_locks_guard:
+        return _persist_locks.setdefault(task_id, threading.Lock())
+
+
 def _artifact_ready_in_poll(poll: dict[str, Any]) -> bool:
     status = str(poll.get("status") or "")
     if status != "success":
@@ -224,14 +231,30 @@ async def _persist_capture_artifact(
     worker_task_id: str,
     poll: dict[str, Any],
 ) -> bool:
+    with _persist_lock(task.id):
+        return await _persist_capture_artifact_locked(
+            db, task, worker_node, worker_task_id, poll
+        )
+
+
+async def _persist_capture_artifact_locked(
+    db: Session,
+    task: Task,
+    worker_node: WorkerNode,
+    worker_task_id: str,
+    poll: dict[str, Any],
+) -> bool:
     db.refresh(task)
-    if task.status != "running" or task.audio_id:
+    if task.audio_id:
+        return task.status == "success"
+    if task.status != "running":
         return False
 
     meta = dict(task.meta_json or {})
     meeting_url = str(meta.get("meeting_url") or "").strip()
     if not meeting_url:
         _fail_task(db, task, "invalid_url")
+        db.commit()
         return False
 
     _update_task_meta(db, task, "downloading", {"worker_capture_status": "success"})
@@ -243,11 +266,16 @@ async def _persist_capture_artifact(
         code, content, headers = await download_capture_artifact(db, worker_node, worker_task_id)
         if code != 200 or not content:
             _fail_task(db, task, "download_failed")
+            db.commit()
             return False
         try:
+            from app.services.upload_validation import validate_capture_artifact_against_poll
+
             validate_capture_download(content, headers)
+            validate_capture_artifact_against_poll(content, poll)
         except InvalidAudioContent:
             _fail_task(db, task, "invalid_file")
+            db.commit()
             return False
 
         filename_default = _filename_from_headers(headers, "capture.mp3")
@@ -285,9 +313,16 @@ async def _persist_capture_artifact(
             )
         except PayloadTooLarge:
             _fail_task(db, task, "payload_too_large")
+            db.commit()
             return False
         except InvalidAudioContent:
             _fail_task(db, task, "invalid_file")
+            db.commit()
+            return False
+
+        if not storage.exists(storage_path):
+            _fail_task(db, task, "download_failed", {"error_detail": "storage write missing"})
+            db.commit()
             return False
 
         audio = Audio(
@@ -317,8 +352,16 @@ async def _persist_capture_artifact(
         from app.services.dispatcher import enqueue_transcribe_after_ingest
 
         observe_task_terminal(task)
-        enqueue_transcribe_after_ingest(db, task)
+        follow_up = enqueue_transcribe_after_ingest(db, task)
         db.commit()
+        log.info(
+            "capture persisted hub_task=%s audio_id=%s bytes=%s duration_sec=%s follow_up=%s",
+            task.id,
+            audio.id,
+            len(content),
+            duration_sec,
+            follow_up.id if follow_up else None,
+        )
         return True
     finally:
         if temp_path is not None:
@@ -753,3 +796,5 @@ def reset_capture_runner() -> None:
     _cancelled.clear()
     _stop_requested.clear()
     _bg_threads.clear()
+    with _persist_locks_guard:
+        _persist_locks.clear()

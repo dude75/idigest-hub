@@ -84,7 +84,21 @@ def resolve_capture_artifact(
     return suffix, filename
 
 
-MIN_CAPTURE_ARTIFACT_BYTES = 128
+MIN_CAPTURE_ARTIFACT_BYTES = 512
+
+
+def validate_capture_artifact_against_poll(content: bytes, poll: dict) -> None:
+    """Ensure downloaded bytes match worker-reported artifact metadata."""
+    artifact = poll.get("artifact")
+    if not isinstance(artifact, dict):
+        return
+    expected_size = artifact.get("size_bytes")
+    if isinstance(expected_size, int) and expected_size > 0 and len(content) != expected_size:
+        raise InvalidAudioContent()
+    meta = poll.get("meta") if isinstance(poll.get("meta"), dict) else {}
+    duration = meta.get("duration_sec")
+    if isinstance(duration, (int, float)) and duration >= 1.0 and len(content) < MIN_CAPTURE_ARTIFACT_BYTES:
+        raise InvalidAudioContent()
 
 
 def validate_capture_download(content: bytes, headers: dict[str, str]) -> None:

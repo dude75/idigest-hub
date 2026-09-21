@@ -16,7 +16,7 @@ from app.services.workers import WorkerClientError
 ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASSWORD = "adminpass1"
 SAMPLE_WAV_BYTES = b"RIFF" + b"\x00\x00\x00\x00" + b"WAVE" + b"\x00" * 32
-SAMPLE_MP3_BYTES = b"ID3" + b"\x03\x00" + b"\x00" * 9 + b"\x00" * 114
+SAMPLE_MP3_BYTES = b"ID3" + b"\x03\x00" + b"\x00" * 9 + b"\x00" * 498
 SAMPLE_M4A_BYTES = b"\x00" * 4 + b"ftyp" + b"M4A " + b"\x00" * 32
 LOADED_ENGINES = {
     "whisper": "loaded",
