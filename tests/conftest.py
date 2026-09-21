@@ -316,6 +316,9 @@ def seed_node_health(node_id: str, health: dict[str, Any] | None = None, *, read
     try:
         node = db.get(WorkerNode, node_id)
         assert node is not None
+        if node.type == "capture":
+            payload.setdefault("connectors", {"jitsi": {"status": "loaded", "label": "Jitsi Meet"}})
+            payload.setdefault("slots", {"max": 50, "active": 0, "available": 50})
         node.last_health = payload
         node.last_health_at = utcnow()
         node.last_seen_version = payload.get("version")

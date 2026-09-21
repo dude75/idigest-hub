@@ -294,6 +294,8 @@ export type Worker = {
   asr_models: string[]
   diarization_models: string[]
   capture_connectors: string[]
+  /** Hub dispatch gate (transcribe engines loaded, summarize /ready, capture connectors). */
+  dispatch_available?: boolean
 }
 
 export type WorkersTypeSummary = {
@@ -313,7 +315,22 @@ export type WorkersListSummary = {
   }
   hub_limits: {
     import_max_concurrent: number
-    capture_max_concurrent: number
+  }
+  capture_slots: {
+    max: number
+    active: number
+    available: number
+  }
+  /** Dispatch-ready transcribe nodes (available) / enabled pool — same as by_type.transcribe slots. */
+  transcribe_slots: {
+    max: number
+    active: number
+    available: number
+  }
+  summarize_slots: {
+    max: number
+    active: number
+    available: number
   }
 }
 

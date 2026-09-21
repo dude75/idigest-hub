@@ -7,6 +7,8 @@ import { WorkerHealthBadge, isWorkerHealthy, isWorkerUnhealthy } from '../../com
 import type { Worker, WorkerEngineOption, WorkerProbeResult, WorkersListSummary } from '../../types'
 import { formatInteger, showError } from '../../util'
 import { emptyWorker } from './constants'
+import { normalizeCaptureSlotsSummary } from './captureSlots'
+import { workerSlotsCell } from './workerCapacity'
 import { WorkerImpactModal } from './WorkerImpactModal'
 
 const SELECTABLE_STATUSES = new Set(['loaded', 'unavailable'])
@@ -53,7 +55,10 @@ export function InstanceWorkersTab() {
     unhealthy: workers.filter((w) => isWorkerUnhealthy(w)).length,
     byType: workersSummary?.by_type,
     hubLimits: workersSummary?.hub_limits,
+    captureSlots: normalizeCaptureSlotsSummary(workersSummary),
   }), [workers, workersSummary])
+
+  const hasCaptureWorkers = workers.some((w) => w.type === 'capture')
 
   const availableDetailTitle = useMemo(() => {
     if (!summary.byType) return undefined
@@ -66,12 +71,17 @@ export function InstanceWorkersTab() {
       lines.push(
         t('instance.workersHubImportLimit', { count: formatInteger(summary.hubLimits.import_max_concurrent) }),
       )
+    }
+    if (summary.captureSlots && summary.captureSlots.max > 0) {
       lines.push(
-        t('instance.workersHubCaptureLimit', { count: formatInteger(summary.hubLimits.capture_max_concurrent) }),
+        t('instance.workersCaptureSlots', {
+          available: formatInteger(summary.captureSlots.available),
+          max: formatInteger(summary.captureSlots.max),
+        }),
       )
     }
     return lines.join('\n')
-  }, [summary.byType, summary.hubLimits, t])
+  }, [summary.byType, summary.hubLimits, summary.captureSlots, t])
 
   const probeAsr = useMemo(() => selectableEngines(probe?.asr_models), [probe])
   const probeDiar = useMemo(() => selectableEngines(probe?.diarization_models), [probe])
@@ -243,6 +253,27 @@ export function InstanceWorkersTab() {
         />
         <StatCard label={t('instance.workersHealthy')} value={formatInteger(summary.healthy)} tone="summarize" />
         <StatCard label={t('instance.workersUnhealthy')} value={formatInteger(summary.unhealthy)} tone="amount" />
+        {hasCaptureWorkers ? (
+          summary.captureSlots ? (
+            <StatCard
+              label={t('instance.workersCaptureSlotsLabel')}
+              value={formatInteger(summary.captureSlots.available)}
+              unit={t('instance.workersCaptureSlotsOfMax', {
+                max: formatInteger(summary.captureSlots.max),
+              })}
+              title={t('instance.workersCaptureSlotsHint')}
+              tone="ops"
+            />
+          ) : (
+            <StatCard
+              label={t('instance.workersCaptureSlotsLabel')}
+              value="—"
+              unit={t('instance.workerCaptureSlotsUnknown')}
+              title={t('instance.workersCaptureSlotsHint')}
+              tone="ops"
+            />
+          )
+        ) : null}
       </StatGrid>
 
       <details
@@ -376,6 +407,7 @@ export function InstanceWorkersTab() {
                   <th>{t('instance.weight')}</th>
                   <th>{t('instance.enabled')}</th>
                   <th>{t('instance.health')}</th>
+                  <th title={t('instance.workerSlotsColumnHint')}>{t('instance.workerSlotsColumn')}</th>
                   <th />
                 </tr>
               </thead>
@@ -397,6 +429,13 @@ export function InstanceWorkersTab() {
                     <td className="num">{formatInteger(w.weight)}</td>
                     <td>{w.enabled ? t('common.yes') : t('common.no')}</td>
                     <td><WorkerHealthBadge worker={w} /></td>
+                    <td className="num">
+                      {(() => {
+                        const cell = workerSlotsCell(w, workersSummary)
+                        if (!cell) return '—'
+                        return `${formatInteger(cell.available)} / ${formatInteger(cell.max)}`
+                      })()}
+                    </td>
                     <td className="table-actions">
                       <div className="row">
                         <button type="button" onClick={() => startEdit(w)}>{t('common.edit')}</button>

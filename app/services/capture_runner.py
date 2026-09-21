@@ -33,7 +33,6 @@ from app.timeutil import utcnow
 
 log = logging.getLogger("app")
 
-MAX_CONCURRENT_CAPTURES = 2
 _POLL_SEC = 1.5
 _CAPTURE_ACTIVE_WORKER_STATUSES = frozenset(
     {"queued", "running", "capturing", "finalizing", "joining"},
@@ -125,8 +124,17 @@ async def run_capture_worker_cancel(hub_task_id: str) -> None:
         db.close()
 
 
-def capture_slots_available() -> bool:
-    return len(_active) < MAX_CONCURRENT_CAPTURES
+def capture_worker_slot_available(db: Session, task: Task) -> bool:
+    """Gate hub capture start on icapture-worker slots.available (not a fixed hub cap)."""
+    worker_id = (task.worker_id or "").strip()
+    if not worker_id:
+        return False
+    node = db.get(WorkerNode, task.worker_id)
+    if node is None:
+        return False
+    from app.services.capture_platforms import capture_worker_has_free_slot
+
+    return capture_worker_has_free_slot(node)
 
 
 def _update_task_meta(db: Session, task: Task, stage: str, extra: dict[str, Any] | None = None) -> None:
@@ -840,9 +848,12 @@ def maybe_start_capture(db: Session, task: Task) -> None:
             return
         _active.discard(task.id)
         _bg_threads.pop(task.id, None)
-        if not capture_slots_available():
-            if task.status == "queued":
-                task.meta_json = {**(task.meta_json or {}), "stage": "queued"}
+        if not capture_worker_slot_available(db, task):
+            meta = dict(task.meta_json or {})
+            meta["stage"] = "queue_full"
+            task.meta_json = meta
+            task.updated_at = utcnow()
+            db.flush()
             return
 
         _active.add(task.id)

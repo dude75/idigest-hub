@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.models import WorkerNode
-from app.services.capture_platforms import worker_offers_connector
+from app.services.capture_platforms import aggregate_capture_worker_slots, worker_offers_connector
 from app.services.transcribe_models import _node_model_lists
 
 
@@ -53,12 +53,22 @@ def _type_bucket(nodes: list[WorkerNode], worker_type: str, *, capture_connector
     }
 
 
+def hub_worker_slots(bucket: dict[str, int]) -> dict[str, int]:
+    """Transcribe/summarize: slots = dispatch-ready nodes (available) of enabled pool (max)."""
+    enabled = int(bucket.get("enabled") or 0)
+    available = int(bucket.get("available") or 0)
+    return {
+        "max": enabled,
+        "available": available,
+        "active": max(enabled - available, 0),
+    }
+
+
 def workers_availability_summary(
     nodes: list[WorkerNode],
     *,
     capture_connectors: list[str],
     import_max_concurrent: int,
-    capture_max_concurrent: int,
 ) -> dict[str, Any]:
     by_type = {
         worker_type: _type_bucket(nodes, worker_type, capture_connectors=capture_connectors)
@@ -73,6 +83,8 @@ def workers_availability_summary(
         "by_type": by_type,
         "hub_limits": {
             "import_max_concurrent": import_max_concurrent,
-            "capture_max_concurrent": capture_max_concurrent,
         },
+        "capture_slots": aggregate_capture_worker_slots(nodes),
+        "transcribe_slots": hub_worker_slots(by_type["transcribe"]),
+        "summarize_slots": hub_worker_slots(by_type["summarize"]),
     }

@@ -2167,6 +2167,8 @@ button.org-delete-btn:hover { text-decoration: underline; }
 .worker-health-ok { background: #ecfdf5; color: #067647; border: 1px solid #bbf7d0; }
 .worker-health-warn { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
 .worker-health-na { background: #f4f5f7; color: var(--muted); }
+.worker-health-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
+.worker-health-slots { font-size: 0.82rem; font-variant-numeric: tabular-nums; }
 
 .audit-action-badge { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .audit-payload {

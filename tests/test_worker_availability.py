@@ -51,7 +51,11 @@ def test_workers_summary_counts():
         _node(
             id="w3",
             type="capture",
-            last_health={"_http": 200, "connectors": {"jitsi": {"status": "loaded"}}},
+            last_health={
+                "_http": 200,
+                "connectors": {"jitsi": {"status": "loaded"}},
+                "slots": {"max": 50, "active": 2, "available": 48},
+            },
             capture_connectors_json=["jitsi"],
             asr_models_json=None,
             diarization_models_json=None,
@@ -61,9 +65,26 @@ def test_workers_summary_counts():
         nodes,
         capture_connectors=["jitsi"],
         import_max_concurrent=4,
-        capture_max_concurrent=2,
     )
     assert summary["available"] == 2
     assert summary["by_type"]["transcribe"]["available"] == 1
     assert summary["by_type"]["capture"]["available"] == 1
     assert summary["hub_limits"]["import_max_concurrent"] == 4
+    assert summary["capture_slots"] == {"max": 50, "active": 2, "available": 48}
+    assert summary["transcribe_slots"] == {"max": 1, "active": 0, "available": 1}
+    assert summary["summarize_slots"] == {"max": 0, "active": 0, "available": 0}
+
+
+def test_capture_worker_has_free_slot():
+    from app.services.capture_platforms import capture_worker_has_free_slot
+
+    node = _node(
+        type="capture",
+        last_health={"_http": 200, "slots": {"max": 10, "active": 10, "available": 0}},
+        capture_connectors_json=["jitsi"],
+        asr_models_json=None,
+        diarization_models_json=None,
+    )
+    assert capture_worker_has_free_slot(node) is False
+    node.last_health = {"_http": 200, "slots": {"max": 10, "active": 9, "available": 1}}
+    assert capture_worker_has_free_slot(node) is True
