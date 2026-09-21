@@ -226,6 +226,8 @@
     "importing": "Импорт…",
     "uploading": "Загрузка {{name}} — {{percent}}%",
     "uploadProcessing": "Сохранение {{name}} на сервере…",
+    "uploadExtractingAudio": "Извлечение аудио из {{name}}…",
+    "uploadFormatsHint": "Аудио: WAV, MP3, M4A. Видео: MP4, MOV, MKV, WEBM, AVI, M4V, 3GP — сохраняется только аудио (MP3). Лимит — на размер загружаемого файла. Большие файлы могут обрабатываться несколько минут.",
     "showHidden": "Показать скрытые ({{count}})",
     "sharedBy": "поделился {{who}}",
     "youShared": "вы поделились",

@@ -17,6 +17,24 @@ MFA_TOTP_ISSUER = "iDigest Hub"
 MAX_UPLOAD_BYTES_CAP = 1073741824  # 1 GiB
 MAX_SUMMARIZE_PAYLOAD_BYTES = 10 * 1024 * 1024
 ALLOWED_AUDIO_SUFFIXES = {".wav", ".mp3", ".m4a"}
+# Video uploads: extract audio to MP3 on ingest (v1 hint list + v2 extra containers).
+ALLOWED_VIDEO_SUFFIXES = {
+    ".mp4",
+    ".m4v",
+    ".mov",
+    ".mkv",
+    ".webm",
+    ".avi",
+    ".3gp",
+    ".wmv",
+    ".asf",
+    ".mpeg",
+    ".mpg",
+    ".flv",
+    ".ogv",
+}
+ALLOWED_UPLOAD_SUFFIXES = ALLOWED_AUDIO_SUFFIXES | ALLOWED_VIDEO_SUFFIXES
+DEFAULT_VIDEO_EXTRACT_FFMPEG_TIMEOUT_SEC = 3600
 COOKIE_NAME = "hub_session"
 CSRF_COOKIE_NAME = "hub_csrf"
 CSRF_HEADER_NAME = "X-CSRF-Token"

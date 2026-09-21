@@ -9,6 +9,7 @@ import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
 import { ListRow } from '../components/ListRow'
 import { Tabs } from '../components/Tabs'
 import { beginPipelineRun, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
+import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
 import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
 
 type SourceGroup<T> = {
@@ -60,6 +61,7 @@ export function LibraryPage() {
     name: string
     percent: number
     phase: 'uploading' | 'processing'
+    video: boolean
   } | null>(null)
   const [importUrl, setImportUrl] = useState('')
   const [importPlatforms, setImportPlatforms] = useState<ImportPlatformsResponse | null>(null)
@@ -147,7 +149,8 @@ export function LibraryPage() {
   async function upload(file: File) {
     const pipeline = beginPipelineRun()
     setBusy(true)
-    setUploadProgress({ name: file.name, percent: 0, phase: 'uploading' })
+    const video = isVideoUploadFilename(file.name)
+    setUploadProgress({ name: file.name, percent: 0, phase: 'uploading', video })
     try {
       const body = new FormData()
       body.append('file', file)
@@ -157,6 +160,7 @@ export function LibraryPage() {
           name: file.name,
           percent,
           phase: percent >= 100 ? 'processing' : 'uploading',
+          video,
         })
       })
       if (pipelineShouldTranscribe(pipeline)) {
@@ -192,7 +196,9 @@ export function LibraryPage() {
           <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
             <div className="upload-progress-label">
               {uploadProgress.phase === 'processing'
-                ? t('library.uploadProcessing', { name: uploadProgress.name })
+                ? uploadProgress.video
+                  ? t('library.uploadExtractingAudio', { name: uploadProgress.name })
+                  : t('library.uploadProcessing', { name: uploadProgress.name })
                 : t('library.uploading', { name: uploadProgress.name, percent: uploadProgress.percent })}
             </div>
             <div className="progress-bar" aria-hidden="true">
@@ -237,12 +243,16 @@ export function LibraryPage() {
           {!importEnabled && (
             <span className="library-ingest-upload-label">{t('library.uploadFile')}</span>
           )}
-          <label className="btn library-file-btn">
+          <label
+            className="btn library-file-btn"
+            title={t('library.uploadFormatsHint')}
+          >
             {t('library.chooseFile')}
             <input
               type="file"
-              accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4"
+              accept={UPLOAD_FILE_ACCEPT}
               disabled={busy}
+              aria-label={t('library.chooseFile')}
               onChange={(e) => {
                 const f = e.target.files?.[0]
                 if (f) void upload(f)

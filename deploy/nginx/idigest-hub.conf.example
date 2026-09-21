@@ -72,7 +72,8 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Connection "";
 
-        proxy_read_timeout 300s;
-        proxy_send_timeout 300s;
+        # Upload + server-side video→MP3 extract can exceed 5 minutes on large files.
+        proxy_read_timeout 1800s;
+        proxy_send_timeout 1800s;
     }
 }

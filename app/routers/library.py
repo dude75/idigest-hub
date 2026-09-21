@@ -10,7 +10,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.constants import ALLOWED_AUDIO_SUFFIXES, MAX_UPLOAD_BYTES_CAP
+from app.constants import (
+    ALLOWED_AUDIO_SUFFIXES,
+    ALLOWED_VIDEO_SUFFIXES,
+    MAX_UPLOAD_BYTES_CAP,
+)
 from app.crypto import decrypt_str, encrypt_str
 from app.db import get_session
 from app.deps import AuthContext, require_auth
@@ -36,6 +40,7 @@ from app.rate_limit import enforce_write_limits, get_rate_limits
 from app.services.audit import write_audit
 from app.services.storage import PayloadTooLarge, get_storage
 from app.services.upload_validation import InvalidAudioContent
+from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
 
@@ -255,7 +260,8 @@ async def upload_audio(
     org, _ = ctx.require_org()
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     suffix = Path(file.filename or "").suffix.lower()
-    if suffix not in ALLOWED_AUDIO_SUFFIXES:
+    is_video = suffix in ALLOWED_VIDEO_SUFFIXES
+    if suffix not in ALLOWED_AUDIO_SUFFIXES and not is_video:
         ctx.raise_error(ErrorCode.invalid_file)
     limit = min(upload_limit(org.tariff), MAX_UPLOAD_BYTES_CAP)
     raw_cl = request.headers.get("content-length")
@@ -267,18 +273,37 @@ async def upload_audio(
             pass
     audio_id = new_id()
     storage = get_storage()
-    try:
-        storage_path = await storage.save_upload(audio_id, suffix, file, max_bytes=limit)
-    except PayloadTooLarge:
-        ctx.raise_error(ErrorCode.payload_too_large)
-    except InvalidAudioContent:
-        ctx.raise_error(ErrorCode.invalid_file)
+    raw_name = file.filename or f"original{suffix}"
+    if is_video:
+        mp3_tmp: Path | None = None
+        try:
+            mp3_tmp = await video_upload_to_mp3_temp(file, suffix=suffix, max_bytes=limit)
+            storage_path = await storage.save_file_path(audio_id, ".mp3", mp3_tmp, max_bytes=limit)
+        except PayloadTooLarge:
+            ctx.raise_error(ErrorCode.payload_too_large)
+        except VideoExtractError:
+            ctx.raise_error(ErrorCode.invalid_file)
+        except InvalidAudioContent:
+            ctx.raise_error(ErrorCode.invalid_file)
+        finally:
+            if mp3_tmp is not None:
+                cleanup_extract_temp(mp3_tmp)
+        stem = safe_filename(Path(raw_name).stem or "original")
+        original_filename = f"{stem}.mp3"
+    else:
+        try:
+            storage_path = await storage.save_upload(audio_id, suffix, file, max_bytes=limit)
+        except PayloadTooLarge:
+            ctx.raise_error(ErrorCode.payload_too_large)
+        except InvalidAudioContent:
+            ctx.raise_error(ErrorCode.invalid_file)
+        original_filename = raw_name
     row = Audio(
         id=audio_id,
         org_id=org.id,
         owner_user_id=ctx.user.id,
         storage_path=storage_path,
-        original_filename=file.filename or f"original{suffix}",
+        original_filename=original_filename,
         created_at=utcnow(),
     )
     db.add(row)

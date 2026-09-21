@@ -226,6 +226,8 @@
     "importing": "Importando…",
     "uploading": "Subiendo {{name}} — {{percent}}%",
     "uploadProcessing": "Guardando {{name}} en el servidor…",
+    "uploadExtractingAudio": "Extrayendo audio de {{name}}…",
+    "uploadFormatsHint": "Audio: WAV, MP3, M4A. Vídeo: MP4, MOV, MKV, WEBM, AVI, M4V, 3GP — solo se guarda el audio (MP3). El límite de subida aplica al archivo enviado. Los archivos grandes pueden tardar varios minutos.",
     "showHidden": "Mostrar ocultos ({{count}})",
     "sharedBy": "compartido por {{who}}",
     "youShared": "usted compartió",

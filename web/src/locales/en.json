@@ -226,6 +226,8 @@
     "importing": "Importing…",
     "uploading": "Uploading {{name}} — {{percent}}%",
     "uploadProcessing": "Saving {{name}} on server…",
+    "uploadExtractingAudio": "Extracting audio from {{name}}…",
+    "uploadFormatsHint": "Audio: WAV, MP3, M4A. Video: MP4, MOV, MKV, WEBM, AVI, M4V, 3GP — only audio is kept (MP3). Upload size limit applies to the file you send. Large files may take several minutes to process.",
     "showHidden": "Show hidden ({{count}})",
     "sharedBy": "shared by {{who}}",
     "youShared": "you shared",
