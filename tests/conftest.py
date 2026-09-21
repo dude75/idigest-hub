@@ -418,6 +418,7 @@ class FakeWorkers:
         self.capture_poll_mode = "success"
         self.capture_worker_task_id = "cap-w1"
         self.capture_artifact = SAMPLE_MP3_BYTES
+        self.last_capture_display_name = ""
         self.ready_status = 200
         self.transcribe_mode = "queued"
         self.summarize_mode = "success"
@@ -552,6 +553,7 @@ class FakeWorkers:
         jwt: str | None,
         display_name: str,
     ) -> dict[str, Any]:
+        self.last_capture_display_name = display_name
         if self.capture_mode == "queue_full":
             raise WorkerClientError("queue_full", 503, {"error": {"code": "queue_full"}})
         if self.capture_mode == "error":

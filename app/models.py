@@ -188,6 +188,7 @@ class Organization(Base):
     sso_client_id: Mapped[str | None] = mapped_column(String(255))
     sso_client_secret_encrypted: Mapped[str | None] = mapped_column(Text)
     allow_public_links: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    capture_bot_display_name: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

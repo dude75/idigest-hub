@@ -140,7 +140,9 @@ async def _run_capture_task(task_id: str) -> None:
         jwt = meta.get("jwt")
         jwt_str = jwt if isinstance(jwt, str) and jwt.strip() else None
         connector = str(meta.get("connector") or "jitsi")
-        display_name = str(meta.get("display_name") or "Transcription Bot")
+        from app.services.capture_meeting import DEFAULT_CAPTURE_BOT_DISPLAY_NAME
+
+        display_name = str(meta.get("display_name") or DEFAULT_CAPTURE_BOT_DISPLAY_NAME)
 
         _update_task_meta(db, task, "joining")
         db.commit()

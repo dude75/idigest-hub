@@ -325,6 +325,9 @@ async def create_capture(
         assert_can_accept_task(ctx, org, ctx.locale)
         if body.skill_ids:
             _validate_summarize_skills(ctx, db, org, body.skill_ids)
+    from app.services.capture_meeting import org_capture_bot_display_name
+
+    display_name = org_capture_bot_display_name(org)
     try:
         target = resolve_capture_target(
             db,
@@ -332,6 +335,7 @@ async def create_capture(
             meeting_url=body.meeting_url.strip(),
             pin=body.pin or "",
             settings_allowed=allowed_connectors(settings),
+            display_name=display_name,
         )
     except CaptureMeetingError as exc:
         code = exc.code
@@ -354,6 +358,7 @@ async def create_capture(
         "meeting_room": target.meeting_room,
         "pin": target.pin,
         "connector": target.connector,
+        "display_name": display_name,
         "stage": "queued",
     }
     if target.jwt:

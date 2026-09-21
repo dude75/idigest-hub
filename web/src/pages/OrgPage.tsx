@@ -75,8 +75,10 @@ export function OrgPage() {
   const [ssoEnabled, setSsoEnabled] = useState(false)
   const [copiedAddUserPassword, setCopiedAddUserPassword] = useState(false)
   const [captureAllowed, setCaptureAllowed] = useState(false)
+  const [captureBotDisplayName, setCaptureBotDisplayName] = useState('')
   const [captureHosts, setCaptureHosts] = useState<OrgCaptureJitsiHost[]>([])
   const [captureWorkers, setCaptureWorkers] = useState<OrgCaptureWorkerChoice[]>([])
+  const [captureEditingId, setCaptureEditingId] = useState<string | null>(null)
   const [captureDraft, setCaptureDraft] = useState({
     host: '',
     worker_id: '',
@@ -101,14 +103,24 @@ export function OrgPage() {
       Promise<{ items: User[] }>,
       Promise<{ items: Tariff[] }>,
       Promise<OrgSsoAdmin> | Promise<null>,
-      Promise<{ allowed: boolean; items: OrgCaptureJitsiHost[]; workers: OrgCaptureWorkerChoice[] }> | Promise<null>,
+      Promise<{
+        allowed: boolean
+        bot_display_name?: string
+        items: OrgCaptureJitsiHost[]
+        workers: OrgCaptureWorkerChoice[]
+      }> | Promise<null>,
     ] = [
       api<Org>('/org'),
       api<{ items: User[] }>('/org/users'),
       api<{ items: Tariff[] }>('/org/available-tariffs'),
       admin && hasOrg ? api<OrgSsoAdmin>('/org/sso') : Promise.resolve(null),
       admin && hasOrg
-        ? api<{ allowed: boolean; items: OrgCaptureJitsiHost[]; workers: OrgCaptureWorkerChoice[] }>('/org/capture/jitsi')
+        ? api<{
+            allowed: boolean
+            bot_display_name?: string
+            items: OrgCaptureJitsiHost[]
+            workers: OrgCaptureWorkerChoice[]
+          }>('/org/capture/jitsi')
         : Promise.resolve(null),
     ]
     const [o, u, tr, ssoConfig, captureConfig] = await Promise.all(requests)
@@ -129,58 +141,101 @@ export function OrgPage() {
     }
     if (captureConfig) {
       setCaptureAllowed(captureConfig.allowed)
+      setCaptureBotDisplayName(captureConfig.bot_display_name ?? '')
       setCaptureHosts(captureConfig.items)
       setCaptureWorkers(captureConfig.workers ?? [])
     }
   }
 
-  async function saveCaptureHosts(nextItems: OrgCaptureJitsiHost[]) {
-    const payload = {
-      items: nextItems.map((row) => ({
-        id: row.id,
-        host: row.host,
-        worker_id: row.worker_id,
-        jwt_app_id: row.jwt_app_id || undefined,
-      })),
+  function captureHostPayloadRow(row: OrgCaptureJitsiHost) {
+    return {
+      id: row.id,
+      host: row.host,
+      worker_id: row.worker_id,
+      jwt_app_id: row.jwt_app_id || undefined,
     }
-    const result = await api<{ items: OrgCaptureJitsiHost[]; workers: OrgCaptureWorkerChoice[] }>('/org/capture/jitsi', {
+  }
+
+  async function putCaptureHostItems(items: Record<string, unknown>[]) {
+    const result = await api<{
+      bot_display_name?: string
+      items: OrgCaptureJitsiHost[]
+      workers: OrgCaptureWorkerChoice[]
+    }>('/org/capture/jitsi', {
       method: 'PUT',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ items, bot_display_name: captureBotDisplayName }),
     })
+    setCaptureBotDisplayName(result.bot_display_name ?? '')
     setCaptureHosts(result.items)
     setCaptureWorkers(result.workers ?? [])
   }
 
-  async function addCaptureHost() {
-    const host = normalizeJitsiHostInput(captureDraft.host)
-    const worker_id = captureDraft.worker_id.trim()
-    if (!host || !worker_id) return
-    const body: Record<string, unknown> = {
-      items: [
-        ...captureHosts.map((row) => ({
-          id: row.id || undefined,
-          host: row.host,
-          worker_id: row.worker_id,
-          jwt_app_id: row.jwt_app_id || undefined,
-        })),
-        {
-          host,
-          worker_id,
-          jwt_app_id: captureDraft.jwt_app_id.trim() || undefined,
-          jwt_secret: captureDraft.jwt_secret.trim() || undefined,
-        },
-      ],
-    }
-    const result = await api<{ items: OrgCaptureJitsiHost[]; workers: OrgCaptureWorkerChoice[] }>('/org/capture/jitsi', {
+  async function saveCaptureBotDisplayName() {
+    const result = await api<{
+      bot_display_name?: string
+      items: OrgCaptureJitsiHost[]
+      workers: OrgCaptureWorkerChoice[]
+    }>('/org/capture/jitsi', {
       method: 'PUT',
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        items: captureHosts.map((row) => captureHostPayloadRow(row)),
+        bot_display_name: captureBotDisplayName,
+      }),
     })
+    setCaptureBotDisplayName(result.bot_display_name ?? '')
     setCaptureHosts(result.items)
     setCaptureWorkers(result.workers ?? [])
+  }
+
+  async function saveCaptureHosts(nextItems: OrgCaptureJitsiHost[]) {
+    await putCaptureHostItems(nextItems.map((row) => captureHostPayloadRow(row)))
+  }
+
+  function resetCaptureDraft() {
+    setCaptureEditingId(null)
     setCaptureDraft({ host: '', worker_id: '', jwt_app_id: '', jwt_secret: '', clear_jwt_secret: false })
   }
 
+  function startEditCaptureHost(row: OrgCaptureJitsiHost) {
+    setCaptureEditingId(row.id)
+    setCaptureDraft({
+      host: row.host,
+      worker_id: row.worker_id,
+      jwt_app_id: row.jwt_app_id || '',
+      jwt_secret: '',
+      clear_jwt_secret: false,
+    })
+  }
+
+  async function submitCaptureDraft() {
+    const host = normalizeJitsiHostInput(captureDraft.host)
+    const worker_id = captureDraft.worker_id.trim()
+    if (!host || !worker_id) return
+
+    const draftFields: Record<string, unknown> = {
+      host,
+      worker_id,
+      jwt_app_id: captureDraft.jwt_app_id.trim() || undefined,
+    }
+    if (captureDraft.jwt_secret.trim()) {
+      draftFields.jwt_secret = captureDraft.jwt_secret.trim()
+    }
+    if (captureDraft.clear_jwt_secret) {
+      draftFields.clear_jwt_secret = true
+    }
+
+    const items: Record<string, unknown>[] = captureEditingId
+      ? captureHosts.map((row) =>
+          row.id === captureEditingId ? { id: row.id, ...draftFields } : captureHostPayloadRow(row),
+        )
+      : [...captureHosts.map((row) => captureHostPayloadRow(row)), draftFields]
+
+    await putCaptureHostItems(items)
+    resetCaptureDraft()
+  }
+
   async function removeCaptureHost(row: OrgCaptureJitsiHost) {
+    if (captureEditingId === row.id) resetCaptureDraft()
     const next = captureHosts.filter((item) => item.id !== row.id)
     await saveCaptureHosts(next)
   }
@@ -493,6 +548,21 @@ export function OrgPage() {
                 ) : (
                   <>
                     <p className="muted">{t('org.captureJitsiHint')}</p>
+                    <div className="stack">
+                      <label>
+                        {t('org.captureBotDisplayName')}
+                        <input
+                          value={captureBotDisplayName}
+                          maxLength={128}
+                          placeholder={t('org.captureBotDisplayNameDefault')}
+                          onChange={(e) => setCaptureBotDisplayName(e.target.value)}
+                        />
+                      </label>
+                      <p className="muted">{t('org.captureBotDisplayNameHint')}</p>
+                      <button type="button" className="primary" onClick={() => void saveCaptureBotDisplayName().catch(showError)}>
+                        {t('common.save')}
+                      </button>
+                    </div>
                     {captureWorkers.length === 0 ? (
                       <p className="err">{t('org.captureNoWorkers')}</p>
                     ) : null}
@@ -516,6 +586,13 @@ export function OrgPage() {
                                 <td>{row.jwt_app_id || '—'}</td>
                                 <td>{row.jwt_secret_configured ? t('org.captureJwtSaved') : '—'}</td>
                                 <td className="table-actions">
+                                  <button
+                                    type="button"
+                                    disabled={captureEditingId === row.id}
+                                    onClick={() => startEditCaptureHost(row)}
+                                  >
+                                    {t('common.edit')}
+                                  </button>
                                   <button type="button" className="danger" onClick={() => void removeCaptureHost(row).catch(showError)}>
                                     {t('common.delete')}
                                   </button>
@@ -529,6 +606,9 @@ export function OrgPage() {
                       <p className="muted">{t('common.empty')}</p>
                     )}
                     <div className="stack">
+                      {captureEditingId ? (
+                        <p className="muted">{t('org.captureEditHost')}</p>
+                      ) : null}
                       <label>
                         {t('org.captureHost')}
                         <input
@@ -567,21 +647,47 @@ export function OrgPage() {
                           type="password"
                           value={captureDraft.jwt_secret}
                           autoComplete="off"
+                          placeholder={
+                            captureEditingId &&
+                            captureHosts.find((row) => row.id === captureEditingId)?.jwt_secret_configured
+                              ? t('org.captureJwtSecretKeepHint')
+                              : undefined
+                          }
                           onChange={(e) => setCaptureDraft({ ...captureDraft, jwt_secret: e.target.value })}
                         />
                       </label>
-                      <button
-                        type="button"
-                        className="primary"
-                        disabled={
-                          !normalizeJitsiHostInput(captureDraft.host) ||
-                          !captureDraft.worker_id.trim() ||
-                          captureWorkers.length === 0
-                        }
-                        onClick={() => void addCaptureHost().catch(showError)}
-                      >
-                        {t('org.captureAddHost')}
-                      </button>
+                      {captureEditingId &&
+                      captureHosts.find((row) => row.id === captureEditingId)?.jwt_secret_configured ? (
+                        <label className="row">
+                          <input
+                            type="checkbox"
+                            checked={captureDraft.clear_jwt_secret}
+                            onChange={(e) =>
+                              setCaptureDraft({ ...captureDraft, clear_jwt_secret: e.target.checked })
+                            }
+                          />
+                          {t('org.captureClearJwtSecret')}
+                        </label>
+                      ) : null}
+                      <div className="row">
+                        <button
+                          type="button"
+                          className="primary"
+                          disabled={
+                            !normalizeJitsiHostInput(captureDraft.host) ||
+                            !captureDraft.worker_id.trim() ||
+                            captureWorkers.length === 0
+                          }
+                          onClick={() => void submitCaptureDraft().catch(showError)}
+                        >
+                          {captureEditingId ? t('common.save') : t('org.captureAddHost')}
+                        </button>
+                        {captureEditingId ? (
+                          <button type="button" onClick={resetCaptureDraft}>
+                            {t('common.cancel')}
+                          </button>
+                        ) : null}
+                      </div>
                     </div>
                   </>
                 )}

@@ -63,6 +63,7 @@ class OrgCaptureJitsiHostBody(BaseModel):
 
 class OrgCaptureJitsiReplaceBody(BaseModel):
     items: list[OrgCaptureJitsiHostBody] = Field(default_factory=list)
+    bot_display_name: str | None = None
 
 
 class OrgSsoPatch(BaseModel):
@@ -172,6 +173,7 @@ def get_org_capture_jitsi(
     settings = get_instance_settings(db)
     return {
         "allowed": "jitsi" in allowed_connectors(settings),
+        "bot_display_name": org.capture_bot_display_name or "",
         "items": org_jitsi_hosts_public(db, org.id),
         "workers": org_capture_worker_choices(db),
     }
@@ -191,6 +193,11 @@ def replace_org_capture_jitsi(
     settings = get_instance_settings(db)
     if "jitsi" not in allowed_connectors(settings):
         ctx.raise_error(ErrorCode.capture_disabled)
+    if body.bot_display_name is not None:
+        from app.services.capture_meeting import normalize_capture_bot_display_name
+
+        org.capture_bot_display_name = normalize_capture_bot_display_name(body.bot_display_name)
+        org.updated_at = utcnow()
     try:
         replace_org_jitsi_hosts(
             db,
@@ -205,6 +212,7 @@ def replace_org_capture_jitsi(
     from app.services.capture_meeting import org_capture_worker_choices
 
     return {
+        "bot_display_name": org.capture_bot_display_name or "",
         "items": org_jitsi_hosts_public(db, org.id),
         "workers": org_capture_worker_choices(db),
     }

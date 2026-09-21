@@ -18,6 +18,22 @@ from app.services.import_platforms import host_from_url
 
 _MEETING_URL_RE = re.compile(r"^https?://", re.I)
 _DEFAULT_JWT_APP_ID = "chat"
+DEFAULT_CAPTURE_BOT_DISPLAY_NAME = "Transcription Bot"
+_CAPTURE_BOT_NAME_MAX_LEN = 128
+
+
+def normalize_capture_bot_display_name(raw: str | None) -> str | None:
+    name = (raw or "").strip()
+    if not name:
+        return None
+    return name[:_CAPTURE_BOT_NAME_MAX_LEN]
+
+
+def org_capture_bot_display_name(org: Organization) -> str:
+    stored = normalize_capture_bot_display_name(org.capture_bot_display_name)
+    if stored:
+        return stored
+    return DEFAULT_CAPTURE_BOT_DISPLAY_NAME
 
 
 class CaptureMeetingError(Exception):
@@ -148,7 +164,7 @@ def resolve_capture_target(
     meeting_url: str,
     pin: str,
     settings_allowed: list[str],
-    display_name: str = "Transcription Bot",
+    display_name: str = DEFAULT_CAPTURE_BOT_DISPLAY_NAME,
 ) -> CaptureTarget:
     if "jitsi" not in settings_allowed:
         raise CaptureMeetingError("capture_disabled")

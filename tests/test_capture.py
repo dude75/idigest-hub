@@ -90,6 +90,33 @@ def test_capture_meeting_host_not_configured(client, fake_workers):
     assert err_code(response) == "meeting_host_not_configured"
 
 
+def test_capture_uses_org_bot_display_name(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "capbot@example.com", "capbotpass1", tariff_id).status_code == 200
+    login_ready(client, "capbot@example.com", "capbotpass1")
+    mapped = client.put(
+        "/api/v1/org/capture/jitsi",
+        json={
+            "bot_display_name": "Realweb Recorder",
+            "items": [{"host": "meet.example.com", "worker_id": worker["id"]}],
+        },
+    )
+    assert mapped.status_code == 200, mapped.text
+
+    created = client.post(
+        "/api/v1/tasks/capture",
+        json={"meeting_url": "https://meet.example.com/room1"},
+    )
+    assert created.status_code == 202, created.text
+    task_id = created.json()["task_id"]
+    wait_task(client, task_id, status={"success"})
+    assert fake_workers.last_capture_display_name == "Realweb Recorder"
+
+
 def test_capture_success(client, fake_workers):
     setup_admin(client)
     worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
