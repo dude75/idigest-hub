@@ -78,6 +78,12 @@ async def post_capture(
         "display_name": display_name,
     }
     _release(db)
+    log.info(
+        "capture worker POST %s connector=%s meeting_url=%s",
+        url,
+        connector,
+        meeting_url[:200],
+    )
     try:
         async with httpx2.AsyncClient(timeout=_timeout(capture_start=True)) as client:
             response = await client.post(url, headers=headers, json=payload)

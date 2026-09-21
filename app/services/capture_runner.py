@@ -12,7 +12,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
-from app.models import Audio, Task, WorkerNode, new_id
+from app.models import Audio, Organization, Task, WorkerNode, new_id
 from app.services.capture_workers import (
     delete_capture_task,
     download_capture_artifact,
@@ -488,6 +488,79 @@ def _spawn_capture_thread(task_id: str) -> None:
     thread.start()
 
 
+def _fail_capture_meeting_error(db: Session, task: Task, exc: Any) -> None:
+    from app.services.capture_meeting import CaptureMeetingError, normalize_host
+    from app.services.import_platforms import host_from_url
+
+    if not isinstance(exc, CaptureMeetingError):
+        _fail_task(db, task, "pipeline_error")
+        return
+    code = exc.code
+    if code == "capture_disabled":
+        fail_code = "capture_disabled"
+    elif code == "invalid_url":
+        fail_code = "invalid_url"
+    elif code == "meeting_host_not_configured":
+        fail_code = "meeting_host_not_configured"
+    else:
+        fail_code = "pipeline_error"
+    meta: dict[str, Any] | None = None
+    if fail_code == "meeting_host_not_configured":
+        meeting_url = str((task.meta_json or {}).get("meeting_url") or "")
+        host = normalize_host(host_from_url(meeting_url))
+        if host:
+            meta = {"meeting_host": host}
+    _fail_task(db, task, fail_code, meta)
+
+
+def _bind_capture_worker(db: Session, task: Task, settings: Any) -> WorkerNode | None:
+    """Resolve org host map → capture worker (also after retry/requeue cleared worker_id)."""
+    meta = dict(task.meta_json or {})
+    meeting_url = str(meta.get("meeting_url") or "").strip()
+    if not meeting_url:
+        _fail_task(db, task, "invalid_url")
+        return None
+
+    if task.worker_id:
+        node = db.get(WorkerNode, task.worker_id)
+        if node is not None and node.type == "capture" and node.enabled:
+            return node
+
+    org = db.get(Organization, task.org_id)
+    if org is None:
+        _fail_task(db, task, "not_found")
+        return None
+
+    from app.services.capture_meeting import CaptureMeetingError, org_capture_bot_display_name, resolve_capture_target
+    from app.services.capture_platforms import allowed_connectors
+
+    display_name = str(meta.get("display_name") or org_capture_bot_display_name(org))
+    pin = str(meta.get("pin") or "")
+    try:
+        target = resolve_capture_target(
+            db,
+            org=org,
+            meeting_url=meeting_url,
+            pin=pin,
+            settings_allowed=allowed_connectors(settings),
+            display_name=display_name,
+        )
+    except CaptureMeetingError as exc:
+        _fail_capture_meeting_error(db, task, exc)
+        return None
+
+    task.worker_id = target.worker.id
+    meta["meeting_host"] = target.meeting_host
+    meta["meeting_room"] = target.meeting_room
+    meta["connector"] = target.connector
+    meta["display_name"] = display_name
+    if target.jwt:
+        meta["jwt"] = target.jwt
+    task.meta_json = meta
+    db.flush()
+    return target.worker
+
+
 def _filename_from_headers(headers: dict[str, str], default: str) -> str:
     disposition = headers.get("content-disposition") or ""
     if "filename=" in disposition:
@@ -526,19 +599,13 @@ async def _run_capture_task(task_id: str) -> None:
             db.commit()
             return
 
+        worker_node = _bind_capture_worker(db, task, settings)
+        if worker_node is None:
+            db.commit()
+            return
+
         meta = dict(task.meta_json or {})
         meeting_url = str(meta.get("meeting_url") or "").strip()
-        if not meeting_url or not task.worker_id:
-            _fail_task(db, task, "invalid_url")
-            db.commit()
-            return
-
-        worker_node = db.get(WorkerNode, task.worker_id)
-        if worker_node is None:
-            _fail_task(db, task, "pipeline_error")
-            db.commit()
-            return
-
         pin = str(meta.get("pin") or "")
         jwt = meta.get("jwt")
         jwt_str = jwt if isinstance(jwt, str) and jwt.strip() else None
@@ -559,6 +626,14 @@ async def _run_capture_task(task_id: str) -> None:
                 db.commit()
                 return
 
+            log.info(
+                "capture dispatch hub_task=%s worker_id=%s base_url=%s host=%s room=%s",
+                task.id,
+                worker_node.id,
+                worker_node.base_url,
+                meta.get("meeting_host"),
+                meta.get("meeting_room"),
+            )
             try:
                 body = await post_capture(
                     db,

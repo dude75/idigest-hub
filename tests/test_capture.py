@@ -107,6 +107,69 @@ def test_capture_disabled(client):
     assert err_code(response) == "capture_disabled"
 
 
+def test_meet_jitsi_public_url_parsing():
+    from app.services.capture_meeting import parse_meeting_room
+
+    host, room = parse_meeting_room("https://meet.jit.si/IncorrectToysSpellAbove")
+    assert host == "meet.jit.si"
+    assert room == "IncorrectToysSpellAbove"
+
+
+def test_capture_meet_jitsi_requires_org_host_map(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "jitorg@example.com", "jitorgpass1", tariff_id).status_code == 200
+    login_ready(client, "jitorg@example.com", "jitorgpass1")
+    _map_jitsi_host(client, worker["id"], host="meet.jit.si")
+    response = client.post(
+        "/api/v1/tasks/capture",
+        json={"meeting_url": "https://meet.jit.si/IncorrectToysSpellAbove"},
+    )
+    assert response.status_code == 202, response.text
+    body = response.json()
+    assert body["meta"]["meeting_host"] == "meet.jit.si"
+    assert body["meta"]["meeting_room"] == "IncorrectToysSpellAbove"
+
+
+def test_bind_capture_worker_after_worker_id_cleared(client, fake_workers):
+    from tests.conftest import open_db
+
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap2", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "rebind@example.com", "rebindpass1", tariff_id).status_code == 200
+    login_ready(client, "rebind@example.com", "rebindpass1")
+    _map_jitsi_host(client, worker["id"], host="meet.jit.si")
+    created = client.post(
+        "/api/v1/tasks/capture",
+        json={"meeting_url": "https://meet.jit.si/RoomName"},
+    )
+    assert created.status_code == 202
+    task_id = created.json()["task_id"]
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Task
+        from app.services.capture_runner import _bind_capture_worker
+
+        task = db.get(Task, task_id)
+        assert task is not None
+        task.worker_id = None
+        db.commit()
+        node = _bind_capture_worker(db, task, get_instance_settings(db))
+        assert node is not None
+        assert node.id == worker["id"]
+        assert task.meta_json["meeting_host"] == "meet.jit.si"
+    finally:
+        db.close()
+
+
 def test_capture_meeting_host_not_configured(client, fake_workers):
     setup_admin(client)
     worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
