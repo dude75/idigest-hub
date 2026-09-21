@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import concurrent.futures
+import contextlib
 import ipaddress
 import logging
 import re
@@ -162,20 +163,140 @@ def _estimated_import_audio_bytes(duration_sec: float, max_audio_bitrate_kbps: i
     return int(duration_sec * kbps * 1000 / 8 * 1.1) + 4096
 
 
+def _positive_duration(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if number <= 0:
+        return None
+    return number
+
+
+def _duration_sec_from_info(info: dict[str, Any]) -> float | None:
+    """Duration from yt-dlp info (Rutube HLS often omits per-format duration)."""
+    direct = _positive_duration(info.get("duration"))
+    if direct is not None:
+        return direct
+    best: float | None = None
+    for fmt in info.get("formats") or []:
+        if not isinstance(fmt, dict):
+            continue
+        parsed = _positive_duration(fmt.get("duration"))
+        if parsed is not None:
+            best = parsed if best is None else max(best, parsed)
+    return best
+
+
+def _estimated_source_bytes_from_info(info: dict[str, Any], max_audio_bitrate_kbps: int) -> int | None:
+    """Upper-bound hint when duration is missing (e.g. progressive URL with filesize)."""
+    best = 0
+    for fmt in info.get("formats") or []:
+        if not isinstance(fmt, dict):
+            continue
+        raw = fmt.get("filesize") or fmt.get("filesize_approx")
+        if isinstance(raw, (int, float)) and raw > best:
+            best = int(raw)
+    if best > 0:
+        return best
+    duration = _duration_sec_from_info(info)
+    if duration is not None:
+        return _estimated_import_audio_bytes(duration, max_audio_bitrate_kbps)
+    return None
+
+
+def _import_progress_hook(
+    *,
+    host: str,
+    max_bytes: int,
+    is_canceled: Callable[[], bool] | None,
+) -> ProgressCallback:
+    """Abort yt-dlp on user cancel or when downloaded bytes exceed tariff cap."""
+
+    def hook(progress: dict[str, Any]) -> None:
+        if is_canceled and is_canceled():
+            raise UrlImportError("canceled")
+        if max_bytes <= 0:
+            return
+        status = progress.get("status")
+        if status not in {"downloading", "finished"}:
+            return
+        raw = progress.get("downloaded_bytes")
+        if not isinstance(raw, (int, float)):
+            return
+        downloaded = int(raw)
+        if downloaded > max_bytes:
+            raise UrlImportError(
+                "payload_too_large",
+                meta={"host": host, "bytes": downloaded, "reason": "download_byte_cap"},
+            )
+
+    return hook
+
+
+def _is_filesize_limit_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return (
+        "max-filesize" in msg
+        or "max filesize" in msg
+        or ("filesize" in msg and ("larger" in msg or "exceed" in msg or "too big" in msg))
+    )
+
+
+def _min_expected_import_bytes(duration_sec: float, max_audio_bitrate_kbps: int) -> int:
+    """Detect truncated HLS/mp3 when yt-dlp stops early without raising."""
+    kbps = _effective_import_bitrate_kbps(max_audio_bitrate_kbps)
+    floor_kbps = max(16, min(32, kbps // 2))
+    return int(duration_sec * floor_kbps * 1000 / 8)
+
+
+def _reject_incomplete_import_artifact(
+    *,
+    size: int,
+    duration_sec: float | None,
+    max_audio_bitrate_kbps: int,
+    host: str,
+    max_bytes: int,
+) -> None:
+    if max_bytes <= 0 or duration_sec is None or duration_sec < 60:
+        return
+    minimum = _min_expected_import_bytes(duration_sec, max_audio_bitrate_kbps)
+    if size < minimum and size <= max_bytes:
+        raise UrlImportError(
+            "download_failed",
+            meta={
+                "host": host,
+                "bytes": size,
+                "duration_sec": duration_sec,
+                "reason": "incomplete_download",
+            },
+        )
+
+
 def _reject_import_over_size_limit(
     *,
     max_bytes: int,
     duration_sec: float | None,
     max_audio_bitrate_kbps: int,
     host: str,
+    estimated_source_bytes: int | None = None,
 ) -> None:
-    if max_bytes <= 0 or duration_sec is None or duration_sec <= 0:
+    if max_bytes <= 0:
         return
-    estimated = _estimated_import_audio_bytes(duration_sec, max_audio_bitrate_kbps)
-    if estimated > max_bytes:
+    if duration_sec is not None and duration_sec > 0:
+        estimated = _estimated_import_audio_bytes(duration_sec, max_audio_bitrate_kbps)
+        if estimated > max_bytes:
+            raise UrlImportError(
+                "payload_too_large",
+                meta={"host": host, "bytes": estimated, "duration_sec": duration_sec},
+            )
+        return
+    if estimated_source_bytes is not None and estimated_source_bytes > max_bytes:
         raise UrlImportError(
             "payload_too_large",
-            meta={"host": host, "bytes": estimated, "duration_sec": duration_sec},
+            meta={"host": host, "bytes": estimated_source_bytes, "reason": "source_filesize"},
         )
 
 
@@ -197,6 +318,8 @@ def _ydl_opts(
     cookies_path: str | None = None,
     max_audio_bitrate_kbps: int = 0,
     max_bytes: int = 0,
+    host: str = "",
+    is_canceled: Callable[[], bool] | None = None,
     youtube_clients: list[str] | None = None,
     outtmpl: str | None = None,
     download: bool = False,
@@ -232,9 +355,36 @@ def _ydl_opts(
         ]
     if youtube_clients:
         opts["extractor_args"] = {"youtube": {"player_client": youtube_clients}}
-    if download and max_bytes > 0:
-        opts["max_filesize"] = max_bytes
+    if download:
+        if max_bytes > 0:
+            opts["max_filesize"] = max_bytes
+        if host and (max_bytes > 0 or is_canceled):
+            opts["progress_hooks"] = [
+                _import_progress_hook(host=host, max_bytes=max_bytes, is_canceled=is_canceled)
+            ]
     return opts
+
+
+def _extract_info_with_cancel(
+    ydl: Any,
+    url: str,
+    *,
+    download: bool,
+    is_canceled: Callable[[], bool] | None,
+) -> Any:
+    if not is_canceled:
+        return ydl.extract_info(url, download=download)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(ydl.extract_info, url, download)
+        while True:
+            try:
+                return future.result(timeout=0.25)
+            except concurrent.futures.TimeoutError:
+                if is_canceled():
+                    with contextlib.suppress(Exception):
+                        ydl.close()
+                    raise UrlImportError("canceled")
 
 
 def _youtube_client_attempts(host: str) -> tuple[list[str] | None, ...]:
@@ -253,9 +403,10 @@ def _run_ytdl(
     max_bytes: int = 0,
     download: bool,
     outtmpl: str | None = None,
+    is_canceled: Callable[[], bool] | None = None,
 ) -> dict[str, Any]:
     import yt_dlp
-    from yt_dlp.utils import DownloadError, ExtractorError
+    from yt_dlp.utils import DownloadCancelled, DownloadError, ExtractorError
 
     attempts = _youtube_client_attempts(host)
     last_exc: BaseException | None = None
@@ -263,6 +414,8 @@ def _run_ytdl(
     clients_tried: list[list[str] | None] = []
 
     for index, clients in enumerate(attempts):
+        if is_canceled and is_canceled():
+            raise UrlImportError("canceled")
         clients_tried.append(clients)
         if index > 0 and not cleared_cache:
             _clear_ytdl_cache()
@@ -272,20 +425,34 @@ def _run_ytdl(
             cookies_path=cookies_path,
             max_audio_bitrate_kbps=max_audio_bitrate_kbps,
             max_bytes=max_bytes,
+            host=host,
+            is_canceled=is_canceled,
             youtube_clients=clients,
             outtmpl=outtmpl,
             download=download,
         )
         try:
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=download)
+                info = _extract_info_with_cancel(
+                    ydl,
+                    url,
+                    download=download,
+                    is_canceled=is_canceled,
+                )
             if not isinstance(info, dict):
                 raise UrlImportError("download_failed", meta={"host": host})
             return info
         except UrlImportError:
             raise
+        except DownloadCancelled as exc:
+            raise UrlImportError("canceled") from exc
         except (ExtractorError, DownloadError) as exc:
             last_exc = exc
+            if _is_filesize_limit_error(exc):
+                raise UrlImportError(
+                    "payload_too_large",
+                    meta={"host": host, "reason": "max_filesize", "error_detail": _error_detail(exc)},
+                ) from exc
             if _is_403_error(exc) and index + 1 < len(attempts):
                 log.warning(
                     "yt-dlp blocked host=%s client=%s detail=%s; trying next client",
@@ -324,6 +491,13 @@ def _run_ytdl(
             )
         except Exception as exc:
             last_exc = exc
+            if isinstance(exc, DownloadCancelled):
+                raise UrlImportError("canceled") from exc
+            if _is_filesize_limit_error(exc):
+                raise UrlImportError(
+                    "payload_too_large",
+                    meta={"host": host, "reason": "max_filesize", "error_detail": _error_detail(exc)},
+                ) from exc
             if _is_403_error(exc) and index + 1 < len(attempts):
                 log.warning(
                     "yt-dlp blocked host=%s client=%s detail=%s; trying next client",
@@ -569,6 +743,7 @@ def probe_url(
     cookies_path: str | None = None,
     max_audio_bitrate_kbps: int = 0,
     on_progress: ProgressCallback | None = None,
+    is_canceled: Callable[[], bool] | None = None,
 ) -> dict[str, Any]:
     cleaned = assert_import_fetch_allowed(url, settings_allowed=settings_allowed)
     host = host_from_url(cleaned)
@@ -582,6 +757,7 @@ def probe_url(
         cookies_path=cookies_path,
         max_audio_bitrate_kbps=max_audio_bitrate_kbps,
         download=False,
+        is_canceled=is_canceled,
     )
 
     extractor_key, platform_label, host = _check_extractor(
@@ -590,14 +766,15 @@ def probe_url(
         host=host,
     )
     title = info.get("title")
-    duration = info.get("duration")
-    duration_sec = float(duration) if duration is not None else None
+    duration_sec = _duration_sec_from_info(info)
+    estimated_source_bytes = _estimated_source_bytes_from_info(info, max_audio_bitrate_kbps)
     return {
         "extractor_key": extractor_key,
         "platform_label": platform_label,
         "host": host,
         "title": title if isinstance(title, str) else None,
         "duration_sec": duration_sec,
+        "estimated_source_bytes": estimated_source_bytes,
     }
 
 
@@ -620,6 +797,7 @@ def download_audio(
         cookies_path=cookies_path,
         max_audio_bitrate_kbps=max_audio_bitrate_kbps,
         on_progress=on_progress,
+        is_canceled=is_canceled,
     )
     if is_canceled and is_canceled():
         raise UrlImportError("canceled")
@@ -629,6 +807,7 @@ def download_audio(
         duration_sec=meta.get("duration_sec"),
         max_audio_bitrate_kbps=max_audio_bitrate_kbps,
         host=meta["host"],
+        estimated_source_bytes=meta.get("estimated_source_bytes"),
     )
 
     if on_progress:
@@ -654,6 +833,7 @@ def download_audio(
         max_bytes=max_bytes,
         download=True,
         outtmpl=outtmpl,
+        is_canceled=is_canceled,
     )
 
     if is_canceled and is_canceled():
@@ -668,6 +848,14 @@ def download_audio(
     if size > max_bytes:
         cleanup_import_path(source)
         raise UrlImportError("payload_too_large", meta={"host": meta["host"], "bytes": size})
+
+    _reject_incomplete_import_artifact(
+        size=size,
+        duration_sec=meta.get("duration_sec"),
+        max_audio_bitrate_kbps=max_audio_bitrate_kbps,
+        host=meta["host"],
+        max_bytes=max_bytes,
+    )
 
     title = meta.get("title")
     stem = safe_filename(title if isinstance(title, str) and title.strip() else source.stem)

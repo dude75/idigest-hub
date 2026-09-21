@@ -649,6 +649,8 @@ async def cancel_task(
         task.status = "error"
         task.error_code = "canceled"
         task.updated_at = utcnow()
+        db.flush()
+        db.commit()
         return task_public(task)
     if task.type == "capture":
         if task.status not in {"queued", "running"}:

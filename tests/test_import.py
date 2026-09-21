@@ -649,6 +649,100 @@ def test_download_audio_payload_too_large_uses_largest_artifact(monkeypatch):
     assert exc.value.meta["bytes"] > 256
 
 
+def test_duration_sec_from_info_prefers_top_level():
+    from app.services.url_import import _duration_sec_from_info
+
+    assert _duration_sec_from_info({"duration": 491}) == 491.0
+    assert _duration_sec_from_info({"duration": 0, "formats": [{"duration": 120.0}]}) == 120.0
+
+
+def test_reject_import_over_size_limit_uses_source_filesize():
+    from app.services.url_import import UrlImportError, _reject_import_over_size_limit
+
+    with pytest.raises(UrlImportError) as exc:
+        _reject_import_over_size_limit(
+            max_bytes=1024,
+            duration_sec=None,
+            max_audio_bitrate_kbps=64,
+            host="rutube.ru",
+            estimated_source_bytes=4096,
+        )
+    assert exc.value.code == "payload_too_large"
+    assert exc.value.meta["reason"] == "source_filesize"
+
+
+def test_import_progress_hook_byte_cap_and_cancel():
+    from app.services.url_import import UrlImportError, _import_progress_hook
+
+    hook = _import_progress_hook(host="rutube.ru", max_bytes=1000, is_canceled=None)
+    hook({"status": "downloading", "downloaded_bytes": 500})
+    with pytest.raises(UrlImportError) as exc:
+        hook({"status": "downloading", "downloaded_bytes": 1001})
+    assert exc.value.code == "payload_too_large"
+    assert exc.value.meta["reason"] == "download_byte_cap"
+
+    canceled = {"value": False}
+    cancel_hook = _import_progress_hook(
+        host="rutube.ru",
+        max_bytes=0,
+        is_canceled=lambda: canceled["value"],
+    )
+    canceled["value"] = True
+    with pytest.raises(UrlImportError) as exc:
+        cancel_hook({"status": "downloading", "downloaded_bytes": 1})
+    assert exc.value.code == "canceled"
+
+
+def test_ydl_opts_registers_progress_hook_for_cancel_only():
+    from app.services.url_import import _ydl_opts
+
+    opts = _ydl_opts(
+        None,
+        host="rutube.ru",
+        download=True,
+        max_bytes=0,
+        is_canceled=lambda: False,
+    )
+    assert "progress_hooks" in opts
+    assert len(opts["progress_hooks"]) == 1
+
+
+def test_download_audio_rejects_truncated_mp3(monkeypatch):
+    from pathlib import Path
+
+    from app.services.url_import import UrlImportError, download_audio
+
+    def fake_probe(url, **kwargs):
+        return {
+            "extractor_key": "Rutube",
+            "platform_label": "Rutube",
+            "host": "rutube.ru",
+            "title": "Clip",
+            "duration_sec": 600.0,
+            "estimated_source_bytes": None,
+        }
+
+    def fake_ytdl(url, *, outtmpl=None, download=False, **kwargs):
+        assert download is True
+        parent = Path(outtmpl).parent
+        (parent / "clip.mp3").write_bytes(b"ID3" + b"\x00" * 32_000)
+        return {}
+
+    monkeypatch.setattr("app.services.url_import.probe_url", fake_probe)
+    monkeypatch.setattr("app.services.url_import._run_ytdl", fake_ytdl)
+
+    with pytest.raises(UrlImportError) as exc:
+        download_audio(
+            "https://rutube.ru/video/abc/",
+            settings_allowed=["Rutube"],
+            proxy=None,
+            max_audio_bitrate_kbps=64,
+            max_bytes=50_000_000,
+        )
+    assert exc.value.code == "download_failed"
+    assert exc.value.meta.get("reason") == "incomplete_download"
+
+
 def test_download_audio_rejects_by_duration_before_download(monkeypatch):
     from app.services.url_import import UrlImportError, download_audio
 
