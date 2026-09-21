@@ -107,6 +107,21 @@ export function taskErrorMessage(task: Task, t: TaskTranslate): string | null {
         : ''
     return t('task.unsupportedHostUnknown', { host })
   }
+  if (code === 'payload_too_large') {
+    const limitNum =
+      (typeof task.max_upload_bytes === 'number' && task.max_upload_bytes > 0
+        ? task.max_upload_bytes
+        : null) ??
+      (typeof meta.max_bytes === 'number' && meta.max_bytes > 0 ? meta.max_bytes : null)
+    const sizeNum = typeof meta.bytes === 'number' && meta.bytes > 0 ? meta.bytes : null
+    if (limitNum != null) {
+      const limit = formatBytes(limitNum)
+      if (sizeNum != null) {
+        return t('task.payloadTooLargeWithSize', { limit, size: formatBytes(sizeNum) })
+      }
+      return t('task.payloadTooLargeLimit', { limit })
+    }
+  }
   const key = `errors.${code}`
   const translated = t(key, { defaultValue: '' })
   return translated || t('task.failed')

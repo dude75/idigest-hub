@@ -240,6 +240,7 @@ def task_public(task: Task, extra: dict[str, Any] | None = None) -> dict[str, An
         "type": task.type,
         "status": task.status,
         "meta": task.meta_json or {},
+        "max_upload_bytes": int(task.snap_max_upload_bytes),
         "transcript_id": task.produced_transcript_id,
         "summary_id": task.produced_summary_id,
         "error": None,

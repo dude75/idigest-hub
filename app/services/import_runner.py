@@ -160,7 +160,12 @@ async def _run_import_task(task_id: str) -> None:
                 audio_id, result.suffix, result.source_path, max_bytes=max_bytes
             )
         except PayloadTooLarge:
-            _fail_task(db, task, "payload_too_large", {"host": result.host})
+            _fail_task(
+                db,
+                task,
+                "payload_too_large",
+                {"host": result.host, "max_bytes": max_bytes},
+            )
             db.commit()
             return
         except InvalidAudioContent:
@@ -201,7 +206,10 @@ async def _run_import_task(task_id: str) -> None:
         db.rollback()
         task = db.get(Task, task_id)
         if task is not None:
-            _fail_task(db, task, exc.code, exc.meta)
+            meta = dict(exc.meta)
+            if exc.code == "payload_too_large":
+                meta.setdefault("max_bytes", int(task.snap_max_upload_bytes))
+            _fail_task(db, task, exc.code, meta)
             db.commit()
     except Exception as exc:
         log.exception("import task failed task=%s", task_id)

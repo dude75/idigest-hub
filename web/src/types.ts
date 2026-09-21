@@ -242,6 +242,7 @@ export type Task = {
   type: string
   status: string
   meta: Record<string, unknown>
+  max_upload_bytes?: number
   transcript_id: string | null
   summary_id: string | null
   error: { code: string } | null

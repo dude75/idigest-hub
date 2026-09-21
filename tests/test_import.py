@@ -806,3 +806,5 @@ def test_import_task_payload_too_large_after_download(client, tmp_path, monkeypa
     assert created.status_code == 202, created.text
     body = wait_task(client, created.json()["task_id"], status="error")
     assert body["error"]["code"] == "payload_too_large"
+    assert body["max_upload_bytes"] == 256
+    assert body["meta"].get("max_bytes") == 256
