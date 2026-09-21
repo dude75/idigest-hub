@@ -7,8 +7,7 @@ import { WorkerHealthBadge, isWorkerHealthy, isWorkerUnhealthy } from '../../com
 import type { Worker, WorkerEngineOption, WorkerProbeResult, WorkersListSummary } from '../../types'
 import { formatInteger, showError } from '../../util'
 import { emptyWorker } from './constants'
-import { normalizeCaptureSlotsSummary } from './captureSlots'
-import { workerSlotsCell } from './workerCapacity'
+import { normalizeCaptureCapacitySummary, workerCapacityCell } from './workerCapacity'
 import { WorkerImpactModal } from './WorkerImpactModal'
 
 const SELECTABLE_STATUSES = new Set(['loaded', 'unavailable'])
@@ -33,9 +32,15 @@ export function InstanceWorkersTab() {
     changeBody?: Record<string, unknown>
   } | null>(null)
 
-  async function load() {
+  async function load(opts?: { probe?: boolean; refresh?: boolean }) {
+    const probe = opts?.probe ?? true
+    const refresh = opts?.refresh ?? false
+    const qs = new URLSearchParams()
+    if (!probe) qs.set('probe', 'false')
+    if (refresh) qs.set('refresh', 'true')
+    const path = qs.size ? `/workers?${qs.toString()}` : '/workers'
     try {
-      const result = await api<{ items: Worker[]; summary: WorkersListSummary }>('/workers')
+      const result = await api<{ items: Worker[]; summary: WorkersListSummary }>(path)
       setWorkers(result.items)
       setWorkersSummary(result.summary)
     } catch (e) {
@@ -44,7 +49,10 @@ export function InstanceWorkersTab() {
   }
 
   useEffect(() => {
-    void load()
+    void (async () => {
+      await load({ probe: false })
+      await load({ probe: true, refresh: true })
+    })()
   }, [])
 
   const summary = useMemo(() => ({
@@ -55,7 +63,7 @@ export function InstanceWorkersTab() {
     unhealthy: workers.filter((w) => isWorkerUnhealthy(w)).length,
     byType: workersSummary?.by_type,
     hubLimits: workersSummary?.hub_limits,
-    captureSlots: normalizeCaptureSlotsSummary(workersSummary),
+    captureCapacity: normalizeCaptureCapacitySummary(workersSummary),
   }), [workers, workersSummary])
 
   const hasCaptureWorkers = workers.some((w) => w.type === 'capture')
@@ -72,16 +80,16 @@ export function InstanceWorkersTab() {
         t('instance.workersHubImportLimit', { count: formatInteger(summary.hubLimits.import_max_concurrent) }),
       )
     }
-    if (summary.captureSlots && summary.captureSlots.max > 0) {
+    if (summary.captureCapacity && summary.captureCapacity.max > 0) {
       lines.push(
-        t('instance.workersCaptureSlots', {
-          available: formatInteger(summary.captureSlots.available),
-          max: formatInteger(summary.captureSlots.max),
+        t('instance.workersCaptureCapacity', {
+          available: formatInteger(summary.captureCapacity.available),
+          max: formatInteger(summary.captureCapacity.max),
         }),
       )
     }
     return lines.join('\n')
-  }, [summary.byType, summary.hubLimits, summary.captureSlots, t])
+  }, [summary.byType, summary.hubLimits, summary.captureCapacity, t])
 
   const probeAsr = useMemo(() => selectableEngines(probe?.asr_models), [probe])
   const probeDiar = useMemo(() => selectableEngines(probe?.diarization_models), [probe])
@@ -254,22 +262,22 @@ export function InstanceWorkersTab() {
         <StatCard label={t('instance.workersHealthy')} value={formatInteger(summary.healthy)} tone="summarize" />
         <StatCard label={t('instance.workersUnhealthy')} value={formatInteger(summary.unhealthy)} tone="amount" />
         {hasCaptureWorkers ? (
-          summary.captureSlots ? (
+          summary.captureCapacity ? (
             <StatCard
-              label={t('instance.workersCaptureSlotsLabel')}
-              value={formatInteger(summary.captureSlots.available)}
-              unit={t('instance.workersCaptureSlotsOfMax', {
-                max: formatInteger(summary.captureSlots.max),
+              label={t('instance.workersCaptureCapacityLabel')}
+              value={formatInteger(summary.captureCapacity.available)}
+              unit={t('instance.workersCaptureCapacityOfMax', {
+                max: formatInteger(summary.captureCapacity.max),
               })}
-              title={t('instance.workersCaptureSlotsHint')}
+              title={t('instance.workersCaptureCapacityHint')}
               tone="ops"
             />
           ) : (
             <StatCard
-              label={t('instance.workersCaptureSlotsLabel')}
+              label={t('instance.workersCaptureCapacityLabel')}
               value="—"
-              unit={t('instance.workerCaptureSlotsUnknown')}
-              title={t('instance.workersCaptureSlotsHint')}
+              unit={t('instance.workerCapacityUnknown')}
+              title={t('instance.workersCaptureCapacityHint')}
               tone="ops"
             />
           )
@@ -407,7 +415,7 @@ export function InstanceWorkersTab() {
                   <th>{t('instance.weight')}</th>
                   <th>{t('instance.enabled')}</th>
                   <th>{t('instance.health')}</th>
-                  <th title={t('instance.workerSlotsColumnHint')}>{t('instance.workerSlotsColumn')}</th>
+                  <th title={t('instance.workerCapacityColumnHint')}>{t('instance.workerCapacityColumn')}</th>
                   <th />
                 </tr>
               </thead>
@@ -431,7 +439,7 @@ export function InstanceWorkersTab() {
                     <td><WorkerHealthBadge worker={w} /></td>
                     <td className="num">
                       {(() => {
-                        const cell = workerSlotsCell(w, workersSummary)
+                        const cell = workerCapacityCell(w, workersSummary)
                         if (!cell) return '—'
                         return `${formatInteger(cell.available)} / ${formatInteger(cell.max)}`
                       })()}

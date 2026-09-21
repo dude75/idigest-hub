@@ -54,7 +54,7 @@ def test_create_import_returns_queued_import_task(client, monkeypatch):
     assert signup(client, "importfast@example.com", "importfastpass1", tariff_id).status_code == 200
     login_ready(client, "importfast@example.com", "importfastpass1")
     monkeypatch.setattr("app.services.url_import.assert_import_fetch_allowed", _allow_import_url)
-    monkeypatch.setattr("app.services.import_runner.import_slots_available", lambda: False)
+    monkeypatch.setattr("app.services.import_runner.import_concurrency_available", lambda: False)
 
     created = client.post(
         "/api/v1/tasks/import",
@@ -90,7 +90,7 @@ def test_get_import_task_schedules_tick_without_worker_health(client, monkeypatc
     assert signup(client, "importpoll@example.com", "importpollpass1", tariff_id).status_code == 200
     login_ready(client, "importpoll@example.com", "importpollpass1")
     monkeypatch.setattr("app.services.url_import.assert_import_fetch_allowed", _allow_import_url)
-    monkeypatch.setattr("app.services.import_runner.import_slots_available", lambda: False)
+    monkeypatch.setattr("app.services.import_runner.import_concurrency_available", lambda: False)
 
     created = client.post(
         "/api/v1/tasks/import",

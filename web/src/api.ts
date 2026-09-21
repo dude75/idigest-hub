@@ -14,9 +14,22 @@ type ErrorBody = {
   error?: { code?: string; message?: string }
 }
 
-function csrfToken(): string | undefined {
+/** Last token from GET/PATCH /me (matches hub_csrf cookie when cookies are readable). */
+let cachedCsrf: string | undefined
+
+export function rememberCsrfToken(data: unknown): void {
+  if (!data || typeof data !== 'object') return
+  const token = (data as { csrf_token?: unknown }).csrf_token
+  if (typeof token === 'string' && token) cachedCsrf = token
+}
+
+function csrfFromCookie(): string | undefined {
   const match = document.cookie.match(/(?:^|; )hub_csrf=([^;]*)/)
   return match ? decodeURIComponent(match[1]) : undefined
+}
+
+function csrfToken(): string | undefined {
+  return cachedCsrf || csrfFromCookie()
 }
 
 function applyCsrfHeader(headers: Headers, method: string): void {
@@ -28,7 +41,7 @@ function applyCsrfHeader(headers: Headers, method: string): void {
   }
 }
 
-export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
+export async function api<T>(path: string, opts: RequestInit = {}, retried = false): Promise<T> {
   const headers = new Headers(opts.headers)
   const isForm = opts.body instanceof FormData
   if (opts.body && !isForm && !headers.has('Content-Type')) {
@@ -55,14 +68,25 @@ export async function api<T>(path: string, opts: RequestInit = {}): Promise<T> {
   }
   const body = data as ErrorBody | null
   if (!res.ok) {
+    const code = body?.error?.code || `http_${res.status}`
+    if (!retried && code === 'csrf_invalid' && path !== '/me') {
+      cachedCsrf = undefined
+      try {
+        await api<{ csrf_token?: string }>('/me')
+        return api<T>(path, opts, true)
+      } catch {
+        /* fall through */
+      }
+    }
     const retryRaw = res.headers.get('Retry-After')
     const retryAfter = retryRaw ? Number.parseInt(retryRaw, 10) : undefined
     throw new ApiError(
-      body?.error?.code || `http_${res.status}`,
+      code,
       body?.error?.message || res.statusText,
       Number.isFinite(retryAfter) && retryAfter! > 0 ? retryAfter : undefined,
     )
   }
+  rememberCsrfToken(data)
   return data as T
 }
 
@@ -148,8 +172,15 @@ export function apiUpload<T>(
 
     xhr.onload = () => {
       const data = parseJson(xhr.responseText)
+      rememberCsrfToken(data)
       const errBody = data as ErrorBody | null
       if (xhr.status < 200 || xhr.status >= 300) {
+        if (xhr.status === 403 && errBody?.error?.code === 'csrf_invalid') {
+          api<T>('/me')
+            .then(() => apiUpload<T>(path, body, onProgress).then(resolve).catch(reject))
+            .catch(() => reject(new ApiError('csrf_invalid', errBody?.error?.message || xhr.statusText)))
+          return
+        }
         reject(new ApiError(errBody?.error?.code || `http_${xhr.status}`, errBody?.error?.message || xhr.statusText))
         return
       }

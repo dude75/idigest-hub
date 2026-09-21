@@ -123,6 +123,7 @@ export type TranscribeModels = {
 }
 
 export type Me = {
+  csrf_token?: string
   user: User
   org: Org | null
   impersonating: boolean
@@ -316,18 +317,18 @@ export type WorkersListSummary = {
   hub_limits: {
     import_max_concurrent: number
   }
-  capture_slots: {
+  /** Sum of health.workers.* (or hub-node fallback) — same as by_type.capture. */
+  capture_capacity: {
     max: number
     active: number
     available: number
   }
-  /** Dispatch-ready transcribe nodes (available) / enabled pool — same as by_type.transcribe slots. */
-  transcribe_slots: {
+  transcribe_capacity: {
     max: number
     active: number
     available: number
   }
-  summarize_slots: {
+  summarize_capacity: {
     max: number
     active: number
     available: number

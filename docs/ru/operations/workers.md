@@ -58,6 +58,28 @@ Instance admin добавляет ноды в **Instance → Workers** (или P
 
 Hub отправляет `Authorization: Bearer <decrypted api_token>` при каждом вызове воркера. Пользователи никогда не видят этот token.
 
+## Единый блок `workers` в GET /health
+
+Все типы воркеров (**itranscribe**, **isummarize**, **icapture**) могут отдавать одну и ту же структуру ёмкости:
+
+```json
+"workers": {
+  "max": 4,
+  "active": 1,
+  "available": 3
+}
+```
+
+| Поле | Смысл |
+| ---- | ----- |
+| `max` | Размер пула на этом процессе |
+| `active` | Задач в работе |
+| `available` | Свободных workers в пуле (`> 0` — можно слать job) |
+
+Hub **суммирует** `workers.*` по включённым и dispatch-ready нодам данного типа. Если ни одна нода не отдаёт `workers`, для типа используется fallback: **готовые hub-ноды / включённые** (как раньше для transcribe).
+
+Дополнительно по типам: transcribe — `engines`; summarize — `GET /ready` (200); capture — `connectors`.
+
 ## Health и readiness
 
 Dispatcher обновляет каждый узел примерно каждые 5 секунд:

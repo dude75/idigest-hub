@@ -447,7 +447,7 @@ def _allow_import_url(url: str, *, settings_allowed):
 
 def test_list_tasks_import_includes_title_before_audio(client, monkeypatch):
     monkeypatch.setattr("app.services.url_import.assert_import_fetch_allowed", _allow_import_url)
-    monkeypatch.setattr("app.services.import_runner.import_slots_available", lambda: False)
+    monkeypatch.setattr("app.services.import_runner.import_concurrency_available", lambda: False)
 
     setup_admin(client)
     tariff_id = default_tariff_id(client)

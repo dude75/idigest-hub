@@ -124,17 +124,58 @@ async def run_capture_worker_cancel(hub_task_id: str) -> None:
         db.close()
 
 
-def capture_worker_slot_available(db: Session, task: Task) -> bool:
-    """Gate hub capture start on icapture-worker slots.available (not a fixed hub cap)."""
+def _capture_worker_held_by_other(db: Session, worker_id: str, exclude_task_id: str) -> bool:
+    """One in-flight capture per worker node (same model as transcribe/summarize dispatch)."""
+    from sqlalchemy import select
+
+    running = db.scalars(
+        select(Task).where(
+            Task.type == "capture",
+            Task.worker_id == worker_id,
+            Task.id != exclude_task_id,
+            Task.status == "running",
+        )
+    ).first()
+    if running is not None:
+        return True
+    for task_id in _active:
+        if task_id == exclude_task_id:
+            continue
+        other = db.get(Task, task_id)
+        if other is not None and other.worker_id == worker_id:
+            return True
+    for task_id, thread in _bg_threads.items():
+        if task_id == exclude_task_id or not thread.is_alive():
+            continue
+        other = db.get(Task, task_id)
+        if other is not None and other.worker_id == worker_id:
+            return True
+    return False
+
+
+def capture_worker_capacity_available(db: Session, task: Task) -> bool:
+    """Gate capture start: dispatch-ready node and free workers.available (or legacy one job per node)."""
     worker_id = (task.worker_id or "").strip()
     if not worker_id:
         return False
-    node = db.get(WorkerNode, task.worker_id)
+    node = db.get(WorkerNode, worker_id)
     if node is None:
         return False
-    from app.services.capture_platforms import capture_worker_has_free_slot
+    from app.deps import get_instance_settings
+    from app.services.capture_platforms import allowed_connectors
+    from app.services.worker_availability import (
+        parse_health_worker_pool,
+        worker_is_dispatch_available,
+        worker_node_has_pool_capacity,
+    )
 
-    return capture_worker_has_free_slot(node)
+    settings = get_instance_settings(db)
+    connectors = allowed_connectors(settings)
+    if not worker_is_dispatch_available(node, capture_connectors=connectors):
+        return False
+    if parse_health_worker_pool(node.last_health) is not None:
+        return worker_node_has_pool_capacity(node)
+    return not _capture_worker_held_by_other(db, worker_id, task.id)
 
 
 def _update_task_meta(db: Session, task: Task, stage: str, extra: dict[str, Any] | None = None) -> None:
@@ -848,7 +889,7 @@ def maybe_start_capture(db: Session, task: Task) -> None:
             return
         _active.discard(task.id)
         _bg_threads.pop(task.id, None)
-        if not capture_worker_slot_available(db, task):
+        if not capture_worker_capacity_available(db, task):
             meta = dict(task.meta_json or {})
             meta["stage"] = "queue_full"
             task.meta_json = meta

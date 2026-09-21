@@ -265,25 +265,13 @@ def _org_count(db: Session, tariff_id: str) -> int:
     return int(db.scalar(select(func.count()).select_from(Organization).where(Organization.tariff_id == tariff_id)) or 0)
 
 
-@router.get("/workers")
-async def list_workers(
-    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+def _workers_list_payload(
+    rows: list[WorkerNode],
+    *,
+    capture_connectors: list[str],
+    import_max_concurrent: int,
 ) -> dict:
-    _admin(ctx)
-    rows = list(db.scalars(select(WorkerNode).order_by(WorkerNode.created_at)).all())
-    from app.services.capture_platforms import allowed_connectors
-    from app.services.dispatcher import refresh_node_health
-    from app.services.import_platforms import normalize_import_max_concurrent
-    from app.services.worker_availability import workers_availability_summary
-
-    for row in rows:
-        if row.enabled and row.type in ("capture", "transcribe", "summarize"):
-            await refresh_node_health(db, row)
-    db.commit()
-
-    settings = get_instance_settings(db)
-    capture_connectors = allowed_connectors(settings)
-    from app.services.worker_availability import worker_is_dispatch_available
+    from app.services.worker_availability import worker_is_dispatch_available, workers_availability_summary
 
     return {
         "items": [
@@ -298,9 +286,40 @@ async def list_workers(
         "summary": workers_availability_summary(
             rows,
             capture_connectors=capture_connectors,
-            import_max_concurrent=normalize_import_max_concurrent(settings.import_max_concurrent),
+            import_max_concurrent=import_max_concurrent,
         ),
     }
+
+
+@router.get("/workers")
+async def list_workers(
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+    probe: bool = Query(True, description="Probe worker /health (set false for cached snapshot)"),
+    refresh: bool = Query(False, description="Re-probe all enabled nodes, not only stale"),
+) -> dict:
+    _admin(ctx)
+    rows = list(db.scalars(select(WorkerNode).order_by(WorkerNode.created_at)).all())
+    from app.services.capture_platforms import allowed_connectors
+    from app.services.dispatcher import refresh_nodes_health
+    from app.services.import_platforms import normalize_import_max_concurrent
+
+    if probe:
+        targets = [
+            row
+            for row in rows
+            if row.enabled and row.type in ("capture", "transcribe", "summarize")
+        ]
+        await refresh_nodes_health(db, targets, force=refresh)
+        db.commit()
+
+    settings = get_instance_settings(db)
+    capture_connectors = allowed_connectors(settings)
+    return _workers_list_payload(
+        rows,
+        capture_connectors=capture_connectors,
+        import_max_concurrent=normalize_import_max_concurrent(settings.import_max_concurrent),
+    )
 
 
 @router.get("/instance/transcribe-models")

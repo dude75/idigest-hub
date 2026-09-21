@@ -27,7 +27,7 @@ from app.constants import (
     SECURITY_TABS,
     SUPPORTED_LOCALES,
 )
-from app.cookies import clear_auth_cookies, issue_auth_cookies
+from app.cookies import bind_csrf_token, clear_auth_cookies, issue_auth_cookies
 from app.services.secrets_bootstrap import session_secret_configured
 from app.db import get_session
 from app.deps import AuthContext, abort, get_instance_settings, locale_from_request, optional_auth, require_auth, session_ttl_sec_from_db
@@ -872,9 +872,21 @@ def mfa_disable(
     return {"status": "ok"}
 
 
+def _me_with_csrf(request: Request, response: Response, ctx: AuthContext, db: Session) -> dict:
+    token = bind_csrf_token(request, response, max_age=session_ttl_sec_from_db(db))
+    payload = _me_payload(ctx, db)
+    payload["csrf_token"] = token
+    return payload
+
+
 @router.get("/me")
-def me(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
-    return _me_payload(ctx, db)
+def me(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    return _me_with_csrf(request, response, ctx, db)
 
 
 @router.get("/me/backup")
@@ -906,6 +918,8 @@ def download_backup(
 @router.patch("/me")
 def patch_me(
     body: MePatchBody,
+    request: Request,
+    response: Response,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
@@ -978,7 +992,7 @@ def patch_me(
     if "show_only_my_items" in data and data["show_only_my_items"] is not None:
         ctx.user.show_only_my_items = bool(data["show_only_my_items"])
         ctx.user.updated_at = utcnow()
-    return _me_payload(ctx, db)
+    return _me_with_csrf(request, response, ctx, db)
 
 
 def _verify_account_delete_step_up(ctx: AuthContext, db: Session, body: AccountDeleteBody) -> None:

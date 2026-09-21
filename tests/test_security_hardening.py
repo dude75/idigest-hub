@@ -139,6 +139,7 @@ def test_csrf_backfilled_for_legacy_session(client):
     me = client.get("/api/v1/me")
     assert me.status_code == 200, me.text
     assert client.cookies.get("hub_csrf")
+    assert me.json().get("csrf_token") == client.cookies.get("hub_csrf")
 
     response = client.post("/api/v1/auth/logout")
     assert response.status_code == 200, response.text

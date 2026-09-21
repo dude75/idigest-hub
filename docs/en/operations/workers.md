@@ -58,6 +58,28 @@ On PATCH, omit `api_token` to keep the stored token. Re-test connection after UR
 
 Hub sends `Authorization: Bearer <decrypted api_token>` on every worker call. Users never see this token.
 
+## Shared `workers` block in GET /health
+
+All worker types (**itranscribe**, **isummarize**, **icapture**) may expose the same capacity shape:
+
+```json
+"workers": {
+  "max": 4,
+  "active": 1,
+  "available": 3
+}
+```
+
+| Field | Meaning |
+| ----- | ------- |
+| `max` | Pool size for this process |
+| `active` | Jobs in flight |
+| `available` | Free workers in the pool (`> 0` means the hub may dispatch) |
+
+The hub **sums** `workers.*` across enabled, dispatch-ready nodes of that type. If no node returns `workers`, the type falls back to **ready hub nodes / enabled** (legacy transcribe behavior).
+
+Type-specific checks still apply: transcribe — `engines`; summarize — `GET /ready` (200); capture — `connectors`.
+
 ## Health and readiness
 
 Dispatcher refreshes each node every ~5 seconds:

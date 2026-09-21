@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from app.models import WorkerNode
-from app.services.capture_platforms import aggregate_capture_worker_slots, worker_offers_connector
+from app.services.capture_platforms import worker_offers_connector
 from app.services.transcribe_models import _node_model_lists
 
 
@@ -53,8 +53,8 @@ def _type_bucket(nodes: list[WorkerNode], worker_type: str, *, capture_connector
     }
 
 
-def hub_worker_slots(bucket: dict[str, int]) -> dict[str, int]:
-    """Transcribe/summarize: slots = dispatch-ready nodes (available) of enabled pool (max)."""
+def hub_node_capacity(bucket: dict[str, int]) -> dict[str, int]:
+    """Fallback: dispatch-ready hub nodes (available) of enabled pool (max)."""
     enabled = int(bucket.get("enabled") or 0)
     available = int(bucket.get("available") or 0)
     return {
@@ -62,6 +62,67 @@ def hub_worker_slots(bucket: dict[str, int]) -> dict[str, int]:
         "available": available,
         "active": max(enabled - available, 0),
     }
+
+
+def parse_health_worker_pool(health: dict[str, Any] | None) -> dict[str, int] | None:
+    """Worker GET /health → workers.max|active|available (shared contract for all types)."""
+    if not health or health.get("_http") != 200:
+        return None
+    raw = health.get("workers")
+    if not isinstance(raw, dict):
+        return None
+    try:
+        return {
+            "max": max(0, int(raw.get("max") or 0)),
+            "active": max(0, int(raw.get("active") or 0)),
+            "available": max(0, int(raw.get("available") or 0)),
+        }
+    except (TypeError, ValueError):
+        return None
+
+
+def aggregate_worker_pool(
+    nodes: list[WorkerNode],
+    worker_type: str,
+    *,
+    capture_connectors: list[str],
+) -> dict[str, int] | None:
+    total_max = 0
+    total_active = 0
+    total_available = 0
+    saw_pool = False
+    for node in nodes:
+        if node.type != worker_type or not node.enabled:
+            continue
+        if not worker_is_dispatch_available(node, capture_connectors=capture_connectors):
+            continue
+        pool = parse_health_worker_pool(node.last_health)
+        if pool is None:
+            continue
+        saw_pool = True
+        total_max += pool["max"]
+        total_active += pool["active"]
+        total_available += pool["available"]
+    if not saw_pool:
+        return None
+    return {"max": total_max, "active": total_active, "available": total_available}
+
+
+def type_capacity(
+    nodes: list[WorkerNode],
+    worker_type: str,
+    bucket: dict[str, int],
+    *,
+    capture_connectors: list[str],
+) -> dict[str, int]:
+    return aggregate_worker_pool(nodes, worker_type, capture_connectors=capture_connectors) or hub_node_capacity(
+        bucket
+    )
+
+
+def worker_node_has_pool_capacity(node: WorkerNode) -> bool:
+    pool = parse_health_worker_pool(node.last_health)
+    return pool is not None and pool["available"] > 0
 
 
 def workers_availability_summary(
@@ -84,7 +145,13 @@ def workers_availability_summary(
         "hub_limits": {
             "import_max_concurrent": import_max_concurrent,
         },
-        "capture_slots": aggregate_capture_worker_slots(nodes),
-        "transcribe_slots": hub_worker_slots(by_type["transcribe"]),
-        "summarize_slots": hub_worker_slots(by_type["summarize"]),
+        "capture_capacity": type_capacity(
+            nodes, "capture", by_type["capture"], capture_connectors=capture_connectors
+        ),
+        "transcribe_capacity": type_capacity(
+            nodes, "transcribe", by_type["transcribe"], capture_connectors=capture_connectors
+        ),
+        "summarize_capacity": type_capacity(
+            nodes, "summarize", by_type["summarize"], capture_connectors=capture_connectors
+        ),
     }

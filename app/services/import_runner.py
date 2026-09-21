@@ -38,7 +38,7 @@ def request_import_cancel(task_id: str) -> None:
     _cancelled.add(task_id)
 
 
-def import_slots_available(db: Session) -> bool:
+def import_concurrency_available(db: Session) -> bool:
     limit = normalize_import_max_concurrent(get_instance_settings(db).import_max_concurrent)
     return len(_active) < limit
 
@@ -244,7 +244,7 @@ def maybe_start_import(db: Session, task: Task) -> None:
         return
     if task.id in _active or task.id in _bg_threads:
         return
-    if not import_slots_available(db):
+    if not import_concurrency_available(db):
         task.meta_json = {**(task.meta_json or {}), "stage": "queued"}
         return
 

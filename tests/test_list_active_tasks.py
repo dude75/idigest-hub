@@ -20,7 +20,7 @@ def _allow_import_url(url: str, *, settings_allowed):
 
 def test_list_shows_all_active_import_tasks(client, monkeypatch):
     monkeypatch.setattr("app.services.url_import.assert_import_fetch_allowed", _allow_import_url)
-    monkeypatch.setattr("app.services.import_runner.import_slots_available", lambda: False)
+    monkeypatch.setattr("app.services.import_runner.import_concurrency_available", lambda: False)
 
     setup_admin(client)
     tariff_id = default_tariff_id(client)
@@ -47,7 +47,7 @@ def test_list_shows_all_active_import_tasks(client, monkeypatch):
 
 def test_list_active_import_tasks_with_many_done(client, monkeypatch):
     monkeypatch.setattr("app.services.url_import.assert_import_fetch_allowed", _allow_import_url)
-    monkeypatch.setattr("app.services.import_runner.import_slots_available", lambda: False)
+    monkeypatch.setattr("app.services.import_runner.import_concurrency_available", lambda: False)
 
     setup_admin(client)
     tariff_id = default_tariff_id(client)
@@ -104,7 +104,7 @@ def test_list_active_import_tasks_with_many_done(client, monkeypatch):
 
 def test_list_tasks_schedules_full_tick_when_active(client, monkeypatch, spy_locked_tick_job):
     monkeypatch.setattr("app.services.url_import.assert_import_fetch_allowed", _allow_import_url)
-    monkeypatch.setattr("app.services.import_runner.import_slots_available", lambda: False)
+    monkeypatch.setattr("app.services.import_runner.import_concurrency_available", lambda: False)
 
     setup_admin(client)
     tariff_id = default_tariff_id(client)

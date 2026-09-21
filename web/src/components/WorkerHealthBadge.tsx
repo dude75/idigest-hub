@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
 import type { Worker } from '../types'
-import { workerSlotsFromHealth } from '../pages/instance/captureSlots'
 
 export function workerHealthTone(w: Worker): 'ok' | 'warn' | 'na' {
   const health = w.last_health
@@ -28,31 +27,12 @@ export function WorkerHealthBadge({ worker }: { worker: Worker }) {
   if (version) parts.push(version)
   if (http != null) parts.push(`HTTP ${String(http)}`)
   if (ready != null) parts.push(`${t('instance.workerReady')} ${String(ready)}`)
-  const captureSlots = workerSlotsFromHealth(worker)
-  if (captureSlots) {
-    parts.push(
-      t('instance.workerCaptureSlotsShort', {
-        available: captureSlots.available,
-        max: captureSlots.max,
-      }),
-    )
-  }
 
   return (
     <span className="worker-health-cell">
       <span className={`badge worker-health-${tone}`} title={parts.join(' · ')}>
         {tone === 'ok' ? t('instance.workerHealthOk') : t('instance.workerHealthWarn')}
       </span>
-      {captureSlots ? (
-        <span className="muted worker-health-slots">
-          {t('instance.workerCaptureSlotsShort', {
-            available: captureSlots.available,
-            max: captureSlots.max,
-          })}
-        </span>
-      ) : worker.type === 'capture' ? (
-        <span className="muted worker-health-slots">{t('instance.workerCaptureSlotsUnknown')}</span>
-      ) : null}
     </span>
   )
 }

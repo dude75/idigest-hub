@@ -54,7 +54,6 @@ def test_workers_summary_counts():
             last_health={
                 "_http": 200,
                 "connectors": {"jitsi": {"status": "loaded"}},
-                "slots": {"max": 50, "active": 2, "available": 48},
             },
             capture_connectors_json=["jitsi"],
             asr_models_json=None,
@@ -70,21 +69,46 @@ def test_workers_summary_counts():
     assert summary["by_type"]["transcribe"]["available"] == 1
     assert summary["by_type"]["capture"]["available"] == 1
     assert summary["hub_limits"]["import_max_concurrent"] == 4
-    assert summary["capture_slots"] == {"max": 50, "active": 2, "available": 48}
-    assert summary["transcribe_slots"] == {"max": 1, "active": 0, "available": 1}
-    assert summary["summarize_slots"] == {"max": 0, "active": 0, "available": 0}
+    assert summary["capture_capacity"] == {"max": 1, "active": 0, "available": 1}
 
 
-def test_capture_worker_has_free_slot():
-    from app.services.capture_platforms import capture_worker_has_free_slot
-
-    node = _node(
-        type="capture",
-        last_health={"_http": 200, "slots": {"max": 10, "active": 10, "available": 0}},
-        capture_connectors_json=["jitsi"],
-        asr_models_json=None,
-        diarization_models_json=None,
+def test_capture_capacity_from_health_workers_pool():
+    nodes = [
+        _node(
+            id="w3",
+            type="capture",
+            last_health={
+                "_http": 200,
+                "connectors": {"jitsi": {"status": "loaded"}},
+                "workers": {"max": 4, "active": 1, "available": 3},
+            },
+            capture_connectors_json=["jitsi"],
+            asr_models_json=None,
+            diarization_models_json=None,
+        ),
+    ]
+    summary = workers_availability_summary(
+        nodes,
+        capture_connectors=["jitsi"],
+        import_max_concurrent=4,
     )
-    assert capture_worker_has_free_slot(node) is False
-    node.last_health = {"_http": 200, "slots": {"max": 10, "active": 9, "available": 1}}
-    assert capture_worker_has_free_slot(node) is True
+    assert summary["capture_capacity"] == {"max": 4, "active": 1, "available": 3}
+
+
+def test_transcribe_capacity_from_health_workers_pool():
+    nodes = [
+        _node(
+            last_health={
+                "_http": 200,
+                "engines": {"whisper": "loaded", "nemo": "loaded"},
+                "workers": {"max": 2, "active": 0, "available": 2},
+            },
+        ),
+    ]
+    summary = workers_availability_summary(
+        nodes,
+        capture_connectors=["jitsi"],
+        import_max_concurrent=4,
+    )
+    assert summary["transcribe_capacity"] == {"max": 2, "active": 0, "available": 2}
+
