@@ -363,9 +363,16 @@ export type WorkerDeleteImpactTask = {
   on_worker?: boolean
 }
 
+export type CaptureWorkerChoice = {
+  id: string
+  name: string
+  base_url: string
+}
+
 export type WorkerRemediationPayload = {
-  asr_model: string
-  diarization_model: string | null
+  asr_model?: string
+  diarization_model?: string | null
+  capture_worker_id?: string
 }
 
 export type WorkerDeleteImpact = {
@@ -389,6 +396,8 @@ export type WorkerDeleteImpact = {
   capture_jitsi_hosts_count?: number
   capture_tasks_count?: number
   capture_losing_jitsi?: boolean
+  available_capture_workers?: CaptureWorkerChoice[]
+  suggested_capture_worker?: CaptureWorkerChoice | null
 }
 
 export type ImportPlatform = {

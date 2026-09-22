@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import get_instance_settings
 from app.models import OrgCaptureJitsiHost, Organization, Task, User, WorkerNode
+from app.services.capture_platforms import worker_offers_connector
 from app.services.transcribe_models import dispatchable_pairs, resolve_transcribe_models
 from app.timeutil import utcnow
 
@@ -147,6 +148,24 @@ def _transcribe_impact(
     }
 
 
+def _capture_worker_public(node: WorkerNode) -> dict[str, str]:
+    return {
+        "id": node.id,
+        "name": node.name,
+        "base_url": node.base_url,
+    }
+
+
+def _capture_replacement_workers(nodes: list[WorkerNode]) -> list[WorkerNode]:
+    out = [
+        node
+        for node in nodes
+        if node.type == "capture" and node.enabled and worker_offers_connector(node, "jitsi")
+    ]
+    out.sort(key=lambda item: (item.name.lower(), item.created_at))
+    return out
+
+
 def _capture_jitsi_hosts(db: Session, worker_id: str) -> list[OrgCaptureJitsiHost]:
     return list(
         db.scalars(select(OrgCaptureJitsiHost).where(OrgCaptureJitsiHost.worker_id == worker_id)).all()
@@ -196,6 +215,7 @@ def _capture_impact(
     connectors_before: list[str],
     connectors_after: list[str],
     action: str,
+    after_nodes: list[WorkerNode],
 ) -> dict[str, Any]:
     jitsi_hosts = _capture_jitsi_hosts_detail(db, worker_id)
     tasks = _capture_tasks(db, worker_id)
@@ -204,12 +224,17 @@ def _capture_impact(
     blocking = bool(jitsi_hosts) and (disabling or losing_jitsi or action == "delete")
     if tasks and (disabling or action == "delete"):
         blocking = True
+    replacements = _capture_replacement_workers(after_nodes)
+    suggested = replacements[0] if replacements else None
     return {
         "blocking": blocking,
         "capture_jitsi_hosts": jitsi_hosts,
         "capture_jitsi_hosts_count": len(jitsi_hosts),
         "capture_tasks_count": len(tasks),
         "capture_losing_jitsi": losing_jitsi and bool(jitsi_hosts),
+        "available_capture_workers": [_capture_worker_public(node) for node in replacements],
+        "suggested_capture_worker": _capture_worker_public(suggested) if suggested else None,
+        "can_remediate": bool(blocking and suggested),
     }
 
 
@@ -315,6 +340,7 @@ def _compute_impact(
                 connectors_before=list(node.capture_connectors_json or []),
                 connectors_after=connectors_after,
                 action=action,
+                after_nodes=after_nodes,
             )
         )
     payload["blocking"] = bool(payload.get("blocking"))
@@ -327,6 +353,67 @@ def compute_worker_delete_impact(db: Session, node: WorkerNode) -> dict[str, Any
     return _compute_impact(db, node, before_nodes=all_nodes, after_nodes=after_nodes, action="delete")
 
 
+def prepare_worker_node_delete(db: Session, worker_id: str) -> dict[str, int]:
+    """Drop FK references so worker_nodes row can be removed (capture Jitsi maps, task.worker_id)."""
+    jitsi_hosts = _capture_jitsi_hosts(db, worker_id)
+    for row in jitsi_hosts:
+        db.delete(row)
+
+    tasks_updated = 0
+    for task in db.scalars(select(Task).where(Task.worker_id == worker_id)).all():
+        if task.type == "capture" and task.status in ("queued", "running"):
+            task.worker_id = None
+            task.worker_task_id = None
+            task.status = "queued"
+            task.meta_json = {"stage": "queued"}
+            task.retry_without_timeout = False
+        else:
+            task.worker_id = None
+            if task.status == "running":
+                task.worker_task_id = None
+        task.updated_at = utcnow()
+        tasks_updated += 1
+
+    return {"jitsi_hosts_removed": len(jitsi_hosts), "tasks_updated": tasks_updated}
+
+
+def apply_capture_remediation(
+    db: Session,
+    *,
+    after_nodes: list[WorkerNode],
+    focus_worker_id: str,
+    replacement_worker_id: str,
+) -> dict[str, int]:
+    replacement = next((node for node in after_nodes if node.id == replacement_worker_id), None)
+    if replacement is None or replacement.type != "capture" or not replacement.enabled:
+        raise ValueError("invalid_replacement")
+    if not worker_offers_connector(replacement, "jitsi"):
+        raise ValueError("invalid_replacement")
+
+    jitsi_hosts_updated = 0
+    for row in _capture_jitsi_hosts(db, focus_worker_id):
+        row.worker_id = replacement_worker_id
+        row.updated_at = utcnow()
+        jitsi_hosts_updated += 1
+
+    tasks_updated = 0
+    for task in _capture_tasks(db, focus_worker_id):
+        if task.status == "running":
+            task.worker_id = None
+            task.worker_task_id = None
+            task.status = "queued"
+            task.meta_json = {"stage": "queued"}
+        else:
+            task.worker_id = replacement_worker_id
+            task.worker_task_id = None
+        task.retry_without_timeout = False
+        task.updated_at = utcnow()
+        tasks_updated += 1
+
+    db.flush()
+    return {"jitsi_hosts_updated": jitsi_hosts_updated, "tasks_updated": tasks_updated}
+
+
 def apply_transcribe_remediation(
     db: Session,
     *,
@@ -336,6 +423,8 @@ def apply_transcribe_remediation(
     asr_model: str,
     diarization_model: str | None,
 ) -> dict[str, int | bool]:
+    if not asr_model:
+        raise ValueError("invalid_replacement")
     settings = get_instance_settings(db)
     enabled_before = _enabled(before_nodes, "transcribe")
     enabled_after = _enabled(after_nodes, "transcribe")
@@ -385,6 +474,7 @@ def apply_transcribe_remediation(
         task.updated_at = utcnow()
         tasks_updated += 1
 
+    db.flush()
     return {
         "instance_defaults_updated": instance_updated,
         "users_updated": users_updated,

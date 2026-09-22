@@ -39,8 +39,9 @@ router = APIRouter()
 
 
 class WorkerRemediation(BaseModel):
-    asr_model: str
+    asr_model: str | None = None
     diarization_model: str | None = None
+    capture_worker_id: str | None = None
 
 
 class WorkerBody(BaseModel):
@@ -482,15 +483,13 @@ async def patch_worker(
     if body.remediation is not None:
         nodes_after = list(db.scalars(select(WorkerNode)).all())
         try:
-            from app.services.worker_impact import apply_transcribe_remediation
-
-            remediation_result = apply_transcribe_remediation(
+            remediation_result = _apply_worker_remediation(
                 db,
+                worker_type=body.type,
                 after_nodes=nodes_after,
                 before_nodes=nodes_before,
                 focus_worker_id=node.id,
-                asr_model=body.remediation.asr_model,
-                diarization_model=body.remediation.diarization_model,
+                remediation=body.remediation,
             )
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
@@ -565,6 +564,38 @@ def _schedule_worker_remediation_tick(background_tasks: BackgroundTasks | None, 
         schedule_locked_tick(background_tasks, refresh_health=True, wait=False)
 
 
+def _apply_worker_remediation(
+    db: Session,
+    *,
+    worker_type: str,
+    after_nodes: list[WorkerNode],
+    before_nodes: list[WorkerNode],
+    focus_worker_id: str,
+    remediation: WorkerRemediation,
+) -> dict:
+    from app.services.worker_impact import apply_capture_remediation, apply_transcribe_remediation
+
+    if worker_type == "transcribe":
+        return apply_transcribe_remediation(
+            db,
+            after_nodes=after_nodes,
+            before_nodes=before_nodes,
+            focus_worker_id=focus_worker_id,
+            asr_model=remediation.asr_model or "",
+            diarization_model=remediation.diarization_model,
+        )
+    if worker_type == "capture":
+        if not remediation.capture_worker_id:
+            raise ValueError("invalid_replacement")
+        return apply_capture_remediation(
+            db,
+            after_nodes=after_nodes,
+            focus_worker_id=focus_worker_id,
+            replacement_worker_id=remediation.capture_worker_id,
+        )
+    raise ValueError("invalid_replacement")
+
+
 @router.delete("/workers/{worker_id}")
 def delete_worker(
     worker_id: str,
@@ -583,23 +614,27 @@ def delete_worker(
     remediation_result = None
     if remediation is not None:
         try:
-            from app.services.worker_impact import apply_transcribe_remediation
-
-            remediation_result = apply_transcribe_remediation(
+            remediation_result = _apply_worker_remediation(
                 db,
+                worker_type=node.type,
                 after_nodes=after_nodes,
                 before_nodes=all_nodes,
                 focus_worker_id=node.id,
-                asr_model=remediation.asr_model,
-                diarization_model=remediation.diarization_model,
+                remediation=remediation,
             )
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
+    from app.services.worker_impact import prepare_worker_node_delete
+
+    cleanup = prepare_worker_node_delete(db, node.id)
     db.delete(node)
-    _schedule_worker_remediation_tick(background_tasks, remediation_result)
+    tick_payload = remediation_result if remediation_result else cleanup
+    _schedule_worker_remediation_tick(background_tasks, tick_payload)
     payload: dict = {"status": "ok"}
     if remediation_result is not None:
         payload["remediation"] = remediation_result
+    if cleanup["jitsi_hosts_removed"] or cleanup["tasks_updated"]:
+        payload["cleanup"] = cleanup
     return payload
 
 

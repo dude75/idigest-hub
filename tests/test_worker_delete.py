@@ -1,6 +1,16 @@
 import json
 
-from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD, add_worker, get_task_row, login, setup_admin, signup, upload_audio
+from tests.conftest import (
+    ADMIN_EMAIL,
+    ADMIN_PASSWORD,
+    add_worker,
+    get_task_row,
+    login,
+    seed_node_health,
+    setup_admin,
+    signup,
+    upload_audio,
+)
 
 
 def test_delete_impact_reports_lost_pair(client):
@@ -217,3 +227,88 @@ def test_delete_impact_last_summarize_worker(client):
     body = impact.json()
     assert body["last_enabled_worker"] is True
     assert body["blocking"] is True
+
+
+def test_delete_impact_capture_can_remediate(client, fake_workers):
+    setup_admin(client)
+    doomed = add_worker(client, type="capture", name="cap-a", base_url="http://capture-a.test")
+    keeper = add_worker(client, type="capture", name="cap-b", base_url="http://capture-b.test")
+    seed_node_health(doomed["id"])
+    seed_node_health(keeper["id"])
+    client.patch("/api/v1/instance/settings", json={"capture_enabled": True})
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "capimpact@example.com", "capimpactpass1", tariff_id).status_code == 200
+    login(client, "capimpact@example.com", "capimpactpass1")
+    assert client.put(
+        "/api/v1/org/capture/jitsi",
+        json={"items": [{"host": "meet.example.com", "worker_id": doomed["id"]}]},
+    ).status_code == 200
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    impact = client.get(f"/api/v1/workers/{doomed['id']}/delete-impact")
+    assert impact.status_code == 200, impact.text
+    body = impact.json()
+    assert body["blocking"] is True
+    assert body["can_remediate"] is True
+    assert body["suggested_capture_worker"]["id"] == keeper["id"]
+    assert {item["id"] for item in body["available_capture_workers"]} == {keeper["id"]}
+
+
+def test_delete_capture_worker_with_remediation_reassigns_jitsi_host(client, fake_workers):
+    setup_admin(client)
+    doomed = add_worker(client, type="capture", name="cap-a", base_url="http://capture-a.test")
+    keeper = add_worker(client, type="capture", name="cap-b", base_url="http://capture-b.test")
+    seed_node_health(doomed["id"])
+    seed_node_health(keeper["id"])
+    client.patch("/api/v1/instance/settings", json={"capture_enabled": True})
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "capremed@example.com", "capremedpass1", tariff_id).status_code == 200
+    login(client, "capremed@example.com", "capremedpass1")
+    assert client.put(
+        "/api/v1/org/capture/jitsi",
+        json={"items": [{"host": "meet.example.com", "worker_id": doomed["id"]}]},
+    ).status_code == 200
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    deleted = client.request(
+        "DELETE",
+        f"/api/v1/workers/{doomed['id']}",
+        content=json.dumps({"remediation": {"capture_worker_id": keeper["id"]}}),
+        headers={
+            "Content-Type": "application/json",
+            "X-CSRF-Token": client.cookies.get("hub_csrf") or "",
+        },
+    )
+    assert deleted.status_code == 200, deleted.text
+    remediation = deleted.json()["remediation"]
+    assert remediation["jitsi_hosts_updated"] == 1
+
+    login(client, "capremed@example.com", "capremedpass1")
+    hosts = client.get("/api/v1/org/capture/jitsi").json()["items"]
+    assert len(hosts) == 1
+    assert hosts[0]["host"] == "meet.example.com"
+    assert hosts[0]["worker_id"] == keeper["id"]
+
+
+def test_delete_capture_worker_removes_jitsi_host_map(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    client.patch("/api/v1/instance/settings", json={"capture_enabled": True})
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "delcap@example.com", "delcappass12", tariff_id).status_code == 200
+    login(client, "delcap@example.com", "delcappass12")
+    mapped = client.put(
+        "/api/v1/org/capture/jitsi",
+        json={"items": [{"host": "meet.example.com", "worker_id": worker["id"]}]},
+    )
+    assert mapped.status_code == 200, mapped.text
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    deleted = client.delete(f"/api/v1/workers/{worker['id']}")
+    assert deleted.status_code == 200, deleted.text
+    body = deleted.json()
+    assert body["cleanup"]["jitsi_hosts_removed"] == 1
+
+    workers = client.get("/api/v1/workers").json()["items"]
+    assert all(row["id"] != worker["id"] for row in workers)

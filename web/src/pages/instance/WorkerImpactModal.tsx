@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
 import { Modal } from '../../components/Modal'
 import type {
+  CaptureWorkerChoice,
   DispatchablePair,
   Worker,
   WorkerDeleteImpact,
@@ -31,6 +32,10 @@ function formatPairLabel(
     asr: pair.asr_model,
     diarization: pair.diarization_model || t('instance.diarizationOff'),
   })
+}
+
+function formatCaptureWorkerLabel(worker: CaptureWorkerChoice) {
+  return worker.name.trim() || worker.base_url
 }
 
 type ModelPair = { asr: string; diarization: string | null }
@@ -337,6 +342,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
   const [busy, setBusy] = useState(false)
   const [applyRemediation, setApplyRemediation] = useState(true)
   const [selectedPairKey, setSelectedPairKey] = useState('')
+  const [selectedCaptureWorkerId, setSelectedCaptureWorkerId] = useState('')
   const workerType = changeBody?.type != null ? String(changeBody.type) : worker.type
   const workerLabel = worker.name || worker.base_url
   const { unavailable, inUse } = useImpactSections(impact, workerType)
@@ -346,6 +352,12 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
     return pairs.find((pair) => pairKey(pair) === selectedPairKey) ?? pairs[0]
   }, [impact?.available_pairs, selectedPairKey])
   const suggestedKey = impact?.suggested_replacement ? pairKey(impact.suggested_replacement) : ''
+  const selectedCaptureWorker = useMemo(() => {
+    const workers = impact?.available_capture_workers ?? []
+    if (!workers.length) return null
+    return workers.find((item) => item.id === selectedCaptureWorkerId) ?? workers[0]
+  }, [impact?.available_capture_workers, selectedCaptureWorkerId])
+  const suggestedCaptureWorkerId = impact?.suggested_capture_worker?.id ?? ''
 
   useEffect(() => {
     let cancelled = false
@@ -377,23 +389,39 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
   useEffect(() => {
     if (!impact?.can_remediate || !impact.suggested_replacement) {
       setSelectedPairKey('')
-      setApplyRemediation(true)
-      return
+    } else {
+      setSelectedPairKey(pairKey(impact.suggested_replacement))
     }
-    setSelectedPairKey(pairKey(impact.suggested_replacement))
-    setApplyRemediation(true)
-  }, [impact?.can_remediate, impact?.suggested_replacement, impact?.available_pairs])
+    if (!impact?.can_remediate || !impact.suggested_capture_worker) {
+      setSelectedCaptureWorkerId('')
+    } else {
+      setSelectedCaptureWorkerId(impact.suggested_capture_worker.id)
+    }
+    if (impact?.can_remediate) {
+      setApplyRemediation(true)
+    }
+  }, [
+    impact?.can_remediate,
+    impact?.suggested_replacement,
+    impact?.available_pairs,
+    impact?.suggested_capture_worker,
+    impact?.available_capture_workers,
+  ])
 
   async function confirm() {
     setBusy(true)
     try {
-      const remediation =
-        applyRemediation && impact?.can_remediate && selectedPair
-          ? {
-              asr_model: selectedPair.asr_model,
-              diarization_model: selectedPair.diarization_model ?? null,
-            }
-          : undefined
+      let remediation: WorkerRemediationPayload | undefined
+      if (applyRemediation && impact?.can_remediate) {
+        if (workerType === 'capture' && selectedCaptureWorker) {
+          remediation = { capture_worker_id: selectedCaptureWorker.id }
+        } else if (workerType === 'transcribe' && selectedPair) {
+          remediation = {
+            asr_model: selectedPair.asr_model,
+            diarization_model: selectedPair.diarization_model ?? null,
+          }
+        }
+      }
       await onConfirm({ remediation })
       onClose()
     } catch (e) {
@@ -495,6 +523,43 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
                     return (
                       <option key={key} value={key}>
                         {formatPairLabel(pair, t)}
+                        {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
+                      </option>
+                    )
+                  })}
+                </select>
+              </label>
+            </section>
+          ) : null}
+
+          {impact.can_remediate && workerType === 'capture' && selectedCaptureWorker ? (
+            <section className="worker-impact-remediation">
+              <div className="worker-impact-section-head">
+                <h3>{t('instance.workerImpactCaptureRemediationTitle')}</h3>
+                <p className="muted worker-impact-section-hint">{t('instance.workerImpactCaptureRemediationHint')}</p>
+              </div>
+              <label className="worker-impact-remediation-apply">
+                <input
+                  type="checkbox"
+                  checked={applyRemediation}
+                  onChange={(e) => setApplyRemediation(e.target.checked)}
+                  disabled={busy}
+                />
+                <span>{t('instance.workerImpactCaptureRemediationApply')}</span>
+              </label>
+              <label className="stack worker-impact-remediation-pair">
+                <span>{t('instance.workerImpactCaptureRemediationWorkerLabel')}</span>
+                <select
+                  value={selectedCaptureWorker.id}
+                  onChange={(e) => setSelectedCaptureWorkerId(e.target.value)}
+                  disabled={busy || !applyRemediation}
+                >
+                  {(impact.available_capture_workers ?? []).map((item) => {
+                    const suggested = item.id === suggestedCaptureWorkerId
+                    return (
+                      <option key={item.id} value={item.id}>
+                        {formatCaptureWorkerLabel(item)}
+                        {item.base_url && item.name.trim() ? ` — ${item.base_url}` : ''}
                         {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
                       </option>
                     )
