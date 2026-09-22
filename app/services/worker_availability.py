@@ -64,6 +64,10 @@ def hub_node_capacity(bucket: dict[str, int]) -> dict[str, int]:
     }
 
 
+def _normalize_worker_base_url(base_url: str) -> str:
+    return base_url.rstrip("/").lower()
+
+
 def parse_health_worker_pool(health: dict[str, Any] | None) -> dict[str, int] | None:
     """Worker GET /health → workers.max|active|available (shared contract for all types)."""
     if not health or health.get("_http") != 200:
@@ -87,10 +91,8 @@ def aggregate_worker_pool(
     *,
     capture_connectors: list[str],
 ) -> dict[str, int] | None:
-    total_max = 0
-    total_active = 0
-    total_available = 0
-    saw_pool = False
+    """Sum health.workers pools; one physical worker (same base_url) is counted once."""
+    pools_by_url: dict[str, dict[str, int]] = {}
     for node in nodes:
         if node.type != worker_type or not node.enabled:
             continue
@@ -99,12 +101,17 @@ def aggregate_worker_pool(
         pool = parse_health_worker_pool(node.last_health)
         if pool is None:
             continue
-        saw_pool = True
+        url_key = _normalize_worker_base_url(node.base_url)
+        pools_by_url.setdefault(url_key, pool)
+    if not pools_by_url:
+        return None
+    total_max = 0
+    total_active = 0
+    total_available = 0
+    for pool in pools_by_url.values():
         total_max += pool["max"]
         total_active += pool["active"]
         total_available += pool["available"]
-    if not saw_pool:
-        return None
     return {"max": total_max, "active": total_active, "available": total_available}
 
 

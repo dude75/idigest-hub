@@ -1,4 +1,5 @@
-import type { Worker, WorkersListSummary } from '../../types'
+import { workerHealthTone } from '../../components/WorkerHealthBadge'
+import type { Worker, WorkersListSummary, WorkersTypeSummary } from '../../types'
 
 export type WorkerPoolCapacity = {
   available: number
@@ -21,34 +22,89 @@ function normalizeCapacity(raw: unknown): WorkerPoolCapacity | null {
   }
 }
 
+function parseWorkerHealthPool(health: Record<string, unknown> | null | undefined): WorkerPoolCapacity | null {
+  if (!health) return null
+  return normalizeCapacity(health.workers)
+}
+
+function workerDispatchAvailable(worker: Worker): boolean {
+  if (typeof worker.dispatch_available === 'boolean') return worker.dispatch_available
+  return workerHealthTone(worker) === 'ok'
+}
+
+/** Fleet transcribe/summarize: healthy enabled hub-nodes / all hub-nodes of the type (same list as the table). */
+function typeHubFleetCapacity(
+  workers: Worker[],
+  workerType: 'transcribe' | 'summarize',
+): WorkerCapacityCell | null {
+  const typed = workers.filter((w) => w.type === workerType)
+  if (typed.length <= 0) return null
+  const available = typed.filter((w) => w.enabled && workerHealthTone(w) === 'ok').length
+  return { available, max: typed.length }
+}
+
+function typeBucketFromWorkers(
+  workers: Worker[],
+  workerType: 'transcribe' | 'summarize' | 'capture',
+): WorkersTypeSummary {
+  const typed = workers.filter((worker) => worker.type === workerType)
+  const enabled = typed.filter((worker) => worker.enabled)
+  return {
+    total: typed.length,
+    enabled: enabled.length,
+    available: enabled.filter((worker) => workerDispatchAvailable(worker)).length,
+  }
+}
+
+export function typeWorkerBucket(
+  summary: WorkersListSummary | null | undefined,
+  workers: Worker[],
+  workerType: 'transcribe' | 'summarize' | 'capture',
+): WorkersTypeSummary {
+  return summary?.by_type?.[workerType] ?? typeBucketFromWorkers(workers, workerType)
+}
+
+export function typeHubWorkerCapacity(
+  workers: Worker[],
+  workerType: 'transcribe' | 'summarize',
+): WorkerCapacityCell | null {
+  return typeHubFleetCapacity(workers, workerType)
+}
+
 export function normalizeCaptureCapacitySummary(
   summary: WorkersListSummary | null | undefined,
+  workers: Worker[] = [],
 ): WorkerPoolCapacity | null {
-  return normalizeCapacity(summary?.capture_capacity)
+  const pool = normalizeCapacity(summary?.capture_capacity)
+  if (pool) return pool
+  const bucket = typeWorkerBucket(summary, workers, 'capture')
+  const max = bucket.enabled > 0 ? bucket.enabled : bucket.total
+  if (max <= 0) return null
+  return {
+    max,
+    available: bucket.available,
+    active: Math.max(max - bucket.available, 0),
+  }
 }
 
-export function normalizeTypeCapacitySummary(
-  summary: WorkersListSummary | null | undefined,
-  workerType: 'transcribe' | 'summarize' | 'capture',
-): WorkerPoolCapacity | null {
-  const raw =
-    workerType === 'transcribe'
-      ? summary?.transcribe_capacity
-      : workerType === 'summarize'
-        ? summary?.summarize_capacity
-        : summary?.capture_capacity
-  return normalizeCapacity(raw)
-}
-
-/** Колонка «Ёмкость»: workers.available / workers.max (или fallback hub-ноды). */
+/** Колонка «Ёмкость»: capture — health.workers на ноде; transcribe/summarize — fleet healthy/total. */
 export function workerCapacityCell(
   worker: Worker,
-  summary: WorkersListSummary | null | undefined,
+  allWorkers: Worker[] = [],
 ): WorkerCapacityCell | null {
-  if (worker.type === 'transcribe' || worker.type === 'summarize' || worker.type === 'capture') {
-    const cap = normalizeTypeCapacitySummary(summary, worker.type)
-    if (!cap) return null
-    return { available: cap.available, max: cap.max }
+  if (worker.type === 'transcribe' || worker.type === 'summarize') {
+    const pool = parseWorkerHealthPool(worker.last_health)
+    if (pool) return { available: pool.available, max: pool.max }
+    return typeHubFleetCapacity(allWorkers, worker.type)
   }
+
+  if (!worker.enabled) return null
+
+  if (worker.type === 'capture') {
+    const pool = parseWorkerHealthPool(worker.last_health)
+    if (pool) return { available: pool.available, max: pool.max }
+    return { available: workerDispatchAvailable(worker) ? 1 : 0, max: 1 }
+  }
+
   return null
 }

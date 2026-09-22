@@ -29,7 +29,13 @@ def assert_can_accept_task(ctx: AuthContext, org: Organization, locale: str) -> 
     return tariff
 
 
-def snapshot_fields(tariff: Tariff, asr_model: str | None, diarization_model: str | None) -> dict:
+def snapshot_fields(
+    tariff: Tariff,
+    asr_model: str | None,
+    diarization_model: str | None,
+    *,
+    summarize_model: str | None = None,
+) -> dict:
     return {
         "snap_unlimited": tariff.unlimited,
         "snap_price_per_audio_sec": tariff.price_per_audio_sec,
@@ -38,6 +44,7 @@ def snapshot_fields(tariff: Tariff, asr_model: str | None, diarization_model: st
         "snap_max_upload_bytes": upload_limit(tariff),
         "snap_asr_model": asr_model,
         "snap_diarization_model": diarization_model,
+        "snap_summarize_model": summarize_model,
     }
 
 

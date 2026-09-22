@@ -5,6 +5,7 @@ import { Modal } from '../../components/Modal'
 import type {
   CaptureWorkerChoice,
   DispatchablePair,
+  SummarizeModelChoice,
   Worker,
   WorkerDeleteImpact,
   WorkerDeleteImpactTask,
@@ -43,6 +44,8 @@ type ModelPair = { asr: string; diarization: string | null }
 type UnavailableItem =
   | { kind: 'pair'; pair: ModelPair; users: number; tasks: number }
   | { kind: 'defaults'; pair: ModelPair }
+  | { kind: 'summarize_model'; model: string; users: number; tasks: number }
+  | { kind: 'summarize_defaults'; model: string | null }
   | { kind: 'last_transcribe' }
   | { kind: 'last_summarize' }
   | { kind: 'summarize_remaining'; count: number }
@@ -50,8 +53,10 @@ type UnavailableItem =
 
 type InUseItem =
   | { kind: 'user'; email: string; pair: ModelPair }
+  | { kind: 'summarize_user'; email: string; model: string | null }
   | { kind: 'tasks'; pair: ModelPair; queued: number; running: number; total: number }
   | { kind: 'defaults'; pair: ModelPair }
+  | { kind: 'summarize_defaults'; model: string | null }
   | { kind: 'summarize_tasks'; queued: number; running: number; total: number }
   | { kind: 'capture_host'; host: string; orgName: string }
   | { kind: 'capture_tasks'; total: number }
@@ -88,7 +93,7 @@ function useImpactSections(
 
     if (workerType === 'transcribe') {
       for (const pair of impact.lost_model_pairs ?? []) {
-        const pairUsers = users.filter((user) => matchesPair(user.asr_model, user.diarization_model, pair))
+        const pairUsers = users.filter((user) => matchesPair(user.asr_model ?? 'whisper', user.diarization_model, pair))
         const pairTasks = tasks.filter((task) => matchesPair(task.asr_model ?? 'whisper', task.diarization_model, pair))
         unavailable.push({
           kind: 'pair',
@@ -98,10 +103,10 @@ function useImpactSections(
         })
       }
 
-      if (impact.instance_defaults_broken && impact.instance_defaults) {
+      if (impact.instance_defaults_broken && impact.instance_defaults?.asr_model) {
         const pair = {
           asr: impact.instance_defaults.asr_model,
-          diarization: impact.instance_defaults.diarization_model,
+          diarization: impact.instance_defaults.diarization_model ?? null,
         }
         unavailable.push({ kind: 'defaults', pair })
         inUse.push({ kind: 'defaults', pair })
@@ -111,16 +116,39 @@ function useImpactSections(
         unavailable.push({ kind: 'last_transcribe' })
       }
     } else if (workerType === 'summarize') {
+      for (const model of impact.lost_summarize_models ?? []) {
+        const modelUsers = users.filter((user) => user.summarize_model === model)
+        const modelTasks = tasks.filter((task) => task.summarize_model === model)
+        unavailable.push({
+          kind: 'summarize_model',
+          model,
+          users: modelUsers.length,
+          tasks: modelTasks.length,
+        })
+      }
+      if (impact.instance_defaults_broken && impact.instance_defaults?.summarize_model) {
+        const model = impact.instance_defaults.summarize_model
+        unavailable.push({ kind: 'summarize_defaults', model })
+        inUse.push({ kind: 'summarize_defaults', model })
+      }
       if (impact.last_enabled_worker) unavailable.push({ kind: 'last_summarize' })
       unavailable.push({ kind: 'summarize_remaining', count: impact.remaining_summarize_workers ?? 0 })
     }
 
     for (const user of users) {
-      inUse.push({
-        kind: 'user',
-        email: user.email,
-        pair: { asr: user.asr_model, diarization: user.diarization_model },
-      })
+      if (workerType === 'summarize') {
+        inUse.push({
+          kind: 'summarize_user',
+          email: user.email,
+          model: user.summarize_model ?? null,
+        })
+      } else {
+        inUse.push({
+          kind: 'user',
+          email: user.email,
+          pair: { asr: user.asr_model ?? '', diarization: user.diarization_model ?? null },
+        })
+      }
     }
 
     if (workerType === 'transcribe') {
@@ -218,6 +246,22 @@ function UnavailableRow({
       </li>
     )
   }
+  if (item.kind === 'summarize_model') {
+    return (
+      <li className="worker-impact-row">
+        <code className="worker-impact-pair">{item.model}</code>
+        <UsageCounts users={item.users} tasks={item.tasks} t={t} />
+      </li>
+    )
+  }
+  if (item.kind === 'summarize_defaults') {
+    return (
+      <li className="worker-impact-row">
+        <span className="worker-impact-label">{t('instance.workerImpactDefaultsLabel')}</span>
+        <code className="worker-impact-pair">{item.model || '—'}</code>
+      </li>
+    )
+  }
   if (item.kind === 'last_transcribe') {
     return <li className="worker-impact-row worker-impact-note">{t('instance.workerImpactLastTranscribeWorker')}</li>
   }
@@ -249,11 +293,27 @@ function InUseRow({
       </li>
     )
   }
+  if (item.kind === 'summarize_user') {
+    return (
+      <li className="worker-impact-row">
+        <span className="worker-impact-email">{item.email}</span>
+        <code className="worker-impact-pair">{item.model || '—'}</code>
+      </li>
+    )
+  }
   if (item.kind === 'defaults') {
     return (
       <li className="worker-impact-row">
         <span className="worker-impact-label">{t('instance.workerImpactDefaultsLabel')}</span>
         <ModelPairChip pair={item.pair} t={t} />
+      </li>
+    )
+  }
+  if (item.kind === 'summarize_defaults') {
+    return (
+      <li className="worker-impact-row">
+        <span className="worker-impact-label">{t('instance.workerImpactDefaultsLabel')}</span>
+        <code className="worker-impact-pair">{item.model || '—'}</code>
       </li>
     )
   }
@@ -342,6 +402,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
   const [busy, setBusy] = useState(false)
   const [applyRemediation, setApplyRemediation] = useState(true)
   const [selectedPairKey, setSelectedPairKey] = useState('')
+  const [selectedSummarizeModel, setSelectedSummarizeModel] = useState('')
   const [selectedCaptureWorkerId, setSelectedCaptureWorkerId] = useState('')
   const workerType = changeBody?.type != null ? String(changeBody.type) : worker.type
   const workerLabel = worker.name || worker.base_url
@@ -358,6 +419,12 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
     return workers.find((item) => item.id === selectedCaptureWorkerId) ?? workers[0]
   }, [impact?.available_capture_workers, selectedCaptureWorkerId])
   const suggestedCaptureWorkerId = impact?.suggested_capture_worker?.id ?? ''
+  const selectedSummarizeChoice = useMemo(() => {
+    const models = impact?.available_summarize_models ?? []
+    if (!models.length) return null
+    return models.find((item) => item.summarize_model === selectedSummarizeModel) ?? models[0]
+  }, [impact?.available_summarize_models, selectedSummarizeModel])
+  const suggestedSummarizeModel = impact?.suggested_summarize_replacement?.summarize_model ?? ''
 
   useEffect(() => {
     let cancelled = false
@@ -392,6 +459,11 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
     } else {
       setSelectedPairKey(pairKey(impact.suggested_replacement))
     }
+    if (!impact?.can_remediate || !impact.suggested_summarize_replacement) {
+      setSelectedSummarizeModel('')
+    } else {
+      setSelectedSummarizeModel(impact.suggested_summarize_replacement.summarize_model)
+    }
     if (!impact?.can_remediate || !impact.suggested_capture_worker) {
       setSelectedCaptureWorkerId('')
     } else {
@@ -404,6 +476,8 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
     impact?.can_remediate,
     impact?.suggested_replacement,
     impact?.available_pairs,
+    impact?.suggested_summarize_replacement,
+    impact?.available_summarize_models,
     impact?.suggested_capture_worker,
     impact?.available_capture_workers,
   ])
@@ -420,6 +494,8 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
             asr_model: selectedPair.asr_model,
             diarization_model: selectedPair.diarization_model ?? null,
           }
+        } else if (workerType === 'summarize' && selectedSummarizeChoice) {
+          remediation = { summarize_model: selectedSummarizeChoice.summarize_model }
         }
       }
       await onConfirm({ remediation })
@@ -523,6 +599,42 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
                     return (
                       <option key={key} value={key}>
                         {formatPairLabel(pair, t)}
+                        {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
+                      </option>
+                    )
+                  })}
+                </select>
+              </label>
+            </section>
+          ) : null}
+
+          {impact.can_remediate && workerType === 'summarize' && selectedSummarizeChoice ? (
+            <section className="worker-impact-remediation">
+              <div className="worker-impact-section-head">
+                <h3>{t('instance.workerImpactSummarizeRemediationTitle')}</h3>
+                <p className="muted worker-impact-section-hint">{t('instance.workerImpactSummarizeRemediationHint')}</p>
+              </div>
+              <label className="worker-impact-remediation-apply">
+                <input
+                  type="checkbox"
+                  checked={applyRemediation}
+                  onChange={(e) => setApplyRemediation(e.target.checked)}
+                  disabled={busy}
+                />
+                <span>{t('instance.workerImpactSummarizeRemediationApply')}</span>
+              </label>
+              <label className="stack worker-impact-remediation-pair">
+                <span>{t('instance.workerImpactSummarizeRemediationModelLabel')}</span>
+                <select
+                  value={selectedSummarizeModel}
+                  onChange={(e) => setSelectedSummarizeModel(e.target.value)}
+                  disabled={busy || !applyRemediation}
+                >
+                  {(impact.available_summarize_models ?? []).map((item: SummarizeModelChoice) => {
+                    const suggested = item.summarize_model === suggestedSummarizeModel
+                    return (
+                      <option key={item.summarize_model} value={item.summarize_model}>
+                        {item.summarize_model}
                         {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
                       </option>
                     )

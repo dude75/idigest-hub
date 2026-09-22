@@ -5,6 +5,7 @@ import { api } from '../../api'
 import { useAuth } from '../../auth'
 import type { InstanceSettings } from '../../types'
 import { AdminPage } from '../../components/AdminSection'
+import { isAvailableSummarizeModel } from '../../summarizeModels'
 import { diarizationOptionsForAsr, isDispatchableCombo } from '../../transcribeModels'
 import { showError } from '../../util'
 import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
@@ -32,6 +33,8 @@ export function InstanceSettingsTab() {
       timezone: data.timezone ?? 'GMT+0',
       asr_models: data.asr_models ?? [],
       diarization_models: data.diarization_models ?? [],
+      summarize_models: data.summarize_models ?? [],
+      summarize_model: data.summarize_model ?? null,
       import_audio_bitrate_kbps: data.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
       import_max_concurrent: data.import_max_concurrent ?? DEFAULT_IMPORT_MAX_CONCURRENT,
       capture_connectors: data.capture_connectors ?? [],
@@ -60,7 +63,9 @@ export function InstanceSettingsTab() {
 
   const serviceModelsValid = useMemo(() => {
     if (!settings) return true
-    return isDispatchableCombo(settings, settings.asr_model, settings.diarization_model)
+    const transcribeOk = isDispatchableCombo(settings, settings.asr_model, settings.diarization_model)
+    const summarizeOk = isAvailableSummarizeModel(settings, settings.summarize_model)
+    return transcribeOk && summarizeOk
   }, [settings])
 
   function smtpTestPayload() {
@@ -136,6 +141,7 @@ export function InstanceSettingsTab() {
           smtp_tls: settings.smtp_tls,
           asr_model: settings.asr_model,
           diarization_model: settings.diarization_model || '',
+          summarize_model: settings.summarize_model,
           rate_limit_enabled: settings.rate_limit_enabled,
           rate_limit_login_email: settings.rate_limit_login_email,
           rate_limit_login_ip: settings.rate_limit_login_ip,
@@ -254,6 +260,25 @@ export function InstanceSettingsTab() {
               {availableDiarizationModels.map((modelId) => (
                 <option key={modelId} value={modelId}>{modelId}</option>
               ))}
+            </select>
+          </label>
+          <label>
+            {t('instance.summarizeModelLabel')}
+            <select
+              value={settings.summarize_model || ''}
+              onChange={(e) => setSettings({ ...settings, summarize_model: e.target.value || null })}
+              disabled={settings.summarize_models.length === 0}
+            >
+              <option value="">{t('instance.summarizeModelUnset')}</option>
+              {settings.summarize_models.length === 0 ? (
+                settings.summarize_model ? (
+                  <option value={settings.summarize_model}>{settings.summarize_model}</option>
+                ) : null
+              ) : (
+                settings.summarize_models.map((modelId) => (
+                  <option key={modelId} value={modelId}>{modelId}</option>
+                ))
+              )}
             </select>
           </label>
           {!serviceModelsValid ? <p className="err">{t('instance.serviceModelsInvalid')}</p> : null}

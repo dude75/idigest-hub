@@ -10,6 +10,7 @@ from tests.conftest import (
     setup_admin,
     signup,
     upload_audio,
+    wait_task,
 )
 
 
@@ -227,6 +228,77 @@ def test_delete_impact_last_summarize_worker(client):
     body = impact.json()
     assert body["last_enabled_worker"] is True
     assert body["blocking"] is True
+
+
+def _seed_summarize_worker(client, *, name: str, base_url: str, model: str) -> dict:
+    worker = add_worker(client, type="summarize", name=name, base_url=base_url)
+    seed_node_health(worker["id"], {"status": "ok", "version": "x", "model": model}, ready_http=200)
+    return worker
+
+
+def test_delete_impact_summarize_model_can_remediate(client):
+    setup_admin(client)
+    doomed = _seed_summarize_worker(client, name="sum-a", base_url="http://sum-a.test", model="llm-a")
+    _seed_summarize_worker(client, name="sum-b", base_url="http://sum-b.test", model="llm-b")
+    client.patch("/api/v1/instance/settings", json={"summarize_model": "llm-a"})
+
+    impact = client.get(f"/api/v1/workers/{doomed['id']}/delete-impact")
+    assert impact.status_code == 200, impact.text
+    body = impact.json()
+    assert body["can_remediate"] is True
+    assert body["suggested_summarize_replacement"] == {"summarize_model": "llm-b"}
+    assert {"summarize_model": "llm-b"} in body["available_summarize_models"]
+    assert "llm-a" in body["lost_summarize_models"]
+
+
+def test_delete_summarize_worker_with_remediation_updates_user_and_task(client, fake_workers):
+    fake_workers.summarize_mode = "queue_full"
+    setup_admin(client)
+    transcribe_worker = add_worker(client, name="asr")
+    seed_node_health(transcribe_worker["id"])
+    doomed = _seed_summarize_worker(client, name="sum-a", base_url="http://sum-a.test", model="llm-a")
+    _seed_summarize_worker(client, name="sum-b", base_url="http://sum-b.test", model="llm-b")
+    client.patch("/api/v1/instance/settings", json={"summarize_model": "llm-a"})
+    skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "Sum it up"})
+    assert skill.status_code == 200, skill.text
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "sumimpact@example.com", "sumimpactpass1", tariff_id).status_code == 200
+    login(client, "sumimpact@example.com", "sumimpactpass1")
+    client.patch("/api/v1/me", json={"summarize_model": "llm-a"})
+    fake_workers.transcribe_mode = "success"
+    audio = upload_audio(client)
+    transcribed = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert transcribed.status_code == 202, transcribed.text
+    transcript_id = wait_task(client, transcribed.json()["task_id"], status="success")["transcript_id"]
+    task = client.post(
+        "/api/v1/tasks/summarize",
+        json={"transcript_id": transcript_id, "skill_ids": [skill.json()["id"]]},
+    )
+    assert task.status_code == 202, task.text
+    task_id = task.json()["task_id"]
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    deleted = client.request(
+        "DELETE",
+        f"/api/v1/workers/{doomed['id']}",
+        content=json.dumps({"remediation": {"summarize_model": "llm-b"}}),
+        headers={
+            "Content-Type": "application/json",
+            "X-CSRF-Token": client.cookies.get("hub_csrf") or "",
+        },
+    )
+    assert deleted.status_code == 200, deleted.text
+    remediation = deleted.json()["remediation"]
+    assert remediation["users_updated"] >= 1
+    assert remediation["tasks_updated"] >= 1
+
+    login(client, "sumimpact@example.com", "sumimpactpass1")
+    me = client.get("/api/v1/me").json()
+    assert me["user"]["summarize_model"] == "llm-b"
+
+    row = get_task_row(task_id)
+    assert row.snap_summarize_model == "llm-b"
 
 
 def test_delete_impact_capture_can_remediate(client, fake_workers):

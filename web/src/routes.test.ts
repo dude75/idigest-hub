@@ -19,6 +19,7 @@ const baseMe: Me = {
     timezone: null,
     asr_model: null,
     diarization_model: null,
+    summarize_model: null,
     show_only_my_items: false,
     disabled: false,
     must_change_password: false,
@@ -44,6 +45,14 @@ const baseMe: Me = {
   transcribe_models: {
     asr_models: ['whisper'],
     diarization_models: ['pyannote'],
+  },
+  summarize_prefs: {
+    summarize_model: null,
+    source: 'instance',
+    instance_summarize_model: null,
+  },
+  summarize_models: {
+    summarize_models: [],
   },
   org: {
     id: 'o1',

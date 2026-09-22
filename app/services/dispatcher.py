@@ -153,11 +153,16 @@ def transcribe_pool_state(nodes: list[WorkerNode], asr: str, diar: str | None) -
     return "empty"
 
 
-def summarize_pool_state(nodes: list[WorkerNode]) -> str:
+def summarize_pool_state(nodes: list[WorkerNode], model: str | None = None) -> str:
+    from app.services.summarize_models import worker_offers_summarize_model
+
     enabled = [n for n in nodes if n.enabled and n.type == "summarize"]
     if not enabled:
         return "empty"
-    for node in enabled:
+    offering = [n for n in enabled if not model or worker_offers_summarize_model(n, model)]
+    if not offering:
+        return "empty"
+    for node in offering:
         health = node.last_health or {}
         if health.get("_ready_http") == 200:
             return "ready"
@@ -181,10 +186,14 @@ def transcribe_candidates(nodes: list[WorkerNode], asr: str, diar: str | None) -
     return out
 
 
-def summarize_candidates(nodes: list[WorkerNode]) -> list[WorkerNode]:
+def summarize_candidates(nodes: list[WorkerNode], model: str | None = None) -> list[WorkerNode]:
+    from app.services.summarize_models import worker_offers_summarize_model
+
     out: list[WorkerNode] = []
     for node in nodes:
         if not node.enabled or node.type != "summarize":
+            continue
+        if model and not worker_offers_summarize_model(node, model):
             continue
         health = node.last_health or {}
         if health.get("_ready_http") == 200:
@@ -652,8 +661,9 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
             nodes, task.snap_asr_model or "whisper", task.snap_diarization_model
         )
     else:
-        pool = summarize_pool_state(nodes)
-        candidates = summarize_candidates(nodes)
+        summarize_model = (task.snap_summarize_model or "").strip() or None
+        pool = summarize_pool_state(nodes, summarize_model)
+        candidates = summarize_candidates(nodes, summarize_model)
     if pool == "waiting":
         task.retry_without_timeout = True
         task.meta_json = {"stage": "waiting_engine"}
@@ -661,19 +671,29 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
     if _maybe_timeout(task, pool, timeout_sec):
         return
     if not candidates:
-        from app.services.transcribe_models import worker_offers_model
+        if task.type == "summarize":
+            from app.services.summarize_models import worker_offers_summarize_model
 
-        asr = task.snap_asr_model or "whisper"
-        diar = task.snap_diarization_model
-        enabled = [n for n in nodes if n.enabled and n.type == "transcribe"]
-        if enabled and not any(worker_offers_model(n, asr=asr, diar=diar) for n in enabled):
-            task.meta_json = {
-                "stage": "no_matching_worker",
-                "asr_model": asr,
-                "diarization_model": diar,
-            }
+            model = (task.snap_summarize_model or "").strip() or None
+            enabled = [n for n in nodes if n.enabled and n.type == "summarize"]
+            if model and enabled and not any(worker_offers_summarize_model(n, model) for n in enabled):
+                task.meta_json = {"stage": "no_matching_worker", "summarize_model": model}
+            else:
+                task.meta_json = {"stage": "queued"}
         else:
-            task.meta_json = {"stage": "queued"}
+            from app.services.transcribe_models import worker_offers_model
+
+            asr = task.snap_asr_model or "whisper"
+            diar = task.snap_diarization_model
+            enabled = [n for n in nodes if n.enabled and n.type == "transcribe"]
+            if enabled and not any(worker_offers_model(n, asr=asr, diar=diar) for n in enabled):
+                task.meta_json = {
+                    "stage": "no_matching_worker",
+                    "asr_model": asr,
+                    "diarization_model": diar,
+                }
+            else:
+                task.meta_json = {"stage": "queued"}
         return
 
     tried_payload_too_large = 0

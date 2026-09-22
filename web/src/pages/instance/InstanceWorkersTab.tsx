@@ -7,7 +7,7 @@ import { WorkerHealthBadge, isWorkerHealthy, isWorkerUnhealthy } from '../../com
 import type { Worker, WorkerEngineOption, WorkerProbeResult, WorkersListSummary } from '../../types'
 import { formatInteger, showError } from '../../util'
 import { emptyWorker } from './constants'
-import { normalizeCaptureCapacitySummary, workerCapacityCell } from './workerCapacity'
+import { normalizeCaptureCapacitySummary, typeHubWorkerCapacity, workerCapacityCell } from './workerCapacity'
 import { WorkerImpactModal } from './WorkerImpactModal'
 
 const SELECTABLE_STATUSES = new Set(['loaded', 'unavailable'])
@@ -63,18 +63,30 @@ export function InstanceWorkersTab() {
     unhealthy: workers.filter((w) => isWorkerUnhealthy(w)).length,
     byType: workersSummary?.by_type,
     hubLimits: workersSummary?.hub_limits,
-    captureCapacity: normalizeCaptureCapacitySummary(workersSummary),
+    captureCapacity: normalizeCaptureCapacitySummary(workersSummary, workers),
   }), [workers, workersSummary])
 
   const hasCaptureWorkers = workers.some((w) => w.type === 'capture')
+  const transcribeHubCapacity = useMemo(() => typeHubWorkerCapacity(workers, 'transcribe'), [workers])
+  const summarizeHubCapacity = useMemo(() => typeHubWorkerCapacity(workers, 'summarize'), [workers])
 
   const availableDetailTitle = useMemo(() => {
-    if (!summary.byType) return undefined
-    const lines = [
-      `${t('task.type.transcribe')}: ${formatInteger(summary.byType.transcribe.available)} / ${formatInteger(summary.byType.transcribe.enabled)}`,
-      `${t('task.type.summarize')}: ${formatInteger(summary.byType.summarize.available)} / ${formatInteger(summary.byType.summarize.enabled)}`,
-      `${t('task.type.capture')}: ${formatInteger(summary.byType.capture.available)} / ${formatInteger(summary.byType.capture.enabled)}`,
-    ]
+    const lines: string[] = []
+    if (transcribeHubCapacity) {
+      lines.push(
+        `${t('task.type.transcribe')}: ${formatInteger(transcribeHubCapacity.available)} / ${formatInteger(transcribeHubCapacity.max)}`,
+      )
+    }
+    if (summarizeHubCapacity) {
+      lines.push(
+        `${t('task.type.summarize')}: ${formatInteger(summarizeHubCapacity.available)} / ${formatInteger(summarizeHubCapacity.max)}`,
+      )
+    }
+    if (summary.byType?.capture) {
+      lines.push(
+        `${t('task.type.capture')}: ${formatInteger(summary.byType.capture.available)} / ${formatInteger(summary.byType.capture.total)}`,
+      )
+    }
     if (summary.hubLimits) {
       lines.push(
         t('instance.workersHubImportLimit', { count: formatInteger(summary.hubLimits.import_max_concurrent) }),
@@ -88,8 +100,8 @@ export function InstanceWorkersTab() {
         }),
       )
     }
-    return lines.join('\n')
-  }, [summary.byType, summary.hubLimits, summary.captureCapacity, t])
+    return lines.length ? lines.join('\n') : undefined
+  }, [summary.byType, summary.hubLimits, summary.captureCapacity, summarizeHubCapacity, transcribeHubCapacity, t])
 
   const probeAsr = useMemo(() => selectableEngines(probe?.asr_models), [probe])
   const probeDiar = useMemo(() => selectableEngines(probe?.diarization_models), [probe])
@@ -224,7 +236,7 @@ export function InstanceWorkersTab() {
       diarization_models: w.diarization_models || [],
       capture_connectors: w.capture_connectors || [],
     })
-    if (w.type === 'transcribe' || w.type === 'capture') {
+    if (w.type === 'transcribe' || w.type === 'capture' || w.type === 'summarize') {
       void probeWorker({ workerId: w.id, baseUrl: w.base_url, type: w.type })
     }
   }
@@ -357,6 +369,19 @@ export function InstanceWorkersTab() {
             ) : null}
           </>
         ) : null}
+        {wform.type === 'summarize' ? (
+          <>
+            <button type="button" disabled={!canProbe || probing} onClick={() => void probeWorker()}>
+              {probing ? t('instance.workerProbing') : t('instance.workerProbe')}
+            </button>
+            {probeOk ? <p className="ok">{t('instance.workerProbeOk')}</p> : null}
+            {probe?.summarize_model ? (
+              <p className="muted">
+                {t('instance.summarizeModelLabel')}: <strong>{probe.summarize_model}</strong>
+              </p>
+            ) : null}
+          </>
+        ) : null}
         {wform.type === 'capture' ? (
           <>
             <button type="button" disabled={!canProbe || probing} onClick={() => void probeWorker()}>
@@ -432,14 +457,16 @@ export function InstanceWorkersTab() {
                           ].join(', ') || '—'
                         : w.type === 'capture'
                           ? (w.capture_connectors || []).join(', ') || '—'
-                          : '—'}
+                          : w.type === 'summarize'
+                            ? w.summarize_model?.trim() || '—'
+                            : '—'}
                     </td>
                     <td className="num">{formatInteger(w.weight)}</td>
                     <td>{w.enabled ? t('common.yes') : t('common.no')}</td>
                     <td><WorkerHealthBadge worker={w} /></td>
                     <td className="num">
                       {(() => {
-                        const cell = workerCapacityCell(w, workersSummary)
+                        const cell = workerCapacityCell(w, workers)
                         if (!cell) return '—'
                         return `${formatInteger(cell.available)} / ${formatInteger(cell.max)}`
                       })()}

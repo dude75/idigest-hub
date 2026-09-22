@@ -165,6 +165,7 @@ class MePatchBody(BaseModel):
     timezone: str | None = None
     asr_model: str | None = None
     diarization_model: str | None = Field(default=None)
+    summarize_model: str | None = None
     show_only_my_items: bool | None = None
 
 
@@ -281,6 +282,16 @@ def _sso_login_redirect(public_base: str, org_id: str, code: ErrorCode) -> Redir
     return RedirectResponse(f"{public_base.rstrip('/')}/sso/{org_id}?{query}", status_code=302)
 
 
+def _summarize_me_payload(user, settings, db: Session) -> dict:
+    from app.services.summarize_models import aggregate_instance_summarize_models, resolve_summarize_models
+
+    available = aggregate_instance_summarize_models(db)
+    return {
+        "summarize_prefs": resolve_summarize_models(user, settings, available=available["summarize_models"]),
+        "summarize_models": available,
+    }
+
+
 def _me_payload(ctx: AuthContext, db: Session) -> dict:
     role = ctx.membership.role if ctx.membership else ("instance_admin" if ctx.user.is_instance_admin else None)
     usage = None
@@ -329,6 +340,7 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
         "date_time_prefs": resolve_date_time_prefs(ctx.user, settings),
         "transcribe_prefs": resolve_transcribe_models(ctx.user, settings),
         "transcribe_models": aggregate_instance_models(db),
+        **_summarize_me_payload(ctx.user, settings, db),
         "must_change_password": ctx.user.must_change_password
         or (
             ctx.org is not None
@@ -989,6 +1001,29 @@ def patch_me(
             )
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
+    if "summarize_model" in data:
+        from app.services.summarize_models import (
+            aggregate_instance_summarize_models,
+            resolve_summarize_models,
+            validate_dispatchable_summarize_model,
+        )
+
+        available = aggregate_instance_summarize_models(db)
+        raw = data["summarize_model"]
+        if raw is None or not str(raw).strip():
+            ctx.user.summarize_model = None
+        else:
+            model = str(raw).strip()
+            if available["summarize_models"] and model not in available["summarize_models"]:
+                ctx.raise_error(ErrorCode.validation_error)
+            ctx.user.summarize_model = model
+        ctx.user.updated_at = utcnow()
+        prefs = resolve_summarize_models(ctx.user, get_instance_settings(db), available=available["summarize_models"])
+        if prefs["summarize_model"]:
+            try:
+                validate_dispatchable_summarize_model(db, model=prefs["summarize_model"])
+            except ValueError:
+                ctx.raise_error(ErrorCode.validation_error)
     if "show_only_my_items" in data and data["show_only_my_items"] is not None:
         ctx.user.show_only_my_items = bool(data["show_only_my_items"])
         ctx.user.updated_at = utcnow()

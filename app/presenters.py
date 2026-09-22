@@ -40,6 +40,7 @@ def user_public(
         "timezone": user.timezone,
         "asr_model": user.asr_model,
         "diarization_model": user.diarization_model,
+        "summarize_model": user.summarize_model,
         "show_only_my_items": user.show_only_my_items,
         "disabled": user.disabled_at is not None,
         "must_change_password": user.must_change_password,
@@ -104,7 +105,9 @@ def org_public(
 
 
 def worker_public(node: WorkerNode) -> dict[str, Any]:
-    return {
+    from app.services.summarize_model import summarize_model_from_health
+
+    body: dict[str, Any] = {
         "id": node.id,
         "type": node.type,
         "name": node.name,
@@ -118,6 +121,9 @@ def worker_public(node: WorkerNode) -> dict[str, Any]:
         "diarization_models": list(node.diarization_models_json or []),
         "capture_connectors": list(node.capture_connectors_json or []),
     }
+    if node.type == "summarize":
+        body["summarize_model"] = summarize_model_from_health(node.last_health)
+    return body
 
 
 def skill_public(skill: Skill, extra: dict[str, Any] | None = None) -> dict[str, Any]:

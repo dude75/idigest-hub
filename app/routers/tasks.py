@@ -397,7 +397,23 @@ async def create_summarize(
     if transcript is None or transcript.org_id != org.id or not can_use_transcript(ctx, db, transcript):
         ctx.raise_error(ErrorCode.not_found)
     _validate_summarize_skills(ctx, db, org, body.skill_ids)
+    from app.deps import get_instance_settings
+    from app.services.summarize_models import (
+        aggregate_instance_summarize_models,
+        resolve_summarize_models,
+        validate_dispatchable_summarize_model,
+    )
+
     tariff = assert_can_accept_task(ctx, org, ctx.locale)
+    settings = get_instance_settings(db)
+    available = aggregate_instance_summarize_models(db)
+    models = resolve_summarize_models(ctx.user, settings, available=available["summarize_models"])
+    summarize_model = models["summarize_model"]
+    if summarize_model:
+        try:
+            validate_dispatchable_summarize_model(db, model=summarize_model)
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
     now = utcnow()
     task = Task(
         id=new_id(),
@@ -410,7 +426,7 @@ async def create_summarize(
         queued_at=now,
         created_at=now,
         updated_at=now,
-        **snapshot_fields(tariff, None, None),
+        **snapshot_fields(tariff, None, None, summarize_model=summarize_model),
     )
     db.add(task)
     db.flush()

@@ -95,6 +95,24 @@ def test_capture_capacity_from_health_workers_pool():
     assert summary["capture_capacity"] == {"max": 4, "active": 1, "available": 3}
 
 
+def test_aggregate_worker_pool_dedupes_same_base_url():
+    shared_health = {
+        "_http": 200,
+        "engines": {"whisper": "loaded", "nemo": "loaded"},
+        "workers": {"max": 4, "active": 1, "available": 3},
+    }
+    nodes = [
+        _node(id="w1", base_url="http://same.host", last_health=shared_health),
+        _node(id="w2", base_url="http://same.host/", last_health=shared_health),
+    ]
+    summary = workers_availability_summary(
+        nodes,
+        capture_connectors=["jitsi"],
+        import_max_concurrent=4,
+    )
+    assert summary["transcribe_capacity"] == {"max": 4, "active": 1, "available": 3}
+
+
 def test_transcribe_capacity_from_health_workers_pool():
     nodes = [
         _node(

@@ -20,6 +20,7 @@ export type User = {
   timezone: string | null
   asr_model: string | null
   diarization_model: string | null
+  summarize_model: string | null
   show_only_my_items: boolean
   disabled: boolean
   must_change_password: boolean
@@ -122,6 +123,20 @@ export type TranscribeModels = {
   dispatchable_pairs?: DispatchablePair[]
 }
 
+export type SummarizePrefs = {
+  summarize_model: string | null
+  source: 'user' | 'instance'
+  instance_summarize_model: string | null
+}
+
+export type SummarizeModels = {
+  summarize_models: string[]
+}
+
+export type SummarizeModelChoice = {
+  summarize_model: string
+}
+
 export type Me = {
   csrf_token?: string
   user: User
@@ -131,6 +146,8 @@ export type Me = {
   date_time_prefs: DateTimePrefs
   transcribe_prefs: TranscribePrefs
   transcribe_models: TranscribeModels
+  summarize_prefs: SummarizePrefs
+  summarize_models: SummarizeModels
   must_change_password: boolean
   mfa_enabled: boolean
   mfa_required: boolean
@@ -295,6 +312,8 @@ export type Worker = {
   asr_models: string[]
   diarization_models: string[]
   capture_connectors: string[]
+  /** Loaded LLM id/name from isummarize GET /health (when exposed). */
+  summarize_model?: string | null
   /** Hub dispatch gate (transcribe engines loaded, summarize /ready, capture connectors). */
   dispatch_available?: boolean
 }
@@ -346,13 +365,15 @@ export type WorkerProbeResult = {
   asr_models?: WorkerEngineOption[]
   diarization_models?: WorkerEngineOption[]
   connectors?: WorkerEngineOption[]
+  summarize_model?: string | null
 }
 
 export type WorkerDeleteImpactUser = {
   id: string
   email: string
-  asr_model: string
-  diarization_model: string | null
+  asr_model?: string
+  diarization_model?: string | null
+  summarize_model?: string | null
 }
 
 export type WorkerDeleteImpactTask = {
@@ -360,6 +381,7 @@ export type WorkerDeleteImpactTask = {
   status: string
   asr_model?: string
   diarization_model?: string | null
+  summarize_model?: string | null
   on_worker?: boolean
 }
 
@@ -372,6 +394,7 @@ export type CaptureWorkerChoice = {
 export type WorkerRemediationPayload = {
   asr_model?: string
   diarization_model?: string | null
+  summarize_model?: string
   capture_worker_id?: string
 }
 
@@ -384,9 +407,16 @@ export type WorkerDeleteImpact = {
   lost_model_pairs?: DispatchablePair[]
   available_pairs?: DispatchablePair[]
   suggested_replacement?: DispatchablePair | null
+  lost_summarize_models?: string[]
+  available_summarize_models?: SummarizeModelChoice[]
+  suggested_summarize_replacement?: SummarizeModelChoice | null
   can_remediate?: boolean
   instance_defaults_broken?: boolean
-  instance_defaults?: { asr_model: string; diarization_model: string | null }
+  instance_defaults?: {
+    asr_model?: string
+    diarization_model?: string | null
+    summarize_model?: string | null
+  }
   affected_users?: WorkerDeleteImpactUser[]
   affected_users_count?: number
   affected_tasks?: WorkerDeleteImpactTask[]
@@ -456,8 +486,10 @@ export type InstanceSettings = {
   smtp_tls: boolean
   asr_model: string
   diarization_model: string | null
+  summarize_model: string | null
   asr_models: string[]
   diarization_models: string[]
+  summarize_models: string[]
   dispatchable_pairs?: DispatchablePair[]
   import_enabled: boolean
   import_platforms: ImportPlatform[]

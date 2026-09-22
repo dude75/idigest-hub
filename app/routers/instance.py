@@ -41,6 +41,7 @@ router = APIRouter()
 class WorkerRemediation(BaseModel):
     asr_model: str | None = None
     diarization_model: str | None = None
+    summarize_model: str | None = None
     capture_worker_id: str | None = None
 
 
@@ -113,6 +114,7 @@ class SettingsPatch(BaseModel):
     smtp_tls: bool | None = None
     asr_model: str | None = None
     diarization_model: str | None = Field(default=None)
+    summarize_model: str | None = None
     rate_limit_enabled: bool | None = None
     rate_limit_login_email: int | None = None
     rate_limit_login_ip: int | None = None
@@ -339,6 +341,21 @@ def list_transcribe_models(
     }
 
 
+@router.get("/instance/summarize-models")
+def list_summarize_models(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> dict:
+    from app.services.summarize_models import aggregate_instance_summarize_models
+
+    _admin(ctx)
+    settings = get_instance_settings(db)
+    available = aggregate_instance_summarize_models(db)
+    return {
+        **available,
+        "default_summarize_model": settings.summarize_model,
+    }
+
+
 @router.post("/workers/probe")
 async def probe_worker(
     body: WorkerProbeBody,
@@ -376,6 +393,12 @@ async def probe_worker(
             {"id": key, "status": value, "label": key}
             for key, value in sorted(connectors.items())
         ]
+    if body.type == "summarize":
+        from app.services.summarize_model import summarize_model_from_health
+
+        model = summarize_model_from_health(health)
+        if model is not None:
+            payload["summarize_model"] = model
     return payload
 
 
@@ -573,7 +596,11 @@ def _apply_worker_remediation(
     focus_worker_id: str,
     remediation: WorkerRemediation,
 ) -> dict:
-    from app.services.worker_impact import apply_capture_remediation, apply_transcribe_remediation
+    from app.services.worker_impact import (
+        apply_capture_remediation,
+        apply_summarize_remediation,
+        apply_transcribe_remediation,
+    )
 
     if worker_type == "transcribe":
         return apply_transcribe_remediation(
@@ -583,6 +610,16 @@ def _apply_worker_remediation(
             focus_worker_id=focus_worker_id,
             asr_model=remediation.asr_model or "",
             diarization_model=remediation.diarization_model,
+        )
+    if worker_type == "summarize":
+        if not remediation.summarize_model:
+            raise ValueError("invalid_replacement")
+        return apply_summarize_remediation(
+            db,
+            after_nodes=after_nodes,
+            before_nodes=before_nodes,
+            focus_worker_id=focus_worker_id,
+            summarize_model=remediation.summarize_model,
         )
     if worker_type == "capture":
         if not remediation.capture_worker_id:
@@ -775,6 +812,7 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         admin_platforms,
         normalize_import_max_concurrent,
     )
+    from app.services.summarize_models import aggregate_instance_summarize_models
     from app.services.transcribe_models import aggregate_instance_models
 
     proxy_url = s.download_proxy_url or ""
@@ -793,7 +831,9 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "smtp_tls": s.smtp_tls,
         "asr_model": s.asr_model,
         "diarization_model": s.diarization_model,
+        "summarize_model": s.summarize_model,
         **aggregate_instance_models(db),
+        **aggregate_instance_summarize_models(db),
         "import_enabled": s.import_enabled,
         "import_platforms": admin_platforms(s),
         "capture_enabled": s.capture_enabled,
@@ -984,6 +1024,13 @@ def patch_settings(
 
         try:
             validate_instance_models(db, asr_model=s.asr_model, diarization_model=s.diarization_model)
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
+    if "summarize_model" in body.model_dump(exclude_unset=True):
+        from app.services.summarize_models import validate_instance_summarize_model
+
+        try:
+            validate_instance_summarize_model(db, summarize_model=s.summarize_model)
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
     invalidate_rate_limit_cache()

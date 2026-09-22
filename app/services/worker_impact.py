@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.deps import get_instance_settings
 from app.models import OrgCaptureJitsiHost, Organization, Task, User, WorkerNode
 from app.services.capture_platforms import worker_offers_connector
+from app.services.summarize_models import resolve_summarize_models, worker_summarize_model
 from app.services.transcribe_models import dispatchable_pairs, resolve_transcribe_models
 from app.timeutil import utcnow
 
@@ -238,6 +239,32 @@ def _capture_impact(
     }
 
 
+def _summarize_models_set(nodes: list[WorkerNode]) -> set[str]:
+    models: set[str] = set()
+    for node in _enabled(nodes, "summarize"):
+        model = worker_summarize_model(node)
+        if model:
+            models.add(model)
+    return models
+
+
+def _summarize_model_public(model: str) -> dict[str, str]:
+    return {"summarize_model": model}
+
+
+def _summarize_replacement_options(
+    after_models: set[str],
+    settings,
+) -> tuple[dict[str, str] | None, list[dict[str, str]]]:
+    available = [_summarize_model_public(model) for model in sorted(after_models)]
+    if not available:
+        return None, []
+    instance_model = (settings.summarize_model or "").strip()
+    if instance_model and instance_model in after_models:
+        return _summarize_model_public(instance_model), available
+    return _summarize_model_public(sorted(after_models)[0]), available
+
+
 def _summarize_impact(
     db: Session,
     *,
@@ -246,34 +273,72 @@ def _summarize_impact(
     focus_worker_id: str,
     focus_was_enabled: bool,
 ) -> dict[str, Any]:
+    settings = get_instance_settings(db)
     enabled_before = _enabled(before_nodes, "summarize")
     enabled_after = _enabled(after_nodes, "summarize")
+    before_models = _summarize_models_set(before_nodes)
+    after_models = _summarize_models_set(after_nodes)
+    lost_models = sorted(before_models - after_models)
     last_enabled_worker = focus_was_enabled and len(enabled_before) > 0 and len(enabled_after) == 0
 
-    running_on_worker = list(
-        db.scalars(
-            select(Task).where(
-                Task.type == "summarize",
-                Task.status == "running",
-                Task.worker_id == focus_worker_id,
-            )
-        ).all()
-    )
-    queued_summarize = []
-    if last_enabled_worker:
-        queued_summarize = list(
-            db.scalars(select(Task).where(Task.type == "summarize", Task.status == "queued")).all()
+    instance_model = (settings.summarize_model or "").strip() or None
+    instance_defaults_broken = bool(lost_models) and instance_model in before_models and instance_model not in after_models
+
+    affected_users: list[dict[str, str | None]] = []
+    for user in db.scalars(select(User).order_by(User.email)).all():
+        prefs = resolve_summarize_models(user, settings, available=sorted(after_models))
+        model = prefs["summarize_model"]
+        if not model or model in after_models or model not in before_models:
+            continue
+        affected_users.append(
+            {
+                "id": user.id,
+                "email": user.email,
+                "summarize_model": model,
+            }
         )
 
-    affected_tasks = [
-        {"task_id": task.id, "status": task.status, "on_worker": task.worker_id == focus_worker_id}
-        for task in [*running_on_worker, *queued_summarize]
-    ]
-    blocking = bool(last_enabled_worker or running_on_worker or queued_summarize)
+    affected_tasks: list[dict[str, Any]] = []
+    for task in db.scalars(
+        select(Task).where(Task.type == "summarize", Task.status.in_(("queued", "running")))
+    ).all():
+        model = (task.snap_summarize_model or "").strip() or None
+        on_worker = task.worker_id == focus_worker_id
+        if model and model in after_models and not (on_worker and task.status == "running"):
+            continue
+        if not model and not last_enabled_worker and not on_worker:
+            continue
+        if not model and not last_enabled_worker:
+            continue
+        affected_tasks.append(
+            {
+                "task_id": task.id,
+                "status": task.status,
+                "summarize_model": model,
+                "on_worker": on_worker,
+            }
+        )
+
+    suggested, available = _summarize_replacement_options(after_models, settings)
+    blocking = bool(
+        lost_models
+        or instance_defaults_broken
+        or affected_users
+        or affected_tasks
+        or last_enabled_worker
+    )
     return {
         "blocking": blocking,
         "remaining_summarize_workers": len(enabled_after),
         "last_enabled_worker": last_enabled_worker,
+        "lost_summarize_models": lost_models,
+        "available_summarize_models": available,
+        "suggested_summarize_replacement": suggested,
+        "can_remediate": bool(blocking and suggested),
+        "instance_defaults_broken": instance_defaults_broken,
+        "instance_defaults": {"summarize_model": settings.summarize_model},
+        "affected_users": affected_users,
+        "affected_users_count": len(affected_users),
         "affected_tasks": affected_tasks,
         "affected_tasks_count": len(affected_tasks),
     }
@@ -412,6 +477,68 @@ def apply_capture_remediation(
 
     db.flush()
     return {"jitsi_hosts_updated": jitsi_hosts_updated, "tasks_updated": tasks_updated}
+
+
+def apply_summarize_remediation(
+    db: Session,
+    *,
+    after_nodes: list[WorkerNode],
+    before_nodes: list[WorkerNode],
+    focus_worker_id: str,
+    summarize_model: str,
+) -> dict[str, int | bool]:
+    replacement = summarize_model.strip()
+    if not replacement:
+        raise ValueError("invalid_replacement")
+    settings = get_instance_settings(db)
+    before_models = _summarize_models_set(before_nodes)
+    after_models = _summarize_models_set(after_nodes)
+    if replacement not in after_models:
+        raise ValueError("invalid_replacement")
+
+    users_updated = 0
+    tasks_updated = 0
+    instance_updated = False
+
+    instance_model = (settings.summarize_model or "").strip() or None
+    if instance_model and instance_model in before_models and instance_model not in after_models:
+        settings.summarize_model = replacement
+        instance_updated = True
+
+    for user in db.scalars(select(User)).all():
+        prefs = resolve_summarize_models(user, settings, available=sorted(after_models))
+        model = prefs["summarize_model"]
+        if not model or model in after_models or model not in before_models:
+            continue
+        user.summarize_model = replacement
+        user.updated_at = utcnow()
+        users_updated += 1
+
+    for task in db.scalars(
+        select(Task).where(Task.type == "summarize", Task.status.in_(("queued", "running")))
+    ).all():
+        model = (task.snap_summarize_model or "").strip() or None
+        on_worker = task.worker_id == focus_worker_id
+        if model and model in after_models and not (on_worker and task.status == "running"):
+            continue
+        if not model and not on_worker:
+            continue
+        task.snap_summarize_model = replacement
+        if task.status == "running":
+            task.worker_id = None
+            task.worker_task_id = None
+            task.status = "queued"
+            task.meta_json = {"stage": "queued"}
+        task.retry_without_timeout = False
+        task.updated_at = utcnow()
+        tasks_updated += 1
+
+    db.flush()
+    return {
+        "instance_defaults_updated": instance_updated,
+        "users_updated": users_updated,
+        "tasks_updated": tasks_updated,
+    }
 
 
 def apply_transcribe_remediation(

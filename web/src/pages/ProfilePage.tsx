@@ -17,6 +17,10 @@ import {
 } from '../routes'
 import type { ApiToken, DateTimeFormatId, DateTimePrefs } from '../types'
 import {
+  isAvailableSummarizeModel,
+  resolveEffectiveSummarizeModel,
+} from '../summarizeModels'
+import {
   diarizationOptionsForAsr,
   isDispatchableCombo,
   resolveEffectiveAsr,
@@ -53,6 +57,8 @@ export function ProfilePage() {
   const [asrModel, setAsrModelLocal] = useState<'inherit' | string>('inherit')
   const [diarizationModel, setDiarizationModelLocal] = useState<'inherit' | 'off' | string>('inherit')
   const [transcribeOk, setTranscribeOk] = useState(false)
+  const [summarizeModel, setSummarizeModelLocal] = useState<'inherit' | string>('inherit')
+  const [summarizeOk, setSummarizeOk] = useState(false)
   const [defaultRoute, setDefaultRouteLocal] = useState<DefaultRoute>(() => {
     const stored = normalizeDefaultRoute(me?.user.default_route)
     const allowed = allowedDefaultRoutes(me)
@@ -124,6 +130,7 @@ export function ProfilePage() {
     if (me.user.diarization_model == null) setDiarizationModelLocal('inherit')
     else if (me.user.diarization_model === '') setDiarizationModelLocal('off')
     else setDiarizationModelLocal(me.user.diarization_model)
+    setSummarizeModelLocal(me.user.summarize_model || 'inherit')
   }, [me])
 
   const dateTimePreview = useMemo(() => {
@@ -148,6 +155,12 @@ export function ProfilePage() {
     const diar = resolveEffectiveDiarization(diarizationModel, me.transcribe_prefs)
     return isDispatchableCombo(me.transcribe_models, asr, diar)
   }, [me, asrModel, diarizationModel])
+
+  const summarizeModelValid = useMemo(() => {
+    if (!me) return true
+    const model = resolveEffectiveSummarizeModel(summarizeModel, me.summarize_prefs)
+    return isAvailableSummarizeModel(me.summarize_models, model)
+  }, [me, summarizeModel])
 
   async function saveDefaultRoute() {
     setRouteOk(false)
@@ -189,6 +202,7 @@ export function ProfilePage() {
 
   async function saveTranscribePrefs() {
     setTranscribeOk(false)
+    setSummarizeOk(false)
     setRouteOk(false)
     setOk(false)
     setDateTimeOk(false)
@@ -202,6 +216,26 @@ export function ProfilePage() {
       })
       await refresh()
       setTranscribeOk(true)
+    } catch (e) {
+      showError(e)
+    }
+  }
+
+  async function saveSummarizePrefs() {
+    setSummarizeOk(false)
+    setTranscribeOk(false)
+    setRouteOk(false)
+    setOk(false)
+    setDateTimeOk(false)
+    try {
+      await api('/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          summarize_model: summarizeModel === 'inherit' ? null : summarizeModel,
+        }),
+      })
+      await refresh()
+      setSummarizeOk(true)
     } catch (e) {
       showError(e)
     }
@@ -490,6 +524,44 @@ export function ProfilePage() {
                 {t('common.save')}
               </button>
               {transcribeOk && <p className="ok">{t('profile.saved')}</p>}
+            </div>
+          </AdminFormCard>
+        )}
+
+        {me && me.summarize_models.summarize_models.length > 0 && (
+          <AdminFormCard title={t('profile.summarizeTitle')} lead={t('profile.summarizeHint')}>
+            <label>
+              {t('instance.summarizeModelLabel')}
+              <select
+                value={summarizeModel}
+                onChange={(e) => {
+                  setSummarizeOk(false)
+                  setSummarizeModelLocal(e.target.value)
+                }}
+              >
+                <option value="inherit">
+                  {t('profile.dateTimeInherit', {
+                    value: me.summarize_prefs.instance_summarize_model || t('instance.summarizeModelUnset'),
+                  })}
+                </option>
+                {me.summarize_models.summarize_models.map((modelId) => (
+                  <option key={modelId} value={modelId}>{modelId}</option>
+                ))}
+              </select>
+            </label>
+            <p className="muted">
+              {t('profile.summarizePreview', {
+                model: resolveEffectiveSummarizeModel(summarizeModel, me.summarize_prefs) || t('instance.summarizeModelUnset'),
+              })}
+            </p>
+            {!summarizeModelValid ? (
+              <p className="err">{t('profile.summarizeModelInvalid')}</p>
+            ) : null}
+            <div className="profile-actions">
+              <button className="primary" type="button" disabled={!summarizeModelValid} onClick={() => void saveSummarizePrefs()}>
+                {t('common.save')}
+              </button>
+              {summarizeOk && <p className="ok">{t('profile.saved')}</p>}
             </div>
           </AdminFormCard>
         )}
