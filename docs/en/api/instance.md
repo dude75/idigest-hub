@@ -6,7 +6,11 @@ Auth required. Caller must be **instance_admin** (not impersonating).
 
 ### GET `/workers`
 
-List worker nodes (no api_token in response). Transcribe nodes include `asr_models[]`, `diarization_models[]`, and `last_health`.
+List worker nodes (no `api_token` in response). Query: `probe` (default `true` — refresh stale `/health`), `refresh` (re-probe all enabled nodes).
+
+Each item includes `last_health`, `dispatch_available`, and type-specific fields: transcribe — `asr_models[]`, `diarization_models[]`; capture — `capture_connectors[]`.
+
+Response `summary`: counts (`total`, `enabled`, `available`, `by_type`), `hub_limits.import_max_concurrent`, and `{transcribe,summarize,capture}_capacity` (`max`, `active`, `available`) — aggregated from `health.workers` or hub-node fallback (see [Workers](../operations/workers.md)).
 
 ### POST `/workers/probe`
 
@@ -21,7 +25,11 @@ Test worker URL + token before save. Body:
 }
 ```
 
-`worker_id` optional on edit — uses stored token when `api_token` omitted. Returns `{ "authorized": true, "asr_models": [{ "id", "status" }], "diarization_models": [...] }`. Status `loaded` or `unavailable` models are selectable.
+`worker_id` optional on edit — uses stored token when `api_token` omitted.
+
+- `transcribe`: `{ "authorized": true, "asr_models": [{ "id", "status" }], "diarization_models": [...] }` — selectable when status is `loaded` or `unavailable`.
+- `capture`: `{ "authorized": true, "connectors": [{ "id", "status", "label" }] }` — selectable when status is `loaded`.
+- `summarize`: `{ "authorized": true, "health_status": 200 }`.
 
 ### POST `/workers`
 
@@ -38,11 +46,14 @@ Test worker URL + token before save. Body:
 }
 ```
 
-`type`: `transcribe` | `summarize`. Token encrypted at rest. Transcribe: `asr_models` required (non-empty); models validated against worker `/health`.
+`type`: `transcribe` | `summarize` | `capture`. Token encrypted at rest.
+
+- Transcribe: `asr_models` required (non-empty); models validated against worker `/health`.
+- Capture: `capture_connectors` required (non-empty); connectors validated against worker `/health` and instance allowed connectors.
 
 ### PATCH `/workers/{id}`
 
-Update fields; omit `api_token` to keep existing. Transcribe: send `asr_models` / `diarization_models` to replace the node’s offered model set.
+Update fields; omit `api_token` to keep existing. Transcribe: send `asr_models` / `diarization_models` to replace the node’s offered model set. Capture: send `capture_connectors` to replace the node’s connector set.
 
 ### DELETE `/workers/{id}`
 

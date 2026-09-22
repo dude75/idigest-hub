@@ -6,7 +6,11 @@
 
 ### GET `/workers`
 
-Список worker nodes (без api_token в ответе). У transcribe-нод в ответе `asr_models[]`, `diarization_models[]` и `last_health`.
+Список worker nodes (без `api_token` в ответе). Query: `probe` (по умолчанию `true` — обновить устаревший `/health`), `refresh` (перепробить все включённые ноды).
+
+Каждый item: `last_health`, `dispatch_available` и поля по типу: transcribe — `asr_models[]`, `diarization_models[]`; capture — `capture_connectors[]`.
+
+В ответе `summary`: счётчики (`total`, `enabled`, `available`, `by_type`), `hub_limits.import_max_concurrent` и `{transcribe,summarize,capture}_capacity` (`max`, `active`, `available`) — агрегат из `health.workers` или fallback по hub-нодам (см. [Воркеры](../operations/workers.md)).
 
 ### POST `/workers/probe`
 
@@ -21,7 +25,11 @@
 }
 ```
 
-`worker_id` опционален при редактировании — если `api_token` не передан, используется сохранённый. Ответ: `{ "authorized": true, "asr_models": [{ "id", "status" }], "diarization_models": [...] }`. Выбирать можно модели со статусом `loaded` или `unavailable`.
+`worker_id` опционален при редактировании — если `api_token` не передан, используется сохранённый.
+
+- `transcribe`: `{ "authorized": true, "asr_models": [{ "id", "status" }], "diarization_models": [...] }` — выбирать модели со статусом `loaded` или `unavailable`.
+- `capture`: `{ "authorized": true, "connectors": [{ "id", "status", "label" }] }` — выбирать connectors со статусом `loaded`.
+- `summarize`: `{ "authorized": true, "health_status": 200 }`.
 
 ### POST `/workers`
 
@@ -38,11 +46,14 @@
 }
 ```
 
-`type`: `transcribe` | `summarize`. Token шифруется at rest. Transcribe: `asr_models` обязателен (непустой); модели проверяются по `/health` воркера.
+`type`: `transcribe` | `summarize` | `capture`. Token шифруется at rest.
+
+- Transcribe: `asr_models` обязателен (непустой); модели проверяются по `/health` воркера.
+- Capture: `capture_connectors` обязателен (непустой); connectors проверяются по `/health` воркера и whitelist инстанса.
 
 ### PATCH `/workers/{id}`
 
-Обновление полей; omit `api_token`, чтобы сохранить существующий. Transcribe: передать `asr_models` / `diarization_models`, чтобы заменить набор моделей ноды.
+Обновление полей; omit `api_token`, чтобы сохранить существующий. Transcribe: передать `asr_models` / `diarization_models`, чтобы заменить набор моделей ноды. Capture: передать `capture_connectors`, чтобы заменить набор connectors ноды.
 
 ### DELETE `/workers/{id}`
 

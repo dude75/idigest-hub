@@ -38,6 +38,7 @@
 | Health `_http: 0` | Network/unreachable `base_url` | Исправьте URL из network namespace hub |
 | Engines not `loaded` | Model не готов на worker | Worker startup / GPU |
 | Summarize never dispatches | `/ready` not 200 | Настройте LLM на [isummarize-worker](https://github.com/dude75/isummarize-worker) |
+| Capture остаётся `queued` / не стартует | Нода capture не dispatch-ready, `workers.available` = 0 или legacy «одна job на ноду» занята | Instance → Workers: connector `loaded`, ёмкость; org host → правильный capture worker |
 | 404 redispatch loop | Worker перезапущен | Обычно self-heals; проверьте стабильность worker |
 
 ## Data и encryption

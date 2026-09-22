@@ -1,6 +1,6 @@
 # Воркеры
 
-Hub **не** включает воркеры транскрипции или суммаризации. Запускайте их отдельно и регистрируйте в **Instance → Workers**.
+Hub **не** включает воркеры транскрипции, суммаризации или захвата встреч. Запускайте их отдельно и регистрируйте в **Instance → Workers**.
 
 ## Поддерживаемые типы воркеров
 
@@ -8,6 +8,7 @@ Hub **не** включает воркеры транскрипции или с�
 | ---- | --------------- | -------------- |
 | `transcribe` | [itranscribe-worker](https://github.com/dude75/itranscribe-worker) | POST `/transcribe`, GET/DELETE `/tasks/{id}`, GET `/health` |
 | `summarize` | [isummarize-worker](https://github.com/dude75/isummarize-worker) | POST `/summarize`, GET/DELETE `/tasks/{id}`, GET `/health`, GET `/ready` |
+| `capture` | [icapture-worker](https://github.com/dude75/icapture-worker) | POST `/capture`, GET/POST `/tasks/{id}`, GET `/tasks/{id}/download`, DELETE `/tasks/{id}`, GET `/health` |
 
 ## Регистрация
 
@@ -47,6 +48,29 @@ Instance admin добавляет ноды в **Instance → Workers** (или P
 }
 ```
 
+### Capture
+
+Захват встреч требует **Instance → Settings** (`capture_enabled`, разрешённые connectors) и привязки Jitsi host → worker на уровне org — см. настройки инстанса в UI.
+
+1. Указать `base_url` и `api_token`.
+2. **Проверить подключение** (`POST /workers/probe`) — hub проверяет Bearer-токен и читает connectors из `GET /health`.
+3. Выбрать один или несколько **connectors**, которые обслуживает нода (`jitsi`, `zoom`, … — подмножество разрешённых на инстансе и со статусом `loaded` на воркере).
+4. Сохранить. Нужен хотя бы один connector.
+
+```json
+{
+  "type": "capture",
+  "name": "Capture node 1",
+  "base_url": "http://10.0.0.7:8000",
+  "api_token": "<worker API_TOKEN>",
+  "capture_connectors": ["jitsi"],
+  "weight": 1,
+  "enabled": true
+}
+```
+
+Capture-задачи привязаны к worker, выбранному для host встречи org; hub не балансирует один capture между несколькими нодами.
+
 **Важно:** `base_url` должен быть достижим из **процесса hub**, а не из браузера пользователя.
 
 | Расположение hub | Воркер на хосте |
@@ -76,9 +100,13 @@ Hub отправляет `Authorization: Bearer <decrypted api_token>` при к
 | `active` | Задач в работе |
 | `available` | Свободных workers в пуле (`> 0` — можно слать job) |
 
-Hub **суммирует** `workers.*` по включённым и dispatch-ready нодам данного типа. Если ни одна нода не отдаёт `workers`, для типа используется fallback: **готовые hub-ноды / включённые** (как раньше для transcribe).
+Hub **суммирует** `workers.*` по включённым и dispatch-ready нодам данного типа. Если ни одна нода не отдаёт `workers`, для типа используется fallback: **готовые hub-ноды / включённые** (legacy: одна активная job на ноду, если пул неизвестен).
 
-Дополнительно по типам: transcribe — `engines`; summarize — `GET /ready` (200); capture — `connectors`.
+`GET /workers` отдаёт агрегаты `{transcribe,summarize,capture}_capacity` той же формы для UI instance admin.
+
+Дополнительно по типам: transcribe — `engines`; summarize — `GET /ready` (200); capture — `connectors` (connector `loaded` для платформы задачи и выбранного на ноде подмножества).
+
+Если на ноде есть `workers.available`, новые capture на этой ноде стартуют только при `available > 0`; иначе действует legacy-правило (вторая активная capture на той же ноде не запускается).
 
 ## Health и readiness
 
@@ -100,6 +128,13 @@ Dispatcher обновляет каждый узел примерно кажды�
 
 - `GET /health` для version/metadata
 - `GET /ready` должен вернуть HTTP **200**, чтобы принимать jobs
+
+### Capture
+
+- `GET /health` → JSON с картой `connectors` (`id` → `{ "status": "loaded" | … }`)
+- На ноде хранится выбранный админом подмножество в `capture_connectors_json`
+- Нода dispatch-ready, если обслуживает connector из whitelist инстанса **и** отдаёт его как `loaded` (или connector в выбранном списке, если воркер не прислал status)
+- Poll GET `/tasks/{id}` до терминального состояния; опционально POST `/tasks/{id}/stop`; артефакт — GET `/tasks/{id}/download`
 
 ## Балансировка нагрузки
 
@@ -135,7 +170,8 @@ score = in_flight_tasks / max(weight, 1)
 | Variable | Default | Назначение |
 | -------- | ------- | ---------- |
 | `WORKER_HTTP_TIMEOUT_SEC` | 30 | Health, poll, delete |
-| `WORKER_UPLOAD_TIMEOUT_SEC` | 300 | Transcribe upload, summarize POST |
+| `WORKER_UPLOAD_TIMEOUT_SEC` | 300 | Transcribe upload, summarize POST, capture download |
+| `WORKER_CAPTURE_TIMEOUT_SEC` | 660 | Capture POST `/capture` (блокируется до join) |
 
 ## Связанные страницы
 

@@ -38,6 +38,7 @@ Extended from [README — Typical errors](../../../README.md#typical-errors).
 | Health `_http: 0` | Network/unreachable `base_url` | Fix URL from hub network namespace |
 | Engines not `loaded` | Model not ready on worker | Worker startup / GPU |
 | Summarize never dispatches | `/ready` not 200 | Configure LLM on [isummarize-worker](https://github.com/dude75/isummarize-worker) |
+| Capture stays `queued` / does not start | Assigned capture node not dispatch-ready, `workers.available` is 0, or legacy one-job-per-node busy | Instance → Workers: connector `loaded`, capacity; org host → correct capture worker |
 | 404 redispatch loop | Worker restarted | Usually self-heals; check worker stability |
 
 ## Data and encryption
