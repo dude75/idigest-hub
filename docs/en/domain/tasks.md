@@ -65,6 +65,20 @@ Available choices are the union of models registered on enabled transcribe worke
 
 Clients cannot pass models in `POST /tasks/transcribe` — only the resolved defaults apply.
 
+## Summarize model (snapshot)
+
+Summarize tasks store the LLM name at creation time:
+
+| Field | Source |
+| ----- | ------ |
+| `snap_summarize_model` | User `summarize_model` if set, else instance `summarize_model`. If both are empty and workers report names, the first available name is used. |
+
+Resolution order: **user profile → instance settings**. Later profile or settings changes do not rewrite an already created task.
+
+Available names are the union of models reported by enabled summarize workers (`GET /health`). Instance admin sets the default in **Instance → Settings → Service models**. Users may override in **Profile → Summarize model** (inherit or a specific name).
+
+Clients cannot pass the model in `POST /tasks/summarize`.
+
 ## Poll
 
 `GET /tasks/{task_id}` — triggers tick when status is `queued` or `running`.
@@ -120,7 +134,13 @@ Transcribe candidates must satisfy **all** of:
 3. If `snap_diarization_model` is set — same for diarization list
 4. `/health` reports both engines as `loaded`
 
-Summarize candidates require `/ready` HTTP 200.
+Summarize candidates must satisfy **all** of:
+
+1. Node type `summarize`, enabled
+2. `/ready` HTTP 200
+3. Node offers `snap_summarize_model` (health `model` / `llm_model` / `llm` equals the snapshot). A node with no model name in health matches any snapshot.
+
+If enabled summarize workers exist but none offer the snapshotted name, the task stays `queued` with `meta.stage` `no_matching_worker`.
 
 ## Failure codes (task.error.code)
 

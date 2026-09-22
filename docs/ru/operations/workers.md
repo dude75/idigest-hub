@@ -48,6 +48,10 @@ Instance admin добавляет ноды в **Instance → Workers** (или P
 }
 ```
 
+Имя LLM на хабе не выбирается. **Проверить подключение** читает его из `GET /health` (`model`, `llm_model` или `llm`, если это имя модели, а не статус вроде `ready`). В списке воркеров оно показывается как `summarize_model`. Нода, у которой в health нет имени модели, подходит под любую запрошенную модель summarize.
+
+Default задаёт instance admin в **Instance → Settings → Сервисные модели**. Пользователь может переопределить его в **Profile**. Каждая новая задача summarize фиксирует разрешённое имя. Dispatch отправляет задачу только на включённые ноды, которые отдают это имя и возвращают `/ready` **200**. Если таких нет, задача остаётся `queued` с `meta.stage` `no_matching_worker`.
+
 ### Capture
 
 Захват встреч требует **Instance → Settings** (`capture_enabled`, разрешённые connectors) и привязки Jitsi host → worker на уровне org — см. настройки инстанса в UI.
@@ -104,6 +108,8 @@ Hub **суммирует** `workers.*` по включённым и dispatch-rea
 
 `GET /workers` отдаёт агрегаты `{transcribe,summarize,capture}_capacity` той же формы для UI instance admin.
 
+Колонка **Ёмкость** показывает `health.workers` ноды как `available / max`, если воркер отдал пул. Transcribe и summarize без `workers` откатываются к «здоровые включённые ноды / все ноды этого типа». Capture без `workers` показывает `1` или `0` из `1` (dispatch-ready или нет). У отключённых capture-нод в колонке `—`.
+
 Дополнительно по типам: transcribe — `engines`; summarize — `GET /ready` (200); capture — `connectors` (connector `loaded` для платформы задачи и выбранного на ноде подмножества).
 
 Если на ноде есть `workers.available`, новые capture на этой ноде стартуют только при `available > 0`; иначе действует legacy-правило (вторая активная capture на той же ноде не запускается).
@@ -126,8 +132,10 @@ Dispatcher обновляет каждый узел примерно кажды�
 
 ### Summarize
 
-- `GET /health` для version/metadata
+- `GET /health` для version/metadata и имени LLM (`model`, `llm_model` или `llm`)
 - `GET /ready` должен вернуть HTTP **200**, чтобы принимать jobs
+- Dispatch использует зафиксированный на задаче `snap_summarize_model` (default инстанса и опциональное переопределение пользователя — см. [Задачи](../domain/tasks.md))
+- Нода — кандидат только если отдаёт эту модель (или в health нет имени модели) **и** `/ready` равен 200
 
 ### Capture
 
@@ -156,6 +164,18 @@ score = in_flight_tasks / max(weight, 1)
 4. DELETE worker task (best effort при ошибке)
 
 Если GET возвращает 404 до того, как hub сохранил результат → redispatch на другой узел.
+
+## Удаление и потеря модели
+
+Перед удалением, отключением или сменой, которая убирает модели, hub считает impact (`GET /workers/{id}/delete-impact`, `POST /workers/{id}/change-impact`).
+
+| Тип | Что может сломаться | Замена |
+| --- | -------------------- | ------ |
+| `transcribe` | Default инстанса, переопределения пользователей, queued/running задачи, чья пара ASR+диаризация исчезнет | Другая пара, которую ещё отдают оставшиеся воркеры |
+| `summarize` | То же для имени LLM из health воркера | Другая модель summarize, которую ещё отдают |
+| `capture` | Привязки org Jitsi host → worker и активные capture-задачи на этой ноде | Другой включённый capture-воркер с connector `jitsi` |
+
+Если замена есть, UI (или `remediation` в PATCH/DELETE) переписывает эти prefs, snapshot и карты, затем возвращает running-задачи в очередь, чтобы dispatcher выбрал новую ноду. Удаление без remediation всё равно снимает ноду: строки Jitsi host для неё удаляются, задачи, которые на неё ссылались, отвязываются (running capture возвращается в `queued`). См. [Instance API](../api/instance.md).
 
 ## Метрики
 

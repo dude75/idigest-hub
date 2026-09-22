@@ -8,7 +8,7 @@ Auth required. Caller must be **instance_admin** (not impersonating).
 
 List worker nodes (no `api_token` in response). Query: `probe` (default `true` — refresh stale `/health`), `refresh` (re-probe all enabled nodes).
 
-Each item includes `last_health`, `dispatch_available`, and type-specific fields: transcribe — `asr_models[]`, `diarization_models[]`; capture — `capture_connectors[]`.
+Each item includes `last_health`, `dispatch_available`, and type-specific fields: transcribe — `asr_models[]`, `diarization_models[]`; summarize — `summarize_model` (LLM name from last `/health`, or null); capture — `capture_connectors[]`.
 
 Response `summary`: counts (`total`, `enabled`, `available`, `by_type`), `hub_limits.import_max_concurrent`, and `{transcribe,summarize,capture}_capacity` (`max`, `active`, `available`) — aggregated from `health.workers` or hub-node fallback (see [Workers](../operations/workers.md)).
 
@@ -29,7 +29,7 @@ Test worker URL + token before save. Body:
 
 - `transcribe`: `{ "authorized": true, "asr_models": [{ "id", "status" }], "diarization_models": [...] }` — selectable when status is `loaded` or `unavailable`.
 - `capture`: `{ "authorized": true, "connectors": [{ "id", "status", "label" }] }` — selectable when status is `loaded`.
-- `summarize`: `{ "authorized": true, "health_status": 200 }`.
+- `summarize`: `{ "authorized": true, "health_status": 200, "summarize_model": "..." }`. `summarize_model` is present when `/health` reports a model name.
 
 ### POST `/workers`
 
@@ -53,11 +53,39 @@ Test worker URL + token before save. Body:
 
 ### PATCH `/workers/{id}`
 
-Update fields; omit `api_token` to keep existing. Transcribe: send `asr_models` / `diarization_models` to replace the node’s offered model set. Capture: send `capture_connectors` to replace the node’s connector set.
+Update fields; omit `api_token` to keep existing. Transcribe: send `asr_models` / `diarization_models` to replace the node’s offered model set. Capture: send `capture_connectors` to replace the node’s connector set. Optional `remediation` (same shape as delete) rewrites prefs and queued tasks when the change drops a model or the `jitsi` connector.
+
+### GET `/workers/{id}/delete-impact`
+
+Preview of what delete would break. `blocking` is true when something still depends on this node.
+
+- Transcribe: `lost_model_pairs`, `available_pairs`, `suggested_replacement`, affected users and queued/running tasks, `can_remediate`.
+- Summarize: `lost_summarize_models`, `available_summarize_models`, `suggested_summarize_replacement`, affected users and tasks, `can_remediate`.
+- Capture: `capture_jitsi_hosts`, `capture_tasks_count`, `available_capture_workers`, `suggested_capture_worker`, `can_remediate`.
+
+### POST `/workers/{id}/change-impact`
+
+Same impact for a proposed update (disable, drop models, or drop `jitsi`) without saving. Body is the worker PATCH payload.
 
 ### DELETE `/workers/{id}`
 
-Remove node (does not cancel in-flight hub tasks automatically).
+Remove the node. Optional JSON body:
+
+```json
+{ "remediation": { "summarize_model": "llm-b" } }
+```
+
+Send the field that matches the node type:
+
+| Field | Type | Effect |
+| ----- | ---- | ------ |
+| `asr_model`, `diarization_model` | transcribe | Point instance default, user overrides, and queued/running tasks that would lose the pair at a pair still offered |
+| `summarize_model` | summarize | Same for the LLM name |
+| `capture_worker_id` | capture | Move org Jitsi host maps and queued capture tasks to another enabled capture worker that offers `jitsi`. Running capture tasks are requeued |
+
+Without `remediation` the node is still removed. The hub clears foreign keys: Jitsi host rows for this worker are deleted (`cleanup.jitsi_hosts_removed`); tasks that pointed at it have `worker_id` cleared (`cleanup.tasks_updated`). Running capture tasks return to `queued`. Hub tasks are not marked canceled.
+
+Response: `{ "status": "ok" }`, plus `remediation` and/or `cleanup` when those ran. Unknown replacement → `validation_error`.
 
 ## Tariffs
 
@@ -164,9 +192,22 @@ Union of models offered by enabled transcribe workers, plus instance defaults:
 }
 ```
 
+### GET `/instance/summarize-models`
+
+Union of LLM names reported by enabled summarize workers, plus the instance default:
+
+```json
+{
+  "summarize_models": ["llm-a", "llm-b"],
+  "default_summarize_model": "llm-a"
+}
+```
+
+Names come from each worker’s last `/health` (`model`, `llm_model`, or `llm`).
+
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, default transcription models (`asr_model`, `diarization_model`), available model lists (`asr_models[]`, `diarization_models[]`), import settings, `date_time_format`, `timezone`, rate limit matrix. Also `smtp_configured`: true only when host, from-address, **and** `public_base_url` are set (required for password reset emails and public summary links).
+SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, default transcription models (`asr_model`, `diarization_model`), available transcription lists (`asr_models[]`, `diarization_models[]`), default summarize model (`summarize_model`) and `summarize_models[]`, import settings, `date_time_format`, `timezone`, rate limit matrix. Also `smtp_configured`: true only when host, from-address, **and** `public_base_url` are set (required for password reset emails and public summary links).
 
 ### PATCH `/instance/settings`
 
@@ -174,7 +215,7 @@ Partial update. Fields include:
 
 - `allow_new_orgs`, `public_base_url`
 - SMTP: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`
-- Models: `asr_model`, `diarization_model` (must be in aggregated worker lists when workers exist; empty `diarization_model` disables diarization)
+- Models: `asr_model`, `diarization_model` (must be in aggregated worker lists when workers exist; empty `diarization_model` disables diarization); `summarize_model` (must be in `summarize_models` when workers report names)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)
 - Import: `import_enabled`, `import_allowed_extractors`, `download_proxy_*`, `download_cookies_path`, `import_audio_bitrate_kbps`
 - Session: `session_ttl_hours`

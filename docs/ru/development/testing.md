@@ -40,6 +40,8 @@ Framework: **pytest** с FastAPI `TestClient`.
 | `test_library.py` | Upload, shares, hide |
 | `test_org.py` | Users, offboarding, stats |
 | `test_instance.py` | Workers, tariffs, settings |
+| `test_summarize_models.py` | Выбор модели summarize на инстансе и у пользователя, snapshot задачи |
+| `test_worker_delete.py` | Delete impact и remediation для transcribe, summarize и capture |
 | `test_billing.py` | Wallet, charges, unlimited |
 | `test_rate_limit.py` | Limiter buckets |
 

@@ -188,7 +188,7 @@ Admin reset (clears 2FA without user code): [Org reset-MFA](org.md#post-orgusers
   "user": {
     "id", "email", "locale", "default_route",
     "date_time_format", "timezone",
-    "asr_model", "diarization_model",
+    "asr_model", "diarization_model", "summarize_model",
     "disabled", "must_change_password", "is_instance_admin", "role"
   },
   "org": { ... } | null,
@@ -201,6 +201,10 @@ Admin reset (clears 2FA without user code): [Org reset-MFA](org.md#post-orgusers
     "instance_asr_model", "instance_diarization_model"
   },
   "transcribe_models": { "asr_models": [], "diarization_models": [] },
+  "summarize_prefs": {
+    "summarize_model", "source", "instance_summarize_model"
+  },
+  "summarize_models": { "summarize_models": [] },
   "must_change_password": false,
   "mfa_enabled": false,
   "mfa_required": false,
@@ -221,7 +225,8 @@ When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, 
   "date_time_format": "us_12h",
   "timezone": "GMT+3",
   "asr_model": "parakeet",
-  "diarization_model": ""
+  "diarization_model": "",
+  "summarize_model": "llm-b"
 }
 ```
 
@@ -234,6 +239,8 @@ When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, 
 `asr_model`: model id from `transcribe_models.asr_models`, or `null` to inherit instance default.
 
 `diarization_model`: model id from `transcribe_models.diarization_models`, `null` to inherit instance default, or `""` to disable diarization for your tasks.
+
+`summarize_model`: name from `summarize_models.summarize_models`, or `null` to inherit the instance default. Resolved value is in `summarize_prefs` (`source`: `user` or `instance`). Unknown name → `validation_error`.
 
 ## Profile backup
 

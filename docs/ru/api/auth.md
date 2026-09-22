@@ -188,7 +188,7 @@ Auto-provision: первый SSO-вход с неизвестным email соз
   "user": {
     "id", "email", "locale", "default_route",
     "date_time_format", "timezone",
-    "asr_model", "diarization_model",
+    "asr_model", "diarization_model", "summarize_model",
     "disabled", "must_change_password", "is_instance_admin", "role"
   },
   "org": { ... } | null,
@@ -201,6 +201,10 @@ Auto-provision: первый SSO-вход с неизвестным email соз
     "instance_asr_model", "instance_diarization_model"
   },
   "transcribe_models": { "asr_models": [], "diarization_models": [] },
+  "summarize_prefs": {
+    "summarize_model", "source", "instance_summarize_model"
+  },
+  "summarize_models": { "summarize_models": [] },
   "must_change_password": false,
   "mfa_enabled": false,
   "mfa_required": false,
@@ -221,7 +225,8 @@ Auto-provision: первый SSO-вход с неизвестным email соз
   "date_time_format": "us_12h",
   "timezone": "GMT+3",
   "asr_model": "parakeet",
-  "diarization_model": ""
+  "diarization_model": "",
+  "summarize_model": "llm-b"
 }
 ```
 
@@ -234,6 +239,8 @@ Auto-provision: первый SSO-вход с неизвестным email соз
 `asr_model`: id модели из `transcribe_models.asr_models`, или `null` — наследовать default инстанса.
 
 `diarization_model`: id из `transcribe_models.diarization_models`, `null` — наследовать default инстанса, или `""` — отключить диаризацию для своих задач.
+
+`summarize_model`: имя из `summarize_models.summarize_models`, или `null` — наследовать default инстанса. Разрешённое значение в `summarize_prefs` (`source`: `user` или `instance`). Неизвестное имя → `validation_error`.
 
 ## Резервная копия профиля
 

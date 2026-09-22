@@ -40,9 +40,10 @@ snap_price_per_1k_summary_chars
 snap_max_upload_bytes
 snap_asr_model          # transcribe only, user override or instance default
 snap_diarization_model  # transcribe only, user override or instance default
+snap_summarize_model    # summarize only, user override or instance default
 ```
 
-Transcribe resolves models at creation (user profile → instance settings) and snapshots them; summarize snapshots do not include models.
+Transcribe and summarize resolve models at creation (user profile → instance settings) and snapshot them.
 
 ## Pricing formulas
 

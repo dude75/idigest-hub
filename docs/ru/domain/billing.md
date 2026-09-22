@@ -40,9 +40,10 @@ snap_price_per_1k_summary_chars
 snap_max_upload_bytes
 snap_asr_model          # только transcribe, переопределение пользователя или default инстанса
 snap_diarization_model  # только transcribe, переопределение пользователя или default инстанса
+snap_summarize_model    # только summarize, переопределение пользователя или default инстанса
 ```
 
-Transcribe при создании разрешает модели (профиль → инстанс) и фиксирует их в snapshot; summarize модели не включает.
+Transcribe и summarize при создании разрешают модели (профиль → инстанс) и фиксируют их в snapshot.
 
 ## Формулы ценообразования
 

@@ -56,7 +56,7 @@ Errors expect `{ status: "error", error: { code, message } }`. API failures show
 5. After login / password change / 2FA verify or enroll → `resolveAuthContinuationPath(me)` → home
 6. Instance admin without org → Instance UI
 
-Profile → Security: optional 2FA enable/disable. API token dialog prompts for TOTP when `mfa_enabled`. Org admin: `mfa_required` toggle and member reset-MFA on Org page.
+Profile → Security: optional 2FA enable/disable. API token dialog prompts for TOTP when `mfa_enabled`. Org admin: `mfa_required` toggle and member reset-MFA on Org page. Profile also overrides transcription and summarize models (`PATCH /me`); Instance → Workers delete/edit opens `WorkerImpactModal` when a model or Jitsi map would be lost.
 
 ## i18n
 

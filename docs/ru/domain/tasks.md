@@ -65,6 +65,20 @@ stateDiagram-v2
 
 Клиент не передаёт модели в `POST /tasks/transcribe` — применяются только resolved defaults.
 
+## Модель summarize (snapshot)
+
+Задачи summarize фиксируют имя LLM при создании:
+
+| Поле | Источник |
+| ---- | -------- |
+| `snap_summarize_model` | `summarize_model` пользователя, если задан; иначе `summarize_model` инстанса. Если оба пустые, а воркеры отдают имена, берётся первое доступное. |
+
+Порядок: **профиль пользователя → настройки инстанса**. Поздняя смена профиля или настроек не переписывает уже созданную задачу.
+
+Доступные имена — объединение моделей, которые отдают включённые summarize-воркеры (`GET /health`). Default задаёт instance admin в **Instance → Settings → Сервисные модели**. Пользователь может переопределить в **Profile → Модель summarize** (наследовать или конкретное имя).
+
+Клиент не передаёт модель в `POST /tasks/summarize`.
+
 ## Polling
 
 `GET /tasks/{task_id}` — запускает tick, когда status `queued` или `running`.
@@ -120,7 +134,13 @@ stateDiagram-v2
 3. Если задан `snap_diarization_model` — то же для списка диаризации
 4. `/health` отдаёт оба engine в статусе `loaded`
 
-Кандидаты summarize требуют `/ready` HTTP 200.
+Кандидат summarize должен удовлетворять **всем** условиям:
+
+1. Тип `summarize`, enabled
+2. `/ready` HTTP 200
+3. Нода отдаёт `snap_summarize_model` (`model` / `llm_model` / `llm` в health совпадает со snapshot). Нода без имени модели в health подходит под любой snapshot.
+
+Если включённые summarize-воркеры есть, но ни один не отдаёт зафиксированное имя, задача остаётся `queued` с `meta.stage` `no_matching_worker`.
 
 ## Коды ошибок (`task.error.code`)
 

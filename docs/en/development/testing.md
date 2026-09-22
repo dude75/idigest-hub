@@ -40,6 +40,8 @@ Each test gets:
 | `test_library.py` | Upload, shares, hide |
 | `test_org.py` | Users, offboarding, stats |
 | `test_instance.py` | Workers, tariffs, settings |
+| `test_summarize_models.py` | Instance and user summarize model selection, task snapshot |
+| `test_worker_delete.py` | Delete impact and remediation for transcribe, summarize, and capture |
 | `test_billing.py` | Wallet, charges, unlimited |
 | `test_rate_limit.py` | Limiter buckets |
 

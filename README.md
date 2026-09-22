@@ -185,10 +185,12 @@ Compose does **not** start workers. Run [itranscribe-worker](https://github.com/
    - For **transcribe**: test connection, then select which ASR and diarization models this node serves (from the worker’s `/health`).
    - For **capture** (optional): test connection, then select connectors this node serves (`jitsi`, `zoom`, … from the worker’s `/health`, subset of instance-allowed connectors).
    - `weight` / `enabled` as needed
-3. Instance → settings → **Service models**: pick default ASR/diarization from the union of registered transcribe workers.
-4. Users may override models in **Profile** (optional). Models are snapshotted onto each new transcribe task.
+3. Instance → settings → **Service models**: pick default ASR/diarization from the union of registered transcribe workers, and the default summarize LLM from names reported by enabled summarize workers (`GET /health`: `model`, `llm_model`, or `llm`).
+4. Users may override transcription and summarize models in **Profile** (optional). The chosen models are snapshotted onto each new task.
 5. **Capture only (optional):** Instance → settings — enable capture and allow connectors; map each org’s meeting host (e.g. Jitsi) to a capture worker. Capture tasks use the worker bound to that host (no cross-node load-balancing for a single meeting).
 6. Hub users never see worker URLs or tokens. The hub copies results into its own DB, then `DELETE`s the worker task.
+
+Deleting or disabling a worker that is the last source of a transcription pair, a summarize model, or an org Jitsi host mapping asks for a replacement first. The hub then rewrites instance defaults, user overrides, queued tasks, and Jitsi maps. Delete without a replacement still removes the node and clears those references (Jitsi maps are dropped; capture jobs on that node return to the queue).
 
 Details: [docs — Workers](docs/en/operations/workers.md).
 

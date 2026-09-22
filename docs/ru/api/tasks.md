@@ -27,7 +27,7 @@ Audio должен существовать в org, быть доступен п
 }
 ```
 
-Требуется минимум один skill. Каждый skill должен быть доступен (см. [Skills domain](../domain/skills.md)).
+Требуется минимум один skill. Каждый skill должен быть доступен (см. [Skills domain](../domain/skills.md)). Имя LLM в теле не передаётся: hub фиксирует модель summarize пользователя или default инстанса (см. [Задачи](../domain/tasks.md)).
 
 Ошибки: `not_found`, `forbidden`, `validation_error`, `insufficient_balance`.
 

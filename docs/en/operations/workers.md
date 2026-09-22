@@ -48,6 +48,10 @@ On PATCH, omit `api_token` to keep the stored token. Re-test connection after UR
 }
 ```
 
+The LLM name is not chosen on the hub. **Test connection** reads it from `GET /health` (`model`, `llm_model`, or `llm` when that value is a model name rather than a status such as `ready`). The workers list shows it as `summarize_model`. A node whose health omits a model name matches any requested summarize model.
+
+Instance admin sets the default in **Instance → Settings → Service models**. Users may override it in **Profile**. Each new summarize task snapshots the resolved name. Dispatch sends the task only to enabled nodes that offer that name and return `/ready` **200**. If none do, the task stays `queued` with `meta.stage` `no_matching_worker`.
+
 ### Capture
 
 Meeting capture requires **Instance → Settings** (`capture_enabled`, allowed connectors) and org-level Jitsi host → worker mapping — see instance settings in the UI.
@@ -104,6 +108,8 @@ The hub **sums** `workers.*` across enabled, dispatch-ready nodes of that type. 
 
 `GET /workers` exposes aggregated `{transcribe,summarize,capture}_capacity` with the same shape for the instance admin UI.
 
+The **Capacity** column shows each node’s `health.workers` as `available / max` when the worker reports a pool. Transcribe and summarize nodes that omit `workers` fall back to healthy enabled nodes / all nodes of that type. Capture nodes that omit `workers` show `1` or `0` of `1` (dispatch-ready or not). Disabled capture nodes show `—`.
+
 Type-specific checks still apply: transcribe — `engines`; summarize — `GET /ready` (200); capture — `connectors` (connector `loaded` for the task’s platform and the node’s selected subset).
 
 When `workers.available` is present on a node, new capture jobs on that node start only if `available > 0`; otherwise the hub uses the legacy rule (no second active capture on the same node).
@@ -126,8 +132,10 @@ Pool states: `ready`, `waiting` (engines loading — no timeout), `empty` (no no
 
 ### Summarize
 
-- `GET /health` for version/metadata
+- `GET /health` for version/metadata and the LLM name (`model`, `llm_model`, or `llm`)
 - `GET /ready` must return HTTP **200** to accept jobs
+- Dispatch uses the task’s snapshotted `snap_summarize_model` (instance default, optional user override — see [Tasks](../domain/tasks.md))
+- A node is a candidate only if it offers that model (or health has no model name) **and** `/ready` is 200
 
 ### Capture
 
@@ -156,6 +164,18 @@ Multiple transcribe workers may expose the same models — they compete as equal
 4. DELETE worker task (best effort on failure)
 
 If GET returns 404 before hub persists → redispatch to another node.
+
+## Delete and model loss
+
+Before delete, disable, or a change that drops models, the hub computes impact (`GET /workers/{id}/delete-impact`, `POST /workers/{id}/change-impact`).
+
+| Type | What can break | Replacement |
+| ---- | -------------- | ----------- |
+| `transcribe` | Instance default, user overrides, queued/running tasks whose ASR+diarization pair would disappear | Another pair still offered by remaining workers |
+| `summarize` | Same, for the LLM name read from worker health | Another summarize model still offered |
+| `capture` | Org Jitsi host → worker maps and active capture tasks on this node | Another enabled capture worker that offers `jitsi` |
+
+When a replacement exists, the UI (or `remediation` on PATCH/DELETE) rewrites those prefs, snapshots, and maps, then requeues running tasks so the dispatcher can pick the new node. Delete without remediation still removes the node: Jitsi host rows for it are dropped, and tasks that pointed at it are detached (running capture jobs return to `queued`). See [Instance API](../api/instance.md).
 
 ## Metrics
 

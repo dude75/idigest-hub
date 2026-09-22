@@ -8,7 +8,7 @@
 
 Список worker nodes (без `api_token` в ответе). Query: `probe` (по умолчанию `true` — обновить устаревший `/health`), `refresh` (перепробить все включённые ноды).
 
-Каждый item: `last_health`, `dispatch_available` и поля по типу: transcribe — `asr_models[]`, `diarization_models[]`; capture — `capture_connectors[]`.
+Каждый item: `last_health`, `dispatch_available` и поля по типу: transcribe — `asr_models[]`, `diarization_models[]`; summarize — `summarize_model` (имя LLM из последнего `/health` или null); capture — `capture_connectors[]`.
 
 В ответе `summary`: счётчики (`total`, `enabled`, `available`, `by_type`), `hub_limits.import_max_concurrent` и `{transcribe,summarize,capture}_capacity` (`max`, `active`, `available`) — агрегат из `health.workers` или fallback по hub-нодам (см. [Воркеры](../operations/workers.md)).
 
@@ -29,7 +29,7 @@
 
 - `transcribe`: `{ "authorized": true, "asr_models": [{ "id", "status" }], "diarization_models": [...] }` — выбирать модели со статусом `loaded` или `unavailable`.
 - `capture`: `{ "authorized": true, "connectors": [{ "id", "status", "label" }] }` — выбирать connectors со статусом `loaded`.
-- `summarize`: `{ "authorized": true, "health_status": 200 }`.
+- `summarize`: `{ "authorized": true, "health_status": 200, "summarize_model": "..." }`. `summarize_model` есть, если `/health` отдал имя модели.
 
 ### POST `/workers`
 
@@ -53,11 +53,39 @@
 
 ### PATCH `/workers/{id}`
 
-Обновление полей; omit `api_token`, чтобы сохранить существующий. Transcribe: передать `asr_models` / `diarization_models`, чтобы заменить набор моделей ноды. Capture: передать `capture_connectors`, чтобы заменить набор connectors ноды.
+Обновление полей; omit `api_token`, чтобы сохранить существующий. Transcribe: передать `asr_models` / `diarization_models`, чтобы заменить набор моделей ноды. Capture: передать `capture_connectors`, чтобы заменить набор connectors ноды. Опциональный `remediation` (та же форма, что у delete) переписывает prefs и задачи в очереди, если смена убирает модель или connector `jitsi`.
+
+### GET `/workers/{id}/delete-impact`
+
+Превью того, что сломает удаление. `blocking` — true, если от этой ноды ещё что-то зависит.
+
+- Transcribe: `lost_model_pairs`, `available_pairs`, `suggested_replacement`, затронутые пользователи и queued/running задачи, `can_remediate`.
+- Summarize: `lost_summarize_models`, `available_summarize_models`, `suggested_summarize_replacement`, затронутые пользователи и задачи, `can_remediate`.
+- Capture: `capture_jitsi_hosts`, `capture_tasks_count`, `available_capture_workers`, `suggested_capture_worker`, `can_remediate`.
+
+### POST `/workers/{id}/change-impact`
+
+Тот же impact для предполагаемого обновления (отключить, убрать модели или убрать `jitsi`) без сохранения. Тело — payload PATCH воркера.
 
 ### DELETE `/workers/{id}`
 
-Удаление node (не отменяет автоматически hub tasks in-flight).
+Удаление ноды. Опциональное JSON-тело:
+
+```json
+{ "remediation": { "summarize_model": "llm-b" } }
+```
+
+Передаётся поле, которое соответствует типу ноды:
+
+| Поле | Тип | Эффект |
+| ---- | --- | ------ |
+| `asr_model`, `diarization_model` | transcribe | Перевести default инстанса, переопределения пользователей и queued/running задачи, которые потеряли бы пару, на пару, которую ещё отдают |
+| `summarize_model` | summarize | То же для имени LLM |
+| `capture_worker_id` | capture | Перенести карты Jitsi host организаций и queued capture-задачи на другой включённый capture-воркер с `jitsi`. Running capture возвращаются в очередь |
+
+Без `remediation` нода всё равно удаляется. Hub снимает внешние ключи: строки Jitsi host этого воркера удаляются (`cleanup.jitsi_hosts_removed`); у задач, которые на него ссылались, очищается `worker_id` (`cleanup.tasks_updated`). Running capture возвращаются в `queued`. Hub-задачи не помечаются canceled.
+
+Ответ: `{ "status": "ok" }`, плюс `remediation` и/или `cleanup`, если они выполнились. Неизвестная замена → `validation_error`.
 
 ## Tariffs
 
@@ -164,9 +192,22 @@ Query (те же правила дат, что у stats):
 }
 ```
 
+### GET `/instance/summarize-models`
+
+Объединение имён LLM, которые отдают включённые summarize-воркеры, плюс default инстанса:
+
+```json
+{
+  "summarize_models": ["llm-a", "llm-b"],
+  "default_summarize_model": "llm-a"
+}
+```
+
+Имена берутся из последнего `/health` каждого воркера (`model`, `llm_model` или `llm`).
+
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, модели транскрибации по умолчанию (`asr_model`, `diarization_model`), списки доступных моделей (`asr_models[]`, `diarization_models[]`), import settings, `date_time_format`, `timezone`, rate limit matrix. Также `smtp_configured`: true только при host, from-address **и** `public_base_url` (нужно для писем сброса пароля и public summary links).
+SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, модели транскрибации по умолчанию (`asr_model`, `diarization_model`), списки доступных моделей транскрибации (`asr_models[]`, `diarization_models[]`), модель summarize по умолчанию (`summarize_model`) и `summarize_models[]`, import settings, `date_time_format`, `timezone`, rate limit matrix. Также `smtp_configured`: true только при host, from-address **и** `public_base_url` (нужно для писем сброса пароля и public summary links).
 
 ### PATCH `/instance/settings`
 
@@ -174,7 +215,7 @@ SMTP host/port/user/from/tls (password не возвращается), `allow_ne
 
 - `allow_new_orgs`, `public_base_url`
 - SMTP: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`
-- Models: `asr_model`, `diarization_model` (должны быть в объединённом списке воркеров, если воркеры есть; пустой `diarization_model` отключает диаризацию)
+- Models: `asr_model`, `diarization_model` (должны быть в объединённом списке воркеров, если воркеры есть; пустой `diarization_model` отключает диаризацию); `summarize_model` (должен быть в `summarize_models`, если воркеры отдают имена)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)
 - Import: `import_enabled`, `import_allowed_extractors`, `download_proxy_*`, `download_cookies_path`, `import_audio_bitrate_kbps`
 - Session: `session_ttl_hours`

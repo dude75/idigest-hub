@@ -27,7 +27,7 @@ Errors: `not_found`, `insufficient_balance`, `forbidden`.
 }
 ```
 
-At least one skill required. Each skill must be accessible (see [Skills domain](../domain/skills.md)).
+At least one skill required. Each skill must be accessible (see [Skills domain](../domain/skills.md)). The LLM name is not in the body: the hub snapshots the user’s summarize model or the instance default (see [Tasks domain](../domain/tasks.md)).
 
 Errors: `not_found`, `forbidden`, `validation_error`, `insufficient_balance`.
 

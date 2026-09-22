@@ -56,7 +56,7 @@ Errors ожидают `{ status: "error", error: { code, message } }`. Ошиб�
 5. После login / смены пароля / verify или enroll 2FA → `resolveAuthContinuationPath(me)` → home
 6. Instance admin без org → Instance UI
 
-Profile → Security: опциональное включение/отключение 2FA. Диалог API token запрашивает TOTP при `mfa_enabled`. Org admin: переключатель `mfa_required` и reset-MFA участников на Org page.
+Profile → Security: опциональное включение/отключение 2FA. Диалог API token запрашивает TOTP при `mfa_enabled`. Org admin: переключатель `mfa_required` и reset-MFA участников на Org page. В Profile также переопределяются модели транскрибации и summarize (`PATCH /me`); удаление и правка в Instance → Workers открывают `WorkerImpactModal`, если пропадут модель или карта Jitsi.
 
 ## i18n
 
