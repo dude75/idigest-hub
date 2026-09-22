@@ -2,7 +2,7 @@
 
 **Язык:** [English](../en/README.md) · [Русский](README.md)
 
-Локальный multi-tenant control plane над [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker).
+Локальный multi-tenant control plane над [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker). Опционально — захват встреч: [icapture-worker](https://github.com/dude75/icapture-worker).
 
 **Быстрый старт:** [README проекта](../../README.ru.md)
 

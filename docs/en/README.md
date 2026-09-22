@@ -2,7 +2,7 @@
 
 **Language:** [English](README.md) · [Русский](../ru/README.md)
 
-On-premise multi-tenant control plane for [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker).
+On-premise multi-tenant control plane for [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker). Optional meeting capture: [icapture-worker](https://github.com/dude75/icapture-worker).
 
 **Quick start:** [Project README](../../README.md)
 

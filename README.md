@@ -1,6 +1,6 @@
 # idigest-hub
 
-On-premise **multi-tenant control plane** over [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker). Users talk only to the hub. The hub owns orgs, roles, wallets, skills, artifacts, and its own task queue (`POST` → **202** + `task_id` → poll). Workers stay external.
+On-premise **multi-tenant control plane** over [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker). Optional meeting capture via [icapture-worker](https://github.com/dude75/icapture-worker). Users talk only to the hub. The hub owns orgs, roles, wallets, skills, artifacts, and its own task queue (`POST` → **202** + `task_id` → poll). Workers stay external.
 
 **Language:** [English](README.md) · [Русский](README.ru.md)
 
@@ -175,18 +175,22 @@ Sensitive fields in the hub database use **envelope encryption** (Fernet): a **D
 
 ## Attach workers
 
-Compose does **not** start workers. Run [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker) as their own services, then register them in the hub **Instance** UI (after `/setup`):
+Compose does **not** start workers. Run [itranscribe-worker](https://github.com/dude75/itranscribe-worker) and [isummarize-worker](https://github.com/dude75/isummarize-worker) as their own services; optionally run [icapture-worker](https://github.com/dude75/icapture-worker) for Jitsi/meeting capture. Register nodes in the hub **Instance** UI (after `/setup`):
 
 1. Start each worker with its own `.env` (`API_TOKEN`, and for summarize also `BASE_URL` / `API_KEY` / `MODEL`).
 2. As instance admin: Instance → workers → add a node:
-   - `type`: `transcribe` or `summarize`
+   - `type`: `transcribe`, `summarize`, or `capture` (capture is optional — skip if you do not need meeting recording)
    - `base_url`: URL the **hub process** can reach (not the browser). Example if the hub is in Docker and the worker is on the host: `http://host.docker.internal:8000`.
    - `api_token`: that worker’s `API_TOKEN`
    - For **transcribe**: test connection, then select which ASR and diarization models this node serves (from the worker’s `/health`).
+   - For **capture** (optional): test connection, then select connectors this node serves (`jitsi`, `zoom`, … from the worker’s `/health`, subset of instance-allowed connectors).
    - `weight` / `enabled` as needed
 3. Instance → settings → **Service models**: pick default ASR/diarization from the union of registered transcribe workers.
 4. Users may override models in **Profile** (optional). Models are snapshotted onto each new transcribe task.
-5. Hub users never see worker URLs or tokens. The hub copies results into its own DB, then `DELETE`s the worker task.
+5. **Capture only (optional):** Instance → settings — enable capture and allow connectors; map each org’s meeting host (e.g. Jitsi) to a capture worker. Capture tasks use the worker bound to that host (no cross-node load-balancing for a single meeting).
+6. Hub users never see worker URLs or tokens. The hub copies results into its own DB, then `DELETE`s the worker task.
+
+Details: [docs — Workers](docs/en/operations/workers.md).
 
 Do **not** proxy worker `GET /metrics` through the hub. Scrape each worker directly (Bearer `API_TOKEN` on the worker).
 

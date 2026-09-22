@@ -1,6 +1,6 @@
 # idigest-hub
 
-Локальный (on-premise) **multi-tenant control plane** над [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker). Пользователи ходят только в хаб. Хаб владеет органами, ролями, кошельками, скилами, артефактами и своей очередью задач (`POST` → **202** + `task_id` → poll). Воркеры остаются внешними.
+Локальный (on-premise) **multi-tenant control plane** над [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker). Опционально — захват встреч через [icapture-worker](https://github.com/dude75/icapture-worker). Пользователи ходят только в хаб. Хаб владеет органами, ролями, кошельками, скилами, артефактами и своей очередью задач (`POST` → **202** + `task_id` → poll). Воркеры остаются внешними.
 
 **Язык:** [English](README.md) · [Русский](README.ru.md)
 
@@ -175,18 +175,22 @@ Login с 2FA: пароль → `/verify-2fa` (TOTP или recovery code). При
 
 ## Подключить воркеры
 
-Compose воркеры **не** поднимает. Запустите [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker) отдельно, затем зарегистрируйте их в UI хаба **Instance** (после `/setup`):
+Compose воркеры **не** поднимает. Запустите [itranscribe-worker](https://github.com/dude75/itranscribe-worker) и [isummarize-worker](https://github.com/dude75/isummarize-worker) отдельно; при необходимости — [icapture-worker](https://github.com/dude75/icapture-worker) для захвата Jitsi/встреч. Зарегистрируйте ноды в UI хаба **Instance** (после `/setup`):
 
 1. Поднимите каждый воркер со своим `.env` (`API_TOKEN`, у summarize ещё `BASE_URL` / `API_KEY` / `MODEL`).
 2. Под instance admin: Instance → воркеры → добавить ноду:
-   - `type`: `transcribe` или `summarize`
+   - `type`: `transcribe`, `summarize` или `capture` (capture опционален — не нужен, если запись встреч не используете)
    - `base_url`: адрес, который видит **процесс хаба**, не браузер. Если хаб в Docker, а воркер на хосте: `http://host.docker.internal:8000`.
    - `api_token`: `API_TOKEN` этого воркера
    - Для **transcribe**: проверить подключение и выбрать, какие модели ASR и диаризации обслуживает эта нода (из `/health` воркера)
+   - Для **capture** (опционально): проверить подключение и выбрать connectors ноды (`jitsi`, `zoom`, … из `/health` воркера, подмножество разрешённых на инстансе)
    - `weight` / `enabled` по необходимости
 3. Instance → settings → **Сервисные модели**: defaults ASR/диаризации из объединения зарегистрированных transcribe-воркеров.
 4. Пользователи могут переопределить модели в **Profile** (опционально). Модели фиксируются на каждой новой transcribe-задаче.
-5. Пользователи хаба URL и токены воркеров не видят. Хаб копирует результат в свою БД и затем делает `DELETE` задачи на воркере.
+5. **Только capture (опционально):** Instance → settings — включить capture и разрешить connectors; для каждой org привязать host встречи (например Jitsi) к capture-воркеру. Задачи capture идут на воркер этой привязки (одну встречу hub между нодами не балансирует).
+6. Пользователи хаба URL и токены воркеров не видят. Хаб копирует результат в свою БД и затем делает `DELETE` задачи на воркере.
+
+Подробнее: [docs — Workers](docs/ru/operations/workers.md).
 
 `GET /metrics` воркеров через хаб **не** проксировать. Скрейпите каждый воркер напрямую (Bearer `API_TOKEN` воркера).
 
