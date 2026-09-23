@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, Callable
 
 from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver.server import MCPServer
 from pydantic import AnyHttpUrl
@@ -42,7 +43,7 @@ from app.services.mcp_library import (
     update_transcript_payload,
 )
 from app.services.oauth_provider import mcp_resource_url, oauth_provider_enabled, public_base_url
-from app.services.oauth_scopes import normalize_scopes
+from app.services.oauth_scopes import scopes_from_bearer_metadata
 
 if TYPE_CHECKING:
     from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
@@ -123,16 +124,22 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         post_commit: Callable[[dict], Any] | None = None,
     ):
         async def run(**kwargs) -> str:
-            access = get_access_token()
-            if access is None or not access.subject:
-                raise PermissionError("authentication required")
-            scopes = normalize_scopes(" ".join(access.scopes))
             try:
+                access = get_access_token()
+                if access is None or not access.subject:
+                    raise ToolError("authentication required")
+                claims = access.claims or {}
+                scopes = scopes_from_bearer_metadata(
+                    token_scopes=access.scopes,
+                    scope_claim=claims.get("scope"),
+                )
                 with db.SessionLocal() as session:
                     ctx = _auth_context_from_token(session, access.subject, scopes)
                     payload = fn(session, ctx, **kwargs)
                     if commit:
                         session.commit()
+            except PermissionError as exc:
+                raise ToolError(str(exc)) from exc
             except ApiError as exc:
                 _raise_from_api_error(exc)
             if post_commit is not None:
@@ -146,7 +153,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         err = detail.get("error") if isinstance(detail.get("error"), dict) else {}
         message = err.get("message") or err.get("code") or "request failed"
         if exc.status_code in {401, 403}:
-            raise PermissionError(message) from exc
+            raise ToolError(message) from exc
         if exc.status_code == 404:
             raise ValueError("not found") from exc
         raise ValueError(message) from exc

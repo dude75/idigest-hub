@@ -203,6 +203,76 @@ def test_mcp_protected_resource_metadata(client, monkeypatch):
     assert body["authorization_servers"] == ["https://hub.test"]
 
 
+def _oauth_access_token(client, monkeypatch, *, scope: str | None) -> str:
+    _enable_oauth(client, monkeypatch)
+    client_id = _register_client(client)
+    _org_user_session(client)
+    verifier, challenge = _pkce_pair()
+    params: dict[str, str] = {
+        "client_id": client_id,
+        "redirect_uri": REDIRECT_URI,
+        "response_type": "code",
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+        "resource": MCP_RESOURCE,
+        "state": "xyz",
+    }
+    if scope is not None:
+        params["scope"] = scope
+    authorize = client.get("/oauth/authorize", params=params, follow_redirects=False)
+    assert authorize.status_code == 200
+    from app.routers.oauth import _encode_oauth_params
+
+    oauth_query = dict(parse_qs(urlparse(str(authorize.request.url)).query))
+    oauth_flat = {key: values[0] for key, values in oauth_query.items()}
+    confirm = client.post(
+        "/oauth/authorize",
+        data={"confirm": "1", "oauth_params": _encode_oauth_params(oauth_flat)},
+        follow_redirects=False,
+    )
+    assert confirm.status_code == 200
+    import re
+
+    match = re.search(rf'href="({re.escape(REDIRECT_URI)}\?[^"]+)"', confirm.text)
+    assert match is not None, confirm.text[:500]
+    code = parse_qs(urlparse(match.group(1)).query)["code"][0]
+    token = client.post(
+        "/oauth/token",
+        data={
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": REDIRECT_URI,
+            "client_id": client_id,
+            "code_verifier": verifier,
+        },
+    )
+    assert token.status_code == 200, token.text
+    return token.json()["access_token"]
+
+
+def test_oauth_omitted_scope_grants_full_library(client, monkeypatch):
+    from app.services.oauth_scopes import SCOPE_AUDIO_READ, SCOPE_TASKS_WRITE, normalize_scopes
+    from app.services.oauth_provider import verify_access_token
+    from app.services.hub_mcp_token_verifier import HubMcpTokenVerifier
+
+    access = _oauth_access_token(client, monkeypatch, scope=None)
+    import app.db as hub_db
+
+    with hub_db.SessionLocal() as session:
+        payload = verify_access_token(session, access)
+        assert payload is not None
+        granted = normalize_scopes(payload.get("scope"))
+        assert SCOPE_AUDIO_READ in granted
+        assert SCOPE_TASKS_WRITE in granted
+
+    import asyncio
+
+    verified = asyncio.run(HubMcpTokenVerifier().verify_token(access))
+    assert verified is not None
+    assert SCOPE_AUDIO_READ in verified.scopes
+    assert SCOPE_TASKS_WRITE in verified.scopes
+
+
 def test_oauth_pkce_flow_and_transcripts(client, monkeypatch):
     _enable_oauth(client, monkeypatch)
     metadata = client.get("/.well-known/oauth-authorization-server")

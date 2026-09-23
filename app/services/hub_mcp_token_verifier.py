@@ -6,7 +6,7 @@ from mcp.server.auth.provider import AccessToken
 
 import app.db as db
 from app.services.oauth_provider import mcp_resource_url as resolve_mcp_resource_url, verify_access_token
-from app.services.oauth_scopes import normalize_scopes
+from app.services.oauth_scopes import normalize_scopes, ordered_scopes
 
 
 class HubMcpTokenVerifier:
@@ -21,7 +21,7 @@ class HubMcpTokenVerifier:
             resource = resolve_mcp_resource_url(db=db_session)
             if not resource:
                 return None
-            scopes = sorted(normalize_scopes(payload.get("scope")))
+            scopes = ordered_scopes(normalize_scopes(payload.get("scope")))
             client_id = payload.get("azp") or payload.get("client_id") or "unknown"
             exp = payload.get("exp")
             expires_at = int(exp) if exp is not None else None

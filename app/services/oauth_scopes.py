@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable
 
 SCOPE_AUDIO_READ = "audio:read"
@@ -29,11 +30,33 @@ SCOPE_ORDER: tuple[str, ...] = (
 SUPPORTED_SCOPES: frozenset[str] = frozenset(SCOPE_ORDER)
 
 
-def normalize_scopes(raw: str | None) -> frozenset[str]:
-    if not raw or not raw.strip():
+def normalize_scopes(raw: str | Iterable[str] | None) -> frozenset[str]:
+    """Parse OAuth scope values from authorize params, JWT claims, or token metadata."""
+    if raw is None:
         return frozenset()
-    parts = {part.strip() for part in raw.split() if part.strip()}
-    return frozenset(parts)
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return frozenset()
+        parts = {part for part in re.split(r"[\s,]+", text) if part}
+        return frozenset(parts)
+    scopes: set[str] = set()
+    for item in raw:
+        scopes.update(normalize_scopes(item))
+    return frozenset(scopes)
+
+
+def scopes_from_bearer_metadata(
+    *,
+    token_scopes: Iterable[str] | None = None,
+    scope_claim: str | Iterable[str] | None = None,
+) -> frozenset[str]:
+    """Resolve granted scopes from MCP AccessToken fields (list + JWT claim fallback)."""
+    if token_scopes is not None:
+        from_list = normalize_scopes(token_scopes)
+        if from_list:
+            return from_list
+    return normalize_scopes(scope_claim)
 
 
 def validate_requested_scopes(requested: frozenset[str]) -> frozenset[str]:
