@@ -146,6 +146,20 @@ def test_oauth_pkce_flow_and_transcripts(client, monkeypatch):
     assert no_scope.status_code == 201
 
 
+def test_mcp_server_sees_session_local_after_engine_init(client, monkeypatch):
+    _enable_oauth(client, monkeypatch)
+    import app.db as db_module
+    from app.services import mcp_integration
+
+    mcp_integration._mcp_server = None
+    mcp_integration._mcp_starlette = None
+    db_module.get_engine()
+    assert db_module.SessionLocal is not None
+    mcp_integration.get_mcp_server()
+    mcp_integration._mcp_server = None
+    mcp_integration._mcp_starlette = None
+
+
 def test_mcp_http_routes_registered_when_oauth_enabled(client, monkeypatch, tmp_path):
     _enable_oauth(client, monkeypatch)
     from app.config import get_settings

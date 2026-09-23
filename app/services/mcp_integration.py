@@ -15,7 +15,7 @@ from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 
 from app.config import get_settings
-from app.db import SessionLocal, get_engine
+import app.db as db
 from app.deps import AuthContext, load_org_bundle
 from app.services.hub_mcp_token_verifier import HubMcpTokenVerifier
 from app.services.mcp_library import list_transcriptions_payload
@@ -74,11 +74,11 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     if _mcp_server is not None:
         return _mcp_server
 
-    get_engine()
-    if SessionLocal is None:
+    db.get_engine()
+    if db.SessionLocal is None:
         raise RuntimeError("database not initialized")
-    with SessionLocal() as db:
-        auth = _auth_settings(db)
+    with db.SessionLocal() as session:
+        auth = _auth_settings(session)
     if auth is None:
         raise RuntimeError("MCP auth settings missing (enable OAuth + Public URL)")
 
@@ -97,9 +97,9 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         if access is None or not access.subject:
             raise PermissionError("authentication required")
         scopes = normalize_scopes(" ".join(access.scopes))
-        with SessionLocal() as db:
-            ctx = _auth_context_from_token(db, access.subject, scopes)
-            payload = list_transcriptions_payload(db, ctx, include_hidden=include_hidden)
+        with db.SessionLocal() as session:
+            ctx = _auth_context_from_token(session, access.subject, scopes)
+            payload = list_transcriptions_payload(session, ctx, include_hidden=include_hidden)
         return json.dumps(payload, ensure_ascii=False)
 
     _mcp_server = server
