@@ -32,6 +32,14 @@ from app.services.oauth_provider import (
     user_oauth_blocked,
     validate_authorize_params,
 )
+from app.i18n import t
+from app.services.oauth_pages import (
+    oauth_blocked_page,
+    oauth_consent_page,
+    oauth_login_page,
+    oauth_locale,
+    oauth_message_page,
+)
 from app.services.oauth_scopes import scopes_to_string
 from app.services.sso import sso_login_url
 
@@ -119,8 +127,14 @@ def oauth_authorize_get(
     request: Request,
     db: Session = Depends(get_session, scope="function"),
 ) -> Response:
+    locale = oauth_locale(request)
     if not provider_ready(db):
-        return HTMLResponse("OAuth provider is not configured.", status_code=503)
+        return oauth_message_page(
+            request,
+            title_key="oauth_title_error",
+            message=t(locale, "oauth_provider_unconfigured"),
+            status_code=503,
+        )
     params = _authorize_query(request)
     try:
         client, scopes, resource = validate_authorize_params(
@@ -134,14 +148,19 @@ def oauth_authorize_get(
             resource=params.get("resource"),
         )
     except ValueError as exc:
-        return HTMLResponse(f"Authorization error: {exc}", status_code=400)
+        return oauth_message_page(
+            request,
+            title_key="oauth_title_error",
+            message=t(locale, "oauth_authorization_error", detail=str(exc)),
+            status_code=400,
+        )
 
     ctx = resolve_auth(request, db)
     if ctx is None or ctx.session is None or ctx.impersonating:
-        return _login_html(db, params)
+        return _login_html(request, db, params)
     blocked = user_oauth_blocked(ctx.user, db)
     if blocked:
-        return HTMLResponse(f"Complete account setup before authorizing apps ({blocked}).", status_code=403)
+        return oauth_blocked_page(request, blocked, user=ctx.user)
 
     scope_str = scopes_to_string(scopes)
     hidden = _encode_oauth_params(
@@ -156,18 +175,12 @@ def oauth_authorize_get(
             "state": params.get("state", ""),
         }
     )
-    html = f"""<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>Authorize</title></head>
-<body>
-  <p><strong>{client.client_name}</strong> requests access to idigest with scopes:</p>
-  <ul><li>{scope_str}</li></ul>
-  <form method="post" action="/oauth/authorize">
-    <input type="hidden" name="confirm" value="1"/>
-    <input type="hidden" name="oauth_params" value="{hidden}"/>
-    <button type="submit">Allow</button>
-  </form>
-</body></html>"""
-    return HTMLResponse(html)
+    return oauth_consent_page(
+        request,
+        client_name=client.client_name,
+        scopes=scopes,
+        hidden_params=hidden,
+    )
 
 
 def _encode_oauth_params(params: dict[str, str]) -> str:
@@ -182,7 +195,8 @@ def _decode_oauth_params(raw: str) -> dict[str, str]:
         if raw.startswith("client_id="):
             decoded = raw
         else:
-            decoded = base64.urlsafe_b64decode(raw.encode("ascii")).decode("utf-8")
+            padded = raw + "=" * (-len(raw) % 4)
+            decoded = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
     except (ValueError, UnicodeDecodeError):
         return {}
     return {k: v[0] for k, v in parse_qs(decoded, keep_blank_values=True).items()}
@@ -195,8 +209,14 @@ def oauth_authorize_confirm(
     confirm: str = Form(""),
     db: Session = Depends(get_session, scope="function"),
 ) -> Response:
+    locale = oauth_locale(request)
     if not provider_ready(db) or confirm != "1":
-        return HTMLResponse("Invalid request.", status_code=400)
+        return oauth_message_page(
+            request,
+            title_key="oauth_title_error",
+            message=t(locale, "oauth_invalid_request"),
+            status_code=400,
+        )
 
     parsed = _decode_oauth_params(oauth_params)
     try:
@@ -211,13 +231,24 @@ def oauth_authorize_confirm(
             resource=parsed.get("resource"),
         )
     except ValueError as exc:
-        return HTMLResponse(f"Authorization error: {exc}", status_code=400)
+        return oauth_message_page(
+            request,
+            title_key="oauth_title_error",
+            message=t(locale, "oauth_authorization_error", detail=str(exc)),
+            status_code=400,
+        )
 
     ctx = resolve_auth(request, db)
     if ctx is None or ctx.session is None or ctx.impersonating:
-        return HTMLResponse("Sign in required.", status_code=401)
-    if user_oauth_blocked(ctx.user, db):
-        return HTMLResponse("Account not ready for API access.", status_code=403)
+        return oauth_message_page(
+            request,
+            title_key="oauth_title_sign_in",
+            message=t(locale, "oauth_sign_in_required"),
+            status_code=401,
+        )
+    blocked = user_oauth_blocked(ctx.user, db)
+    if blocked:
+        return oauth_blocked_page(request, blocked, user=ctx.user)
 
     code = issue_authorization_code(
         db,
@@ -232,13 +263,20 @@ def oauth_authorize_confirm(
     db.commit()
     query = urlencode({"code": code, "state": parsed.get("state", "")})
     separator = "&" if "?" in parsed["redirect_uri"] else "?"
-    return RedirectResponse(f"{parsed['redirect_uri']}{separator}{query}", status_code=302)
+    # 303: browser must follow with GET (302 can repeat POST to the client's redirect_uri).
+    return RedirectResponse(f"{parsed['redirect_uri']}{separator}{query}", status_code=303)
 
 
-def _login_html(db: Session, params: dict[str, str]) -> HTMLResponse:
+def _login_html(
+    request: Request,
+    db: Session,
+    params: dict[str, str],
+    *,
+    error_message: str | None = None,
+) -> HTMLResponse:
     settings = get_instance_settings(db)
     base = (settings.public_base_url or "").strip().rstrip("/")
-    sso_link = ""
+    sso_href: str | None = None
     from sqlalchemy import select
     from app.models import Membership, Organization
 
@@ -254,21 +292,14 @@ def _login_html(db: Session, params: dict[str, str]) -> HTMLResponse:
     if org and base:
         url = sso_login_url(base, org.id)
         if url:
-            sso_link = f'<p><a href="{url}">Sign in with SSO</a></p>'
+            sso_href = url
     hidden = _encode_oauth_params(params)
-    html = f"""<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><title>Sign in</title></head>
-<body>
-  <p>Sign in to idigest to authorize the application.</p>
-  {sso_link}
-  <form method="post" action="/oauth/login">
-    <input type="hidden" name="oauth_params" value="{hidden}"/>
-    <label>Email <input name="email" type="email" required/></label><br/>
-    <label>Password <input name="password" type="password" required/></label><br/>
-    <button type="submit">Sign in</button>
-  </form>
-</body></html>"""
-    return HTMLResponse(html)
+    return oauth_login_page(
+        request,
+        hidden_params=hidden,
+        sso_href=sso_href,
+        error_message=error_message,
+    )
 
 
 @router.post("/oauth/login")
@@ -278,16 +309,22 @@ def oauth_login(
     oauth_params: str = Form(""),
     db: Session = Depends(get_session, scope="function"),
 ) -> Response:
+    locale = oauth_locale(request)
     if not provider_ready(db):
-        return HTMLResponse("OAuth not configured.", status_code=503)
+        return oauth_message_page(
+            request,
+            title_key="oauth_title_error",
+            message=t(locale, "oauth_provider_unconfigured"),
+            status_code=503,
+        )
     params = _decode_oauth_params(oauth_params)
     user = authenticate_login_for_oauth(db, email=email, password=password)
     if user is None:
-        return _login_html(db, params)
+        return _login_html(request, db, params, error_message=t(locale, "invalid_credentials"))
     raw = create_session(db, user.id)
     db.commit()
     query = urlencode(params)
-    redirect = RedirectResponse(f"/oauth/authorize?{query}", status_code=302)
+    redirect = RedirectResponse(f"/oauth/authorize?{query}", status_code=303)
     issue_auth_cookies(redirect, raw, max_age=session_ttl_sec_from_db(db))
     return redirect
 
