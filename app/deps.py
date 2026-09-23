@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import timedelta
 
 from fastapi import Depends, Request
@@ -60,6 +60,8 @@ class AuthContext:
     via_api_token: bool
     locale: str
     impersonating: bool
+    via_oauth_token: bool = False
+    oauth_scopes: frozenset[str] = field(default_factory=frozenset)
 
     @property
     def is_instance_admin(self) -> bool:
@@ -139,6 +141,40 @@ def resolve_auth(request: Request, db: Session = Depends(get_session, scope="fun
         raw = authorization.split(" ", 1)[1].strip()
         if raw:
             from app.models import ApiToken
+            from app.services.oauth_provider import looks_like_jwt, user_oauth_blocked, verify_access_token
+            from app.services.oauth_scopes import normalize_scopes
+
+            if looks_like_jwt(raw):
+                payload = verify_access_token(db, raw)
+                if payload is None:
+                    abort(locale, ErrorCode.unauthorized)
+                user = db.get(User, payload.get("sub"))
+                if user is None or user.disabled_at is not None:
+                    abort(locale, ErrorCode.unauthorized)
+                if user_oauth_blocked(user, db):
+                    abort(locale, ErrorCode.unauthorized)
+                locale = locale_from_request(request, user)
+                org, membership = load_org_bundle(db, user)
+                from app.services.billing import org_api_enabled
+
+                if not org_api_enabled(org):
+                    abort(locale, ErrorCode.api_disabled)
+                from app.rate_limit import enforce_bearer_api, get_rate_limits
+
+                enforce_bearer_api(request, user.id, get_rate_limits(db), locale)
+                scopes = normalize_scopes(payload.get("scope"))
+                return AuthContext(
+                    user=user,
+                    actor=user,
+                    org=org,
+                    membership=membership,
+                    session=None,
+                    via_api_token=False,
+                    via_oauth_token=True,
+                    oauth_scopes=scopes,
+                    locale=locale,
+                    impersonating=False,
+                )
 
             token_hash = hash_secret(raw)
             api_token = db.scalar(
@@ -222,6 +258,12 @@ def require_auth(
     ctx = resolve_auth(request, db)
     if ctx is None:
         abort(locale, ErrorCode.unauthorized)
+    if ctx.via_oauth_token:
+        from app.services.oauth_provider import user_oauth_blocked
+
+        if user_oauth_blocked(ctx.user, db):
+            abort(ctx.locale, ErrorCode.unauthorized)
+        return ctx
     must_change = ctx.user.must_change_password or _password_expired(ctx.user, ctx.org)
     if must_change and not ctx.is_instance_admin:
         path = request.url.path.rstrip("/") or "/"
@@ -323,3 +365,14 @@ def get_instance_settings(db: Session):
 
 def tariff_of(org: Organization) -> Tariff:
     return org.tariff
+
+
+def require_oauth_scope(scope: str):
+    required = scope
+
+    def dependency(ctx: AuthContext = Depends(require_auth)) -> AuthContext:
+        if ctx.via_oauth_token and required not in ctx.oauth_scopes:
+            ctx.raise_error(ErrorCode.forbidden)
+        return ctx
+
+    return dependency

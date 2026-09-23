@@ -82,6 +82,14 @@ Auto-provision: first SSO login for an unknown email creates `org_member` in tha
 
 Org admin configures credentials via [Org SSO endpoints](org.md#sso).
 
+## OAuth 2.1 provider (MCP / Open WebUI)
+
+Optional (`OAUTH_PROVIDER_ENABLED=true` in `.env`). Hub acts as an **Authorization Server** and hosts **MCP** at `/mcp` (Streamable HTTP). Requires **Public URL**; default resource URI is `{public_url}/mcp` (override with `OAUTH_MCP_RESOURCE_URL`).
+
+Discovery: `GET /.well-known/oauth-authorization-server`, `GET /.well-known/jwks.json`. DCR: `POST /oauth/register`. Authorization Code + **PKCE S256**: `GET /oauth/authorize`, `POST /oauth/token`.
+
+JWT access tokens work as `Authorization: Bearer` alongside PAT (`idg_…`). Scope v1: `transcripts:read` for transcript list/detail endpoints.
+
 ## Password
 
 ### POST `/auth/password/change`

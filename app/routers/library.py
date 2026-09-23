@@ -17,7 +17,8 @@ from app.constants import (
 )
 from app.crypto import decrypt_str, encrypt_str
 from app.db import get_session
-from app.deps import AuthContext, require_auth
+from app.deps import AuthContext, require_auth, require_oauth_scope
+from app.services.oauth_scopes import SCOPE_TRANSCRIPTS_READ
 from app.errors import ApiError, ErrorCode
 from app.models import Audio, HiddenItem, Share, Summary, SummaryPublicLink, Transcript, User, new_id
 from app.presenters import (
@@ -508,7 +509,7 @@ def _summary_source_context(
 def list_transcripts(
     include_hidden: bool = False,
     db: Session = Depends(get_session, scope="function"),
-    ctx: AuthContext = Depends(require_auth),
+    ctx: AuthContext = Depends(require_oauth_scope(SCOPE_TRANSCRIPTS_READ)),
 ) -> dict:
     rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden)
     filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
@@ -531,7 +532,9 @@ def list_transcripts(
 
 @router.get("/transcripts/{transcript_id}")
 def get_transcript(
-    transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+    transcript_id: str,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_oauth_scope(SCOPE_TRANSCRIPTS_READ)),
 ) -> dict:
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):

@@ -67,6 +67,16 @@ class Settings(BaseSettings):
     # Swagger UI, ReDoc, and /openapi.json. Set false in production.
     OPENAPI_ENABLED: bool = True
 
+    # OAuth 2.1 Authorization Server (Open WebUI / idigest-mcp). Off by default.
+    OAUTH_PROVIDER_ENABLED: bool = False
+    # Canonical MCP resource URI (RFC 8707), e.g. https://mcp.example/mcp
+    OAUTH_MCP_RESOURCE_URL: str = ""
+    OAUTH_ACCESS_TOKEN_TTL_SEC: int = 3600
+    OAUTH_REFRESH_TOKEN_TTL_SEC: int = 60 * 60 * 24 * 30
+    OAUTH_AUTH_CODE_TTL_SEC: int = 600
+    # PEM RSA private key; empty = generate/load under DATA_DIR/oauth_signing_key.pem
+    OAUTH_SIGNING_KEY_PEM: str = ""
+
     @field_validator("LOG_MAX_BYTES")
     @classmethod
     def _positive_log_max_bytes(cls, value: int) -> int:

@@ -82,6 +82,16 @@ Auto-provision: первый SSO-вход с неизвестным email соз
 
 Настройка credentials — [эндпоинты SSO org](org.md#sso).
 
+## OAuth 2.1 provider (MCP / Open WebUI)
+
+Опционально (`OAUTH_PROVIDER_ENABLED=true` в `.env`). Хаб выступает **Authorization Server** и встроенный **MCP** (`/mcp`, Streamable HTTP). Требуется **Публичный URL**; canonical resource URI = `{public_url}/mcp` (override: `OAUTH_MCP_RESOURCE_URL`).
+
+Discovery: `GET /.well-known/oauth-authorization-server`, `GET /.well-known/jwks.json`.
+
+Регистрация клиента (DCR): `POST /oauth/register`. Authorization Code + **PKCE S256**: `GET /oauth/authorize`, `POST /oauth/token`.
+
+Access token (JWT) принимается в API как `Authorization: Bearer` наряду с PAT (`idg_…`). Scope v1: `transcripts:read` — `GET /transcripts`, `GET /transcripts/{id}`. Пользователь без org membership (instance admin без org) OAuth-токен для library не получит на authorize.
+
 ## Пароль
 
 ### POST `/auth/password/change`

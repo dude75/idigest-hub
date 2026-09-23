@@ -34,7 +34,7 @@ from app.prometheus_metrics import (
     render,
     set_active,
 )
-from app.routers import auth, crypto, instance, library, org, public, skills, tasks
+from app.routers import auth, crypto, instance, library, oauth, org, public, skills, tasks
 from app.services.dispatcher import dispatcher_loop
 from app.rate_limit import rate_limit_sweeper
 from app.version import read_version
@@ -47,6 +47,8 @@ SpaResolution = Literal["not_found", "index"] | Path
 
 def resolve_spa_path(web_dist: Path, full_path: str) -> SpaResolution:
     if full_path.startswith("api/"):
+        return "not_found"
+    if full_path.startswith((".well-known/", "oauth/")) or full_path == "mcp" or full_path.startswith("mcp/"):
         return "not_found"
     if full_path in {"docs", "redoc", "openapi.json"} or full_path.startswith(("docs/", "redoc/")):
         return "not_found"
@@ -91,8 +93,16 @@ async def lifespan(app: FastAPI):
     app.state.dispatcher_task = task
     app.state.rate_limit_task = rate_limit_task
     log.info("service start")
+    from app.services.mcp_integration import get_mcp_starlette_app, mcp_enabled, mcp_session_manager_lifecycle
+
     try:
-        yield
+        async with mcp_session_manager_lifecycle():
+            if mcp_enabled():
+                try:
+                    get_mcp_starlette_app()
+                except RuntimeError as exc:
+                    log.warning("MCP unavailable at startup: %s", exc)
+            yield
     finally:
         set_active(None)
         stop_event.set()
@@ -186,6 +196,7 @@ def _register_routes(application: FastAPI) -> None:
     def metrics(_: None = Depends(require_metrics_token)) -> Response:
         return Response(content=render(), media_type=CONTENT_TYPE)
 
+    application.include_router(oauth.router)
     application.include_router(auth.router, prefix="/api/v1")
     application.include_router(instance.router, prefix="/api/v1")
     application.include_router(crypto.router, prefix="/api/v1")
@@ -194,6 +205,14 @@ def _register_routes(application: FastAPI) -> None:
     application.include_router(tasks.router, prefix="/api/v1")
     application.include_router(skills.router, prefix="/api/v1")
     application.include_router(public.router, prefix="/api/v1")
+
+    from app.services.mcp_integration import get_mcp_starlette_app, mcp_enabled
+
+    if mcp_enabled():
+        try:
+            application.mount("/mcp", get_mcp_starlette_app())
+        except RuntimeError as exc:
+            log.warning("MCP mount skipped: %s", exc)
 
     if WEB_DIST.is_dir():
         assets = WEB_DIST / "assets"

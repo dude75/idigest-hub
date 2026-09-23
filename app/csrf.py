@@ -22,6 +22,10 @@ CSRF_EXEMPT_PATHS: frozenset[str] = frozenset(
         "/api/v1/auth/mfa/recover",
         "/api/v1/auth/password/reset/request",
         "/api/v1/auth/password/reset/confirm",
+        "/oauth/register",
+        "/oauth/token",
+        "/oauth/login",
+        "/oauth/authorize",
     }
 )
 CSRF_EXEMPT_PREFIXES: tuple[str, ...] = ("/api/v1/public/summary/",)
