@@ -30,6 +30,7 @@ On-premise multi-tenant control plane for [itranscribe-worker](https://github.co
 
 - [API overview](api/README.md) — errors, auth, index
 - [Auth](api/auth.md)
+- [MCP](api/mcp.md)
 - [Tasks](api/tasks.md)
 - [Library](api/library.md)
 - [Organization](api/org.md)

@@ -109,6 +109,7 @@ No auth. Returns `{ "status": "ok", "version": "..." }`.
 | Area | Doc |
 | ---- | --- |
 | Setup, auth, me, tokens | [auth.md](auth.md) |
+| MCP (OAuth tools) | [mcp.md](mcp.md) |
 | Tasks | [tasks.md](tasks.md) |
 | Audio, transcripts, summaries, shares | [library.md](library.md) |
 | Public summary links (guest) | [public.md](public.md) |

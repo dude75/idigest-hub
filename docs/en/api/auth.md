@@ -88,7 +88,20 @@ Optional (`OAUTH_PROVIDER_ENABLED=true` in `.env`). Hub acts as an **Authorizati
 
 Discovery: `GET /.well-known/oauth-authorization-server`, `GET /.well-known/jwks.json`. DCR: `POST /oauth/register`. Authorization Code + **PKCE S256**: `GET /oauth/authorize`, `POST /oauth/token`.
 
-JWT access tokens work as `Authorization: Bearer` alongside PAT (`idg_…`). Scope v1: `transcripts:read` for transcript list/detail endpoints.
+JWT access tokens work as `Authorization: Bearer` alongside PAT (`idg_…`) on **REST** `/api/v1`.
+
+**OAuth scopes** (space-separated on authorize; listed in `GET /.well-known/oauth-protected-resource/mcp`):
+
+| Scope | REST (JWT) | MCP |
+| ----- | ---------- | --- |
+| `transcripts:read` | `GET /transcripts`, `GET /transcripts/{id}` | `list_transcriptions`, `get_transcript` |
+| `summaries:read` | — | `list_summaries`, `get_summary` |
+| `summaries:write` | — | `delete_summary` |
+| `skills:read` | — | `list_skills` |
+| `skills:write` | — | `update_skill` |
+| `tasks:write` | — | `summarize_transcript` |
+
+If the client omits `scope`, the hub defaults to `transcripts:read` only. Full tool reference: **[mcp.md](mcp.md)**.
 
 **MCP / OAuth authorize** — only users with org membership and role `org_admin` or `org_member`, plus tariff `api_enabled` and no account blocks. **Instance admins without org** cannot complete OAuth (instance admins may still use PAT without org separately).
 

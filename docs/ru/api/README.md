@@ -109,6 +109,7 @@ GET /api/v1/health
 | Область | Документ |
 | ------- | -------- |
 | Setup, auth, me, tokens | [auth.md](auth.md) |
+| MCP (OAuth tools) | [mcp.md](mcp.md) |
 | Задачи | [tasks.md](tasks.md) |
 | Аудио, транскрипты, саммари, shares | [library.md](library.md) |
 | Администрирование организации | [org.md](org.md) |

@@ -90,7 +90,20 @@ Discovery: `GET /.well-known/oauth-authorization-server`, `GET /.well-known/jwks
 
 Регистрация клиента (DCR): `POST /oauth/register`. Authorization Code + **PKCE S256**: `GET /oauth/authorize`, `POST /oauth/token`.
 
-Access token (JWT) принимается в API как `Authorization: Bearer` наряду с PAT (`idg_…`). Scope v1: `transcripts:read` — `GET /transcripts`, `GET /transcripts/{id}`.
+Access token (JWT) принимается в **REST** `/api/v1` как `Authorization: Bearer` наряду с PAT (`idg_…`).
+
+**OAuth scopes** (в authorize через пробел; полный список в `GET /.well-known/oauth-protected-resource/mcp`):
+
+| Scope | REST (JWT) | MCP |
+| ----- | ---------- | --- |
+| `transcripts:read` | `GET /transcripts`, `GET /transcripts/{id}` | `list_transcriptions`, `get_transcript` |
+| `summaries:read` | — | `list_summaries`, `get_summary` |
+| `summaries:write` | — | `delete_summary` |
+| `skills:read` | — | `list_skills` |
+| `skills:write` | — | `update_skill` |
+| `tasks:write` | — | `summarize_transcript` |
+
+Если клиент не указал `scope`, по умолчанию выдаётся только `transcripts:read`. Подробно про tools: **[mcp.md](mcp.md)**.
 
 **MCP / OAuth authorize** — только пользователи с членством в org и ролью `org_admin` или `org_member`, плюс тариф с `api_enabled` и без блокировок аккаунта. **Instance admin без org** и прочие пользователи без org получают отказ на `/oauth/authorize` (PAT для instance admin без org по-прежнему возможен отдельно).
 
