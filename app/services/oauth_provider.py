@@ -201,8 +201,11 @@ def validate_authorize_params(
     return client, scopes, expected_resource
 
 
+_OAUTH_ORG_ROLES = frozenset({"org_admin", "org_member"})
+
+
 def user_oauth_blocked(user: User, db: Session) -> str | None:
-    """Return machine reason if user cannot complete OAuth."""
+    """Return machine reason if user cannot complete OAuth / MCP."""
     from app.deps import _password_expired
     from app.services.billing import org_api_enabled
     from app.services.mfa import mfa_enrollment_required
@@ -211,6 +214,10 @@ def user_oauth_blocked(user: User, db: Session) -> str | None:
     if user.disabled_at is not None:
         return "account_disabled"
     org, membership = load_org_bundle(db, user)
+    if membership is None or org is None:
+        return "oauth_org_membership_required"
+    if membership.role not in _OAUTH_ORG_ROLES:
+        return "forbidden"
     if user.must_change_password or _password_expired(user, org):
         return "must_change_password"
     if mfa_enrollment_required(user=user, org=org, membership=membership):

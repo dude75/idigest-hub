@@ -90,6 +90,8 @@ Discovery: `GET /.well-known/oauth-authorization-server`, `GET /.well-known/jwks
 
 JWT access tokens work as `Authorization: Bearer` alongside PAT (`idg_…`). Scope v1: `transcripts:read` for transcript list/detail endpoints.
 
+**MCP / OAuth authorize** — only users with org membership and role `org_admin` or `org_member`, plus tariff `api_enabled` and no account blocks. **Instance admins without org** cannot complete OAuth (instance admins may still use PAT without org separately).
+
 ## Password
 
 ### POST `/auth/password/change`

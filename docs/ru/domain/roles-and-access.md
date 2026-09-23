@@ -19,6 +19,7 @@
 | Создание задач | Если состоит в org | Да | Да |
 | Жёсткое удаление артефактов org | Нет | Да | Нет (удаление своего summary — да) |
 | API-токены | Да (без org) | Если tariff.api_enabled | Если tariff.api_enabled |
+| MCP / OAuth (Open WebUI) | Нет (нужен org) | Если tariff.api_enabled | Если tariff.api_enabled |
 
 `instance_admin` создаётся один раз на `/setup`. Обычно у него **нет членства в org** — домашняя страница UI по умолчанию ведёт в Instance, пока он не присоединится к org вручную (через signup это не поддерживается).
 

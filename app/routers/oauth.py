@@ -35,6 +35,7 @@ from app.services.oauth_provider import (
 from app.i18n import t
 from app.services.oauth_pages import (
     oauth_blocked_page,
+    oauth_client_redirect_page,
     oauth_consent_page,
     oauth_login_page,
     oauth_locale,
@@ -263,8 +264,9 @@ def oauth_authorize_confirm(
     db.commit()
     query = urlencode({"code": code, "state": parsed.get("state", "")})
     separator = "&" if "?" in parsed["redirect_uri"] else "?"
-    # 303: browser must follow with GET (302 can repeat POST to the client's redirect_uri).
-    return RedirectResponse(f"{parsed['redirect_uri']}{separator}{query}", status_code=303)
+    redirect_url = f"{parsed['redirect_uri']}{separator}{query}"
+    log.info("oauth authorize: redirecting to client %s", parsed["redirect_uri"])
+    return oauth_client_redirect_page(request, redirect_url)
 
 
 def _login_html(

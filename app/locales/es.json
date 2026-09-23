@@ -79,5 +79,9 @@
   "oauth_invalid_request": "Solicitud no válida.",
   "oauth_sign_in_required": "Se requiere iniciar sesión.",
   "oauth_account_not_ready": "La cuenta no está lista para acceso API.",
-  "oauth_authorization_error": "Error de autorización: {detail}"
+  "oauth_authorization_error": "Error de autorización: {detail}",
+  "oauth_redirect_title": "Redirigiendo…",
+  "oauth_redirect_hint": "Vuelva a la aplicación para terminar la conexión.",
+  "oauth_continue": "Continuar",
+  "oauth_org_membership_required": "MCP solo está disponible para administradores y miembros de la organización."
 }

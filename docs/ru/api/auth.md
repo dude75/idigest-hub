@@ -90,7 +90,9 @@ Discovery: `GET /.well-known/oauth-authorization-server`, `GET /.well-known/jwks
 
 Регистрация клиента (DCR): `POST /oauth/register`. Authorization Code + **PKCE S256**: `GET /oauth/authorize`, `POST /oauth/token`.
 
-Access token (JWT) принимается в API как `Authorization: Bearer` наряду с PAT (`idg_…`). Scope v1: `transcripts:read` — `GET /transcripts`, `GET /transcripts/{id}`. Пользователь без org membership (instance admin без org) OAuth-токен для library не получит на authorize.
+Access token (JWT) принимается в API как `Authorization: Bearer` наряду с PAT (`idg_…`). Scope v1: `transcripts:read` — `GET /transcripts`, `GET /transcripts/{id}`.
+
+**MCP / OAuth authorize** — только пользователи с членством в org и ролью `org_admin` или `org_member`, плюс тариф с `api_enabled` и без блокировок аккаунта. **Instance admin без org** и прочие пользователи без org получают отказ на `/oauth/authorize` (PAT для instance admin без org по-прежнему возможен отдельно).
 
 ## Пароль
 

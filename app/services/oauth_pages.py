@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from typing import Iterable
 
 from fastapi import Request
@@ -15,11 +16,15 @@ from app.version import read_version
 
 _OAUTH_BLOCKED_KEYS: dict[str, str] = {
     "api_disabled": "api_disabled",
+    "oauth_org_membership_required": "oauth_org_membership_required",
     "must_change_password": "must_change_password",
     "mfa_enrollment_required": "mfa_enrollment_required",
     "user_agreement_required": "user_agreement_required",
     "account_disabled": "account_disabled",
+    "forbidden": "forbidden",
 }
+
+_OAUTH_BLOCKED_SIMPLE: frozenset[str] = frozenset({"api_disabled", "oauth_org_membership_required"})
 
 _SCOPE_LABEL_KEYS: dict[str, str] = {
     "transcripts:read": "oauth_scope_transcripts_read",
@@ -171,7 +176,7 @@ def oauth_blocked_page(request: Request, reason: str, *, user: User | None = Non
     locale = oauth_locale(request, user)
     detail_key = _OAUTH_BLOCKED_KEYS.get(reason)
     detail = t(locale, detail_key) if detail_key else reason
-    if reason == "api_disabled":
+    if reason in _OAUTH_BLOCKED_SIMPLE:
         body = f"""<h1>{_esc(t(locale, "oauth_title_blocked"))}</h1>
 <div class="notice">{_esc(detail)}</div>
 <a class="btn primary" href="/app">{_esc(t(locale, "oauth_open_app"))}</a>"""
@@ -196,7 +201,7 @@ def oauth_consent_page(
 <p class="lead">{_esc(t(locale, "oauth_consent_intro", client_name=client_name))}</p>
 <p class="muted">{_esc(t(locale, "oauth_consent_scopes_heading"))}</p>
 <ul class="scope-list">{scope_items}</ul>
-<form method="post" action="/oauth/authorize" class="stack">
+<form method="post" action="/oauth/authorize" class="stack" target="_top">
   <input type="hidden" name="confirm" value="1"/>
   <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
   <button type="submit" class="primary">{_esc(t(locale, "oauth_allow"))}</button>
@@ -220,7 +225,7 @@ def oauth_login_page(
 <p class="lead">{_esc(t(locale, "oauth_sign_in_intro"))}</p>
 {sso_block}
 {err_block}
-<form method="post" action="/oauth/login" class="stack">
+<form method="post" action="/oauth/login" class="stack" target="_top">
   <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
   <label>{_esc(t(locale, "oauth_email"))}
     <input name="email" type="email" autocomplete="username" required/>
@@ -231,3 +236,26 @@ def oauth_login_page(
   <button type="submit" class="primary">{_esc(t(locale, "oauth_sign_in"))}</button>
 </form>"""
     return _page(locale, title=t(locale, "oauth_title_sign_in"), body=body)
+
+
+def oauth_client_redirect_page(request: Request, redirect_url: str) -> HTMLResponse:
+    """Return to the OAuth client (break out of iframe/popup when embedded in Open WebUI)."""
+    locale = oauth_locale(request)
+    js_url = json.dumps(redirect_url)
+    body = f"""<h1>{_esc(t(locale, "oauth_redirect_title"))}</h1>
+<p class="muted">{_esc(t(locale, "oauth_redirect_hint"))}</p>
+<a class="btn primary" href="{_esc(redirect_url)}">{_esc(t(locale, "oauth_continue"))}</a>
+<script>
+(function () {{
+  var url = {js_url};
+  try {{
+    if (window.top && window.top !== window.self) {{
+      window.top.location.replace(url);
+      return;
+    }}
+  }} catch (e) {{}}
+  window.location.replace(url);
+}})();
+</script>
+<noscript><meta http-equiv="refresh" content="0;url={_esc(redirect_url)}"/></noscript>"""
+    return _page(locale, title=t(locale, "oauth_redirect_title"), body=body)

@@ -111,9 +111,12 @@ def test_oauth_pkce_flow_and_transcripts(client, monkeypatch):
         data={"confirm": "1", "oauth_params": _encode_oauth_params(oauth_flat)},
         follow_redirects=False,
     )
-    assert confirm.status_code == 303
-    location = confirm.headers["location"]
-    assert location.startswith(REDIRECT_URI)
+    assert confirm.status_code == 200
+    import re
+
+    match = re.search(rf'href="({re.escape(REDIRECT_URI)}\?[^"]+)"', confirm.text)
+    assert match is not None, confirm.text[:500]
+    location = match.group(1)
     code = parse_qs(urlparse(location).query)["code"][0]
 
     token = client.post(
@@ -141,6 +144,26 @@ def test_oauth_pkce_flow_and_transcripts(client, monkeypatch):
         },
     )
     assert no_scope.status_code == 201
+
+
+def test_oauth_authorize_blocked_instance_admin_without_org(client, monkeypatch):
+    _enable_oauth(client, monkeypatch)
+    client_id = _register_client(client)
+    verifier, challenge = _pkce_pair()
+    response = client.get(
+        "/oauth/authorize",
+        params={
+            "client_id": client_id,
+            "redirect_uri": REDIRECT_URI,
+            "response_type": "code",
+            "scope": "transcripts:read",
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "resource": MCP_RESOURCE,
+        },
+    )
+    assert response.status_code == 403
+    assert "organization admins and members" in response.text or "администраторам и участникам" in response.text
 
 
 def test_oauth_authorize_blocked_api_disabled_styled(client, monkeypatch):

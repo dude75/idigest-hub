@@ -19,6 +19,7 @@
 | Create tasks | If in org | Yes | Yes |
 | Hard-delete org artifacts | No | Yes | No (own summary delete yes) |
 | API tokens | Yes (no org) | If tariff.api_enabled | If tariff.api_enabled |
+| MCP / OAuth (Open WebUI) | No (org required) | If tariff.api_enabled | If tariff.api_enabled |
 
 `instance_admin` is created once at `/setup`. They typically have **no org membership** — UI home defaults to Instance unless they join an org manually (not supported via signup flow).
 
