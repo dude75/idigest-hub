@@ -31,6 +31,11 @@ _OAUTH_BLOCKED_SIMPLE: frozenset[str] = frozenset({"api_disabled", "oauth_org_me
 
 _SCOPE_LABEL_KEYS: dict[str, str] = {
     "transcripts:read": "oauth_scope_transcripts_read",
+    "summaries:read": "oauth_scope_summaries_read",
+    "summaries:write": "oauth_scope_summaries_write",
+    "skills:read": "oauth_scope_skills_read",
+    "skills:write": "oauth_scope_skills_write",
+    "tasks:write": "oauth_scope_tasks_write",
 }
 
 _OAUTH_CSS = """

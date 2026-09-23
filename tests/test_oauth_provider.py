@@ -62,6 +62,17 @@ def test_oauth_disabled_by_default(client):
     assert client.get("/.well-known/oauth-authorization-server").status_code == 404
 
 
+def test_oauth_mcp_scopes_supported(client, monkeypatch):
+    _enable_oauth(client, monkeypatch)
+    from app.services.oauth_scopes import SCOPE_SUMMARIES_READ, SUPPORTED_SCOPES, validate_requested_scopes
+
+    meta = client.get("/.well-known/oauth-protected-resource/mcp").json()
+    assert SCOPE_SUMMARIES_READ in meta["scopes_supported"]
+    assert meta["scopes_supported"] == sorted(SUPPORTED_SCOPES)
+    granted = validate_requested_scopes(frozenset({"summaries:read", "skills:read", "tasks:write"}))
+    assert granted == frozenset({"summaries:read", "skills:read", "tasks:write"})
+
+
 def test_mcp_protected_resource_metadata(client, monkeypatch):
     _enable_oauth(client, monkeypatch)
     monkeypatch.delenv("OAUTH_MCP_RESOURCE_URL", raising=False)

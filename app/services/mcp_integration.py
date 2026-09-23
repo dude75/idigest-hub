@@ -2,23 +2,34 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 from mcp.server.auth.middleware.auth_context import get_access_token
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver.server import MCPServer
-from mcp_types import TextContent
 from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 
 from app.config import get_settings
 import app.db as db
 from app.deps import AuthContext, load_org_bundle
+from app.errors import ApiError
+from app.services.dispatcher import locked_tick_job
 from app.services.hub_mcp_token_verifier import HubMcpTokenVerifier
-from app.services.mcp_library import list_transcriptions_payload
+from app.services.mcp_library import (
+    delete_summary_payload,
+    get_summary_payload,
+    get_transcript_payload,
+    list_skills_payload,
+    list_summaries_payload,
+    list_transcriptions_payload,
+    summarize_transcript_payload,
+    update_skill_payload,
+)
 from app.services.oauth_provider import mcp_resource_url, oauth_provider_enabled, public_base_url
 from app.services.oauth_scopes import normalize_scopes
 
@@ -43,7 +54,7 @@ def _auth_settings(db) -> AuthSettings | None:
     return AuthSettings(
         issuer_url=AnyHttpUrl(base),
         resource_server_url=AnyHttpUrl(resource),
-        required_scopes=["transcripts:read"],
+        required_scopes=[],
         validate_token_resource=True,
     )
 
@@ -85,22 +96,119 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     server = MCPServer(
         name="idigest-hub",
         title="idigest",
-        instructions="Read transcripts from your idigest library.",
+        instructions=(
+            "Access your idigest library: transcripts, summaries, and skills. "
+            "OAuth scopes gate each tool (see oauth-protected-resource metadata)."
+        ),
         token_verifier=HubMcpTokenVerifier(),
         auth=auth,
         log_level="INFO",
     )
 
-    @server.tool(name="list_transcriptions", description="List transcript metadata in your library (no utterances).")
+    def _mcp_json_tool(
+        fn: Callable[..., dict],
+        *,
+        commit: bool = False,
+        post_commit: Callable[[dict], Any] | None = None,
+    ):
+        async def run(**kwargs) -> str:
+            access = get_access_token()
+            if access is None or not access.subject:
+                raise PermissionError("authentication required")
+            scopes = normalize_scopes(" ".join(access.scopes))
+            try:
+                with db.SessionLocal() as session:
+                    ctx = _auth_context_from_token(session, access.subject, scopes)
+                    payload = fn(session, ctx, **kwargs)
+                    if commit:
+                        session.commit()
+            except ApiError as exc:
+                _raise_from_api_error(exc)
+            if post_commit is not None:
+                post_commit(payload)
+            return json.dumps(payload, ensure_ascii=False)
+
+        return run
+
+    def _raise_from_api_error(exc: ApiError) -> None:
+        detail = exc.detail if isinstance(exc.detail, dict) else {}
+        err = detail.get("error") if isinstance(detail.get("error"), dict) else {}
+        message = err.get("message") or err.get("code") or "request failed"
+        if exc.status_code in {401, 403}:
+            raise PermissionError(message) from exc
+        if exc.status_code == 404:
+            raise ValueError("not found") from exc
+        raise ValueError(message) from exc
+
+    @server.tool(
+        name="list_transcriptions",
+        description="List transcript metadata in your library (no utterances). Requires transcripts:read.",
+    )
     async def list_transcriptions(include_hidden: bool = False) -> str:
-        access = get_access_token()
-        if access is None or not access.subject:
-            raise PermissionError("authentication required")
-        scopes = normalize_scopes(" ".join(access.scopes))
-        with db.SessionLocal() as session:
-            ctx = _auth_context_from_token(session, access.subject, scopes)
-            payload = list_transcriptions_payload(session, ctx, include_hidden=include_hidden)
-        return json.dumps(payload, ensure_ascii=False)
+        return await _mcp_json_tool(list_transcriptions_payload)(include_hidden=include_hidden)
+
+    @server.tool(
+        name="get_transcript",
+        description="Fetch one transcript with utterances. Requires transcripts:read.",
+    )
+    async def get_transcript(transcript_id: str) -> str:
+        return await _mcp_json_tool(get_transcript_payload)(transcript_id=transcript_id)
+
+    @server.tool(
+        name="list_summaries",
+        description="List summary metadata in your library (no body text). Requires summaries:read.",
+    )
+    async def list_summaries(include_hidden: bool = False) -> str:
+        return await _mcp_json_tool(list_summaries_payload)(include_hidden=include_hidden)
+
+    @server.tool(
+        name="get_summary",
+        description="Fetch one summary including body text. Requires summaries:read.",
+    )
+    async def get_summary(summary_id: str) -> str:
+        return await _mcp_json_tool(get_summary_payload)(summary_id=summary_id)
+
+    @server.tool(
+        name="delete_summary",
+        description="Delete a summary (owner or org admin). Requires summaries:write.",
+    )
+    async def delete_summary(summary_id: str) -> str:
+        return await _mcp_json_tool(delete_summary_payload, commit=True)(summary_id=summary_id)
+
+    @server.tool(
+        name="list_skills",
+        description="List skills visible to you (base, org, personal, shared). Requires skills:read.",
+    )
+    async def list_skills(scope: str | None = None) -> str:
+        return await _mcp_json_tool(list_skills_payload)(scope=scope)
+
+    @server.tool(
+        name="update_skill",
+        description=(
+            "Update a skill name and body when permitted (personal, org admin for org skills, "
+            "instance admin for base skills). Requires skills:write."
+        ),
+    )
+    async def update_skill(skill_id: str, name: str, body: str) -> str:
+        return await _mcp_json_tool(update_skill_payload, commit=True)(
+            skill_id=skill_id, name=name, body=body
+        )
+
+    def _schedule_summarize(task_payload: dict) -> None:
+        task_id = task_payload.get("id")
+        if task_id:
+            asyncio.create_task(locked_tick_job(str(task_id)))
+
+    @server.tool(
+        name="summarize_transcript",
+        description="Queue a summarize task for a transcript with one or more skills. Requires tasks:write.",
+    )
+    async def summarize_transcript(transcript_id: str, skill_ids: list[str]) -> str:
+        return await _mcp_json_tool(
+            summarize_transcript_payload,
+            commit=True,
+            post_commit=_schedule_summarize,
+        )(transcript_id=transcript_id, skill_ids=skill_ids)
 
     _mcp_server = server
     return server
