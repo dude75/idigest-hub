@@ -15,7 +15,7 @@ from pydantic import AnyHttpUrl
 from starlette.applications import Starlette
 
 from app.config import get_settings
-from app.db import SessionLocal
+from app.db import SessionLocal, get_engine
 from app.deps import AuthContext, load_org_bundle
 from app.services.hub_mcp_token_verifier import HubMcpTokenVerifier
 from app.services.mcp_library import list_transcriptions_payload
@@ -74,6 +74,9 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     if _mcp_server is not None:
         return _mcp_server
 
+    get_engine()
+    if SessionLocal is None:
+        raise RuntimeError("database not initialized")
     with SessionLocal() as db:
         auth = _auth_settings(db)
     if auth is None:
@@ -130,6 +133,13 @@ def get_mcp_starlette_app() -> Starlette:
 
 def get_mcp_session_manager() -> StreamableHTTPSessionManager:
     return get_mcp_server().session_manager
+
+
+class LazyMcpMount:
+    """Build the MCP Starlette app on first request (after lifespan DB init)."""
+
+    async def __call__(self, scope, receive, send):
+        await get_mcp_starlette_app()(scope, receive, send)
 
 
 @asynccontextmanager

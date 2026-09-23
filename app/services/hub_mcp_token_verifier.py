@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from mcp.server.auth.provider import AccessToken
 
-from app.db import SessionLocal
+from app.db import SessionLocal, get_engine
 from app.services.oauth_provider import mcp_resource_url as resolve_mcp_resource_url, verify_access_token
 from app.services.oauth_scopes import normalize_scopes
 
 
 class HubMcpTokenVerifier:
     async def verify_token(self, token: str) -> AccessToken | None:
+        get_engine()
+        if SessionLocal is None:
+            return None
         with SessionLocal() as db:
             payload = verify_access_token(db, token)
             if payload is None:
