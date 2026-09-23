@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlencode
 
 from fastapi import APIRouter, Depends, Form, Request
+from starlette.responses import Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -306,6 +307,7 @@ def _login_html(
 
 @router.post("/oauth/login")
 def oauth_login(
+    request: Request,
     email: str = Form(""),
     password: str = Form(""),
     oauth_params: str = Form(""),

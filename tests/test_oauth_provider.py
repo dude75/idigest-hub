@@ -73,6 +73,44 @@ def test_oauth_mcp_scopes_supported(client, monkeypatch):
     assert granted == frozenset({"summaries:read", "skills:read", "tasks:write"})
 
 
+def test_oauth_login_post_rejects_bad_password(client, monkeypatch):
+    _enable_oauth(client, monkeypatch)
+    _org_user_session(client)
+    client_id = _register_client(client)
+    verifier, challenge = _pkce_pair()
+    authorize = client.get(
+        "/oauth/authorize",
+        params={
+            "client_id": client_id,
+            "redirect_uri": REDIRECT_URI,
+            "response_type": "code",
+            "scope": "transcripts:read",
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "resource": MCP_RESOURCE,
+        },
+        follow_redirects=False,
+    )
+    assert authorize.status_code == 200
+    from app.routers.oauth import _encode_oauth_params
+
+    oauth_flat = {
+        key: values[0]
+        for key, values in parse_qs(urlparse(str(authorize.request.url)).query).items()
+    }
+    login = client.post(
+        "/oauth/login",
+        data={
+            "email": "nobody@example.com",
+            "password": "wrongpass1",
+            "oauth_params": _encode_oauth_params(oauth_flat),
+        },
+        follow_redirects=False,
+    )
+    assert login.status_code == 200
+    assert "oauth-page" in login.text
+
+
 def test_mcp_protected_resource_metadata(client, monkeypatch):
     _enable_oauth(client, monkeypatch)
     monkeypatch.delenv("OAUTH_MCP_RESOURCE_URL", raising=False)
