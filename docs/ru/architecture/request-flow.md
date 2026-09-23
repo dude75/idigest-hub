@@ -16,14 +16,21 @@ sequenceDiagram
     H->>DB: Load user, membership, org
     H->>H: Slide expires_at (+session_ttl_hours)
   else Bearer API token
-    C->>H: Authorization: Bearer ...
+    C->>H: Authorization: Bearer idg_...
     H->>DB: Lookup api_tokens.token_hash
     H->>H: enforce_bearer_api rate limits
     Note over H: Cookie sessions are NOT API-rate-limited
+  else OAuth JWT
+    C->>H: Authorization: Bearer JWT
+    H->>H: Verify hub-issued JWT + scopes
+    H->>H: enforce_bearer_api rate limits
+    Note over H: MCP tools на /mcp используют тот же JWT
   end
 ```
 
 Разрешение выполняется в `app/deps.py` → `resolve_auth()`. При ошибках возвращается HTTP **401** с `error.code = unauthorized` (или `must_change_password`, `mfa_enrollment_required`, `api_disabled` для Bearer).
+
+MCP-клиенты вызывают tools на `/mcp` после OAuth authorize/token (см. [MCP API](../api/mcp.md)). Мутации, которые ставят задачу (`create_audio_import`, `create_summary`), после commit запускают dispatcher tick.
 
 ### Password login с 2FA
 
@@ -137,5 +144,6 @@ sequenceDiagram
 ## Связанные страницы
 
 - [Tasks](../domain/tasks.md)
+- [MCP tools](../api/mcp.md)
 - [Workers](../operations/workers.md)
 - [Billing](../domain/billing.md)

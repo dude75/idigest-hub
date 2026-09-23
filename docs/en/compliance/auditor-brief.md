@@ -5,7 +5,7 @@ Document for information security audits, due diligence, and compliance reviews.
 
 **Language:** [English](auditor-brief.md) · [Русский](../../ru/compliance/auditor-brief.md)
 
-**Document version:** 1.0 · **Date:** 2026-09-13
+**Document version:** 1.1 · **Date:** 2026-09-24
 
 ---
 
@@ -22,6 +22,7 @@ The product implements **defense-in-depth** controls typical of enterprise SaaS 
 | **Dual key rotation** | Independent KEK rotation (operator) and DEK rotation (instance admin UI) with audited background re-encrypt |
 | **Three-tier RBAC + object ACLs** | `instance_admin` / `org_admin` / `org_member` with org boundary, ownership, and in-org sharing |
 | **Enterprise SSO** | Per-organization OIDC (Keycloak-compatible), Authorization Code + PKCE (S256), encrypted client secrets, break-glass for admins |
+| **OAuth 2.1 + MCP** | Optional hub-issued scoped JWTs for Open WebUI / MCP tools; org + tariff gated; PAT not accepted on `/mcp` |
 | **Session & API token hygiene** | HttpOnly cookies, hashed tokens (never stored raw), one-time API token display, revocable tokens |
 | **Abuse controls** | Configurable rate limits on auth, API, uploads, and task creation; trusted-proxy IP handling |
 | **Audit trail** | Persistent `audit_log` for admin actions, impersonation, wallet changes, data wipes, crypto operations |
@@ -82,6 +83,7 @@ Full matrix: [§ Shared responsibility](#shared-responsibility-matrix).
 | Session management | HttpOnly `hub_session`, SHA-256 + pepper, sliding TTL | `app/cookies.py`, [Security architecture](../architecture/security.md#session-cookies) |
 | API tokens | Prefix `idg_`, shown once, revocable, tariff-gated | `app/routers/auth.py`, tests: `tests/test_auth.py` |
 | OIDC SSO | Per-org config, Authorization Code + PKCE (S256), encrypted client secret, HMAC OAuth state, nonce validation | `app/services/sso.py`, tests: `tests/test_sso.py` |
+| OAuth 2.1 + MCP | Optional hub authorization server + Streamable HTTP `/mcp`; PKCE S256, DCR, scoped JWT tools; org member + `api_enabled` required | `app/services/oauth_provider.py`, `app/services/mcp_integration.py`, [MCP API](../api/mcp.md), tests: `tests/test_oauth_provider.py`, `tests/test_mcp_library.py` |
 | TOTP 2FA | Login challenge, org `mfa_required`, recovery codes, token step-up, encrypted secret | `app/services/mfa.py`, `app/services/totp.py`, tests: `tests/test_mfa.py` |
 | Break-glass login | `org_admin` + `instance_admin` retain password when SSO enabled | [Security architecture](../architecture/security.md#single-sign-on-sso) |
 | RBAC | Three roles + object ownership/shares | [Roles and access](../domain/roles-and-access.md) |
@@ -91,7 +93,7 @@ Full matrix: [§ Shared responsibility](#shared-responsibility-matrix).
 
 **Local-user MFA:** TOTP 2FA (opt-in in profile; org may require when SSO off). SSO users rely on IdP MFA.
 
-**Not implemented:** OAuth provider mode for third-party apps.
+**OAuth provider:** enabled with `OAUTH_PROVIDER_ENABLED`. Third-party MCP clients (e.g. Open WebUI) register via DCR, receive scoped JWTs, and call library tools at `/mcp`. Instance admins without org membership cannot complete OAuth.
 
 ### 2. Data protection and cryptography
 

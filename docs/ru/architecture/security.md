@@ -147,12 +147,28 @@ OIDC на уровне org (совместим с Keycloak). Authorization Code 
 
 Требует **Публичный URL** инстанса — как ссылки сброса пароля и URL входа участников SSO.
 
+## OAuth 2.1 provider (MCP)
+
+Опционально (`OAUTH_PROVIDER_ENABLED=true`). Хаб — **authorization server** и MCP **resource server** на `/mcp`. Клиенты (Open WebUI и другие MCP-хосты) проходят Authorization Code + **PKCE S256**, затем вызывают tools с JWT, выданным хабом.
+
+| Правило | Поведение |
+| ------- | --------- |
+| Кто может authorize | `org_admin` или `org_member` с тарифом `api_enabled` и без блокировок |
+| Instance admin без org | Отказ на `/oauth/authorize` (PAT для REST по-прежнему работает) |
+| Токены | JWT access + refresh; PAT `idg_…` на `/mcp` **не** принимается |
+| Scopes | Гейтят MCP tools (`audio:*`, `transcripts:*`, `summaries:*`, `skills:*`, `tasks:write`). Если не указаны: `transcripts:read` |
+| Ключ подписи | `OAUTH_SIGNING_KEY_PEM` или автогенерация `{DATA_DIR}/oauth_signing_key.pem` (JWKS: `/.well-known/jwks.json`) |
+| Браузерный UI | HTML login / consent / ошибка; `/oauth/token` и `/oauth/register` остаются JSON |
+
+Каталог tools и карта scope: [MCP API](../api/mcp.md). JWT также работает как `Authorization: Bearer` в REST `/api/v1` (действуют Bearer rate limits).
+
 ## Слои авторизации
 
-1. **Authentication** — валидная session или Bearer token
+1. **Authentication** — валидная session, PAT или OAuth JWT хаба
 2. **Org membership** — большинство функций требуют `ctx.require_org()`
 3. **Role** — `org_admin` vs `org_member` vs `instance_admin`
-4. **Object ownership / share** — см. [roles-and-access](../domain/roles-and-access.md)
+4. **OAuth scopes** — дополнительный гейт для MCP tools (и отдельных REST-маршрутов) при `via_oauth_token`
+5. **Object ownership / share** — см. [roles-and-access](../domain/roles-and-access.md)
 
 Права instance admin отключены во время **impersonation** (`is_instance_admin` false при impersonation).
 
@@ -189,4 +205,5 @@ Per-IP limits включены по умолчанию (напр. login 60/ми�
 - [Краткий обзор для аудиторов](../compliance/auditor-brief.md) — каталог контролей, индекс доказательств, mapping фреймворков
 - [SECURITY.ru.md](../../../SECURITY.ru.md) — политика CI/CD и чек-лист аудита
 - [Роли и доступ](../domain/roles-and-access.md)
+- [MCP tools](../api/mcp.md)
 - [Деплой](../operations/deployment.md)

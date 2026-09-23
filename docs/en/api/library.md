@@ -100,7 +100,10 @@ Returns `{ "ids": ["share_id", ...] }`. Skips self and unknown org members.
 
 Owner or recipient may revoke.
 
+MCP equivalents (OAuth JWT, same access rules): [MCP tools](mcp.md) — `list_audios` / `get_audio` / `create_audio_upload` / `delete_audio`, `list_transcripts` / `get_transcript` / `update_transcript` / `delete_transcript`, `list_summaries` / `get_summary` / `update_summary` / `delete_summary`.
+
 ## Related pages
 
 - [Library domain](../domain/library.md)
 - [Tasks API](tasks.md)
+- [MCP tools](mcp.md)

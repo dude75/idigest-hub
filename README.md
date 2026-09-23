@@ -103,6 +103,7 @@ After `/setup`, set **Public URL** in **Instance → Settings**. It is the hub�
 | **SSO** (redirect URI, member login link) | Links cannot be built; org SSO setup shows an error |
 | **Password reset email** | Disabled (`recovery_disabled`) — SMTP alone is not enough |
 | **Public summary links** | Guest URLs cannot be built |
+| **MCP / OAuth 2.1** (Open WebUI) | Authorization server and `/mcp` resource URL cannot be published |
 
 Use the same URL users and Keycloak use to reach the hub. In production prefer **HTTPS** and set `COOKIE_SECURE=true`. Local dev over HTTP works with `COOKIE_SECURE=false` (default).
 
@@ -132,6 +133,14 @@ Details: [docs/en/api/auth.md](docs/en/api/auth.md#two-factor-authentication-tot
 Summary owners can share a **read-only guest URL** (optional PIN, optional expiry). Requires **Public URL** and org `allow_public_links` (org_admin can disable). Manage from the summary share dialog or **Public links** page (`/app/public-links`).
 
 Guest URL: `{public_url}/public/summary/{token}`. API: [docs/en/api/public.md](docs/en/api/public.md).
+
+## MCP (Open WebUI)
+
+Optional. Set `OAUTH_PROVIDER_ENABLED=true` and **Public URL**. The hub becomes an OAuth 2.1 authorization server and hosts Streamable HTTP MCP at `{public_url}/mcp`. Clients register via DCR, users consent in the browser, then tools read/write the library (audio, transcripts, summaries, skills) and enqueue import/summarize jobs.
+
+Requires org membership and tariff `api_enabled`. Request scopes explicitly — the default is `transcripts:read` only.
+
+Details: [docs/en/api/mcp.md](docs/en/api/mcp.md), [Auth / OAuth](docs/en/api/auth.md#oauth-21-provider-mcp--open-webui).
 
 ## `.env`
 
@@ -166,6 +175,10 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `TRUSTED_PROXIES`            | Comma-separated IPs/CIDRs of reverse proxies allowed to set `X-Forwarded-For` / `X-Real-IP` for per-IP rate limits. Empty = trust none (TCP peer only).        |
 | `METRICS_ENABLED`              | Application Prometheus metrics on `GET /metrics`. Default `true`. `false` / `0` / `no` = process collectors only.                                              |
 | `METRICS_TOKEN`                | Bearer token for Prometheus scrape. Required; empty = `/metrics` returns 401.                                                                                  |
+| `OAUTH_PROVIDER_ENABLED`       | Hub OAuth 2.1 + MCP at `/mcp` (Open WebUI). Default `false`. Requires Public URL when enabled.                                                               |
+| `OAUTH_MCP_RESOURCE_URL`       | Optional override of the MCP resource URI. Default `{Public URL}/mcp`.                                                                                       |
+| `OAUTH_ACCESS_TOKEN_TTL_SEC`   | Access token lifetime in seconds. Default `3600`.                                                                                                            |
+| `OAUTH_SIGNING_KEY_PEM`        | Optional RSA private key PEM for JWT. If empty, the hub generates `{DATA_DIR}/oauth_signing_key.pem`.                                                        |
 
 Everything that must survive a restart lives under `./data` (SQLite `hub.db` or `./data/pg` for Compose PostgreSQL, and logs). With the default **`STORAGE_BACKEND=local`**, audio uploads also live under `{DATA_DIR}/uploads/{audio_id}/` — mount `./data` in Docker. With **`STORAGE_BACKEND=s3`**, audio is in object storage (SSE at rest); the hub pod needs DB + logs only, not a volume for uploads. The Compose container writes `./data` as uid/gid **1001** (see [Docker Compose](#docker-compose)).
 

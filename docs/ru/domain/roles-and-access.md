@@ -92,8 +92,11 @@ Hub 2FA применяется только к local-auth пользовател
 
 Пользователи могут задать `default_route` через PATCH `/me`: `library/summaries`, `library/transcripts`, `library/audio`, `skills`, `org`, `stats`, `tasks`, `instance/*`, `security/*` — только маршруты, разрешённые для их роли. Legacy `library` → `library/audio`. См. `web/src/routes.ts`.
 
+OAuth scopes дополнительно ограничивают MCP tools, даже если роль разрешает тот же REST-вызов. Карта: [MCP API](../api/mcp.md).
+
 ## Связанные страницы
 
 - [Организации](organizations.md)
 - [Библиотека](library.md)
 - [Безопасность](../architecture/security.md)
+- [MCP tools](../api/mcp.md)

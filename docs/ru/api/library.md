@@ -99,7 +99,10 @@ Read-only гостевой URL (нужны Public URL + org `allow_public_links`
 
 Отозвать может владелец или получатель.
 
+Эквиваленты MCP (OAuth JWT, те же правила доступа): [MCP tools](mcp.md) — `list_audios` / `get_audio` / `create_audio_upload` / `delete_audio`, `list_transcripts` / `get_transcript` / `update_transcript` / `delete_transcript`, `list_summaries` / `get_summary` / `update_summary` / `delete_summary`.
+
 ## Связанные страницы
 
 - [Library domain](../domain/library.md)
 - [Tasks API](tasks.md)
+- [MCP tools](mcp.md)

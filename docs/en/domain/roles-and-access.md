@@ -92,8 +92,11 @@ Hub 2FA applies only to local-auth users (`auth_provider=local`). SSO users use 
 
 Users may set `default_route` via PATCH `/me`: `library/summaries`, `library/transcripts`, `library/audio`, `skills`, `org`, `stats`, `tasks`, `instance/*`, `security/*` — only routes allowed for their role. Legacy value `library` maps to `library/audio`. See `web/src/routes.ts`.
 
+OAuth scopes further restrict MCP tools even when the role would allow the REST equivalent. Full map: [MCP API](../api/mcp.md).
+
 ## Related pages
 
 - [Organizations](organizations.md)
 - [Library](library.md)
 - [Security](../architecture/security.md)
+- [MCP tools](../api/mcp.md)

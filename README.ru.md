@@ -103,6 +103,7 @@ curl -sS -X POST http://127.0.0.1:8080/api/v1/setup \
 | **SSO** (redirect URI, ссылка входа для участников) | Ссылки не собираются; настройка SSO в org показывает ошибку |
 | **Письмо сброса пароля** | Выключено (`recovery_disabled`) — одного SMTP недостаточно |
 | **Публичные ссылки на summary** | Гостевые URL не собираются |
+| **MCP / OAuth 2.1** (Open WebUI) | Authorization server и resource URL `/mcp` нельзя опубликовать |
 
 URL должен совпадать с тем, как хаб видят пользователи и Keycloak. В проде — **HTTPS** и `COOKIE_SECURE=true`. Локально по HTTP достаточно `COOKIE_SECURE=false` (по умолчанию).
 
@@ -132,6 +133,14 @@ Login с 2FA: пароль → `/verify-2fa` (TOTP или recovery code). При
 Владелец summary может выдать **read-only гостевой URL** (опционально PIN и срок). Нужны **Публичный URL** и org `allow_public_links` (org_admin может отключить). Управление — в диалоге шаринга summary или на странице **Public links** (`/app/public-links`).
 
 Гостевой URL: `{public_url}/public/summary/{token}`. API: [docs/ru/api/public.md](docs/ru/api/public.md).
+
+## MCP (Open WebUI)
+
+Опционально. Задайте `OAUTH_PROVIDER_ENABLED=true` и **Публичный URL**. Хаб становится authorization server OAuth 2.1 и поднимает Streamable HTTP MCP на `{public_url}/mcp`. Клиенты регистрируются через DCR, пользователь подтверждает доступ в браузере, затем tools читают/пишут библиотеку (аудио, транскрипты, саммари, skills) и ставят import/summarize.
+
+Нужны членство в org и тариф `api_enabled`. Scope нужно запрашивать явно — по умолчанию только `transcripts:read`.
+
+Подробнее: [docs/ru/api/mcp.md](docs/ru/api/mcp.md), [Auth / OAuth](docs/ru/api/auth.md#oauth-21-provider-mcp--open-webui).
 
 ## `.env`
 
@@ -166,6 +175,10 @@ Login с 2FA: пароль → `/verify-2fa` (TOTP или recovery code). При
 | `TRUSTED_PROXIES`            | IP/CIDR reverse proxy через запятую; им доверяют заголовки `X-Forwarded-For` / `X-Real-IP` для per-IP лимитов. Пусто = не доверять (только TCP peer).          |
 | `METRICS_ENABLED`              | Прикладные метрики на `GET /metrics`. По умолчанию `true`. `false` / `0` / `no` — только process collectors.                                                     |
 | `METRICS_TOKEN`                | Bearer для Prometheus scrape. Обязателен; пусто — `/metrics` отвечает 401.                                                                                     |
+| `OAUTH_PROVIDER_ENABLED`       | OAuth 2.1 хаба + MCP на `/mcp` (Open WebUI). По умолчанию `false`. При включении нужен Публичный URL.                                                         |
+| `OAUTH_MCP_RESOURCE_URL`       | Опциональный override resource URI MCP. По умолчанию `{Публичный URL}/mcp`.                                                                                   |
+| `OAUTH_ACCESS_TOKEN_TTL_SEC`   | TTL access token в секундах. По умолчанию `3600`.                                                                                                            |
+| `OAUTH_SIGNING_KEY_PEM`        | Опциональный RSA PEM для JWT. Если пусто, хаб генерирует `{DATA_DIR}/oauth_signing_key.pem`.                                                                 |
 
 Всё, что должно пережить рестарт, лежит в `./data` (SQLite `hub.db` или `./data/pg` для PostgreSQL в Compose, логи). При **`STORAGE_BACKEND=local`** (по умолчанию) загрузки audio — в `{DATA_DIR}/uploads/{audio_id}/`; монтируйте `./data` в Docker. При **`STORAGE_BACKEND=s3`** audio в object storage (SSE at rest); hub-поду volume для uploads не нужен — только БД и логи. Контейнер Compose пишет `./data` от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
 

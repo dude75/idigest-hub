@@ -16,14 +16,21 @@ sequenceDiagram
     H->>DB: Load user, membership, org
     H->>H: Slide expires_at (+session_ttl_hours)
   else Bearer API token
-    C->>H: Authorization: Bearer ...
+    C->>H: Authorization: Bearer idg_...
     H->>DB: Lookup api_tokens.token_hash
     H->>H: enforce_bearer_api rate limits
     Note over H: Cookie sessions are NOT API-rate-limited
+  else OAuth JWT
+    C->>H: Authorization: Bearer JWT
+    H->>H: Verify hub-issued JWT + scopes
+    H->>H: enforce_bearer_api rate limits
+    Note over H: MCP tools at /mcp use the same JWT
   end
 ```
 
 Resolution lives in `app/deps.py` → `resolve_auth()`. Failures return HTTP **401** with `error.code = unauthorized` (or `must_change_password`, `mfa_enrollment_required`, `api_disabled` for Bearer).
+
+MCP clients call tools on `/mcp` after OAuth authorize/token (see [MCP API](../api/mcp.md)). Tool mutations that enqueue work (`create_audio_import`, `create_summary`) schedule a dispatcher tick after commit.
 
 ### Password login with 2FA
 
@@ -137,5 +144,6 @@ Worker errors are mapped via `WORKER_ERROR_MAP` in `app/services/workers.py` to 
 ## Related pages
 
 - [Tasks](../domain/tasks.md)
+- [MCP tools](../api/mcp.md)
 - [Workers](../operations/workers.md)
 - [Billing](../domain/billing.md)

@@ -8,6 +8,7 @@
 | ----- | -------- | -------------- |
 | **Web UI** | `web/` → `web/dist` | React SPA: library, tasks, org admin, instance admin |
 | **HTTP API** | `app/main.py`, `app/routers/` | FastAPI on `/api/v1/*`; serves SPA from same origin |
+| **MCP** | `app/services/mcp_integration.py` | Optional Streamable HTTP resource server at `/mcp` (OAuth JWT tools for Open WebUI) |
 | **Dispatcher** | `app/services/dispatcher.py` | Background loop: health checks, dispatch, poll, billing on success |
 | **Database** | SQLite (default) or PostgreSQL | Orgs, users, tasks, encrypted artifacts metadata |
 | **File storage** | `app/services/storage.py` | Audio blobs: local disk (`STORAGE_BACKEND=local`) or S3-compatible object storage with SSE (`STORAGE_BACKEND=s3`) |
@@ -18,6 +19,7 @@ flowchart TB
   subgraph clients [Clients]
     Browser[Browser + session cookie]
     API[Scripts + Bearer token]
+    MCP[Open WebUI / MCP + OAuth JWT]
   end
 
   subgraph hub [idigest-hub single process]
@@ -34,6 +36,7 @@ flowchart TB
 
   Browser --> FastAPI
   API --> FastAPI
+  MCP --> FastAPI
   FastAPI --> DB
   FastAPI --> FS
   Dispatch --> DB
@@ -59,6 +62,7 @@ On startup (`app/main.py` lifespan):
 2. Create `{DATA_DIR}`, run Alembic migrations (`init_database` → `alembic upgrade head`)
 3. Start `dispatcher_loop` (async background task, polls every `DISPATCH_POLL_SEC`, default 1s)
 4. Start `rate_limit_sweeper` (expires in-memory buckets)
+5. If OAuth is enabled, start the MCP Streamable HTTP session manager (`/mcp`)
 
 On shutdown: cancel background tasks cleanly.
 
@@ -93,5 +97,6 @@ See [request-flow.md](request-flow.md) for step-by-step sequences.
 
 - [Request flow](request-flow.md)
 - [Security](security.md)
+- [MCP tools](../api/mcp.md)
 - [Tasks](../domain/tasks.md)
 - [Workers](../operations/workers.md)

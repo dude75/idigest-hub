@@ -33,7 +33,8 @@
 | Метод | Заголовок / cookie | Ограничение частоты |
 | ----- | ------------------ | ------------------- |
 | Сессия | Cookie `hub_session` | Auth; upload + создание task — те же write limits, что у Bearer |
-| API-токен | `Authorization: Bearer <token>` | Да (Bearer + write limits на upload/tasks) |
+| API-токен | `Authorization: Bearer idg_…` | Да (Bearer + write limits на upload/tasks) |
+| OAuth JWT | `Authorization: Bearer` JWT, выданный хабом | Те же Bearer limits; MCP tools на `/mcp` используют этот токен |
 
 Неаутентифицированные запросы к защищённым маршрутам → **401** `unauthorized`.
 

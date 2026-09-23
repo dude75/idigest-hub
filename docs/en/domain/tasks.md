@@ -180,8 +180,11 @@ Configurable via `.env`:
 | `WORKER_HTTP_TIMEOUT_SEC` | 30 |
 | `WORKER_UPLOAD_TIMEOUT_SEC` | 300 |
 
+MCP can enqueue import (`create_audio_import`) and summarize (`create_summary`) with scope `tasks:write`. See [MCP API](../api/mcp.md).
+
 ## Related pages
 
 - [Request flow](../architecture/request-flow.md)
 - [Billing](billing.md)
 - [Tasks API](../api/tasks.md)
+- [MCP tools](../api/mcp.md)

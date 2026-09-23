@@ -127,8 +127,11 @@ Org admins see all org rows regardless of share/hide.
 
 Org admin DELETE on audio/transcript is destructive for the whole org view.
 
+MCP tools cover the same library CRUD (list/get/upload/import/update/delete) over `/mcp`. See [MCP API](../api/mcp.md).
+
 ## Related pages
 
 - [Tasks](tasks.md)
 - [Skills](skills.md)
 - [Library API](../api/library.md)
+- [MCP tools](../api/mcp.md)

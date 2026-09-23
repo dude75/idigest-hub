@@ -112,7 +112,10 @@ curl -sS -b cookies.txt \
   http://127.0.0.1:8080/api/v1/tasks/TASK_UUID
 ```
 
+MCP equivalents: [MCP tools](mcp.md) — `create_audio_import` (same as `POST /tasks/import`) and `create_summary` (same as `POST /tasks/summarize`). Both return task JSON and schedule a dispatcher tick. Scope: `tasks:write`.
+
 ## Related pages
 
 - [Tasks domain](../domain/tasks.md)
 - [Request flow](../architecture/request-flow.md)
+- [MCP tools](mcp.md)

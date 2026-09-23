@@ -108,6 +108,8 @@ If the client omits `scope`, the hub defaults to `transcripts:read` only. Full t
 
 **MCP / OAuth authorize** — only users with org membership and role `org_admin` or `org_member`, plus tariff `api_enabled` and no account blocks. **Instance admins without org** cannot complete OAuth (instance admins may still use PAT without org separately).
 
+Browser authorize/consent uses styled HTML pages (login, consent, blocked-account errors). `/oauth/token` and `/oauth/register` stay JSON.
+
 ## Password
 
 ### POST `/auth/password/change`
@@ -318,5 +320,6 @@ Subject to rate limits (Instance → Settings).
 
 ## Related pages
 
+- [MCP tools](mcp.md)
 - [Security](../architecture/security.md)
 - [Roles](../domain/roles-and-access.md)

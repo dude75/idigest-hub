@@ -127,8 +127,11 @@ org admin видит все строки org независимо от share/hid
 
 DELETE org admin на audio/transcript разрушителен для всего org-представления.
 
+MCP tools покрывают тот же CRUD библиотеки (list/get/upload/import/update/delete) через `/mcp`. См. [MCP API](../api/mcp.md).
+
 ## Связанные страницы
 
 - [Задачи](tasks.md)
 - [Навыки](skills.md)
 - [Library API](../api/library.md)
+- [MCP tools](../api/mcp.md)

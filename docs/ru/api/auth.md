@@ -110,6 +110,8 @@ Access token (JWT) принимается в **REST** `/api/v1` как `Authoriz
 
 **MCP / OAuth authorize** — только пользователи с членством в org и ролью `org_admin` или `org_member`, плюс тариф с `api_enabled` и без блокировок аккаунта. **Instance admin без org** и прочие пользователи без org получают отказ на `/oauth/authorize` (PAT для instance admin без org по-прежнему возможен отдельно).
 
+Браузерный authorize/consent — стилизованные HTML-страницы (логин, consent, ошибки блокировки). `/oauth/token` и `/oauth/register` остаются JSON.
+
 ## Пароль
 
 ### POST `/auth/password/change`
@@ -320,5 +322,6 @@ curl -sS -H "Authorization: Bearer $TOKEN" \
 
 ## Связанные страницы
 
+- [MCP tools](mcp.md)
 - [Security](../architecture/security.md)
 - [Roles](../domain/roles-and-access.md)

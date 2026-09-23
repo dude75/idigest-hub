@@ -15,7 +15,7 @@
 
 - [Обзор](architecture/overview.md) — компоненты, tenancy, поток данных
 - [Поток запросов](architecture/request-flow.md) — auth, задачи, dispatcher
-- [Безопасность](architecture/security.md) — envelope encryption, ротация KEK/DEK, сессии, rate limit
+- [Безопасность](architecture/security.md) — envelope encryption, ротация KEK/DEK, сессии, OAuth 2.1 / MCP, rate limit
 
 ## Доменная модель
 

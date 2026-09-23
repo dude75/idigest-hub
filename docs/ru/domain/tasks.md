@@ -180,8 +180,11 @@ stateDiagram-v2
 | `WORKER_HTTP_TIMEOUT_SEC` | 30 |
 | `WORKER_UPLOAD_TIMEOUT_SEC` | 300 |
 
+Через MCP можно поставить import (`create_audio_import`) и summarize (`create_summary`) со scope `tasks:write`. См. [MCP API](../api/mcp.md).
+
 ## Связанные страницы
 
 - [Поток запросов](../architecture/request-flow.md)
 - [Биллинг](billing.md)
 - [Tasks API](../api/tasks.md)
+- [MCP tools](../api/mcp.md)

@@ -33,7 +33,8 @@ Task create returns **202** with task body (not wrapped).
 | Method | Header / cookie | Rate limited |
 | ------ | ----------------- | ------------ |
 | Session | Cookie `hub_session` | Auth endpoints; upload + task create share Bearer write limits |
-| API token | `Authorization: Bearer <token>` | Yes (Bearer + write limits on upload/tasks) |
+| API token | `Authorization: Bearer idg_…` | Yes (Bearer + write limits on upload/tasks) |
+| OAuth JWT | `Authorization: Bearer` hub-issued JWT | Same Bearer limits; MCP tools at `/mcp` use this token |
 
 Unauthenticated requests to protected routes → **401** `unauthorized`.
 

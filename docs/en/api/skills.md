@@ -47,7 +47,10 @@ Download skill body as Markdown (`.md`). Same visibility as catalog read access.
 | PATCH | `/skills/base/{id}` |
 | DELETE | `/skills/base/{id}` |
 
+MCP equivalents: [MCP tools](mcp.md) — `list_skills`, `get_skill`, `create_skill` (`catalog`: `self` / `org` / `base`), `update_skill`, `delete_skill`. Scopes: `skills:read` / `skills:write`.
+
 ## Related pages
 
 - [Skills domain](../domain/skills.md)
 - [Shares via Library API](library.md)
+- [MCP tools](mcp.md)

@@ -47,7 +47,10 @@
 | PATCH | `/skills/base/{id}` |
 | DELETE | `/skills/base/{id}` |
 
+Эквиваленты MCP: [MCP tools](mcp.md) — `list_skills`, `get_skill`, `create_skill` (`catalog`: `self` / `org` / `base`), `update_skill`, `delete_skill`. Scopes: `skills:read` / `skills:write`.
+
 ## Связанные страницы
 
 - [Skills domain](../domain/skills.md)
 - [Shares via Library API](library.md)
+- [MCP tools](mcp.md)

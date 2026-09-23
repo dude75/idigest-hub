@@ -25,6 +25,7 @@ app/
 │   ├── org.py
 │   ├── instance.py
 │   ├── crypto.py     # DEK management API (instance_admin)
+│   ├── oauth.py      # OAuth 2.1 authorize / token / DCR / well-known
 │   └── skills.py
 └── services/
     ├── dispatcher.py   # Task queue loop
@@ -40,6 +41,11 @@ app/
     ├── crypto_bootstrap.py  # Startup validate + initial DEK + KEK re-wrap
     ├── crypto_reencrypt.py  # Background DEK rotation job
     ├── sso.py          # OIDC login, state, token exchange
+    ├── oauth_provider.py    # Hub OAuth 2.1 authorization server
+    ├── oauth_scopes.py      # MCP / JWT scope names
+    ├── oauth_pages.py       # HTML login / consent / error for /oauth/authorize
+    ├── mcp_integration.py   # Embedded Streamable HTTP MCP at /mcp
+    ├── mcp_library.py       # MCP tool business logic (aligned with REST)
     ├── mfa.py          # 2FA policy, challenges, recovery codes
     ├── totp.py         # TOTP secret generation and verification
     ├── backup.py       # Profile ZIP/TGZ archives
@@ -64,6 +70,7 @@ Central authorization object (`app/deps.py`):
 - `actor` — logged-in user
 - `org` / `membership` — tenant context
 - `is_instance_admin`, `is_org_admin` — role shortcuts
+- `via_oauth_token` / `oauth_scopes` — set for hub-issued JWT (MCP and REST Bearer JWT)
 
 Enrollment gates in `require_auth()`: `ALLOWED_WHEN_MUST_CHANGE` and `ALLOWED_WHEN_MFA_ENROLLMENT` whitelist endpoints during password-change and forced-2FA flows.
 
@@ -95,3 +102,4 @@ Always use `floor_to_cents` from `app/money.py` for wallet operations.
 
 - [Database](../operations/database.md)
 - [Testing](testing.md)
+- [MCP tools](../api/mcp.md)

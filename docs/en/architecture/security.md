@@ -143,12 +143,28 @@ Per-organization OIDC (Keycloak-compatible). Authorization Code flow with **PKCE
 
 Requires instance **Public URL** — same as password-reset links and SSO member login URL.
 
+## OAuth 2.1 provider (MCP)
+
+Optional (`OAUTH_PROVIDER_ENABLED=true`). The hub is an **authorization server** and an MCP **resource server** at `/mcp`. Clients (Open WebUI and other MCP hosts) use Authorization Code + **PKCE S256**, then call tools with a hub-issued JWT.
+
+| Rule | Behavior |
+| ---- | -------- |
+| Who can authorize | `org_admin` or `org_member` with tariff `api_enabled` and no account blocks |
+| Instance admin without org | Denied on `/oauth/authorize` (PAT for REST still works) |
+| Tokens | JWT access + refresh; PAT `idg_…` is **not** accepted on `/mcp` |
+| Scopes | Gate MCP tools (`audio:*`, `transcripts:*`, `summaries:*`, `skills:*`, `tasks:write`). Default if omitted: `transcripts:read` |
+| Signing key | `OAUTH_SIGNING_KEY_PEM` or auto-generated `{DATA_DIR}/oauth_signing_key.pem` (JWKS at `/.well-known/jwks.json`) |
+| Browser UI | Styled HTML login / consent / error pages; `/oauth/token` and `/oauth/register` stay JSON |
+
+Tool catalog and scope map: [MCP API](../api/mcp.md). JWT also works as `Authorization: Bearer` on REST `/api/v1` (Bearer rate limits apply).
+
 ## Authorization layers
 
-1. **Authentication** — valid session or Bearer token
+1. **Authentication** — valid session, PAT, or hub-issued OAuth JWT
 2. **Org membership** — most features require `ctx.require_org()`
 3. **Role** — `org_admin` vs `org_member` vs `instance_admin`
-4. **Object ownership / share** — see [roles-and-access](../domain/roles-and-access.md)
+4. **OAuth scopes** — additional gate for MCP tools (and selected REST routes) when `via_oauth_token`
+5. **Object ownership / share** — see [roles-and-access](../domain/roles-and-access.md)
 
 Instance admin powers are disabled while **impersonating** (`is_instance_admin` false during impersonation).
 
@@ -189,4 +205,5 @@ Instance admin: **Security → Encryption** — list DEKs (id, status, usage cou
 - [Enterprise security brief for auditors](../compliance/auditor-brief.md) — control catalog, evidence index, framework mapping
 - [SECURITY.md](../../../SECURITY.md) — CI/CD policy and audit checklist
 - [Roles and access](../domain/roles-and-access.md)
+- [MCP tools](../api/mcp.md)
 - [Deployment](../operations/deployment.md)

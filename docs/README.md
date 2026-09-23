@@ -50,6 +50,7 @@ Policy documents (repository root): [SECURITY.md](../SECURITY.md) (EN) · [SECUR
 | -- | -- |
 | [API overview](en/api/README.md) | [Обзор API](ru/api/README.md) |
 | [Auth](en/api/auth.md) | [Auth](ru/api/auth.md) |
+| [MCP](en/api/mcp.md) | [MCP](ru/api/mcp.md) |
 | [Tasks](en/api/tasks.md) | [Tasks](ru/api/tasks.md) |
 | [Library](en/api/library.md) | [Library](ru/api/library.md) |
 | [Org](en/api/org.md) | [Org](ru/api/org.md) |

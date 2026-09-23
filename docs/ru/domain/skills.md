@@ -74,8 +74,11 @@ Body text...
 
 `POST /shares` с `object_type: "skill"` — только для `scope=self`, принадлежащих отправителю. Получатели видят навык под `catalog: shared` (readonly). Могут скопировать в свою библиотеку.
 
+MCP tools: `list_skills`, `get_skill`, `create_skill`, `update_skill`, `delete_skill` (те же правила каталогов). См. [MCP API](../api/mcp.md).
+
 ## Связанные страницы
 
 - [Задачи](tasks.md)
 - [Библиотека](library.md)
 - [Skills API](../api/skills.md)
+- [MCP tools](../api/mcp.md)

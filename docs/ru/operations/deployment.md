@@ -115,7 +115,7 @@ Hub сам эти заголовки не выставляет — настра�
 
 Если позже появятся внешние CDN или скрипты — расширьте `Content-Security-Policy`. Swagger UI (`/docs`) при строгой CSP может потребовать отдельного `location` с ослабленной политикой.
 
-Задайте **Публичный URL** в Instance → Settings — внешний базовый адрес, по которому пользователи и Keycloak достигают хаба (напр. `https://hub.example.com`). Нужен для SSO org, ссылок сброса пароля и корректных OAuth redirect URI. См. [README — Публичный URL](../../../README.ru.md#публичный-url-instance-admin).
+Задайте **Публичный URL** в Instance → Settings — внешний базовый адрес, по которому пользователи и Keycloak достигают хаба (напр. `https://hub.example.com`). Нужен для SSO org, ссылок сброса пароля, публичных ссылок на summary и MCP / OAuth 2.1 (`{public_url}/mcp`). См. [README — Публичный URL](../../../README.ru.md#публичный-url-instance-admin).
 
 ## Переменные окружения
 
@@ -126,6 +126,8 @@ Hub сам эти заголовки не выставляет — настра�
 - `SESSION_SECRET` — обязателен до `/setup`; смена разлогинивает всех; пустое значение блокирует старт при наличии sessions или API tokens
 - `OPENAPI_ENABLED=false` — отключить `/docs`, `/redoc` и `/openapi.json` в production (рекомендуется)
 - `INSTANCE_BOOTSTRAP_TOKEN` — только для одноразовой настройки
+- `OAUTH_PROVIDER_ENABLED=true` — включить OAuth 2.1 хаба + MCP на `/mcp` (нужен Публичный URL)
+- `OAUTH_SIGNING_KEY_PEM` — опциональный RSA PEM; иначе хаб пишет `{DATA_DIR}/oauth_signing_key.pem`
 
 Изменения переменных окружения процесса требуют перезапуска.
 

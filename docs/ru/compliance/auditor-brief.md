@@ -5,7 +5,7 @@
 
 **Язык:** [English](../../en/compliance/auditor-brief.md) · [Русский](auditor-brief.md)
 
-**Версия документа:** 1.0 · **Дата:** 2026-09-13
+**Версия документа:** 1.1 · **Дата:** 2026-09-24
 
 ---
 
@@ -22,6 +22,7 @@
 | **Двойная ротация ключей** | Независимая ротация KEK (оператор) и DEK (UI instance admin) с аудируемым фоновым re-encrypt |
 | **RBAC из трёх уровней + ACL объектов** | `instance_admin` / `org_admin` / `org_member` с границей org, владением и sharing внутри org |
 | **Enterprise SSO** | OIDC per org (Keycloak-compatible), Authorization Code + PKCE (S256), зашифрованные client secrets, break-glass для админов |
+| **OAuth 2.1 + MCP** | Опциональные scoped JWT хаба для Open WebUI / MCP tools; гейт org + тариф; PAT на `/mcp` не принимается |
 | **Гигиена сессий и API tokens** | HttpOnly cookies, хешированные токены (raw не хранится), одноразовый показ API token, отзыв |
 | **Защита от злоупотреблений** | Настраиваемые rate limits на auth, API, upload и создание задач; trusted-proxy для IP |
 | **Audit trail** | Персистентный `audit_log` для admin-действий, impersonation, wallet, wipe данных, crypto-операций |
@@ -82,6 +83,7 @@
 | Управление сессиями | HttpOnly `hub_session`, SHA-256 + pepper, sliding TTL | `app/cookies.py`, [Безопасность](../architecture/security.md#session-cookies) |
 | API tokens | Prefix `idg_`, показ один раз, отзыв, tariff-gated | `app/routers/auth.py`, tests: `tests/test_auth.py` |
 | OIDC SSO | Per-org config, Authorization Code + PKCE (S256), encrypted client secret, HMAC OAuth state, nonce validation | `app/services/sso.py`, tests: `tests/test_sso.py` |
+| OAuth 2.1 + MCP | Опциональный authorization server хаба + Streamable HTTP `/mcp`; PKCE S256, DCR, scoped JWT tools; нужен org member + `api_enabled` | `app/services/oauth_provider.py`, `app/services/mcp_integration.py`, [MCP API](../api/mcp.md), tests: `tests/test_oauth_provider.py`, `tests/test_mcp_library.py` |
 | TOTP 2FA | Login challenge, org `mfa_required`, recovery codes, token step-up, encrypted secret | `app/services/mfa.py`, `app/services/totp.py`, tests: `tests/test_mfa.py` |
 | Break-glass login | `org_admin` + `instance_admin` сохраняют password при SSO | [Безопасность](../architecture/security.md#single-sign-on-sso) |
 | RBAC | Три роли + ownership/shares | [Роли и доступ](../domain/roles-and-access.md) |
@@ -91,7 +93,7 @@
 
 **MFA локальных пользователей:** TOTP 2FA (opt-in в профиле; org может требовать при выключенном SSO). SSO — MFA на IdP.
 
-**Не реализовано:** OAuth provider mode для сторонних приложений.
+**OAuth provider:** включается через `OAUTH_PROVIDER_ENABLED`. Сторонние MCP-клиенты (например Open WebUI) регистрируются через DCR, получают JWT с scope и вызывают tools библиотеки на `/mcp`. Instance admin без членства в org не может пройти OAuth.
 
 ### 2. Защита данных и криптография
 

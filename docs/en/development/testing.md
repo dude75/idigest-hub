@@ -36,6 +36,8 @@ Each test gets:
 | ---- | -------- |
 | `test_auth.py` | Setup, signup, login, tokens, password |
 | `test_mfa.py` | TOTP enrollment, login challenge, recovery, org policy, token step-up, admin reset |
+| `test_oauth_provider.py` | OAuth 2.1 authorize, token, DCR, org/tariff gates |
+| `test_mcp_library.py` | MCP tool payloads: library CRUD, scopes, summarize/import enqueue |
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
 | `test_library.py` | Upload, shares, hide |
 | `test_org.py` | Users, offboarding, stats |

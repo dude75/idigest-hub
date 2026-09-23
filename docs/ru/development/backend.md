@@ -25,6 +25,7 @@ app/
 │   ├── org.py
 │   ├── instance.py
 │   ├── crypto.py     # API управления DEK (instance_admin)
+│   ├── oauth.py      # OAuth 2.1 authorize / token / DCR / well-known
 │   └── skills.py
 └── services/
     ├── dispatcher.py   # Task queue loop
@@ -40,6 +41,11 @@ app/
     ├── crypto_bootstrap.py  # Validate при старте + первый DEK + KEK re-wrap
     ├── crypto_reencrypt.py  # Фоновый job ротации DEK
     ├── sso.py          # OIDC login, state, token exchange
+    ├── oauth_provider.py    # Authorization server OAuth 2.1 хаба
+    ├── oauth_scopes.py      # Имена MCP / JWT scope
+    ├── oauth_pages.py       # HTML login / consent / ошибка для /oauth/authorize
+    ├── mcp_integration.py   # Встроенный Streamable HTTP MCP на /mcp
+    ├── mcp_library.py       # Бизнес-логика MCP tools (как REST)
     ├── mfa.py          # 2FA policy, challenges, recovery codes
     ├── totp.py         # TOTP secret generation and verification
     ├── backup.py       # Profile ZIP/TGZ archives
@@ -64,6 +70,7 @@ Task endpoints дополнительно вызывают `await locked_tick()`
 - `actor` — logged-in user
 - `org` / `membership` — tenant context
 - `is_instance_admin`, `is_org_admin` — role shortcuts
+- `via_oauth_token` / `oauth_scopes` — для JWT, выданного хабом (MCP и REST Bearer JWT)
 
 Enrollment gates в `require_auth()`: `ALLOWED_WHEN_MUST_CHANGE` и `ALLOWED_WHEN_MFA_ENROLLMENT` — whitelist endpoints при смене пароля и принудительной настройке 2FA.
 
@@ -95,3 +102,4 @@ Server strings: `app/locales/{en,ru,es}.json`. Client strings: `web/src/locales/
 
 - [Database](../operations/database.md)
 - [Testing](testing.md)
+- [MCP tools](../api/mcp.md)

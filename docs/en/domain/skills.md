@@ -74,8 +74,11 @@ Body text...
 
 `POST /shares` with `object_type: "skill"` — only for `scope=self` owned by sharer. Recipients see skill under `catalog: shared` (readonly). They can copy to own library.
 
+MCP tools: `list_skills`, `get_skill`, `create_skill`, `update_skill`, `delete_skill` (same catalog rules). See [MCP API](../api/mcp.md).
+
 ## Related pages
 
 - [Tasks](tasks.md)
 - [Library](library.md)
 - [Skills API](../api/skills.md)
+- [MCP tools](../api/mcp.md)

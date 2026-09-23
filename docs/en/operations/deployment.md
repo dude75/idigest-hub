@@ -115,7 +115,7 @@ The hub does not set these itself — configure them on the reverse proxy. The e
 
 If you later add external CDNs or scripts, widen `Content-Security-Policy`. Swagger UI (`/docs`) under a strict CSP may need a separate `location` with a relaxed policy.
 
-Set **Public URL** in Instance → Settings to the external base URL users and Keycloak reach (e.g. `https://hub.example.com`). Required for org SSO, password-reset email links, and correct OAuth redirect URIs. See [README — Public URL](../../../README.md#public-url-instance-admin).
+Set **Public URL** in Instance → Settings to the external base URL users and Keycloak reach (e.g. `https://hub.example.com`). Required for org SSO, password-reset email links, public summary links, and MCP / OAuth 2.1 (`{public_url}/mcp`). See [README — Public URL](../../../README.md#public-url-instance-admin).
 
 ## Environment variables
 
@@ -126,6 +126,8 @@ Full table in [README — `.env`](../../../README.md#env). Critical secrets:
 - `SESSION_SECRET` — required before `/setup`; rotation logs everyone out; empty value blocks startup when sessions or API tokens exist
 - `INSTANCE_BOOTSTRAP_TOKEN` — one-time setup only
 - `OPENAPI_ENABLED=false` — disable `/docs`, `/redoc`, and `/openapi.json` in production (recommended)
+- `OAUTH_PROVIDER_ENABLED=true` — enable hub OAuth 2.1 + MCP at `/mcp` (requires Public URL)
+- `OAUTH_SIGNING_KEY_PEM` — optional RSA PEM; otherwise the hub writes `{DATA_DIR}/oauth_signing_key.pem`
 
 Process env changes require restart.
 

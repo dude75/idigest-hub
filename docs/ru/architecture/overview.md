@@ -8,6 +8,7 @@
 | ---- | ------------ | --------------- |
 | **Web UI** | `web/` → `web/dist` | React SPA: библиотека, задачи, админка организации, админка инстанса |
 | **HTTP API** | `app/main.py`, `app/routers/` | FastAPI на `/api/v1/*`; отдаёт SPA с того же origin |
+| **MCP** | `app/services/mcp_integration.py` | Опциональный Streamable HTTP resource server на `/mcp` (OAuth JWT tools для Open WebUI) |
 | **Dispatcher** | `app/services/dispatcher.py` | Фоновый цикл: health checks, dispatch, poll, биллинг при успехе |
 | **Database** | SQLite (по умолчанию) или PostgreSQL | Организации, пользователи, задачи, метаданные зашифрованных артефактов |
 | **File storage** | `app/services/storage.py` | Audio: локальный диск (`STORAGE_BACKEND=local`) или S3-compatible object storage с SSE (`STORAGE_BACKEND=s3`) |
@@ -18,6 +19,7 @@ flowchart TB
   subgraph clients [Клиенты]
     Browser[Браузер + session cookie]
     API[Скрипты + Bearer token]
+    MCP[Open WebUI / MCP + OAuth JWT]
   end
 
   subgraph hub [idigest-hub — один процесс]
@@ -34,6 +36,7 @@ flowchart TB
 
   Browser --> FastAPI
   API --> FastAPI
+  MCP --> FastAPI
   FastAPI --> DB
   FastAPI --> FS
   Dispatch --> DB
@@ -59,6 +62,7 @@ flowchart TB
 2. Создание `{DATA_DIR}`, запуск Alembic-миграций (`init_database` → `alembic upgrade head`)
 3. Запуск `dispatcher_loop` (async background task, опрос каждые `DISPATCH_POLL_SEC`, по умолчанию 1s)
 4. Запуск `rate_limit_sweeper` (очистка in-memory buckets)
+5. Если OAuth включён — старт MCP Streamable HTTP session manager (`/mcp`)
 
 При shutdown: фоновые задачи отменяются корректно.
 
@@ -93,5 +97,6 @@ Instance (одно развёртывание)
 
 - [Поток запросов](request-flow.md)
 - [Безопасность](security.md)
+- [MCP tools](../api/mcp.md)
 - [Tasks](../domain/tasks.md)
 - [Workers](../operations/workers.md)

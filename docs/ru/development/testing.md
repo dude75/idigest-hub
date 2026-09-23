@@ -36,6 +36,8 @@ Framework: **pytest** с FastAPI `TestClient`.
 | ---- | -------- |
 | `test_auth.py` | Setup, signup, login, tokens, password |
 | `test_mfa.py` | TOTP enrollment, login challenge, recovery, org policy, token step-up, admin reset |
+| `test_oauth_provider.py` | OAuth 2.1 authorize, token, DCR, org/tariff gates |
+| `test_mcp_library.py` | MCP tool payloads: CRUD библиотеки, scopes, постановка summarize/import |
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
 | `test_library.py` | Upload, shares, hide |
 | `test_org.py` | Users, offboarding, stats |
