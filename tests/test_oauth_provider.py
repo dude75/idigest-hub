@@ -146,6 +146,19 @@ def test_oauth_pkce_flow_and_transcripts(client, monkeypatch):
     assert no_scope.status_code == 201
 
 
+def test_mcp_http_routes_registered_when_oauth_enabled(client, monkeypatch, tmp_path):
+    _enable_oauth(client, monkeypatch)
+    from app.config import get_settings
+    from app.main import create_app
+
+    get_settings.cache_clear()
+    app = create_app()
+    mcp_paths = sorted(
+        r.path for r in app.router.routes if getattr(r, "path", None) in ("/mcp", "/mcp/")
+    )
+    assert mcp_paths == ["/mcp", "/mcp/"]
+
+
 def test_oauth_authorize_blocked_instance_admin_without_org(client, monkeypatch):
     _enable_oauth(client, monkeypatch)
     client_id = _register_client(client)

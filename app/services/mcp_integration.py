@@ -135,11 +135,30 @@ def get_mcp_session_manager() -> StreamableHTTPSessionManager:
     return get_mcp_server().session_manager
 
 
-class LazyMcpMount:
-    """Build the MCP Starlette app on first request (after lifespan DB init)."""
+_MCP_HTTP_METHODS = frozenset({"GET", "POST", "DELETE", "OPTIONS", "HEAD"})
+
+
+class McpHttpHandler:
+    """Streamable HTTP MCP at /mcp (canonical resource URL has no trailing slash)."""
 
     async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await get_mcp_starlette_app()(scope, receive, send)
+            return
+        path = scope.get("path", "")
+        if path == "/mcp" or path.startswith("/mcp/"):
+            inner = path.removeprefix("/mcp") or "/"
+            scope = dict(scope)
+            scope["path"] = inner
+            scope["root_path"] = (scope.get("root_path") or "") + "/mcp"
         await get_mcp_starlette_app()(scope, receive, send)
+
+
+def register_mcp_http_routes(application) -> None:
+    """Register /mcp and /mcp/ (Mount alone does not match POST /mcp without trailing slash)."""
+    handler = McpHttpHandler()
+    for path in ("/mcp", "/mcp/"):
+        application.router.add_route(path, handler, methods=sorted(_MCP_HTTP_METHODS))
 
 
 @asynccontextmanager

@@ -206,10 +206,10 @@ def _register_routes(application: FastAPI) -> None:
     application.include_router(skills.router, prefix="/api/v1")
     application.include_router(public.router, prefix="/api/v1")
 
-    from app.services.mcp_integration import LazyMcpMount, mcp_enabled
+    from app.services.mcp_integration import mcp_enabled, register_mcp_http_routes
 
     if mcp_enabled():
-        application.mount("/mcp", LazyMcpMount())
+        register_mcp_http_routes(application)
 
     if WEB_DIST.is_dir():
         assets = WEB_DIST / "assets"
