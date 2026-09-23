@@ -152,7 +152,7 @@ Optional (`OAUTH_PROVIDER_ENABLED=true`). The hub is an **authorization server**
 | Who can authorize | `org_admin` or `org_member` with tariff `api_enabled` and no account blocks |
 | Instance admin without org | Denied on `/oauth/authorize` (PAT for REST still works) |
 | Tokens | JWT access + refresh; PAT `idg_…` is **not** accepted on `/mcp` |
-| Scopes | Gate MCP tools (`audio:*`, `transcripts:*`, `summaries:*`, `skills:*`, `tasks:write`). Default if omitted: `transcripts:read` |
+| Scopes | Gate MCP tools (`audio:*`, `transcripts:*`, `summaries:*`, `skills:*`, `tasks:write`). Default if omitted: every supported scope |
 | Signing key | `OAUTH_SIGNING_KEY_PEM` or auto-generated `{DATA_DIR}/oauth_signing_key.pem` (JWKS at `/.well-known/jwks.json`) |
 | Browser UI | Styled HTML login / consent / error pages; `/oauth/token` and `/oauth/register` stay JSON |
 

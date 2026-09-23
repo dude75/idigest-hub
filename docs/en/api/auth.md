@@ -104,7 +104,7 @@ JWT access tokens work as `Authorization: Bearer` alongside PAT (`idg_…`) on *
 | `skills:write` | — | `create_skill`, `update_skill`, `delete_skill` |
 | `tasks:write` | — | `create_audio_import`, `create_summary` |
 
-If the client omits `scope`, the hub defaults to `transcripts:read` only. Full tool reference: **[mcp.md](mcp.md)**.
+If the client omits `scope`, the hub grants every supported scope. Full tool reference: **[mcp.md](mcp.md)**.
 
 **MCP / OAuth authorize** — only users with org membership and role `org_admin` or `org_member`, plus tariff `api_enabled` and no account blocks. **Instance admins without org** cannot complete OAuth (instance admins may still use PAT without org separately).
 

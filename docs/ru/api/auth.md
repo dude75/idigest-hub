@@ -106,7 +106,7 @@ Access token (JWT) принимается в **REST** `/api/v1` как `Authoriz
 | `skills:write` | — | `create_skill`, `update_skill`, `delete_skill` |
 | `tasks:write` | — | `create_audio_import`, `create_summary` |
 
-Если клиент не указал `scope`, по умолчанию выдаётся только `transcripts:read`. Подробно про tools: **[mcp.md](mcp.md)**.
+Если клиент не указал `scope`, выдаются все поддерживаемые scope. Подробно про tools: **[mcp.md](mcp.md)**.
 
 **MCP / OAuth authorize** — только пользователи с членством в org и ролью `org_admin` или `org_member`, плюс тариф с `api_enabled` и без блокировок аккаунта. **Instance admin без org** и прочие пользователи без org получают отказ на `/oauth/authorize` (PAT для instance admin без org по-прежнему возможен отдельно).
 

@@ -24,7 +24,7 @@ MCP принимает **только OAuth JWT**, выданные хабом (
 
 Браузерный authorize/consent — стилизованные HTML-страницы (тот же shell, что у web auth). При отказе пользователь видит HTML-ошибку (`api_disabled`, `oauth_org_membership_required`, `must_change_password`, `mfa_enrollment_required` и аналоги). `/oauth/token` и `/oauth/register` остаются JSON.
 
-Если клиент не передаёт `scope` в `/oauth/authorize`, по умолчанию выдаётся только **`transcripts:read`**. Перечислите все нужные scope через пробел.
+Если клиент не передаёт `scope` в `/oauth/authorize`, хаб выдаёт **все поддерживаемые scope**. Чтобы сузить токен, перечислите нужные scope через пробел.
 
 ## OAuth scopes
 

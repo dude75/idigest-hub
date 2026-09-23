@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 SCOPE_AUDIO_READ = "audio:read"
 SCOPE_AUDIO_WRITE = "audio:write"
 SCOPE_TRANSCRIPTS_READ = "transcripts:read"
@@ -12,19 +14,19 @@ SCOPE_SKILLS_READ = "skills:read"
 SCOPE_SKILLS_WRITE = "skills:write"
 SCOPE_TASKS_WRITE = "tasks:write"
 
-SUPPORTED_SCOPES: frozenset[str] = frozenset(
-    {
-        SCOPE_AUDIO_READ,
-        SCOPE_AUDIO_WRITE,
-        SCOPE_TRANSCRIPTS_READ,
-        SCOPE_TRANSCRIPTS_WRITE,
-        SCOPE_SUMMARIES_READ,
-        SCOPE_SUMMARIES_WRITE,
-        SCOPE_SKILLS_READ,
-        SCOPE_SKILLS_WRITE,
-        SCOPE_TASKS_WRITE,
-    }
+SCOPE_ORDER: tuple[str, ...] = (
+    SCOPE_AUDIO_READ,
+    SCOPE_AUDIO_WRITE,
+    SCOPE_TRANSCRIPTS_READ,
+    SCOPE_TRANSCRIPTS_WRITE,
+    SCOPE_SUMMARIES_READ,
+    SCOPE_SUMMARIES_WRITE,
+    SCOPE_SKILLS_READ,
+    SCOPE_SKILLS_WRITE,
+    SCOPE_TASKS_WRITE,
 )
+
+SUPPORTED_SCOPES: frozenset[str] = frozenset(SCOPE_ORDER)
 
 
 def normalize_scopes(raw: str | None) -> frozenset[str]:
@@ -39,9 +41,18 @@ def validate_requested_scopes(requested: frozenset[str]) -> frozenset[str]:
     if unknown:
         raise ValueError(f"unsupported scope: {sorted(unknown)[0]}")
     if not requested:
-        return frozenset({SCOPE_TRANSCRIPTS_READ})
+        return SUPPORTED_SCOPES
     return requested
 
 
+def ordered_scopes(scopes: Iterable[str]) -> list[str]:
+    wanted = set(scopes)
+    return [scope for scope in SCOPE_ORDER if scope in wanted]
+
+
+def scope_label_key(scope: str) -> str:
+    return "oauth_scope_" + scope.replace(":", "_")
+
+
 def scopes_to_string(scopes: frozenset[str]) -> str:
-    return " ".join(sorted(scopes))
+    return " ".join(ordered_scopes(scopes))

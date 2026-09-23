@@ -156,7 +156,7 @@ OIDC на уровне org (совместим с Keycloak). Authorization Code 
 | Кто может authorize | `org_admin` или `org_member` с тарифом `api_enabled` и без блокировок |
 | Instance admin без org | Отказ на `/oauth/authorize` (PAT для REST по-прежнему работает) |
 | Токены | JWT access + refresh; PAT `idg_…` на `/mcp` **не** принимается |
-| Scopes | Гейтят MCP tools (`audio:*`, `transcripts:*`, `summaries:*`, `skills:*`, `tasks:write`). Если не указаны: `transcripts:read` |
+| Scopes | Гейтят MCP tools (`audio:*`, `transcripts:*`, `summaries:*`, `skills:*`, `tasks:write`). Если не указаны: все поддерживаемые scope |
 | Ключ подписи | `OAUTH_SIGNING_KEY_PEM` или автогенерация `{DATA_DIR}/oauth_signing_key.pem` (JWKS: `/.well-known/jwks.json`) |
 | Браузерный UI | HTML login / consent / ошибка; `/oauth/token` и `/oauth/register` остаются JSON |
 

@@ -138,7 +138,7 @@ Guest URL: `{public_url}/public/summary/{token}`. API: [docs/en/api/public.md](d
 
 Optional. Set `OAUTH_PROVIDER_ENABLED=true` and **Public URL**. The hub becomes an OAuth 2.1 authorization server and hosts Streamable HTTP MCP at `{public_url}/mcp`. Clients register via DCR, users consent in the browser, then tools read/write the library (audio, transcripts, summaries, skills) and enqueue import/summarize jobs.
 
-Requires org membership and tariff `api_enabled`. Request scopes explicitly — the default is `transcripts:read` only.
+Requires org membership and tariff `api_enabled`. If the client omits `scope`, the hub grants every supported library scope.
 
 Details: [docs/en/api/mcp.md](docs/en/api/mcp.md), [Auth / OAuth](docs/en/api/auth.md#oauth-21-provider-mcp--open-webui).
 

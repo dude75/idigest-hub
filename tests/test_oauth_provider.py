@@ -71,6 +71,51 @@ def test_oauth_mcp_scopes_supported(client, monkeypatch):
     assert meta["scopes_supported"] == sorted(SUPPORTED_SCOPES)
     granted = validate_requested_scopes(frozenset({"summaries:read", "skills:read", "tasks:write"}))
     assert granted == frozenset({"summaries:read", "skills:read", "tasks:write"})
+    assert validate_requested_scopes(frozenset()) == SUPPORTED_SCOPES
+
+
+def test_oauth_consent_lists_granted_scopes(client, monkeypatch):
+    _enable_oauth(client, monkeypatch)
+    _org_user_session(client)
+    client_id = _register_client(client)
+    _, challenge = _pkce_pair()
+    from app.i18n import t
+    from app.services.oauth_scopes import SCOPE_ORDER, SCOPE_TRANSCRIPTS_READ, scope_label_key
+
+    all_labels = [t("en", scope_label_key(scope)) for scope in SCOPE_ORDER]
+    omitted = client.get(
+        "/oauth/authorize",
+        params={
+            "client_id": client_id,
+            "redirect_uri": REDIRECT_URI,
+            "response_type": "code",
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "resource": MCP_RESOURCE,
+        },
+    )
+    assert omitted.status_code == 200
+    for label in all_labels:
+        assert label in omitted.text
+
+    transcripts_only = t("en", scope_label_key(SCOPE_TRANSCRIPTS_READ))
+    narrowed = client.get(
+        "/oauth/authorize",
+        params={
+            "client_id": client_id,
+            "redirect_uri": REDIRECT_URI,
+            "response_type": "code",
+            "scope": SCOPE_TRANSCRIPTS_READ,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "resource": MCP_RESOURCE,
+        },
+    )
+    assert narrowed.status_code == 200
+    assert transcripts_only in narrowed.text
+    for label in all_labels:
+        if label != transcripts_only:
+            assert label not in narrowed.text
 
 
 def test_oauth_login_post_rejects_bad_password(client, monkeypatch):

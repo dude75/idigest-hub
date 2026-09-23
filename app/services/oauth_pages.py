@@ -14,6 +14,7 @@ from app.errors import ErrorCode
 from app.deps import locale_from_request
 from app.i18n import t
 from app.models import User
+from app.services.oauth_scopes import ordered_scopes, scope_label_key
 from app.version import read_version
 
 _GITHUB_REPO_URL = "https://github.com/dude75/idigest-hub"
@@ -29,15 +30,6 @@ _OAUTH_BLOCKED_KEYS: dict[str, str] = {
 }
 
 _OAUTH_BLOCKED_SIMPLE: frozenset[str] = frozenset({"api_disabled", "oauth_org_membership_required"})
-
-_SCOPE_LABEL_KEYS: dict[str, str] = {
-    "transcripts:read": "oauth_scope_transcripts_read",
-    "summaries:read": "oauth_scope_summaries_read",
-    "summaries:write": "oauth_scope_summaries_write",
-    "skills:read": "oauth_scope_skills_read",
-    "skills:write": "oauth_scope_skills_write",
-    "tasks:write": "oauth_scope_tasks_write",
-}
 
 _OAUTH_CSS = """
 :root {
@@ -173,11 +165,7 @@ def _esc(value: str) -> str:
 
 
 def _scope_labels(locale: str, scopes: Iterable[str]) -> list[str]:
-    labels: list[str] = []
-    for scope in scopes:
-        key = _SCOPE_LABEL_KEYS.get(scope)
-        labels.append(t(locale, key) if key else scope)
-    return labels
+    return [t(locale, scope_label_key(scope)) for scope in ordered_scopes(scopes)]
 
 
 def _lang_switcher(request: Request, locale: str) -> str:

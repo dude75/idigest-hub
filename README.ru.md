@@ -138,7 +138,7 @@ Login с 2FA: пароль → `/verify-2fa` (TOTP или recovery code). При
 
 Опционально. Задайте `OAUTH_PROVIDER_ENABLED=true` и **Публичный URL**. Хаб становится authorization server OAuth 2.1 и поднимает Streamable HTTP MCP на `{public_url}/mcp`. Клиенты регистрируются через DCR, пользователь подтверждает доступ в браузере, затем tools читают/пишут библиотеку (аудио, транскрипты, саммари, skills) и ставят import/summarize.
 
-Нужны членство в org и тариф `api_enabled`. Scope нужно запрашивать явно — по умолчанию только `transcripts:read`.
+Нужны членство в org и тариф `api_enabled`. Если клиент не указал `scope`, хаб выдаёт все поддерживаемые scope библиотеки.
 
 Подробнее: [docs/ru/api/mcp.md](docs/ru/api/mcp.md), [Auth / OAuth](docs/ru/api/auth.md#oauth-21-provider-mcp--open-webui).
 

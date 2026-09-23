@@ -24,7 +24,7 @@ Same rules as OAuth authorize in [auth.md](auth.md#oauth-21-provider-mcp--open-w
 
 Browser authorize/consent uses styled HTML pages (same shell as web auth). Denied or blocked users see an HTML error (`api_disabled`, `oauth_org_membership_required`, `must_change_password`, `mfa_enrollment_required`, and similar). `/oauth/token` and `/oauth/register` stay JSON.
 
-If the client omits `scope` on `/oauth/authorize`, the hub defaults to **`transcripts:read`** only. Request every scope your integration needs, space-separated.
+If the client omits `scope` on `/oauth/authorize`, the hub grants **every supported scope**. Request a space-separated subset to narrow the token.
 
 ## OAuth scopes
 
