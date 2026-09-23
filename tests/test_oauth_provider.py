@@ -218,6 +218,8 @@ def test_oauth_authorize_blocked_api_disabled_styled(client, monkeypatch):
     assert response.status_code == 403
     assert "oauth-page" in response.text
     assert "auth-layout" in response.text
+    assert "auth-topbar" in response.text
+    assert "github-link" in response.text
     assert "api_disabled" not in response.text
     assert "Cannot authorize" in response.text or "Нельзя выдать доступ" in response.text
 

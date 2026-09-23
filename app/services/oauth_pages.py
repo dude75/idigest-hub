@@ -9,10 +9,13 @@ from typing import Iterable
 from fastapi import Request
 from fastapi.responses import HTMLResponse
 
+from app.constants import SUPPORTED_LOCALES
 from app.deps import locale_from_request
 from app.i18n import t
 from app.models import User
 from app.version import read_version
+
+_GITHUB_REPO_URL = "https://github.com/dude75/idigest-hub"
 
 _OAUTH_BLOCKED_KEYS: dict[str, str] = {
     "api_disabled": "api_disabled",
@@ -61,12 +64,38 @@ h1 { font-size: 1.25rem; margin: 0 0 0.75rem; }
   display: flex; align-items: center; gap: 0.75rem;
   padding: 0.55rem 1rem; border-bottom: 1px solid var(--line);
   background: var(--card);
+  position: sticky; top: 0; z-index: 5;
 }
-.brand { font-weight: 650; color: var(--ink); text-decoration: none; }
+.auth-topbar { z-index: 10; }
+.brand {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-weight: 650; color: var(--ink); text-decoration: none;
+}
+.brand:hover { color: var(--ink); text-decoration: none; }
 .badge {
-  font-size: 0.72rem; font-weight: 500; color: var(--muted);
-  border: 1px solid var(--line); border-radius: 999px; padding: 0.05rem 0.45rem;
+  display: inline-block; font-size: 0.72rem; padding: 0.05rem 0.4rem;
+  border-radius: 999px; background: #e8eef8; color: #1e3a5f;
 }
+.badge.out { background: #ecfdf3; color: #067647; }
+.right { margin-left: auto; }
+.row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.lang { display: flex; gap: 0.15rem; }
+.lang a {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.2rem 0.4rem; font-size: 0.75rem;
+  border: 1px solid var(--line); border-radius: 6px;
+  background: #fff; color: var(--ink); text-decoration: none;
+}
+.lang a:hover { background: #eef2f7; text-decoration: none; }
+.lang a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.github-link {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  color: var(--muted); text-decoration: none; border-radius: 6px;
+}
+.github-link:hover { color: var(--ink); text-decoration: none; }
+.github-link-icon { padding: 0.3rem 0.45rem; }
+.github-link-icon:hover { background: #eef2f7; }
+.github-icon { width: 1.05rem; height: 1.05rem; flex-shrink: 0; }
 .auth-page { flex: 1; display: grid; place-items: center; padding: 1.5rem; }
 .card {
   width: min(420px, 100%);
@@ -89,26 +118,26 @@ input {
   width: 100%; border: 1px solid var(--line); border-radius: 6px;
   padding: 0.45rem 0.55rem; background: #fff; color: var(--ink);
 }
-button {
+button, .btn {
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--line); background: #fff; border-radius: 6px;
-  padding: 0.45rem 0.85rem; cursor: pointer; color: var(--ink); width: 100%;
+  padding: 0.35rem 0.7rem; cursor: pointer; color: var(--ink);
 }
-button.primary {
+a.btn { text-decoration: none; color: var(--ink); }
+a.btn:hover { background: #eef2f7; text-decoration: none; }
+.card.stack button, .card.stack > a.btn, .card.stack form > a.btn { width: 100%; }
+button.primary, a.btn.primary {
   background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
 }
-button.primary:hover { filter: brightness(1.05); }
-a.btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink);
-  border-radius: 6px; padding: 0.45rem 0.85rem; text-decoration: none; width: 100%;
-}
-a.btn:hover { filter: brightness(1.05); text-decoration: none; }
+button.primary:hover, a.btn.primary:hover { filter: brightness(1.05); background: var(--accent); }
 a.text-link { font-size: 0.9rem; }
 """
 
 
 def oauth_locale(request: Request, user: User | None = None) -> str:
+    lang = request.query_params.get("lang")
+    if lang in SUPPORTED_LOCALES:
+        return lang
     return locale_from_request(request, user)
 
 
@@ -124,9 +153,41 @@ def _scope_labels(locale: str, scopes: Iterable[str]) -> list[str]:
     return labels
 
 
-def _page(locale: str, *, title: str, body: str, status_code: int = 200) -> HTMLResponse:
+def _lang_switcher(request: Request, locale: str) -> str:
+    links: list[str] = []
+    for lng in SUPPORTED_LOCALES:
+        active = " active" if lng == locale else ""
+        href = _esc(str(request.url.include_query_params(lang=lng)))
+        links.append(f'<a class="lang-link{active}" href="{href}">{_esc(t(locale, f"lang_{lng}"))}</a>')
+    return f'<div class="lang" role="group" aria-label="language">{"".join(links)}</div>'
+
+
+def _topbar(request: Request, locale: str) -> str:
     version = read_version()
-    version_badge = f'<span class="badge">{_esc(version)}</span>' if version else ""
+    version_badge = f'<span class="badge out">{_esc(version)}</span>' if version else ""
+    github_label = _esc(t(locale, "oauth_github"))
+    return f"""<header class="auth-topbar topbar">
+      <a class="brand" href="/">{_esc(t(locale, "oauth_app_name"))}{version_badge}</a>
+      <div class="right row">
+        <a class="btn" href="/">{_esc(t(locale, "oauth_back_home"))}</a>
+        <a class="github-link github-link-icon" href="{_esc(_GITHUB_REPO_URL)}" target="_blank" rel="noopener noreferrer" aria-label="{github_label}">
+          <svg class="github-icon" aria-hidden="true" viewBox="0 0 19 19">
+            <use href="/icons.svg#github-icon"/>
+          </svg>
+        </a>
+        {_lang_switcher(request, locale)}
+      </div>
+    </header>"""
+
+
+def _page(
+    request: Request,
+    locale: str,
+    *,
+    title: str,
+    body: str,
+    status_code: int = 200,
+) -> HTMLResponse:
     doc = f"""<!DOCTYPE html>
 <html lang="{_esc(locale)}">
 <head>
@@ -137,9 +198,7 @@ def _page(locale: str, *, title: str, body: str, status_code: int = 200) -> HTML
 </head>
 <body>
   <div class="auth-layout">
-    <header class="topbar">
-      <a class="brand" href="/">{_esc(t(locale, "oauth_app_name"))}{version_badge}</a>
-    </header>
+    {_topbar(request, locale)}
     <main class="auth-page">
       <div class="card stack oauth-page">
         {body}
@@ -169,7 +228,7 @@ def oauth_message_page(
     body = f"""<h1>{_esc(title)}</h1>
 <p class="lead">{_esc(message)}</p>
 {app_link}"""
-    return _page(locale, title=title, body=body, status_code=status_code)
+    return _page(request, locale, title=title, body=body, status_code=status_code)
 
 
 def oauth_blocked_page(request: Request, reason: str, *, user: User | None = None) -> HTMLResponse:
@@ -185,7 +244,7 @@ def oauth_blocked_page(request: Request, reason: str, *, user: User | None = Non
 <p class="lead">{_esc(t(locale, "oauth_blocked_intro"))}</p>
 <div class="notice">{_esc(detail)}</div>
 <a class="btn primary" href="/app">{_esc(t(locale, "oauth_open_app"))}</a>"""
-    return _page(locale, title=t(locale, "oauth_title_blocked"), body=body, status_code=403)
+    return _page(request, locale, title=t(locale, "oauth_title_blocked"), body=body, status_code=403)
 
 
 def oauth_consent_page(
@@ -206,7 +265,7 @@ def oauth_consent_page(
   <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
   <button type="submit" class="primary">{_esc(t(locale, "oauth_allow"))}</button>
 </form>"""
-    return _page(locale, title=t(locale, "oauth_title_authorize"), body=body)
+    return _page(request, locale, title=t(locale, "oauth_title_authorize"), body=body)
 
 
 def oauth_login_page(
@@ -235,7 +294,7 @@ def oauth_login_page(
   </label>
   <button type="submit" class="primary">{_esc(t(locale, "oauth_sign_in"))}</button>
 </form>"""
-    return _page(locale, title=t(locale, "oauth_title_sign_in"), body=body)
+    return _page(request, locale, title=t(locale, "oauth_title_sign_in"), body=body)
 
 
 def oauth_client_redirect_page(request: Request, redirect_url: str) -> HTMLResponse:
@@ -258,4 +317,4 @@ def oauth_client_redirect_page(request: Request, redirect_url: str) -> HTMLRespo
 }})();
 </script>
 <noscript><meta http-equiv="refresh" content="0;url={_esc(redirect_url)}"/></noscript>"""
-    return _page(locale, title=t(locale, "oauth_redirect_title"), body=body)
+    return _page(request, locale, title=t(locale, "oauth_redirect_title"), body=body)
