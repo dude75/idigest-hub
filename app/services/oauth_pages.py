@@ -10,6 +10,7 @@ from fastapi import Request
 from fastapi.responses import HTMLResponse
 
 from app.constants import SUPPORTED_LOCALES
+from app.errors import ErrorCode
 from app.deps import locale_from_request
 from app.i18n import t
 from app.models import User
@@ -113,10 +114,21 @@ h1 { font-size: 1.25rem; margin: 0 0 0.75rem; }
 .lead { margin: 0 0 0.5rem; }
 .scope-list { margin: 0.35rem 0 0; padding-left: 1.15rem; color: var(--ink); }
 .scope-list li { margin: 0.25rem 0; }
-.notice {
+.notice, .alert-warn {
   background: var(--warn-bg); color: var(--warn-ink);
   border: 1px solid #fed7aa; border-radius: 6px; padding: 0.65rem 0.75rem;
   font-size: 0.9rem;
+}
+.alert {
+  border-radius: 6px; padding: 0.75rem 0.85rem; font-size: 0.9rem; border: 1px solid;
+}
+.alert-error {
+  background: #fef3f2; color: #912018; border-color: #fecdca;
+}
+.alert-body { margin: 0; }
+.actions {
+  display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
+  margin-top: 0.85rem;
 }
 label { display: grid; gap: 0.2rem; font-size: 0.85rem; color: var(--muted); }
 input {
@@ -137,6 +149,16 @@ button.primary, a.btn.primary {
 button.primary:hover, a.btn.primary:hover { filter: brightness(1.05); background: var(--accent); }
 a.text-link { font-size: 0.9rem; }
 """
+
+
+_OAUTH_JSON_PATHS = frozenset({"/oauth/token", "/oauth/register"})
+
+
+def oauth_wants_html(request: Request) -> bool:
+    path = (request.url.path or "").rstrip("/") or "/"
+    if path in _OAUTH_JSON_PATHS:
+        return False
+    return path.startswith("/oauth/")
 
 
 def oauth_locale(request: Request, user: User | None = None) -> str:
@@ -215,6 +237,14 @@ def _page(
     return HTMLResponse(doc, status_code=status_code)
 
 
+def _oauth_actions(locale: str, *, show_app_link: bool, app_href: str) -> str:
+    home = f'<a class="btn" href="/">{_esc(t(locale, "oauth_back_home"))}</a>'
+    if show_app_link:
+        app = f'<a class="btn primary" href="{_esc(app_href)}">{_esc(t(locale, "oauth_open_app"))}</a>'
+        return f'<div class="actions">{app}{home}</div>'
+    return f'<div class="actions">{home}</div>'
+
+
 def oauth_message_page(
     request: Request,
     *,
@@ -222,18 +252,70 @@ def oauth_message_page(
     message: str,
     status_code: int,
     user: User | None = None,
+    hint: str | None = None,
     show_app_link: bool = False,
     app_href: str = "/app",
+    alert: str = "alert-error",
 ) -> HTMLResponse:
     locale = oauth_locale(request, user)
     title = t(locale, title_key)
-    app_link = ""
-    if show_app_link:
-        app_link = f'<a class="btn primary" href="{_esc(app_href)}">{_esc(t(locale, "oauth_open_app"))}</a>'
+    hint_block = f'<p class="muted">{_esc(hint)}</p>' if hint else ""
     body = f"""<h1>{_esc(title)}</h1>
-<p class="lead">{_esc(message)}</p>
-{app_link}"""
+<div class="alert {alert}" role="alert">
+  <p class="alert-body">{_esc(message)}</p>
+</div>
+{hint_block}
+{_oauth_actions(locale, show_app_link=show_app_link, app_href=app_href)}"""
     return _page(request, locale, title=title, body=body, status_code=status_code)
+
+
+def oauth_unexpected_error_page(request: Request) -> HTMLResponse:
+    locale = oauth_locale(request)
+    return oauth_message_page(
+        request,
+        title_key="oauth_title_error",
+        message=t(locale, "oauth_unexpected_error"),
+        hint=t(locale, "oauth_error_retry_hint"),
+        status_code=500,
+    )
+
+
+def oauth_http_error_page(request: Request, exc) -> HTMLResponse:
+    """Map Starlette HTTPException to a styled OAuth HTML page."""
+    locale = oauth_locale(request)
+    status_code = int(getattr(exc, "status_code", 500) or 500)
+    title_key = "oauth_title_error"
+    if status_code == 401:
+        title_key = "oauth_title_sign_in"
+    elif status_code == 403:
+        title_key = "oauth_title_blocked"
+    detail = getattr(exc, "detail", None)
+    message = t(locale, "oauth_unexpected_error")
+    if isinstance(detail, dict):
+        err = detail.get("error") if isinstance(detail.get("error"), dict) else None
+        if isinstance(err, dict):
+            message = err.get("message") or t(locale, err.get("code", ErrorCode.validation_error.value))
+        elif detail.get("status") != "error":
+            message = t(locale, "oauth_invalid_request")
+    elif isinstance(detail, str) and detail.strip() and detail.strip().lower() not in {"not found", "internal server error"}:
+        message = detail.strip()
+    elif status_code == 404:
+        message = t(locale, "oauth_invalid_request")
+    elif status_code == 400:
+        message = t(locale, "oauth_invalid_request")
+    elif status_code < 500:
+        message = t(locale, "oauth_invalid_request")
+    hint = t(locale, "oauth_error_retry_hint") if status_code >= 500 else None
+    alert = "alert-warn" if status_code == 403 else "alert-error"
+    return oauth_message_page(
+        request,
+        title_key=title_key,
+        message=message,
+        hint=hint,
+        status_code=status_code,
+        show_app_link=status_code == 403,
+        alert=alert,
+    )
 
 
 def oauth_blocked_page(request: Request, reason: str, *, user: User | None = None) -> HTMLResponse:
@@ -242,13 +324,13 @@ def oauth_blocked_page(request: Request, reason: str, *, user: User | None = Non
     detail = t(locale, detail_key) if detail_key else reason
     if reason in _OAUTH_BLOCKED_SIMPLE:
         body = f"""<h1>{_esc(t(locale, "oauth_title_blocked"))}</h1>
-<div class="notice">{_esc(detail)}</div>
-<a class="btn primary" href="/app">{_esc(t(locale, "oauth_open_app"))}</a>"""
+<div class="alert alert-warn" role="status">{_esc(detail)}</div>
+{_oauth_actions(locale, show_app_link=True, app_href="/app")}"""
     else:
         body = f"""<h1>{_esc(t(locale, "oauth_title_blocked"))}</h1>
 <p class="lead">{_esc(t(locale, "oauth_blocked_intro"))}</p>
-<div class="notice">{_esc(detail)}</div>
-<a class="btn primary" href="/app">{_esc(t(locale, "oauth_open_app"))}</a>"""
+<div class="alert alert-warn" role="status">{_esc(detail)}</div>
+{_oauth_actions(locale, show_app_link=True, app_href="/app")}"""
     return _page(request, locale, title=t(locale, "oauth_title_blocked"), body=body, status_code=403)
 
 
@@ -284,7 +366,11 @@ def oauth_login_page(
     sso_block = ""
     if sso_href:
         sso_block = f'<p><a class="text-link" href="{_esc(sso_href)}">{_esc(t(locale, "oauth_sso"))}</a></p>'
-    err_block = f'<p class="err">{_esc(error_message)}</p>' if error_message else ""
+    err_block = (
+        f'<div class="alert alert-error" role="alert"><p class="alert-body">{_esc(error_message)}</p></div>'
+        if error_message
+        else ""
+    )
     body = f"""<h1>{_esc(t(locale, "oauth_title_sign_in"))}</h1>
 <p class="lead">{_esc(t(locale, "oauth_sign_in_intro"))}</p>
 {sso_block}

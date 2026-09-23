@@ -60,9 +60,20 @@ def resolve_spa_path(web_dist: Path, full_path: str) -> SpaResolution:
     return "index"
 
 
-def spa_response(web_dist: Path, full_path: str) -> FileResponse | JSONResponse:
+def spa_response(web_dist: Path, full_path: str, request: Request | None = None) -> FileResponse | JSONResponse | Response:
     resolved = resolve_spa_path(web_dist, full_path)
     if resolved == "not_found":
+        if request is not None:
+            from app.services.oauth_pages import oauth_locale, oauth_message_page, oauth_wants_html
+
+            if oauth_wants_html(request):
+                locale = oauth_locale(request)
+                return oauth_message_page(
+                    request,
+                    title_key="oauth_title_error",
+                    message=t(locale, "oauth_invalid_request"),
+                    status_code=404,
+                )
         return JSONResponse(
             status_code=404,
             content=error_payload(ErrorCode.not_found, t("en", "not_found")),
@@ -124,21 +135,59 @@ def _locale(request: Request) -> str:
 
 
 def _register_middleware(application: FastAPI) -> None:
+    @application.middleware("http")
+    async def oauth_browser_error_pages(request: Request, call_next):
+        from app.services.oauth_pages import oauth_unexpected_error_page, oauth_wants_html
+
+        if not oauth_wants_html(request):
+            return await call_next(request)
+        try:
+            return await call_next(request)
+        except Exception:
+            log.exception("oauth browser error on %s", request.url.path)
+            return oauth_unexpected_error_page(request)
+
     @application.exception_handler(StarletteHTTPException)
-    async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
+    async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> Response:
+        from app.services.oauth_pages import oauth_http_error_page, oauth_wants_html
+
         detail = exc.detail
         if isinstance(detail, dict) and detail.get("status") == "error":
             return JSONResponse(status_code=exc.status_code, content=detail, headers=exc.headers)
+        if oauth_wants_html(request):
+            return oauth_http_error_page(request, exc)
         locale = _locale(request)
         code = ErrorCode.not_found if exc.status_code == 404 else ErrorCode.validation_error
         return JSONResponse(status_code=exc.status_code, content=error_payload(code, t(locale, code.value)))
 
     @application.exception_handler(RequestValidationError)
-    async def validation_handler(request: Request, _exc: RequestValidationError) -> JSONResponse:
+    async def validation_handler(request: Request, _exc: RequestValidationError) -> Response:
+        from app.services.oauth_pages import oauth_message_page, oauth_wants_html
+
         locale = _locale(request)
+        if oauth_wants_html(request):
+            return oauth_message_page(
+                request,
+                title_key="oauth_title_error",
+                message=t(locale, "oauth_invalid_request"),
+                status_code=400,
+            )
         return JSONResponse(
             status_code=400,
             content=error_payload(ErrorCode.validation_error, t(locale, ErrorCode.validation_error.value)),
+        )
+
+    @application.exception_handler(Exception)
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> Response:
+        from app.services.oauth_pages import oauth_unexpected_error_page, oauth_wants_html
+
+        log.exception("unhandled error on %s", request.url.path)
+        if oauth_wants_html(request):
+            return oauth_unexpected_error_page(request)
+        locale = _locale(request)
+        return JSONResponse(
+            status_code=500,
+            content=error_payload(ErrorCode.pipeline_error, t(locale, ErrorCode.pipeline_error.value)),
         )
 
     @application.middleware("http")
@@ -217,8 +266,8 @@ def _register_routes(application: FastAPI) -> None:
             application.mount("/assets", StaticFiles(directory=assets), name="assets")
 
         @application.get("/{full_path:path}")
-        def spa(full_path: str):
-            return spa_response(WEB_DIST, full_path)
+        def spa(request: Request, full_path: str):
+            return spa_response(WEB_DIST, full_path, request)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

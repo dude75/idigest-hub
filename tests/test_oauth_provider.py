@@ -109,6 +109,40 @@ def test_oauth_login_post_rejects_bad_password(client, monkeypatch):
     )
     assert login.status_code == 200
     assert "oauth-page" in login.text
+    assert "alert-error" in login.text
+
+
+def test_oauth_unknown_path_styled_html(client, monkeypatch):
+    _enable_oauth(client, monkeypatch)
+    response = client.get("/oauth/not-a-real-endpoint")
+    assert response.status_code == 404
+    assert "auth-layout" in response.text
+    assert "alert-error" in response.text
+
+
+def test_oauth_unexpected_error_page_markup():
+    from starlette.requests import Request
+
+    from app.services.oauth_pages import oauth_unexpected_error_page
+
+    request = Request(
+        {
+            "type": "http",
+            "method": "GET",
+            "path": "/oauth/login",
+            "headers": [(b"accept-language", b"en")],
+            "query_string": b"",
+            "scheme": "https",
+            "server": ("test", 443),
+            "client": ("127.0.0.1", 12345),
+            "root_path": "",
+        }
+    )
+    response = oauth_unexpected_error_page(request)
+    assert response.status_code == 500
+    assert "auth-layout" in response.body.decode()
+    assert "alert-error" in response.body.decode()
+    assert "simulated" not in response.body.decode()
 
 
 def test_mcp_protected_resource_metadata(client, monkeypatch):

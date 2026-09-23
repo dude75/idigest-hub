@@ -153,7 +153,7 @@ def oauth_authorize_get(
         return oauth_message_page(
             request,
             title_key="oauth_title_error",
-            message=t(locale, "oauth_authorization_error", detail=str(exc)),
+            message=str(exc),
             status_code=400,
         )
 
@@ -236,7 +236,7 @@ def oauth_authorize_confirm(
         return oauth_message_page(
             request,
             title_key="oauth_title_error",
-            message=t(locale, "oauth_authorization_error", detail=str(exc)),
+            message=str(exc),
             status_code=400,
         )
 
