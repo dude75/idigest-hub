@@ -21,14 +21,25 @@ from app.errors import ApiError
 from app.services.dispatcher import locked_tick_job
 from app.services.hub_mcp_token_verifier import HubMcpTokenVerifier
 from app.services.mcp_library import (
+    create_audio_import_payload,
+    create_audio_upload_payload,
+    create_skill_payload,
+    create_summary_payload,
+    delete_audio_payload,
+    delete_skill_payload,
     delete_summary_payload,
+    delete_transcript_payload,
+    get_audio_payload,
+    get_skill_payload,
     get_summary_payload,
     get_transcript_payload,
+    list_audios_payload,
     list_skills_payload,
     list_summaries_payload,
-    list_transcriptions_payload,
-    summarize_transcript_payload,
+    list_transcripts_payload,
     update_skill_payload,
+    update_summary_payload,
+    update_transcript_payload,
 )
 from app.services.oauth_provider import mcp_resource_url, oauth_provider_enabled, public_base_url
 from app.services.oauth_scopes import normalize_scopes
@@ -140,12 +151,68 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             raise ValueError("not found") from exc
         raise ValueError(message) from exc
 
+    def _schedule_task(task_payload: dict, *, refresh_health: bool = True) -> None:
+        task_id = task_payload.get("id")
+        if task_id:
+            asyncio.create_task(locked_tick_job(str(task_id), refresh_health=refresh_health))
+
     @server.tool(
-        name="list_transcriptions",
-        description="List transcript metadata in your library (no utterances). Requires transcripts:read.",
+        name="list_audios",
+        description="List audio metadata in your library. Requires audio:read.",
     )
-    async def list_transcriptions(include_hidden: bool = False) -> str:
-        return await _mcp_json_tool(list_transcriptions_payload)(include_hidden=include_hidden)
+    async def list_audios(include_hidden: bool = False) -> str:
+        return await _mcp_json_tool(list_audios_payload)(include_hidden=include_hidden)
+
+    @server.tool(
+        name="get_audio",
+        description="Fetch one audio item with linked transcript metadata. Requires audio:read.",
+    )
+    async def get_audio(audio_id: str) -> str:
+        return await _mcp_json_tool(get_audio_payload)(audio_id=audio_id)
+
+    @server.tool(
+        name="create_audio_upload",
+        description=(
+            "Upload an audio file (base64). Allowed: .wav, .mp3, .m4a. "
+            "Requires audio:write."
+        ),
+    )
+    async def create_audio_upload(filename: str, content_base64: str) -> str:
+        return await _mcp_json_tool(create_audio_upload_payload, commit=True)(
+            filename=filename, content_base64=content_base64
+        )
+
+    @server.tool(
+        name="create_audio_import",
+        description=(
+            "Import audio from URL (async import/capture task). Optional pipeline transcribe. "
+            "Requires tasks:write."
+        ),
+    )
+    async def create_audio_import(
+        url: str,
+        transcribe: bool = False,
+        skill_ids: list[str] | None = None,
+    ) -> str:
+        return await _mcp_json_tool(
+            create_audio_import_payload,
+            commit=True,
+            post_commit=lambda payload: _schedule_task(payload, refresh_health=False),
+        )(url=url, transcribe=transcribe, skill_ids=skill_ids)
+
+    @server.tool(
+        name="delete_audio",
+        description="Permanently delete an audio item (org admin). Requires audio:write.",
+    )
+    async def delete_audio(audio_id: str) -> str:
+        return await _mcp_json_tool(delete_audio_payload, commit=True)(audio_id=audio_id)
+
+    @server.tool(
+        name="list_transcripts",
+        description="List transcript metadata (no utterances). Requires transcripts:read.",
+    )
+    async def list_transcripts(include_hidden: bool = False) -> str:
+        return await _mcp_json_tool(list_transcripts_payload)(include_hidden=include_hidden)
 
     @server.tool(
         name="get_transcript",
@@ -155,8 +222,24 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         return await _mcp_json_tool(get_transcript_payload)(transcript_id=transcript_id)
 
     @server.tool(
+        name="update_transcript",
+        description="Rename a transcript (owner or org admin). Requires transcripts:write.",
+    )
+    async def update_transcript(transcript_id: str, title: str) -> str:
+        return await _mcp_json_tool(update_transcript_payload, commit=True)(
+            transcript_id=transcript_id, title=title
+        )
+
+    @server.tool(
+        name="delete_transcript",
+        description="Permanently delete a transcript (org admin). Requires transcripts:write.",
+    )
+    async def delete_transcript(transcript_id: str) -> str:
+        return await _mcp_json_tool(delete_transcript_payload, commit=True)(transcript_id=transcript_id)
+
+    @server.tool(
         name="list_summaries",
-        description="List summary metadata in your library (no body text). Requires summaries:read.",
+        description="List summary metadata (no body text). Requires summaries:read.",
     )
     async def list_summaries(include_hidden: bool = False) -> str:
         return await _mcp_json_tool(list_summaries_payload)(include_hidden=include_hidden)
@@ -167,6 +250,33 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     )
     async def get_summary(summary_id: str) -> str:
         return await _mcp_json_tool(get_summary_payload)(summary_id=summary_id)
+
+    @server.tool(
+        name="create_summary",
+        description=(
+            "Queue summarize task for a transcript (async; returns task JSON). "
+            "Requires tasks:write."
+        ),
+    )
+    async def create_summary(transcript_id: str, skill_ids: list[str]) -> str:
+        return await _mcp_json_tool(
+            create_summary_payload,
+            commit=True,
+            post_commit=_schedule_task,
+        )(transcript_id=transcript_id, skill_ids=skill_ids)
+
+    @server.tool(
+        name="update_summary",
+        description="Edit summary title and/or body (owner or org admin). Requires summaries:write.",
+    )
+    async def update_summary(
+        summary_id: str,
+        title: str | None = None,
+        body: str | None = None,
+    ) -> str:
+        return await _mcp_json_tool(update_summary_payload, commit=True)(
+            summary_id=summary_id, title=title, body=body
+        )
 
     @server.tool(
         name="delete_summary",
@@ -183,10 +293,29 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         return await _mcp_json_tool(list_skills_payload)(scope=scope)
 
     @server.tool(
+        name="get_skill",
+        description="Fetch one skill by id (includes body). Requires skills:read.",
+    )
+    async def get_skill(skill_id: str) -> str:
+        return await _mcp_json_tool(get_skill_payload)(skill_id=skill_id)
+
+    @server.tool(
+        name="create_skill",
+        description=(
+            "Create a skill in catalog self (default), org (org admin), or base (instance admin). "
+            "Requires skills:write."
+        ),
+    )
+    async def create_skill(name: str, body: str, catalog: str = "self") -> str:
+        return await _mcp_json_tool(create_skill_payload, commit=True)(
+            name=name, body=body, catalog=catalog
+        )
+
+    @server.tool(
         name="update_skill",
         description=(
-            "Update a skill name and body when permitted (personal, org admin for org skills, "
-            "instance admin for base skills). Requires skills:write."
+            "Update skill name and body (personal owner, org admin, instance admin for base). "
+            "Requires skills:write."
         ),
     )
     async def update_skill(skill_id: str, name: str, body: str) -> str:
@@ -194,21 +323,12 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             skill_id=skill_id, name=name, body=body
         )
 
-    def _schedule_summarize(task_payload: dict) -> None:
-        task_id = task_payload.get("id")
-        if task_id:
-            asyncio.create_task(locked_tick_job(str(task_id)))
-
     @server.tool(
-        name="summarize_transcript",
-        description="Queue a summarize task for a transcript with one or more skills. Requires tasks:write.",
+        name="delete_skill",
+        description="Delete a skill when permitted for its catalog. Requires skills:write.",
     )
-    async def summarize_transcript(transcript_id: str, skill_ids: list[str]) -> str:
-        return await _mcp_json_tool(
-            summarize_transcript_payload,
-            commit=True,
-            post_commit=_schedule_summarize,
-        )(transcript_id=transcript_id, skill_ids=skill_ids)
+    async def delete_skill(skill_id: str) -> str:
+        return await _mcp_json_tool(delete_skill_payload, commit=True)(skill_id=skill_id)
 
     _mcp_server = server
     return server

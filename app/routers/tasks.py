@@ -63,6 +63,146 @@ class CaptureBody(BaseModel):
     skill_ids: list[str] = Field(default_factory=list)
 
 
+def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Task:
+    org, _ = ctx.require_org()
+    settings = get_instance_settings(db)
+    if not settings.capture_enabled:
+        ctx.raise_error(ErrorCode.capture_disabled)
+    from app.services.capture_meeting import CaptureMeetingError, org_capture_bot_display_name, resolve_capture_target
+    from app.services.capture_platforms import allowed_connectors
+    from app.services.transcribe_models import resolve_transcribe_models
+
+    if body.transcribe:
+        assert_can_accept_task(ctx, org, ctx.locale)
+        if body.skill_ids:
+            _validate_summarize_skills(ctx, db, org, body.skill_ids)
+    display_name = org_capture_bot_display_name(org)
+    try:
+        target = resolve_capture_target(
+            db,
+            org=org,
+            meeting_url=body.meeting_url.strip(),
+            pin=body.pin or "",
+            settings_allowed=allowed_connectors(settings),
+            display_name=display_name,
+        )
+    except CaptureMeetingError as exc:
+        code = exc.code
+        if code == "capture_disabled":
+            ctx.raise_error(ErrorCode.capture_disabled)
+        if code == "invalid_url":
+            ctx.raise_error(ErrorCode.invalid_url)
+        if code == "meeting_host_not_configured":
+            ctx.raise_error(ErrorCode.meeting_host_not_configured)
+        ctx.raise_error(ErrorCode.pipeline_error)
+    models = resolve_transcribe_models(ctx.user, settings)
+    tariff = org.tariff
+    now = utcnow()
+    meta: dict = {
+        "meeting_url": target.meeting_url,
+        "meeting_host": target.meeting_host,
+        "meeting_room": target.meeting_room,
+        "pin": target.pin,
+        "connector": target.connector,
+        "display_name": display_name,
+        "stage": "queued",
+    }
+    if target.jwt:
+        meta["jwt"] = target.jwt
+    if body.transcribe:
+        meta["pipeline_transcribe"] = True
+    task = Task(
+        id=new_id(),
+        type="capture",
+        status="queued",
+        org_id=org.id,
+        user_id=ctx.user.id,
+        worker_id=target.worker.id,
+        skill_ids_json=list(body.skill_ids) or None if body.transcribe and body.skill_ids else None,
+        queued_at=now,
+        created_at=now,
+        updated_at=now,
+        meta_json=meta,
+        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
+    )
+    db.add(task)
+    db.flush()
+    return task
+
+
+def enqueue_import_task(db: Session, ctx: AuthContext, body: ImportBody) -> Task:
+    org, _ = ctx.require_org()
+    settings = get_instance_settings(db)
+    from app.services.capture_meeting import import_url_looks_like_meeting, import_url_routes_to_capture
+    from app.services.url_import import (
+        UrlImportError,
+        assert_import_fetch_allowed,
+        reject_blocked_import_url,
+        reject_literal_blocked_import_url,
+    )
+
+    try:
+        reject_literal_blocked_import_url(body.url)
+    except UrlImportError as exc:
+        ctx.raise_error(ErrorCode(exc.code))
+    if not settings.import_enabled:
+        ctx.raise_error(ErrorCode.import_disabled)
+    from app.services.download_proxy_health import download_proxy_ready
+    from app.services.import_platforms import allowed_extractors
+
+    if not download_proxy_ready(settings, db):
+        ctx.raise_error(ErrorCode.proxy_unavailable)
+    if import_url_routes_to_capture(body.url, settings):
+        return enqueue_capture_task(
+            db,
+            ctx,
+            CaptureBody(
+                meeting_url=body.url.strip(),
+                pin="",
+                transcribe=body.transcribe,
+                skill_ids=body.skill_ids,
+            ),
+        )
+    if import_url_looks_like_meeting(body.url):
+        ctx.raise_error(ErrorCode.capture_disabled)
+    try:
+        reject_blocked_import_url(body.url)
+    except UrlImportError as exc:
+        ctx.raise_error(ErrorCode(exc.code))
+    try:
+        url = assert_import_fetch_allowed(body.url, settings_allowed=allowed_extractors(settings))
+    except UrlImportError as exc:
+        ctx.raise_error(ErrorCode(exc.code))
+    if body.transcribe:
+        assert_can_accept_task(ctx, org, ctx.locale)
+        if body.skill_ids:
+            _validate_summarize_skills(ctx, db, org, body.skill_ids)
+    from app.services.transcribe_models import resolve_transcribe_models
+
+    models = resolve_transcribe_models(ctx.user, settings)
+    tariff = org.tariff
+    now = utcnow()
+    meta: dict = {"url": url, "stage": "queued"}
+    if body.transcribe:
+        meta["pipeline_transcribe"] = True
+    task = Task(
+        id=new_id(),
+        type="import",
+        status="queued",
+        org_id=org.id,
+        user_id=ctx.user.id,
+        skill_ids_json=list(body.skill_ids) or None if body.transcribe and body.skill_ids else None,
+        queued_at=now,
+        created_at=now,
+        updated_at=now,
+        meta_json=meta,
+        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
+    )
+    db.add(task)
+    db.flush()
+    return task
+
+
 def _can_manage_task(ctx: AuthContext, task: Task) -> bool:
     if ctx.org is None or task.org_id != ctx.org.id:
         return False
@@ -222,81 +362,8 @@ async def create_import(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
-    org, _ = ctx.require_org()
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
-    settings = get_instance_settings(db)
-    from app.services.capture_meeting import import_url_looks_like_meeting, import_url_routes_to_capture
-    from app.services.url_import import (
-        UrlImportError,
-        assert_import_fetch_allowed,
-        reject_blocked_import_url,
-        reject_literal_blocked_import_url,
-    )
-
-    try:
-        reject_literal_blocked_import_url(body.url)
-    except UrlImportError as exc:
-        ctx.raise_error(ErrorCode(exc.code))
-
-    if not settings.import_enabled:
-        ctx.raise_error(ErrorCode.import_disabled)
-    from app.services.download_proxy_health import download_proxy_ready
-    from app.services.import_platforms import allowed_extractors
-
-    if not download_proxy_ready(settings, db):
-        ctx.raise_error(ErrorCode.proxy_unavailable)
-    if import_url_routes_to_capture(body.url, settings):
-        return await create_capture(
-            CaptureBody(
-                meeting_url=body.url.strip(),
-                pin="",
-                transcribe=body.transcribe,
-                skill_ids=body.skill_ids,
-            ),
-            request,
-            background_tasks,
-            db,
-            ctx,
-        )
-    if import_url_looks_like_meeting(body.url):
-        ctx.raise_error(ErrorCode.capture_disabled)
-    try:
-        reject_blocked_import_url(body.url)
-    except UrlImportError as exc:
-        ctx.raise_error(ErrorCode(exc.code))
-    try:
-        url = assert_import_fetch_allowed(
-            body.url, settings_allowed=allowed_extractors(settings)
-        )
-    except UrlImportError as exc:
-        ctx.raise_error(ErrorCode(exc.code))
-    if body.transcribe:
-        assert_can_accept_task(ctx, org, ctx.locale)
-        if body.skill_ids:
-            _validate_summarize_skills(ctx, db, org, body.skill_ids)
-    from app.services.transcribe_models import resolve_transcribe_models
-
-    models = resolve_transcribe_models(ctx.user, settings)
-    tariff = org.tariff
-    now = utcnow()
-    meta: dict = {"url": url, "stage": "queued"}
-    if body.transcribe:
-        meta["pipeline_transcribe"] = True
-    task = Task(
-        id=new_id(),
-        type="import",
-        status="queued",
-        org_id=org.id,
-        user_id=ctx.user.id,
-        skill_ids_json=list(body.skill_ids) or None if body.transcribe and body.skill_ids else None,
-        queued_at=now,
-        created_at=now,
-        updated_at=now,
-        meta_json=meta,
-        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
-    )
-    db.add(task)
-    db.flush()
+    task = enqueue_import_task(db, ctx, body)
     db.commit()
     schedule_locked_tick(background_tasks, task.id, refresh_health=False)
     return task_public(task)
@@ -310,74 +377,8 @@ async def create_capture(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
-    org, _ = ctx.require_org()
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
-    settings = get_instance_settings(db)
-    if not settings.capture_enabled:
-        ctx.raise_error(ErrorCode.capture_disabled)
-    from app.services.capture_meeting import CaptureMeetingError, resolve_capture_target
-    from app.services.capture_platforms import allowed_connectors
-
-    if body.transcribe:
-        assert_can_accept_task(ctx, org, ctx.locale)
-        if body.skill_ids:
-            _validate_summarize_skills(ctx, db, org, body.skill_ids)
-    from app.services.capture_meeting import org_capture_bot_display_name
-
-    display_name = org_capture_bot_display_name(org)
-    try:
-        target = resolve_capture_target(
-            db,
-            org=org,
-            meeting_url=body.meeting_url.strip(),
-            pin=body.pin or "",
-            settings_allowed=allowed_connectors(settings),
-            display_name=display_name,
-        )
-    except CaptureMeetingError as exc:
-        code = exc.code
-        if code == "capture_disabled":
-            ctx.raise_error(ErrorCode.capture_disabled)
-        if code == "invalid_url":
-            ctx.raise_error(ErrorCode.invalid_url)
-        if code == "meeting_host_not_configured":
-            ctx.raise_error(ErrorCode.meeting_host_not_configured)
-        ctx.raise_error(ErrorCode.pipeline_error)
-
-    from app.services.transcribe_models import resolve_transcribe_models
-
-    models = resolve_transcribe_models(ctx.user, settings)
-    tariff = org.tariff
-    now = utcnow()
-    meta: dict = {
-        "meeting_url": target.meeting_url,
-        "meeting_host": target.meeting_host,
-        "meeting_room": target.meeting_room,
-        "pin": target.pin,
-        "connector": target.connector,
-        "display_name": display_name,
-        "stage": "queued",
-    }
-    if target.jwt:
-        meta["jwt"] = target.jwt
-    if body.transcribe:
-        meta["pipeline_transcribe"] = True
-    task = Task(
-        id=new_id(),
-        type="capture",
-        status="queued",
-        org_id=org.id,
-        user_id=ctx.user.id,
-        worker_id=target.worker.id,
-        skill_ids_json=list(body.skill_ids) or None if body.transcribe and body.skill_ids else None,
-        queued_at=now,
-        created_at=now,
-        updated_at=now,
-        meta_json=meta,
-        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
-    )
-    db.add(task)
-    db.flush()
+    task = enqueue_capture_task(db, ctx, body)
     db.commit()
     schedule_locked_tick(background_tasks, task.id, refresh_health=False)
     return task_public(task)

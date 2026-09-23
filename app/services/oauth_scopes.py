@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+SCOPE_AUDIO_READ = "audio:read"
+SCOPE_AUDIO_WRITE = "audio:write"
 SCOPE_TRANSCRIPTS_READ = "transcripts:read"
+SCOPE_TRANSCRIPTS_WRITE = "transcripts:write"
 SCOPE_SUMMARIES_READ = "summaries:read"
 SCOPE_SUMMARIES_WRITE = "summaries:write"
 SCOPE_SKILLS_READ = "skills:read"
@@ -11,7 +14,10 @@ SCOPE_TASKS_WRITE = "tasks:write"
 
 SUPPORTED_SCOPES: frozenset[str] = frozenset(
     {
+        SCOPE_AUDIO_READ,
+        SCOPE_AUDIO_WRITE,
         SCOPE_TRANSCRIPTS_READ,
+        SCOPE_TRANSCRIPTS_WRITE,
         SCOPE_SUMMARIES_READ,
         SCOPE_SUMMARIES_WRITE,
         SCOPE_SKILLS_READ,

@@ -100,6 +100,17 @@ class StorageBackend(ABC):
         """Copy a local file into storage; return opaque storage_path reference."""
 
     @abstractmethod
+    def save_bytes(
+        self,
+        audio_id: str,
+        suffix: str,
+        data: bytes,
+        *,
+        max_bytes: int,
+    ) -> str:
+        """Persist raw bytes; return opaque storage_path reference."""
+
+    @abstractmethod
     def exists(self, storage_path: str) -> bool:
         ...
 
@@ -176,6 +187,23 @@ class LocalStorageBackend(StorageBackend):
         if len(data) > max_bytes:
             raise PayloadTooLarge()
         validate_audio_header(suffix, data[:_MAGIC_HEADER_LEN])
+        dest.write_bytes(data)
+        return str(dest)
+
+    def save_bytes(
+        self,
+        audio_id: str,
+        suffix: str,
+        data: bytes,
+        *,
+        max_bytes: int,
+    ) -> str:
+        if len(data) > max_bytes:
+            raise PayloadTooLarge()
+        validate_audio_header(suffix, data[:_MAGIC_HEADER_LEN])
+        dest_dir = self._root / "uploads" / audio_id
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest = dest_dir / f"original{suffix}"
         dest.write_bytes(data)
         return str(dest)
 
@@ -397,6 +425,21 @@ class S3StorageBackend(StorageBackend):
                 )
 
         await asyncio.to_thread(_upload)
+        return self._ref(key)
+
+    def save_bytes(
+        self,
+        audio_id: str,
+        suffix: str,
+        data: bytes,
+        *,
+        max_bytes: int,
+    ) -> str:
+        if len(data) > max_bytes:
+            raise PayloadTooLarge()
+        validate_audio_header(suffix, data[:_MAGIC_HEADER_LEN])
+        key = audio_object_key(audio_id, suffix)
+        self._upload_fileobj_sync(BytesIO(data), key)
         return self._ref(key)
 
     def exists(self, storage_path: str) -> bool:

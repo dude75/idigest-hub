@@ -94,12 +94,15 @@ JWT access tokens work as `Authorization: Bearer` alongside PAT (`idg_…`) on *
 
 | Scope | REST (JWT) | MCP |
 | ----- | ---------- | --- |
-| `transcripts:read` | `GET /transcripts`, `GET /transcripts/{id}` | `list_transcriptions`, `get_transcript` |
+| `audio:read` | — | `list_audios`, `get_audio` |
+| `audio:write` | — | `create_audio_upload`, `delete_audio` |
+| `transcripts:read` | `GET /transcripts`, `GET /transcripts/{id}` | `list_transcripts`, `get_transcript` |
+| `transcripts:write` | — | `update_transcript`, `delete_transcript` |
 | `summaries:read` | — | `list_summaries`, `get_summary` |
-| `summaries:write` | — | `delete_summary` |
-| `skills:read` | — | `list_skills` |
-| `skills:write` | — | `update_skill` |
-| `tasks:write` | — | `summarize_transcript` |
+| `summaries:write` | — | `update_summary`, `delete_summary` |
+| `skills:read` | — | `list_skills`, `get_skill` |
+| `skills:write` | — | `create_skill`, `update_skill`, `delete_skill` |
+| `tasks:write` | — | `create_audio_import`, `create_summary` |
 
 If the client omits `scope`, the hub defaults to `transcripts:read` only. Full tool reference: **[mcp.md](mcp.md)**.
 
