@@ -104,7 +104,7 @@ Access token (JWT) принимается в **REST** `/api/v1` как `Authoriz
 | `summaries:write` | — | `update_summary`, `delete_summary` |
 | `skills:read` | — | `list_skills`, `get_skill` |
 | `skills:write` | — | `create_skill`, `update_skill`, `delete_skill` |
-| `tasks:write` | — | `create_audio_import`, `create_summary` |
+| `tasks:write` | — | `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
 
 Если клиент не указал `scope`, выдаются все поддерживаемые scope. Подробно про tools: **[mcp.md](mcp.md)**.
 

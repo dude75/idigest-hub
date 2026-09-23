@@ -21,9 +21,11 @@ from app.services.mcp_library import (
     get_audio_payload,
     get_skill_payload,
     get_summary_payload,
+    get_task_payload,
     get_transcript_payload,
     list_audios_payload,
     list_transcripts_payload,
+    stop_capture_task_payload,
     update_summary_payload,
     update_transcript_payload,
 )
@@ -231,6 +233,93 @@ def test_mcp_audio_delete_forbidden_for_org_member(client):
         ctx = _oauth_ctx(db, member_user, frozenset({SCOPE_AUDIO_WRITE}))
         with pytest.raises(PermissionError, match="forbidden"):
             delete_audio_payload(db, ctx, audio_id)
+
+
+def test_mcp_get_task_scope_and_payload(client, monkeypatch):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    signup(client, "mcp-gettask@example.com", "gettaskpass1", tariff_id)
+
+    def _allow_import_url(url: str, *, settings_allowed):
+        return url.strip()
+
+    monkeypatch.setattr("app.services.url_import.assert_import_fetch_allowed", _allow_import_url)
+
+    import app.db as hub_db
+
+    with hub_db.SessionLocal() as db:
+        user = _user(db, "mcp-gettask@example.com")
+        ctx = _oauth_ctx(db, user, frozenset())
+        with pytest.raises(PermissionError, match="tasks:write"):
+            get_task_payload(db, ctx, task_id="missing")
+
+        ctx_write = _oauth_ctx(db, user, frozenset({SCOPE_TASKS_WRITE}))
+        created = create_audio_import_payload(
+            db,
+            ctx_write,
+            url="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        )
+        db.commit()
+        task_id = created["task_id"]
+
+        payload, schedule, refresh_health = get_task_payload(db, ctx_write, task_id=task_id)
+        assert payload["task_id"] == task_id
+        assert payload["type"] == "import"
+        assert schedule is True
+        assert refresh_health is False
+
+
+@pytest.mark.asyncio
+async def test_mcp_stop_capture_task(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap-mcp", base_url="http://capture-mcp.test")
+    seed_node_health(worker["id"])
+    tariff_id = default_tariff_id(client)
+    signup(client, "mcp-capstop@example.com", "capstoppass1", tariff_id)
+
+    import app.db as hub_db
+    from app.deps import get_instance_settings
+    from app.models import Task, new_id
+    from app.services.billing import snapshot_fields
+    from app.services.capture_runner import reset_capture_runner
+    from app.timeutil import utcnow
+
+    fake_workers.capture_stop_calls.clear()
+    reset_capture_runner()
+
+    with hub_db.SessionLocal() as db:
+        user = _user(db, "mcp-capstop@example.com")
+        org, _ = load_org_bundle(db, user)
+        assert org is not None
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="running",
+            org_id=org.id,
+            user_id=user.id,
+            worker_id=worker["id"],
+            worker_task_id=fake_workers.capture_worker_task_id,
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={
+                "meeting_url": "https://meet.example.com/room1",
+                "stage": "capturing",
+                "connector": "jitsi",
+            },
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+        hub_task_id = task.id
+
+        ctx = _oauth_ctx(db, user, frozenset({SCOPE_TASKS_WRITE}))
+        result = await stop_capture_task_payload(db, ctx, task_id=hub_task_id)
+        db.commit()
+        assert fake_workers.capture_worker_task_id in fake_workers.capture_stop_calls
+        assert result["meta"]["stop_requested"] is True
 
 
 def test_mcp_audio_import_enqueues_task(client, monkeypatch):

@@ -38,7 +38,7 @@ If the client omits `scope` on `/oauth/authorize`, the hub grants **every suppor
 | `summaries:write` | `update_summary`, `delete_summary` |
 | `skills:read` | `list_skills`, `get_skill` |
 | `skills:write` | `create_skill`, `update_skill`, `delete_skill` |
-| `tasks:write` | `create_audio_import`, `create_summary` |
+| `tasks:write` | `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
 
 Scope checks apply when `via_oauth_token` is true (OAuth JWT). Session cookies and PAT on REST are governed by normal role rules, not these scopes. On REST, OAuth JWT currently enforces **`transcripts:read`** on `GET /transcripts` and `GET /transcripts/{id}` only.
 
@@ -67,6 +67,8 @@ Errors surface as tool failures (`PermissionError`, `ValueError`, etc.) — not 
 | `get_audio` | `audio_id` | `audio:read` | Audio + `transcripts[]` (visible) + `can_transcribe` |
 | `create_audio_upload` | `filename`, `content_base64` (standard or data-URL base64) | `audio:write` | Created audio (same shape as REST upload) |
 | `create_audio_import` | `url`, `transcribe` (bool, default `false`), `skill_ids` optional | `tasks:write` | **Task** JSON (import or capture) |
+| `get_task` | `task_id` | `tasks:write` | **Task** JSON (same as `GET /tasks/{id}`; tick when `queued`/`running`) |
+| `stop_capture_task` | `task_id` | `tasks:write` | **Capture task** JSON after stop request (same as `POST /tasks/{id}/stop`) |
 | `delete_audio` | `audio_id` | `audio:write` | `{ "status": "ok" }` |
 
 List derived flags: `has_transcript`, `has_summary`, `transcript_id`, `summary_transcript_id`.
@@ -106,6 +108,8 @@ List derived flags: `has_transcript`, `has_summary`, `transcript_id`, `summary_t
 - Visibility matches REST: owner + shares; org admin sees all org rows; `include_hidden` includes the caller’s hidden items.
 - **`create_audio_upload`**: `.wav`, `.mp3`, `.m4a` only (extension + magic bytes, same as REST); max size follows org tariff (capped at 1 GiB).
 - **`create_audio_import`**: same rules as `POST /tasks/import` (may enqueue import or capture). Returns task JSON until audio exists. Optional `transcribe` + `skill_ids` start the pipeline after import.
+- **`get_task`**: same as `GET /tasks/{id}` — poll status; schedules a dispatcher tick for active tasks.
+- **`stop_capture_task`**: running **capture** only; graceful recording stop (not the same as cancel via `DELETE`).
 - **`delete_audio`** / **`delete_transcript`**: org admin only (same as REST wipe).
 - **`create_summary`**: enqueues a **summarize** task (like `POST /tasks/summarize`); dispatcher runs asynchronously after the tool returns. LLM is the user’s summarize model or the instance default — not a tool parameter.
 - **`update_transcript`**: owner or org admin (rename only).

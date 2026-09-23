@@ -102,7 +102,7 @@ JWT access tokens work as `Authorization: Bearer` alongside PAT (`idg_…`) on *
 | `summaries:write` | — | `update_summary`, `delete_summary` |
 | `skills:read` | — | `list_skills`, `get_skill` |
 | `skills:write` | — | `create_skill`, `update_skill`, `delete_skill` |
-| `tasks:write` | — | `create_audio_import`, `create_summary` |
+| `tasks:write` | — | `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
 
 If the client omits `scope`, the hub grants every supported scope. Full tool reference: **[mcp.md](mcp.md)**.
 

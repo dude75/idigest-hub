@@ -26,6 +26,8 @@ from app.services.mcp_library import (
     create_audio_upload_payload,
     create_skill_payload,
     create_summary_payload,
+    get_task_payload,
+    stop_capture_task_payload,
     delete_audio_payload,
     delete_skill_payload,
     delete_summary_payload,
@@ -206,6 +208,64 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             commit=True,
             post_commit=lambda payload: _schedule_task(payload, refresh_health=False),
         )(url=url, transcribe=transcribe, skill_ids=skill_ids)
+
+    @server.tool(
+        name="get_task",
+        description=(
+            "Poll hub task status by id (import, capture, transcribe, summarize). "
+            "Schedules dispatcher tick when queued or running. Requires tasks:write."
+        ),
+    )
+    async def get_task(task_id: str) -> str:
+        try:
+            access = get_access_token()
+            if access is None or not access.subject:
+                raise ToolError("authentication required")
+            claims = access.claims or {}
+            scopes = scopes_from_bearer_metadata(
+                token_scopes=access.scopes,
+                scope_claim=claims.get("scope"),
+            )
+            with db.SessionLocal() as session:
+                ctx = _auth_context_from_token(session, access.subject, scopes)
+                payload, schedule, refresh_health = get_task_payload(
+                    session, ctx, task_id=task_id
+                )
+        except PermissionError as exc:
+            raise ToolError(str(exc)) from exc
+        except ValueError as exc:
+            raise ToolError(str(exc)) from exc
+        if schedule:
+            asyncio.create_task(locked_tick_job(task_id, refresh_health=refresh_health))
+        return json.dumps(payload, ensure_ascii=False)
+
+    @server.tool(
+        name="stop_capture_task",
+        description=(
+            "Request graceful stop for a running capture task (finish recording, then download). "
+            "Requires tasks:write."
+        ),
+    )
+    async def stop_capture_task(task_id: str) -> str:
+        try:
+            access = get_access_token()
+            if access is None or not access.subject:
+                raise ToolError("authentication required")
+            claims = access.claims or {}
+            scopes = scopes_from_bearer_metadata(
+                token_scopes=access.scopes,
+                scope_claim=claims.get("scope"),
+            )
+            with db.SessionLocal() as session:
+                ctx = _auth_context_from_token(session, access.subject, scopes)
+                payload = await stop_capture_task_payload(session, ctx, task_id=task_id)
+                session.commit()
+        except PermissionError as exc:
+            raise ToolError(str(exc)) from exc
+        except ValueError as exc:
+            raise ToolError(str(exc)) from exc
+        asyncio.create_task(locked_tick_job(task_id, refresh_health=False))
+        return json.dumps(payload, ensure_ascii=False)
 
     @server.tool(
         name="delete_audio",
