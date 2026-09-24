@@ -20,5 +20,8 @@ describe('transcribeModels', () => {
   it('detects dispatchable combinations', () => {
     expect(isDispatchableCombo(models, 'parakeet', 'nemo')).toBe(true)
     expect(isDispatchableCombo(models, 'parakeet', 'pyannote')).toBe(false)
+    expect(isDispatchableCombo(models, 'parakeet', null)).toBe(true)
+    expect(isDispatchableCombo(models, 'parakeet', '')).toBe(true)
+    expect(isDispatchableCombo(models, 'unknown', null)).toBe(false)
   })
 })

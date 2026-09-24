@@ -27,8 +27,13 @@ export function isDispatchableCombo(
   asrModel: string,
   diarizationModel: string | null,
 ): boolean {
+  const diar =
+    diarizationModel == null || diarizationModel === '' ? null : diarizationModel
+  if (diar === null) {
+    return dispatchablePairs(models).some((pair) => pair.asr_model === asrModel)
+  }
   return dispatchablePairs(models).some(
-    (pair) => pair.asr_model === asrModel && pair.diarization_model === diarizationModel,
+    (pair) => pair.asr_model === asrModel && pair.diarization_model === diar,
   )
 }
 
