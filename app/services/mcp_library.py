@@ -216,7 +216,7 @@ async def stop_capture_task_payload(
     ctx: AuthContext,
     *,
     task_id: str,
-) -> dict:
+) -> tuple[dict, bool]:
     _require_oauth_scope(ctx, SCOPE_TASKS_WRITE)
     task = db.get(Task, task_id)
     if task is None or not can_see_task(ctx, task):
@@ -227,11 +227,11 @@ async def stop_capture_task_payload(
         raise ValueError("capture task required")
     if task.status != "running":
         raise ValueError("task running")
-    from app.services.capture_runner import apply_capture_stop
+    from app.services.capture_runner import request_hub_capture_stop
 
-    await apply_capture_stop(db, task)
+    need_tick = await request_hub_capture_stop(db, task)
     db.flush()
-    return task_public(task)
+    return task_public(task), need_tick
 
 
 def delete_audio_payload(db: Session, ctx: AuthContext, audio_id: str) -> dict:

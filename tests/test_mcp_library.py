@@ -316,8 +316,9 @@ async def test_mcp_stop_capture_task(client, fake_workers):
         hub_task_id = task.id
 
         ctx = _oauth_ctx(db, user, frozenset({SCOPE_TASKS_WRITE}))
-        result = await stop_capture_task_payload(db, ctx, task_id=hub_task_id)
+        result, need_tick = await stop_capture_task_payload(db, ctx, task_id=hub_task_id)
         db.commit()
+        assert need_tick is True
         assert fake_workers.capture_worker_task_id in fake_workers.capture_stop_calls
         assert result["meta"]["stop_requested"] is True
 

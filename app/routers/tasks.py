@@ -496,11 +496,12 @@ async def stop_capture_task(
         ctx.raise_error(ErrorCode.validation_error)
     if task.status != "running":
         ctx.raise_error(ErrorCode.task_running)
-    from app.services.capture_runner import apply_capture_stop
+    from app.services.capture_runner import request_hub_capture_stop
 
-    await apply_capture_stop(db, task)
+    need_tick = await request_hub_capture_stop(db, task)
     db.commit()
-    schedule_locked_tick(background_tasks, task.id, refresh_health=False, wait=False)
+    if need_tick:
+        schedule_locked_tick(background_tasks, task.id, refresh_health=False, wait=False)
     return task_public(task)
 
 

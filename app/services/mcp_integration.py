@@ -257,13 +257,16 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             )
             with db.SessionLocal() as session:
                 ctx = _auth_context_from_token(session, access.subject, scopes)
-                payload = await stop_capture_task_payload(session, ctx, task_id=task_id)
+                payload, need_tick = await stop_capture_task_payload(
+                    session, ctx, task_id=task_id
+                )
                 session.commit()
         except PermissionError as exc:
             raise ToolError(str(exc)) from exc
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
-        schedule_locked_tick_asyncio(task_id, refresh_health=False, wait=False)
+        if need_tick:
+            schedule_locked_tick_asyncio(task_id, refresh_health=False, wait=False)
         return json.dumps(payload, ensure_ascii=False)
 
     @server.tool(

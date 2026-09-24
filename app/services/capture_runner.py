@@ -112,6 +112,22 @@ async def apply_capture_stop(db: Session, task: Task) -> None:
     await forward_capture_stop(db, task)
 
 
+def is_capture_thread_running(task_id: str) -> bool:
+    return _capture_thread_alive(task_id)
+
+
+async def request_hub_capture_stop(db: Session, task: Task) -> bool:
+    """Record stop; let the capture bg thread talk to the worker when it is running.
+
+    Returns True when the hub should run a dispatcher tick (no bg thread to drive stop).
+    """
+    mark_capture_stop_requested(db, task)
+    if is_capture_thread_running(task.id):
+        return False
+    await forward_capture_stop(db, task)
+    return True
+
+
 async def run_capture_worker_cancel(hub_task_id: str) -> None:
     from app.db import SessionLocal
 
