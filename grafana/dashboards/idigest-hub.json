@@ -524,8 +524,82 @@
       "type": "timeseries"
     },
     {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "filterable": true }, "decimals": 0, "unit": "short" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 63 },
+      "id": 34,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Requests" }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "topk(10, sum by (route) (increase(idigest_hub_http_requests_total{job=~\"$job\", instance=~\"$instance\", route=~\"/api/v1.*\"}[$__range])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{route}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 API routes by requests",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "indexByName": { "route": 0, "Value": 1 },
+            "renameByName": { "route": "Route", "Value": "Requests" }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "filterable": true }, "decimals": 2, "unit": "s" },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 63 },
+      "id": 35,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "countRows": false, "fields": "", "reducer": ["sum"], "show": false },
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "Busy time" }]
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+          "expr": "topk(10, sum by (route) (increase(idigest_hub_http_request_duration_seconds_sum{job=~\"$job\", instance=~\"$instance\", route=~\"/api/v1.*\"}[$__range])))",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{route}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Top 10 API routes by time",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true },
+            "indexByName": { "route": 0, "Value": 1 },
+            "renameByName": { "route": "Route", "Value": "Busy time" }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 63 },
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 71 },
       "id": 103,
       "panels": [],
       "title": "Process",
@@ -534,7 +608,7 @@
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1 }, "unit": "bytes" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 64 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 72 },
       "id": 40,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
@@ -551,7 +625,7 @@
     {
       "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
       "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1 }, "unit": "percentunit" }, "overrides": [] },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 64 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 72 },
       "id": 41,
       "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
       "targets": [
