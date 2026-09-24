@@ -18,6 +18,17 @@ Tools подчиняются тем же правилам доступа, что
 
 MCP принимает **только OAuth JWT**, выданные хабом (не PAT `idg_…`). JWT access token также работает как `Authorization: Bearer` в REST `/api/v1`.
 
+## Rate limiting
+
+При включённом rate limiting в instance:
+
+- Каждый аутентифицированный **HTTP-запрос к `/mcp`** учитывается в тех же **Bearer API** bucket'ах (user, IP, global), что REST.
+- **Upload / task MCP tools** (`create_audio_upload`, `create_audio_import`, `create_transcribe`, `create_summary`, `stop_capture_task`) делят **`rate_limit_api_tasks_*`** с REST.
+- Опрос **`get_task`** — отдельный bucket на user: **`rate_limit_mcp_poll_user`** (по умолчанию 90/мин; **`0`** отключает).
+- **`POST /oauth/register`** и **`POST /oauth/token`** — лимиты по IP и global (`rate_limit_oauth_register_*`, `rate_limit_oauth_token_*`).
+
+При превышении: HTTP **429**, envelope ошибки хаба на `/mcp` и OAuth JSON, заголовок `Retry-After`. Настройка: Instance → Settings (см. README проекта).
+
 ## Авторизация
 
 Те же правила, что для OAuth authorize в [auth.md](auth.md#oauth-21-provider-mcp--open-webui): участник или админ org, на тарифе `api_enabled`, аккаунт без блокировок. **Instance admin без членства в org не может пройти OAuth** (PAT для REST по-прежнему возможен отдельно).

@@ -75,21 +75,44 @@ def _client_from_forwarded_for(
     return _valid_ip(ips[0])
 
 
-def resolve_client_ip(request: Request, trusted: tuple[TrustedEntry, ...]) -> str:
-    peer = _peer_host(request)
+def _resolve_client_ip_from_headers(
+    peer: str,
+    headers: dict[str, str],
+    trusted: tuple[TrustedEntry, ...],
+) -> str:
     if not trusted or not is_trusted_proxy(peer, trusted):
         return peer
 
-    forwarded_for = request.headers.get("X-Forwarded-For", "")
+    forwarded_for = headers.get("x-forwarded-for", "")
     if forwarded_for:
         client = _client_from_forwarded_for(forwarded_for, trusted)
         if client:
             return client
 
-    real_ip = request.headers.get("X-Real-IP", "")
+    real_ip = headers.get("x-real-ip", "")
     if real_ip:
         client = _valid_ip(real_ip)
         if client:
             return client
 
     return peer
+
+
+def resolve_client_ip(request: Request, trusted: tuple[TrustedEntry, ...]) -> str:
+    peer = _peer_host(request)
+    headers = {key.lower(): value for key, value in request.headers.items()}
+    return _resolve_client_ip_from_headers(peer, headers, trusted)
+
+
+def asgi_headers(scope: dict) -> dict[str, str]:
+    raw = scope.get("headers") or []
+    return {key.decode("latin-1").lower(): value.decode("latin-1") for key, value in raw}
+
+
+def client_ip_from_asgi_scope(scope: dict) -> str:
+    from app.config import get_settings
+
+    trusted = trusted_proxy_entries(get_settings().TRUSTED_PROXIES)
+    client = scope.get("client")
+    peer = client[0] if client else "unknown"
+    return _resolve_client_ip_from_headers(peer, asgi_headers(scope), trusted)

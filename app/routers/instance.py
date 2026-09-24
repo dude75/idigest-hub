@@ -134,6 +134,11 @@ class SettingsPatch(BaseModel):
     rate_limit_api_global: int | None = None
     rate_limit_api_tasks_user: int | None = None
     rate_limit_api_tasks_ip: int | None = None
+    rate_limit_mcp_poll_user: int | None = None
+    rate_limit_oauth_register_ip: int | None = None
+    rate_limit_oauth_register_global: int | None = None
+    rate_limit_oauth_token_ip: int | None = None
+    rate_limit_oauth_token_global: int | None = None
     rate_limit_public_link_ip: int | None = None
     rate_limit_public_link_global: int | None = None
     rate_limit_public_pin_ip: int | None = None

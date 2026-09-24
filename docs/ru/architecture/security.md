@@ -160,7 +160,7 @@ OIDC на уровне org (совместим с Keycloak). Authorization Code 
 | Ключ подписи | `OAUTH_SIGNING_KEY_PEM` или автогенерация `{DATA_DIR}/oauth_signing_key.pem` (JWKS: `/.well-known/jwks.json`) |
 | Браузерный UI | HTML login / consent / ошибка; `/oauth/token` и `/oauth/register` остаются JSON |
 
-Каталог tools и карта scope: [MCP API](../api/mcp.md). JWT также работает как `Authorization: Bearer` в REST `/api/v1` (действуют Bearer rate limits).
+Каталог tools и карта scope: [MCP API](../api/mcp.md). JWT также работает как `Authorization: Bearer` в REST `/api/v1` (действуют Bearer rate limits). **HTTP `/mcp`** делит те же Bearer API bucket'ы; upload/task MCP tools — **`rate_limit_api_tasks_*`**; **`get_task`** — отдельный poll limit ([MCP rate limiting](../api/mcp.md#rate-limiting)). **`/oauth/register`** и **`/oauth/token`** — отдельные IP/global лимиты.
 
 ## Слои авторизации
 
@@ -184,7 +184,7 @@ Upload принимает `.wav`, `.mp3`, `.m4a` по расширению **и*
 
 ## Rate limiting
 
-In-memory token buckets (один процесс). Настраивается в Instance → Settings. Auth endpoints ограничены по email + IP + global; Bearer API — по user + IP + global.
+In-memory token buckets (один процесс). Настраивается в Instance → Settings. Auth endpoints ограничены по email + IP + global; Bearer API (и HTTP MCP `/mcp`) — по user + IP + global; отдельные bucket'ы для MCP poll и OAuth token/DCR (см. README).
 
 При превышении: HTTP **429**, `error.code = rate_limited`, заголовок `Retry-After`.
 

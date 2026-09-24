@@ -62,6 +62,11 @@ class RateLimits:
     api_global: int
     api_tasks_user: int
     api_tasks_ip: int
+    mcp_poll_user: int
+    oauth_register_ip: int
+    oauth_register_global: int
+    oauth_token_ip: int
+    oauth_token_global: int
     public_link_ip: int
     public_link_global: int
     public_pin_ip: int
@@ -88,6 +93,11 @@ def limits_from_row(row: InstanceSettings) -> RateLimits:
         api_global=int(row.rate_limit_api_global),
         api_tasks_user=int(row.rate_limit_api_tasks_user),
         api_tasks_ip=int(row.rate_limit_api_tasks_ip),
+        mcp_poll_user=int(row.rate_limit_mcp_poll_user),
+        oauth_register_ip=int(row.rate_limit_oauth_register_ip),
+        oauth_register_global=int(row.rate_limit_oauth_register_global),
+        oauth_token_ip=int(row.rate_limit_oauth_token_ip),
+        oauth_token_global=int(row.rate_limit_oauth_token_global),
         public_link_ip=int(row.rate_limit_public_link_ip),
         public_link_global=int(row.rate_limit_public_link_global),
         public_pin_ip=int(row.rate_limit_public_pin_ip),
@@ -280,16 +290,80 @@ def enforce_setup(ip: str, limits: RateLimits, locale: str) -> None:
     )
 
 
-def enforce_bearer_api(request: Request, user_id: str, limits: RateLimits, locale: str) -> None:
+_MCP_UPLOAD_TOOLS = frozenset({"create_audio_upload"})
+_MCP_TASK_TOOLS = frozenset(
+    {
+        "create_audio_import",
+        "create_summary",
+        "create_transcribe",
+        "stop_capture_task",
+    }
+)
+_MCP_POLL_TOOLS = frozenset({"get_task"})
+
+
+def enforce_api_limits(user_id: str | None, ip: str, limits: RateLimits, locale: str) -> None:
     if not limits.enabled:
         return
-    ip = client_ip(request)
     checks: list[tuple[str, int, float]] = [
-        (f"api:user:{user_id}", limits.api_user, WINDOW_MIN),
         (f"api:ip:{ip}", limits.api_ip, WINDOW_MIN),
         ("api:global", limits.api_global, WINDOW_MIN),
     ]
+    if user_id:
+        checks.insert(0, (f"api:user:{user_id}", limits.api_user, WINDOW_MIN))
     enforce_checks(checks, locale)
+
+
+def enforce_bearer_api(request: Request, user_id: str, limits: RateLimits, locale: str) -> None:
+    enforce_api_limits(user_id, client_ip(request), limits, locale)
+
+
+def enforce_mcp_tool(tool: str, user_id: str, ip: str, limits: RateLimits, locale: str) -> None:
+    if not limits.enabled:
+        return
+    checks: list[tuple[str, int, float]] = []
+    if tool in _MCP_POLL_TOOLS:
+        checks.append((f"mcp:poll:user:{user_id}", limits.mcp_poll_user, WINDOW_MIN))
+    elif tool in _MCP_UPLOAD_TOOLS:
+        checks.extend(
+            [
+                (f"write:upload:user:{user_id}", limits.api_tasks_user, WINDOW_MIN),
+                (f"write:upload:ip:{ip}", limits.api_tasks_ip, WINDOW_MIN),
+            ]
+        )
+    elif tool in _MCP_TASK_TOOLS:
+        checks.extend(
+            [
+                (f"api:tasks:user:{user_id}", limits.api_tasks_user, WINDOW_MIN),
+                (f"api:tasks:ip:{ip}", limits.api_tasks_ip, WINDOW_MIN),
+            ]
+        )
+    if checks:
+        enforce_checks(checks, locale)
+
+
+def enforce_oauth_register(ip: str, limits: RateLimits, locale: str) -> None:
+    if not limits.enabled:
+        return
+    enforce_checks(
+        [
+            (f"oauth:register:ip:{ip}", limits.oauth_register_ip, WINDOW_HOUR),
+            ("oauth:register:global", limits.oauth_register_global, WINDOW_HOUR),
+        ],
+        locale,
+    )
+
+
+def enforce_oauth_token(ip: str, limits: RateLimits, locale: str) -> None:
+    if not limits.enabled:
+        return
+    enforce_checks(
+        [
+            (f"oauth:token:ip:{ip}", limits.oauth_token_ip, WINDOW_MIN),
+            ("oauth:token:global", limits.oauth_token_global, WINDOW_MIN),
+        ],
+        locale,
+    )
 
 
 def enforce_write_limits(request: Request, user_id: str, limits: RateLimits, locale: str) -> None:
@@ -355,6 +429,11 @@ def rate_limits_public(row: InstanceSettings) -> dict[str, int | bool]:
         "rate_limit_api_global": int(row.rate_limit_api_global),
         "rate_limit_api_tasks_user": int(row.rate_limit_api_tasks_user),
         "rate_limit_api_tasks_ip": int(row.rate_limit_api_tasks_ip),
+        "rate_limit_mcp_poll_user": int(row.rate_limit_mcp_poll_user),
+        "rate_limit_oauth_register_ip": int(row.rate_limit_oauth_register_ip),
+        "rate_limit_oauth_register_global": int(row.rate_limit_oauth_register_global),
+        "rate_limit_oauth_token_ip": int(row.rate_limit_oauth_token_ip),
+        "rate_limit_oauth_token_global": int(row.rate_limit_oauth_token_global),
         "rate_limit_public_link_ip": int(row.rate_limit_public_link_ip),
         "rate_limit_public_link_global": int(row.rate_limit_public_link_global),
         "rate_limit_public_pin_ip": int(row.rate_limit_public_pin_ip),

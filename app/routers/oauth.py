@@ -33,7 +33,14 @@ from app.services.oauth_provider import (
     user_oauth_blocked,
     validate_authorize_params,
 )
+from app.errors import ApiError, ErrorCode, error_payload
 from app.i18n import t
+from app.rate_limit import (
+    client_ip as rate_limit_client_ip,
+    enforce_oauth_register,
+    enforce_oauth_token,
+    get_rate_limits,
+)
 from app.services.oauth_pages import (
     oauth_blocked_page,
     oauth_client_redirect_page,
@@ -52,6 +59,15 @@ router = APIRouter(include_in_schema=False)
 
 def _oauth_disabled() -> JSONResponse:
     return JSONResponse(status_code=404, content={"error": "oauth_disabled"})
+
+
+def _oauth_rate_limited(exc: ApiError) -> JSONResponse:
+    headers = dict(exc.headers or {})
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=error_payload(ErrorCode.rate_limited, t("en", ErrorCode.rate_limited.value)),
+        headers=headers,
+    )
 
 
 @router.get("/.well-known/oauth-authorization-server")
@@ -95,6 +111,10 @@ async def oauth_dynamic_client_registration(
 ) -> JSONResponse:
     if not provider_ready(db):
         return JSONResponse(status_code=503, content={"error": "oauth_misconfigured"})
+    try:
+        enforce_oauth_register(rate_limit_client_ip(request), get_rate_limits(db), "en")
+    except ApiError as exc:
+        return _oauth_rate_limited(exc)
     try:
         body = await request.json()
     except Exception:
@@ -340,6 +360,10 @@ async def oauth_token(
 ) -> JSONResponse:
     if not provider_ready(db):
         return JSONResponse(status_code=503, content={"error": "oauth_misconfigured"})
+    try:
+        enforce_oauth_token(rate_limit_client_ip(request), get_rate_limits(db), "en")
+    except ApiError as exc:
+        return _oauth_rate_limited(exc)
     form = await request.form()
     grant_type = (form.get("grant_type") or "").strip()
     client_id = (form.get("client_id") or "").strip()

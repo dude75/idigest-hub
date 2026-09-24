@@ -18,6 +18,17 @@ Tools follow the same access rules as the REST library, tasks, and skills APIs. 
 
 MCP accepts **hub-issued OAuth JWTs only** (not PAT `idg_…`). JWT access tokens also work as `Authorization: Bearer` on REST `/api/v1`.
 
+## Rate limiting
+
+When instance rate limiting is enabled:
+
+- Each authenticated **`/mcp` HTTP request** counts against the same **Bearer API** buckets (per user, IP, global) as REST.
+- **Upload / task MCP tools** (`create_audio_upload`, `create_audio_import`, `create_transcribe`, `create_summary`, `stop_capture_task`) share **`rate_limit_api_tasks_*`** with REST task create and audio upload.
+- **`get_task`** polling uses a separate per-user bucket: **`rate_limit_mcp_poll_user`** (default 90/min; `0` disables).
+- **`POST /oauth/register`** and **`POST /oauth/token`** are limited per IP and global (`rate_limit_oauth_register_*`, `rate_limit_oauth_token_*`).
+
+On limit exceeded: HTTP **429**, hub error envelope on `/mcp` and OAuth JSON endpoints, `Retry-After` header. Configure in Instance → Settings (see project README).
+
 ## Authorization
 
 Same rules as OAuth authorize in [auth.md](auth.md#oauth-21-provider-mcp--open-webui): org member or org admin, tariff `api_enabled`, account in good standing. **Instance admins without org membership cannot complete OAuth** (PAT may still be used for REST separately).

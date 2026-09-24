@@ -156,7 +156,7 @@ Optional (`OAUTH_PROVIDER_ENABLED=true`). The hub is an **authorization server**
 | Signing key | `OAUTH_SIGNING_KEY_PEM` or auto-generated `{DATA_DIR}/oauth_signing_key.pem` (JWKS at `/.well-known/jwks.json`) |
 | Browser UI | Styled HTML login / consent / error pages; `/oauth/token` and `/oauth/register` stay JSON |
 
-Tool catalog and scope map: [MCP API](../api/mcp.md). JWT also works as `Authorization: Bearer` on REST `/api/v1` (Bearer rate limits apply).
+Tool catalog and scope map: [MCP API](../api/mcp.md). JWT also works as `Authorization: Bearer` on REST `/api/v1` (Bearer rate limits apply). **`/mcp` HTTP** shares those Bearer API buckets; MCP task/upload tools share **`rate_limit_api_tasks_*`**; **`get_task`** has a separate poll limit — see [MCP rate limiting](../api/mcp.md#rate-limiting). **`/oauth/register`** and **`/oauth/token`** have dedicated IP/global limits.
 
 ## Authorization layers
 
@@ -180,7 +180,7 @@ Uploads accept `.wav`, `.mp3`, and `.m4a` by extension **and** verify file **mag
 
 ## Rate limiting
 
-In-memory token buckets (single process). Configurable in Instance → Settings. Auth endpoints limited by email + IP + global; Bearer API by user + IP + global.
+In-memory token buckets (single process). Configurable in Instance → Settings. Auth endpoints limited by email + IP + global; Bearer API (and MCP `/mcp` HTTP) by user + IP + global; MCP poll and OAuth token/DCR have additional buckets (see README).
 
 On exceed: HTTP **429**, `error.code = rate_limited`, header `Retry-After`.
 

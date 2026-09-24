@@ -161,6 +161,11 @@ export function InstanceSettingsTab() {
           rate_limit_api_global: settings.rate_limit_api_global,
           rate_limit_api_tasks_user: settings.rate_limit_api_tasks_user,
           rate_limit_api_tasks_ip: settings.rate_limit_api_tasks_ip,
+          rate_limit_mcp_poll_user: settings.rate_limit_mcp_poll_user,
+          rate_limit_oauth_register_ip: settings.rate_limit_oauth_register_ip,
+          rate_limit_oauth_register_global: settings.rate_limit_oauth_register_global,
+          rate_limit_oauth_token_ip: settings.rate_limit_oauth_token_ip,
+          rate_limit_oauth_token_global: settings.rate_limit_oauth_token_global,
           import_enabled: settings.import_enabled,
           import_allowed_extractors: settings.import_platforms.filter((p) => p.enabled).map((p) => p.id),
           download_proxy_url: settings.download_proxy_url,
@@ -600,6 +605,15 @@ export function InstanceSettingsTab() {
             <label>{t('instance.rateLimitGlobalMin')}<input type="number" min={0} value={settings.rate_limit_api_global} onChange={(e) => setSettings({ ...settings, rate_limit_api_global: Number(e.target.value) })} /></label>
             <label>{t('instance.rateLimitTasksPerUserMin')}<input type="number" min={0} value={settings.rate_limit_api_tasks_user} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_user: Number(e.target.value) })} /></label>
             <label>{t('instance.rateLimitTasksPerIpMin')}<input type="number" min={0} value={settings.rate_limit_api_tasks_ip} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_ip: Number(e.target.value) })} /></label>
+            <p className="muted">{t('instance.rateLimitMcpHint')}</p>
+            <label>{t('instance.rateLimitMcpPollPerUserMin')}<input type="number" min={0} value={settings.rate_limit_mcp_poll_user} onChange={(e) => setSettings({ ...settings, rate_limit_mcp_poll_user: Number(e.target.value) })} /></label>
+          </fieldset>
+          <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+            <legend>{t('instance.rateLimitOAuth')}</legend>
+            <label>{t('instance.rateLimitOAuthRegisterPerIpHour')}<input type="number" min={0} value={settings.rate_limit_oauth_register_ip} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_register_ip: Number(e.target.value) })} /></label>
+            <label>{t('instance.rateLimitOAuthRegisterGlobalHour')}<input type="number" min={0} value={settings.rate_limit_oauth_register_global} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_register_global: Number(e.target.value) })} /></label>
+            <label>{t('instance.rateLimitOAuthTokenPerIpMin')}<input type="number" min={0} value={settings.rate_limit_oauth_token_ip} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_token_ip: Number(e.target.value) })} /></label>
+            <label>{t('instance.rateLimitOAuthTokenGlobalMin')}<input type="number" min={0} value={settings.rate_limit_oauth_token_global} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_token_global: Number(e.target.value) })} /></label>
           </fieldset>
         </div>
       </details>

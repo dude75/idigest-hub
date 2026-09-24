@@ -287,6 +287,8 @@ docker compose down
 | ------ | ----- | ---------- |
 | Auth (`/auth/login`, signup, reset, `/setup`) | **email**, **IP клиента**, **global** | До тяжёлой работы (bcrypt на login). |
 | Программный API | только **`Authorization: Bearer`** | **user id**, **IP**, **global**; отдельно `POST /tasks/transcribe` и `POST /tasks/summarize`. Cookie-сессия **не** попадает под API-limit. |
+| MCP (`POST /mcp`, OAuth JWT) | **те же bucket'ы Bearer API** | На HTTP-запрос; upload/task tools — **task-лимиты**; **`get_task`** — отдельный poll bucket. |
+| OAuth (`/oauth/register`, `/oauth/token`) | **IP**, **global** | DCR и token exchange при включённом MCP OAuth. |
 | Публичные ссылки summary (`/public/summary/*`) | **IP клиента**, **global** | Гостевой доступ без auth; отдельный bucket для PIN. |
 
 При превышении: HTTP **429**, `error.code = rate_limited`, заголовок `Retry-After` (секунды).
@@ -300,8 +302,11 @@ docker compose down
 | Reset пароля | 3 / час | 10 / час | 50 / час | 1 час |
 | Reset confirm | — | 30 / час | 100 / час | 1 час |
 | Setup | — | 5 / час | 10 / час | 1 час |
-| Bearer API | 120 / мин | 300 / мин | 2000 / мин | 1 мин |
-| Создание task | 30 / мин | 60 / мин | — | 1 мин |
+| Bearer API (+ MCP HTTP) | 120 / мин | 300 / мин | 2000 / мин | 1 мин |
+| Создание task (+ MCP upload/task tools) | 30 / мин | 60 / мин | — | 1 мин |
+| MCP poll `get_task` | 90 / мин | — | — | 1 мин |
+| OAuth DCR (`/oauth/register`) | — | 10 / час | 50 / час | 1 час |
+| OAuth token (`/oauth/token`) | — | 120 / мин | 500 / мин | 1 мин |
 | Просмотр public link | — | 300 / час | 5000 / час | 1 час |
 | PIN public link | — | 60 / час | — | 1 час |
 

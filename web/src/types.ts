@@ -521,6 +521,11 @@ export type InstanceSettings = {
   rate_limit_api_global: number
   rate_limit_api_tasks_user: number
   rate_limit_api_tasks_ip: number
+  rate_limit_mcp_poll_user: number
+  rate_limit_oauth_register_ip: number
+  rate_limit_oauth_register_global: number
+  rate_limit_oauth_token_ip: number
+  rate_limit_oauth_token_global: number
   date_time_format: string
   timezone: string
   user_agreement_text_en: string | null

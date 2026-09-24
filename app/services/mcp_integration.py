@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 from contextlib import asynccontextmanager
@@ -17,7 +18,10 @@ from starlette.applications import Starlette
 from app.config import get_settings
 import app.db as db
 from app.deps import AuthContext, load_org_bundle
-from app.errors import ApiError
+from app.errors import ApiError, ErrorCode
+from app.i18n import t
+from app.proxy import asgi_headers, client_ip_from_asgi_scope
+from app.rate_limit import enforce_api_limits, enforce_mcp_tool, get_rate_limits
 from app.services.dispatcher import schedule_locked_tick_asyncio
 from app.services.hub_mcp_token_verifier import HubMcpTokenVerifier
 from app.services.mcp_library import (
@@ -51,6 +55,8 @@ if TYPE_CHECKING:
     from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 
 log = logging.getLogger("app")
+
+_mcp_client_ip: contextvars.ContextVar[str | None] = contextvars.ContextVar("mcp_client_ip", default=None)
 
 _mcp_server: MCPServer[dict[str, Any]] | None = None
 _mcp_starlette: Starlette | None = None
@@ -131,9 +137,15 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         log_level="INFO",
     )
 
+    def _mcp_tool_rate_limits(tool: str, user_id: str, locale: str) -> None:
+        ip = _mcp_client_ip.get() or "unknown"
+        with db.SessionLocal() as session:
+            enforce_mcp_tool(tool, user_id, ip, get_rate_limits(session), locale)
+
     def _mcp_json_tool(
         fn: Callable[..., dict],
         *,
+        tool: str,
         commit: bool = False,
         post_commit: Callable[[dict], Any] | None = None,
     ):
@@ -149,12 +161,19 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
                 )
                 with db.SessionLocal() as session:
                     ctx = _auth_context_from_token(session, access.subject, scopes)
+                    _mcp_tool_rate_limits(tool, access.subject, ctx.locale)
                     payload = fn(session, ctx, **kwargs)
                     if commit:
                         session.commit()
             except PermissionError as exc:
                 raise ToolError(str(exc)) from exc
             except ApiError as exc:
+                if exc.code == ErrorCode.rate_limited:
+                    locale = "en"
+                    detail = exc.detail if isinstance(exc.detail, dict) else {}
+                    err = detail.get("error") if isinstance(detail.get("error"), dict) else {}
+                    message = err.get("message")
+                    raise ToolError(message or t(locale, ErrorCode.rate_limited.value)) from exc
                 _raise_from_api_error(exc)
             if post_commit is not None:
                 post_commit(payload)
@@ -182,14 +201,14 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         description="List audio metadata in your library. Requires audio:read.",
     )
     async def list_audios(include_hidden: bool = False) -> str:
-        return await _mcp_json_tool(list_audios_payload)(include_hidden=include_hidden)
+        return await _mcp_json_tool(list_audios_payload, tool="list_audios")(include_hidden=include_hidden)
 
     @server.tool(
         name="get_audio",
         description="Fetch one audio item with linked transcript metadata. Requires audio:read.",
     )
     async def get_audio(audio_id: str) -> str:
-        return await _mcp_json_tool(get_audio_payload)(audio_id=audio_id)
+        return await _mcp_json_tool(get_audio_payload, tool="get_audio")(audio_id=audio_id)
 
     @server.tool(
         name="create_audio_upload",
@@ -199,7 +218,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         ),
     )
     async def create_audio_upload(filename: str, content_base64: str) -> str:
-        return await _mcp_json_tool(create_audio_upload_payload, commit=True)(
+        return await _mcp_json_tool(create_audio_upload_payload, tool="create_audio_upload", commit=True)(
             filename=filename, content_base64=content_base64
         )
 
@@ -219,6 +238,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     ) -> str:
         return await _mcp_json_tool(
             create_audio_import_payload,
+            tool="create_audio_import",
             commit=True,
             post_commit=lambda payload: _schedule_task(payload, refresh_health=False),
         )(url=url, transcribe=transcribe, skill_ids=skill_ids)
@@ -232,6 +252,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         ),
     )
     async def get_task(task_id: str) -> str:
+        locale = "en"
         try:
             access = get_access_token()
             if access is None or not access.subject:
@@ -243,11 +264,17 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             )
             with db.SessionLocal() as session:
                 ctx = _auth_context_from_token(session, access.subject, scopes)
+                locale = ctx.locale
+                _mcp_tool_rate_limits("get_task", access.subject, ctx.locale)
                 payload, schedule, refresh_health = get_task_payload(
                     session, ctx, task_id=task_id
                 )
         except PermissionError as exc:
             raise ToolError(str(exc)) from exc
+        except ApiError as exc:
+            if exc.code == ErrorCode.rate_limited:
+                raise ToolError(t(locale, ErrorCode.rate_limited.value)) from exc
+            raise
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
         if schedule:
@@ -263,6 +290,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         ),
     )
     async def stop_capture_task(task_id: str) -> str:
+        locale = "en"
         try:
             access = get_access_token()
             if access is None or not access.subject:
@@ -274,12 +302,18 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             )
             with db.SessionLocal() as session:
                 ctx = _auth_context_from_token(session, access.subject, scopes)
+                locale = ctx.locale
+                _mcp_tool_rate_limits("stop_capture_task", access.subject, ctx.locale)
                 payload, need_tick = await stop_capture_task_payload(
                     session, ctx, task_id=task_id
                 )
                 session.commit()
         except PermissionError as exc:
             raise ToolError(str(exc)) from exc
+        except ApiError as exc:
+            if exc.code == ErrorCode.rate_limited:
+                raise ToolError(t(locale, ErrorCode.rate_limited.value)) from exc
+            raise
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
         if need_tick:
@@ -291,28 +325,28 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         description="Permanently delete an audio item (org admin). Requires audio:write.",
     )
     async def delete_audio(audio_id: str) -> str:
-        return await _mcp_json_tool(delete_audio_payload, commit=True)(audio_id=audio_id)
+        return await _mcp_json_tool(delete_audio_payload, tool="delete_audio", commit=True)(audio_id=audio_id)
 
     @server.tool(
         name="list_transcripts",
         description="List transcript metadata (no utterances). Requires transcripts:read.",
     )
     async def list_transcripts(include_hidden: bool = False) -> str:
-        return await _mcp_json_tool(list_transcripts_payload)(include_hidden=include_hidden)
+        return await _mcp_json_tool(list_transcripts_payload, tool="list_transcripts")(include_hidden=include_hidden)
 
     @server.tool(
         name="get_transcript",
         description="Fetch one transcript with utterances. Requires transcripts:read.",
     )
     async def get_transcript(transcript_id: str) -> str:
-        return await _mcp_json_tool(get_transcript_payload)(transcript_id=transcript_id)
+        return await _mcp_json_tool(get_transcript_payload, tool="get_transcript")(transcript_id=transcript_id)
 
     @server.tool(
         name="update_transcript",
         description="Rename a transcript (owner or org admin). Requires transcripts:write.",
     )
     async def update_transcript(transcript_id: str, title: str) -> str:
-        return await _mcp_json_tool(update_transcript_payload, commit=True)(
+        return await _mcp_json_tool(update_transcript_payload, tool="update_transcript", commit=True)(
             transcript_id=transcript_id, title=title
         )
 
@@ -321,21 +355,23 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         description="Permanently delete a transcript (org admin). Requires transcripts:write.",
     )
     async def delete_transcript(transcript_id: str) -> str:
-        return await _mcp_json_tool(delete_transcript_payload, commit=True)(transcript_id=transcript_id)
+        return await _mcp_json_tool(delete_transcript_payload, tool="delete_transcript", commit=True)(
+            transcript_id=transcript_id
+        )
 
     @server.tool(
         name="list_summaries",
         description="List summary metadata (no body text). Requires summaries:read.",
     )
     async def list_summaries(include_hidden: bool = False) -> str:
-        return await _mcp_json_tool(list_summaries_payload)(include_hidden=include_hidden)
+        return await _mcp_json_tool(list_summaries_payload, tool="list_summaries")(include_hidden=include_hidden)
 
     @server.tool(
         name="get_summary",
         description="Fetch one summary including body text. Requires summaries:read.",
     )
     async def get_summary(summary_id: str) -> str:
-        return await _mcp_json_tool(get_summary_payload)(summary_id=summary_id)
+        return await _mcp_json_tool(get_summary_payload, tool="get_summary")(summary_id=summary_id)
 
     @server.tool(
         name="create_transcribe",
@@ -351,6 +387,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     ) -> str:
         return await _mcp_json_tool(
             create_transcribe_payload,
+            tool="create_transcribe",
             commit=True,
             post_commit=_schedule_task,
         )(audio_id=audio_id, skill_ids=skill_ids)
@@ -365,6 +402,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     async def create_summary(transcript_id: str, skill_ids: list[str]) -> str:
         return await _mcp_json_tool(
             create_summary_payload,
+            tool="create_summary",
             commit=True,
             post_commit=_schedule_task,
         )(transcript_id=transcript_id, skill_ids=skill_ids)
@@ -378,7 +416,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         title: str | None = None,
         body: str | None = None,
     ) -> str:
-        return await _mcp_json_tool(update_summary_payload, commit=True)(
+        return await _mcp_json_tool(update_summary_payload, tool="update_summary", commit=True)(
             summary_id=summary_id, title=title, body=body
         )
 
@@ -387,21 +425,23 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         description="Delete a summary (owner or org admin). Requires summaries:write.",
     )
     async def delete_summary(summary_id: str) -> str:
-        return await _mcp_json_tool(delete_summary_payload, commit=True)(summary_id=summary_id)
+        return await _mcp_json_tool(delete_summary_payload, tool="delete_summary", commit=True)(
+            summary_id=summary_id
+        )
 
     @server.tool(
         name="list_skills",
         description="List skills visible to you (base, org, personal, shared). Requires skills:read.",
     )
     async def list_skills(scope: str | None = None) -> str:
-        return await _mcp_json_tool(list_skills_payload)(scope=scope)
+        return await _mcp_json_tool(list_skills_payload, tool="list_skills")(scope=scope)
 
     @server.tool(
         name="get_skill",
         description="Fetch one skill by id (includes body). Requires skills:read.",
     )
     async def get_skill(skill_id: str) -> str:
-        return await _mcp_json_tool(get_skill_payload)(skill_id=skill_id)
+        return await _mcp_json_tool(get_skill_payload, tool="get_skill")(skill_id=skill_id)
 
     @server.tool(
         name="create_skill",
@@ -411,7 +451,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         ),
     )
     async def create_skill(name: str, body: str, catalog: str = "self") -> str:
-        return await _mcp_json_tool(create_skill_payload, commit=True)(
+        return await _mcp_json_tool(create_skill_payload, tool="create_skill", commit=True)(
             name=name, body=body, catalog=catalog
         )
 
@@ -423,7 +463,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         ),
     )
     async def update_skill(skill_id: str, name: str, body: str) -> str:
-        return await _mcp_json_tool(update_skill_payload, commit=True)(
+        return await _mcp_json_tool(update_skill_payload, tool="update_skill", commit=True)(
             skill_id=skill_id, name=name, body=body
         )
 
@@ -432,7 +472,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         description="Delete a skill when permitted for its catalog. Requires skills:write.",
     )
     async def delete_skill(skill_id: str) -> str:
-        return await _mcp_json_tool(delete_skill_payload, commit=True)(skill_id=skill_id)
+        return await _mcp_json_tool(delete_skill_payload, tool="delete_skill", commit=True)(skill_id=skill_id)
 
     _mcp_server = server
     return server
@@ -470,6 +510,64 @@ def get_mcp_session_manager() -> StreamableHTTPSessionManager:
 _MCP_HTTP_METHODS = frozenset({"GET", "POST", "DELETE", "OPTIONS", "HEAD"})
 
 
+def _bearer_token_from_scope(scope: dict) -> str | None:
+    auth = asgi_headers(scope).get("authorization", "")
+    if not auth.lower().startswith("bearer "):
+        return None
+    token = auth.split(" ", 1)[1].strip()
+    return token or None
+
+
+def _mcp_transport_user_id(token: str | None) -> str | None:
+    if not token:
+        return None
+    from app.services.oauth_provider import looks_like_jwt, verify_access_token
+
+    if not looks_like_jwt(token):
+        return None
+    db.get_engine()
+    if db.SessionLocal is None:
+        return None
+    with db.SessionLocal() as session:
+        payload = verify_access_token(session, token)
+        if payload is None:
+            return None
+        sub = payload.get("sub")
+        return str(sub) if sub else None
+
+
+def _mcp_transport_rate_limit(scope: dict) -> ApiError | None:
+    method = scope.get("method", "GET")
+    if method == "OPTIONS":
+        return None
+    ip = client_ip_from_asgi_scope(scope)
+    user_id = _mcp_transport_user_id(_bearer_token_from_scope(scope))
+    db.get_engine()
+    if db.SessionLocal is None:
+        return None
+    try:
+        with db.SessionLocal() as session:
+            enforce_api_limits(user_id, ip, get_rate_limits(session), "en")
+    except ApiError as exc:
+        return exc
+    return None
+
+
+async def _asgi_json_response(
+    send,
+    status: int,
+    body: dict,
+    headers: dict[str, str] | None = None,
+) -> None:
+    payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
+    header_list = [[b"content-type", b"application/json; charset=utf-8"]]
+    for key, value in (headers or {}).items():
+        header_list.append([key.lower().encode("latin-1"), value.encode("latin-1")])
+    header_list.append([b"content-length", str(len(payload)).encode("ascii")])
+    await send({"type": "http.response.start", "status": status, "headers": header_list})
+    await send({"type": "http.response.body", "body": payload})
+
+
 class McpHttpHandler:
     """Streamable HTTP MCP at /mcp (canonical resource URL has no trailing slash)."""
 
@@ -478,12 +576,27 @@ class McpHttpHandler:
             await get_mcp_starlette_app()(scope, receive, send)
             return
         path = scope.get("path", "")
-        if path == "/mcp" or path.startswith("/mcp/"):
+        is_mcp = path == "/mcp" or path.startswith("/mcp/")
+        if is_mcp:
+            limited = _mcp_transport_rate_limit(scope)
+            if limited is not None:
+                await _asgi_json_response(
+                    send,
+                    limited.status_code,
+                    limited.detail if isinstance(limited.detail, dict) else {},
+                    limited.headers,
+                )
+                return
+        if is_mcp:
             inner = path.removeprefix("/mcp") or "/"
             scope = dict(scope)
             scope["path"] = inner
             scope["root_path"] = (scope.get("root_path") or "") + "/mcp"
-        await get_mcp_starlette_app()(scope, receive, send)
+        ip_token = _mcp_client_ip.set(client_ip_from_asgi_scope(scope))
+        try:
+            await get_mcp_starlette_app()(scope, receive, send)
+        finally:
+            _mcp_client_ip.reset(ip_token)
 
 
 def register_mcp_http_routes(application) -> None:

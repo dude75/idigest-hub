@@ -287,6 +287,8 @@ The hub enforces optional rate limits in **process memory** (one Uvicorn worker 
 | -------- | ----- | ----- |
 | Auth (`/auth/login`, signup, password reset, `/setup`) | Normalized **email**, **client IP**, **global** | Checked before expensive work (e.g. bcrypt on login). |
 | Programmatic API | **`Authorization: Bearer`** only | **User id**, **IP**, **global**; extra limits on `POST /tasks/transcribe` and `POST /tasks/summarize`. Browser session (cookie) is **not** API-rate-limited. |
+| MCP (`POST /mcp`, OAuth JWT) | **Same Bearer API buckets** | Per HTTP request; MCP tools reuse **task/upload** limits; **`get_task`** has a separate poll bucket. |
+| OAuth (`/oauth/register`, `/oauth/token`) | **Client IP**, **global** | DCR and token exchange when MCP OAuth is enabled. |
 | Public summary links (`/public/summary/*`) | **Client IP**, **global** | Unauthenticated guest access; separate PIN-unlock bucket. |
 
 On limit exceeded: HTTP **429**, `error.code = rate_limited`, header `Retry-After` (seconds).
@@ -300,8 +302,11 @@ On limit exceeded: HTTP **429**, `error.code = rate_limited`, header `Retry-Afte
 | Password reset | 3 / hour | 10 / hour | 50 / hour | 1 hour |
 | Reset confirm | — | 30 / hour | 100 / hour | 1 hour |
 | Setup | — | 5 / hour | 10 / hour | 1 hour |
-| Bearer API | 120 / min | 300 / min | 2000 / min | 1 min |
-| Bearer task create | 30 / min | 60 / min | — | 1 min |
+| Bearer API (+ MCP HTTP) | 120 / min | 300 / min | 2000 / min | 1 min |
+| Bearer task create (+ MCP upload/task tools) | 30 / min | 60 / min | — | 1 min |
+| MCP `get_task` poll | 90 / min | — | — | 1 min |
+| OAuth DCR (`/oauth/register`) | — | 10 / hour | 50 / hour | 1 hour |
+| OAuth token (`/oauth/token`) | — | 120 / min | 500 / min | 1 min |
 | Public link view | — | 300 / hour | 5000 / hour | 1 hour |
 | Public link PIN unlock | — | 60 / hour | — | 1 hour |
 
