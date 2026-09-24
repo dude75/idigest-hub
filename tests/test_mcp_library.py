@@ -15,6 +15,7 @@ from app.services.mcp_library import (
     create_audio_upload_payload,
     create_skill_payload,
     create_summary_payload,
+    create_transcribe_payload,
     delete_audio_payload,
     delete_skill_payload,
     delete_summary_payload,
@@ -209,6 +210,31 @@ def test_mcp_audio_upload_get_list_delete(client):
 
         with pytest.raises(ValueError, match="not found"):
             get_audio_payload(db, ctx_read, audio_id)
+
+
+def test_mcp_create_transcribe_queues_task(client):
+    setup_admin(client)
+    tariffs = client.get("/api/v1/auth/signup-tariffs").json()["items"]
+    signup(client, "mcp-tr@example.com", "mcppass33", tariffs[0]["id"])
+
+    import app.db as hub_db
+
+    with hub_db.SessionLocal() as db:
+        user = _user(db, "mcp-tr@example.com")
+        ctx_write = _oauth_ctx(db, user, frozenset({SCOPE_AUDIO_WRITE, SCOPE_TASKS_WRITE}))
+        created = create_audio_upload_payload(
+            db,
+            ctx_write,
+            filename="meet.wav",
+            content_base64=base64.b64encode(SAMPLE_WAV_BYTES).decode("ascii"),
+        )
+        db.commit()
+        audio_id = created["id"]
+
+        task = create_transcribe_payload(db, ctx_write, audio_id=audio_id)
+        assert task["type"] == "transcribe"
+        assert task["status"] == "queued"
+        assert task["audio_id"] == audio_id
 
 
 def test_mcp_audio_delete_forbidden_for_org_member(client):

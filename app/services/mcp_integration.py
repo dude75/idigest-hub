@@ -25,6 +25,7 @@ from app.services.mcp_library import (
     create_audio_upload_payload,
     create_skill_payload,
     create_summary_payload,
+    create_transcribe_payload,
     get_task_payload,
     stop_capture_task_payload,
     delete_audio_payload,
@@ -110,8 +111,20 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         name="idigest-hub",
         title="idigest",
         instructions=(
-            "Access your idigest library: transcripts, summaries, and skills. "
-            "OAuth scopes gate each tool (see oauth-protected-resource metadata)."
+            "idigest hub library (audio, transcripts, summaries, skills). OAuth scopes gate each tool.\n\n"
+            "Meeting / conference capture (Jitsi and similar URLs via create_audio_import):\n"
+            "- Call create_audio_import ONCE per meeting. That URL becomes a capture task (type=capture). "
+            "Never call create_audio_import again for the same meeting to leave, stop, or transcribe — "
+            "a second call starts a new bot join.\n"
+            "- While recording: poll get_task(task_id) on the capture task; when the user should leave, "
+            "call stop_capture_task(task_id) once, then keep polling the same task_id until status=success "
+            "and audio_id is set.\n"
+            "- Transcribe after capture: (A) set transcribe=true on the initial create_audio_import, then "
+            "after capture succeeds poll meta.follow_up_task_id (transcribe task) until success and use "
+            "transcript_id; or (B) after capture succeeds with transcribe=false, call create_transcribe(audio_id) "
+            "— do not re-import the meeting URL.\n"
+            "- Async jobs: create_audio_import, create_transcribe, and create_summary return task JSON; "
+            "poll get_task until terminal status. List tools cap at 100 items (truncated=true means fetch by id)."
         ),
         token_verifier=HubMcpTokenVerifier(),
         auth=auth,
@@ -193,7 +206,9 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     @server.tool(
         name="create_audio_import",
         description=(
-            "Import audio from URL (async import/capture task). Optional pipeline transcribe. "
+            "Start ONE async import or meeting capture from URL. Meeting links become type=capture "
+            "(bot joins once). Do not call again for the same meeting — use stop_capture_task + get_task, "
+            "then create_transcribe(audio_id) or set transcribe=true here and poll follow_up_task_id. "
             "Requires tasks:write."
         ),
     )
@@ -211,8 +226,9 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     @server.tool(
         name="get_task",
         description=(
-            "Poll hub task status by id (import, capture, transcribe, summarize). "
-            "Schedules dispatcher tick when queued or running. Requires tasks:write."
+            "Poll task JSON by task_id (import, capture, transcribe, summarize). "
+            "For capture: reuse the same id after stop_capture_task; when status=success check audio_id "
+            "and meta.follow_up_task_id for pipeline transcribe. Requires tasks:write."
         ),
     )
     async def get_task(task_id: str) -> str:
@@ -241,8 +257,9 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     @server.tool(
         name="stop_capture_task",
         description=(
-            "Request graceful stop for a running capture task (finish recording, then download). "
-            "Requires tasks:write."
+            "Gracefully stop a running capture task (leave meeting, finalize recording). "
+            "Use the capture task_id from the first create_audio_import; then poll get_task on that id. "
+            "Do not start a new create_audio_import for the same meeting. Requires tasks:write."
         ),
     )
     async def stop_capture_task(task_id: str) -> str:
@@ -319,6 +336,24 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     )
     async def get_summary(summary_id: str) -> str:
         return await _mcp_json_tool(get_summary_payload)(summary_id=summary_id)
+
+    @server.tool(
+        name="create_transcribe",
+        description=(
+            "Queue transcribe task for existing audio (async; returns task JSON). "
+            "Use after capture/import success when transcribe was not requested upfront — "
+            "never re-call create_audio_import with the meeting URL. Requires tasks:write."
+        ),
+    )
+    async def create_transcribe(
+        audio_id: str,
+        skill_ids: list[str] | None = None,
+    ) -> str:
+        return await _mcp_json_tool(
+            create_transcribe_payload,
+            commit=True,
+            post_commit=_schedule_task,
+        )(audio_id=audio_id, skill_ids=skill_ids)
 
     @server.tool(
         name="create_summary",

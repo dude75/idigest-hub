@@ -208,16 +208,8 @@ def enqueue_import_task(db: Session, ctx: AuthContext, body: ImportBody) -> Task
     return task
 
 
-@router.post("/tasks/transcribe", status_code=202)
-async def create_transcribe(
-    body: TranscribeBody,
-    request: Request,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_session, scope="function"),
-    ctx: AuthContext = Depends(require_auth),
-) -> dict:
+def enqueue_transcribe_task(db: Session, ctx: AuthContext, body: TranscribeBody) -> Task:
     org, _ = ctx.require_org()
-    enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     audio = db.get(Audio, body.audio_id)
     if audio is None or audio.org_id != org.id or not can_use_audio(ctx, db, audio):
         ctx.raise_error(ErrorCode.not_found)
@@ -249,6 +241,19 @@ async def create_transcribe(
     )
     db.add(task)
     db.flush()
+    return task
+
+
+@router.post("/tasks/transcribe", status_code=202)
+async def create_transcribe(
+    body: TranscribeBody,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
+    task = enqueue_transcribe_task(db, ctx, body)
     db.commit()
     schedule_locked_tick(background_tasks, task.id)
     return task_public(task)

@@ -24,7 +24,13 @@ from app.routers.library import (
     _transcripts_by_id,
 )
 from app.routers.skills import _can_read_skill, _visible_skills
-from app.routers.tasks import ImportBody, _validate_summarize_skills, enqueue_import_task
+from app.routers.tasks import (
+    ImportBody,
+    TranscribeBody,
+    _validate_summarize_skills,
+    enqueue_import_task,
+    enqueue_transcribe_task,
+)
 from app.services.task_access import can_manage_task, can_see_task, task_list_extra
 from app.services.access import can_read_object, can_use_transcript, is_hidden
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
@@ -400,6 +406,22 @@ def get_summary_payload(db: Session, ctx: AuthContext, summary_id: str) -> dict:
         source_transcript=source_transcript,
         source_filename=source_audio.original_filename if source_audio else None,
     )
+
+
+def create_transcribe_payload(
+    db: Session,
+    ctx: AuthContext,
+    *,
+    audio_id: str,
+    skill_ids: list[str] | None = None,
+) -> dict:
+    _require_oauth_scope(ctx, SCOPE_TASKS_WRITE)
+    task = enqueue_transcribe_task(
+        db,
+        ctx,
+        TranscribeBody(audio_id=audio_id, skill_ids=list(skill_ids or [])),
+    )
+    return task_public(task)
 
 
 def create_summary_payload(
