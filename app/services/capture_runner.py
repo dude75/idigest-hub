@@ -128,6 +128,22 @@ async def request_hub_capture_stop(db: Session, task: Task) -> bool:
     return True
 
 
+async def request_hub_capture_cancel(db: Session, task: Task) -> bool:
+    """Record cancel; delegate worker DELETE to the bg thread when it is running."""
+    request_capture_cancel(task.id)
+    if is_capture_thread_running(task.id):
+        return False
+    await forward_capture_cancel(db, task)
+    return True
+
+
+def should_schedule_capture_task_tick(task: Task) -> bool:
+    """Skip dispatcher ticks while a healthy capture thread owns a running task."""
+    if task.type != "capture" or task.status != "running":
+        return True
+    return not is_capture_thread_running(task.id)
+
+
 async def run_capture_worker_cancel(hub_task_id: str) -> None:
     from app.db import SessionLocal
 

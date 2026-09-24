@@ -128,14 +128,11 @@ sequenceDiagram
 
 Если у хаба уже есть `produced_transcript_id` или `produced_summary_id`, 404 игнорируется (race при cleanup).
 
-## Cancel
+## Cancel и stop capture
 
-`DELETE /tasks/{task_id}` разрешён только когда:
+`POST /tasks/{task_id}/stop` — graceful stop running capture (`stop_requested`); worker HTTP делает фоновый поток, если он жив.
 
-- `status == queued`
-- `worker_task_id` ещё null (задача ещё не отправлена на воркер)
-
-Устанавливается `status=error`, `error.code=canceled`. После dispatch cancel отклоняется с `task_running`.
+`DELETE /tasks/{task_id}` — import/capture в `queued`/`running` → `error.code=canceled` (worker cancel через поток capture, если он жив). Transcribe/summarize — только `queued` без `worker_task_id`; иначе `task_running`.
 
 ## Распространение ошибок
 

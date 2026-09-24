@@ -128,14 +128,11 @@ If poll returns **404** from the worker and the hub has not yet persisted a resu
 
 If the hub already has `produced_transcript_id` or `produced_summary_id`, 404 is ignored (cleanup race).
 
-## Cancel
+## Cancel and capture stop
 
-`DELETE /tasks/{task_id}` only when:
+`POST /tasks/{task_id}/stop` — graceful stop for running capture (`stop_requested`); the background thread talks to the worker when it is alive.
 
-- `status == queued`
-- `worker_task_id` is still null (not yet dispatched)
-
-Sets `status=error`, `error.code=canceled`. Once dispatched, cancel is rejected with `task_running`.
+`DELETE /tasks/{task_id}` — import/capture in `queued`/`running` → `error.code=canceled` (capture worker DELETE via the background thread when alive). Transcribe/summarize — only `queued` without `worker_task_id`; otherwise `task_running`.
 
 ## Error propagation
 

@@ -65,7 +65,11 @@ Extra fields depend on role.
 
 ## GET `/tasks/{task_id}`
 
-Poll task status. Triggers dispatcher tick when queued/running.
+Poll task status. Triggers a dispatcher tick when `queued`/`running`, **except** running **capture** while the hub’s background capture thread is active (the thread polls; a tick runs only when the thread is gone — recovery).
+
+## GET `/tasks`
+
+Active/done lists. Ticks on active tasks follow the same capture rule as above.
 
 On success:
 
@@ -74,13 +78,21 @@ On success:
 
 On failure: `status: "error"`, `error: { "code": "..." }`
 
+## POST `/tasks/{task_id}/stop`
+
+**202 Accepted** — **capture** in `running` only: graceful stop (`meta.stop_requested`), then finalize and download on the worker. Not the same as cancel via DELETE.
+
+While the background capture thread is alive, it sends worker stop; otherwise the hub stops immediately and schedules a dispatcher tick.
+
+Errors: `not_found`, `forbidden`, `validation_error` (not capture), `task_running` (not running).
+
 ## DELETE `/tasks/{task_id}`
 
-Cancel queued task (not yet dispatched).
+Cancel: **import** / **capture** in `queued` or `running`; **transcribe** / **summarize** — only `queued` with no `worker_task_id`.
 
-Success: task with `status: "error"`, `error.code: "canceled"`.
+Success: `status: "error"`, `error.code: "canceled"`. For capture with an active background thread, worker DELETE is handled by the thread (same idea as stop).
 
-Errors: `not_found`, `forbidden`, `task_running`.
+Errors: `not_found`, `forbidden`, `task_running` (transcribe/summarize already on a worker).
 
 ## POST `/tasks/{task_id}/retry`
 

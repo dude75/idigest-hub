@@ -205,7 +205,9 @@ def get_task_payload(
     task = db.get(Task, task_id)
     if task is None or not can_see_task(ctx, task):
         raise ValueError("not found")
-    schedule = task.status in {"queued", "running"}
+    from app.services.capture_runner import should_schedule_capture_task_tick
+
+    schedule = task.status in {"queued", "running"} and should_schedule_capture_task_tick(task)
     refresh_health = schedule and task.type not in {"import", "capture"}
     payload = task_public(task, task_list_extra(db, [task]).get(task.id))
     return payload, schedule, refresh_health

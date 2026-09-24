@@ -108,8 +108,8 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 - Видимость как в REST: владелец + shares; org admin видит все строки org; `include_hidden` включает скрытые элементы вызывающего.
 - **`create_audio_upload`**: только `.wav`, `.mp3`, `.m4a` (расширение + magic bytes); лимит размера по тарифу org (потолок 1 GiB).
 - **`create_audio_import`**: как `POST /tasks/import` (import или capture). Пока нет файла — JSON задачи. Опционально `transcribe` + `skill_ids` запускают пайплайн после импорта.
-- **`get_task`**: как `GET /tasks/{id}` — опрос статуса; для активных задач ставит dispatcher tick.
-- **`stop_capture_task`**: только running **capture**; мягкая остановка записи (не то же самое, что `DELETE` отмена).
+- **`get_task`**: как `GET /tasks/{id}`. Dispatcher tick для активных задач, **кроме** running capture с живым фоновым потоком (см. REST).
+- **`stop_capture_task`**: как `POST /tasks/{id}/stop`. Running **capture** only; worker stop делает фоновый поток, если он есть (не `DELETE` cancel).
 - **`delete_audio`** / **`delete_transcript`**: только org admin.
 - **`create_summary`** — ставит задачу **summarize** (аналог `POST /tasks/summarize`); диспетчер работает асинхронно. LLM — summarize model пользователя или дефолт инстанса, не параметр tool.
 - **`update_transcript`**: владелец или org admin (только title).

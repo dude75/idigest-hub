@@ -108,8 +108,8 @@ List derived flags: `has_transcript`, `has_summary`, `transcript_id`, `summary_t
 - Visibility matches REST: owner + shares; org admin sees all org rows; `include_hidden` includes the caller’s hidden items.
 - **`create_audio_upload`**: `.wav`, `.mp3`, `.m4a` only (extension + magic bytes, same as REST); max size follows org tariff (capped at 1 GiB).
 - **`create_audio_import`**: same rules as `POST /tasks/import` (may enqueue import or capture). Returns task JSON until audio exists. Optional `transcribe` + `skill_ids` start the pipeline after import.
-- **`get_task`**: same as `GET /tasks/{id}` — poll status; schedules a dispatcher tick for active tasks.
-- **`stop_capture_task`**: running **capture** only; graceful recording stop (not the same as cancel via `DELETE`).
+- **`get_task`**: same as `GET /tasks/{id}`. Dispatcher tick for active tasks, **except** running capture with a live background thread (see REST).
+- **`stop_capture_task`**: same as `POST /tasks/{id}/stop`. Running **capture** only; the background thread sends worker stop when present (not DELETE cancel).
 - **`delete_audio`** / **`delete_transcript`**: org admin only (same as REST wipe).
 - **`create_summary`**: enqueues a **summarize** task (like `POST /tasks/summarize`); dispatcher runs asynchronously after the tool returns. LLM is the user’s summarize model or the instance default — not a tool parameter.
 - **`update_transcript`**: owner or org admin (rename only).

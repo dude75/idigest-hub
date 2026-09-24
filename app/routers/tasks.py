@@ -386,7 +386,9 @@ def list_tasks(
     )
 
     extras = _task_list_extra(db, active_rows + done_rows)
-    if active_rows:
+    from app.services.capture_runner import should_schedule_capture_task_tick
+
+    if active_rows and any(should_schedule_capture_task_tick(row) for row in active_rows):
         schedule_locked_tick(background_tasks, None, refresh_health=False, wait=False)
     return {
         "active": [task_public(row, extras.get(row.id)) for row in active_rows],
@@ -405,7 +407,9 @@ async def get_task(
     task = db.get(Task, task_id)
     if task is None or not _can_see_task(ctx, task):
         ctx.raise_error(ErrorCode.not_found)
-    if task.status in {"queued", "running"}:
+    from app.services.capture_runner import should_schedule_capture_task_tick
+
+    if task.status in {"queued", "running"} and should_schedule_capture_task_tick(task):
         refresh_health = task.type not in {"import", "capture"}
         schedule_locked_tick(background_tasks, task.id, refresh_health=refresh_health, wait=False)
     return task_public(task, _task_list_extra(db, [task]).get(task.id))
@@ -573,16 +577,16 @@ async def cancel_task(
     if task.type == "capture":
         if task.status not in {"queued", "running"}:
             ctx.raise_error(ErrorCode.task_running)
-        from app.services.capture_runner import forward_capture_cancel, request_capture_cancel
+        from app.services.capture_runner import request_hub_capture_cancel
 
-        request_capture_cancel(task.id)
-        await forward_capture_cancel(db, task)
+        need_tick = await request_hub_capture_cancel(db, task)
         task.status = "error"
         task.error_code = "canceled"
         task.updated_at = utcnow()
         db.flush()
         db.commit()
-        schedule_locked_tick(background_tasks, task.id, refresh_health=False, wait=False)
+        if need_tick:
+            schedule_locked_tick(background_tasks, task.id, refresh_health=False, wait=False)
         return task_public(task)
     if task.status != "queued" or task.worker_task_id:
         ctx.raise_error(ErrorCode.task_running)

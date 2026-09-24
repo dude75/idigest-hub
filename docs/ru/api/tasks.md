@@ -65,7 +65,11 @@ Query-параметры:
 
 ## GET `/tasks/{task_id}`
 
-Опрос статуса задачи. Запускает dispatcher tick, когда queued/running.
+Опрос статуса задачи. Запускает dispatcher tick, когда `queued`/`running`, **кроме** running **capture** с активным фоновым потоком хаба (poll идёт из потока; tick нужен только если потока нет — recovery).
+
+## GET `/tasks`
+
+Список active/done. Tick по active — с тем же правилом для capture (см. выше).
 
 При успехе:
 
@@ -74,13 +78,21 @@ Query-параметры:
 
 При ошибке: `status: "error"`, `error: { "code": "..." }`
 
+## POST `/tasks/{task_id}/stop`
+
+**202 Accepted** — только **capture** в `running`: мягкая остановка записи (`meta.stop_requested`), затем finalize и download на воркере. Не то же самое, что отмена через DELETE.
+
+Пока жив фоновый capture-поток, HTTP stop на воркер шлёт поток; иначе — хаб сразу + dispatcher tick.
+
+Ошибки: `not_found`, `forbidden`, `validation_error` (не capture), `task_running` (не running).
+
 ## DELETE `/tasks/{task_id}`
 
-Отмена задачи в очереди (ещё не dispatched).
+Отмена: **import** / **capture** в `queued` или `running`; **transcribe** / **summarize** — только `queued` без `worker_task_id`.
 
-Успех: задача с `status: "error"`, `error.code: "canceled"`.
+Успех: `status: "error"`, `error.code: "canceled"`. Для capture с активным фоновым потоком DELETE на воркер делает поток (как при stop).
 
-Ошибки: `not_found`, `forbidden`, `task_running`.
+Ошибки: `not_found`, `forbidden`, `task_running` (transcribe/summarize уже на воркере).
 
 ## POST `/tasks/{task_id}/retry`
 
