@@ -130,7 +130,11 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             "transcript_id; or (B) after capture succeeds with transcribe=false, call create_transcribe(audio_id) "
             "— do not re-import the meeting URL.\n"
             "- Async jobs: create_audio_import, create_transcribe, and create_summary return task JSON; "
-            "poll get_task until terminal status. List tools cap at 100 items (truncated=true means fetch by id)."
+            "poll get_task until terminal status. List tools cap at 100 items (truncated=true means fetch by id).\n"
+            "- Audio IDs (for get_audio / create_transcribe / delete_audio): do not invent ids. Valid sources: "
+            "items[].id from list_audios; id from create_audio_upload; audio_id on get_task once import/capture "
+            "status=success (may stay null while the job is queued or running). If get_audio or create_transcribe "
+            "returns not found, re-check get_task or list_audios — the file may not exist yet or the id may be wrong."
         ),
         token_verifier=HubMcpTokenVerifier(),
         auth=auth,
@@ -167,6 +171,8 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
                         session.commit()
             except PermissionError as exc:
                 raise ToolError(str(exc)) from exc
+            except ValueError as exc:
+                raise ToolError(str(exc)) from exc
             except ApiError as exc:
                 if exc.code == ErrorCode.rate_limited:
                     locale = "en"
@@ -185,11 +191,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         detail = exc.detail if isinstance(exc.detail, dict) else {}
         err = detail.get("error") if isinstance(detail.get("error"), dict) else {}
         message = err.get("message") or err.get("code") or "request failed"
-        if exc.status_code in {401, 403}:
-            raise ToolError(message) from exc
-        if exc.status_code == 404:
-            raise ValueError("not found") from exc
-        raise ValueError(message) from exc
+        raise ToolError(message) from exc
 
     def _schedule_task(task_payload: dict, *, refresh_health: bool = True) -> None:
         task_id = task_payload.get("task_id")
@@ -198,14 +200,21 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
 
     @server.tool(
         name="list_audios",
-        description="List audio metadata in your library. Requires audio:read.",
+        description=(
+            "List audio metadata in your library (items[].id is the audio_id for get_audio and create_transcribe). "
+            "Use to pick a valid id; truncated=true means more rows exist — do not guess ids. Requires audio:read."
+        ),
     )
     async def list_audios(include_hidden: bool = False) -> str:
         return await _mcp_json_tool(list_audios_payload, tool="list_audios")(include_hidden=include_hidden)
 
     @server.tool(
         name="get_audio",
-        description="Fetch one audio item with linked transcript metadata. Requires audio:read.",
+        description=(
+            "Fetch one audio item with linked transcript metadata. Call before create_transcribe to confirm "
+            "audio_id exists and is accessible; not found means wrong id, no access, or import/capture not finished. "
+            "Requires audio:read."
+        ),
     )
     async def get_audio(audio_id: str) -> str:
         return await _mcp_json_tool(get_audio_payload, tool="get_audio")(audio_id=audio_id)
@@ -213,7 +222,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     @server.tool(
         name="create_audio_upload",
         description=(
-            "Upload an audio file (base64). Allowed: .wav, .mp3, .m4a. "
+            "Upload an audio file (base64). Allowed: .wav, .mp3, .m4a. Response id is audio_id for create_transcribe. "
             "Requires audio:write."
         ),
     )
@@ -247,8 +256,9 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         name="get_task",
         description=(
             "Poll task JSON by task_id (import, capture, transcribe, summarize). "
-            "For capture: reuse the same id after stop_capture_task; when status=success check audio_id "
-            "and meta.follow_up_task_id for pipeline transcribe. Requires tasks:write."
+            "For import/capture: when status=success, copy audio_id for create_transcribe (null until then). "
+            "For capture: reuse the same id after stop_capture_task; check meta.follow_up_task_id when "
+            "transcribe was requested upfront. Requires tasks:write."
         ),
     )
     async def get_task(task_id: str) -> str:
@@ -376,9 +386,11 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     @server.tool(
         name="create_transcribe",
         description=(
-            "Queue transcribe task for existing audio (async; returns task JSON). "
-            "Use after capture/import success when transcribe was not requested upfront — "
-            "never re-call create_audio_import with the meeting URL. Requires tasks:write."
+            "Queue transcribe task for existing audio (async; returns task JSON with task_id). "
+            "audio_id must come from get_task (import/capture success), create_audio_upload (id), or list_audios — "
+            "verify with get_audio first. Poll get_task on the returned task_id until success (transcript_id). "
+            "After capture/import without upfront transcribe, use this — never re-call create_audio_import with "
+            "the meeting URL. not found: bad audio_id or file not ready. Requires tasks:write."
         ),
     )
     async def create_transcribe(
