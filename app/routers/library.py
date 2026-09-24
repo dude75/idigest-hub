@@ -28,7 +28,14 @@ from app.presenters import (
     transcript_display_title,
     transcript_public,
 )
-from app.services.access import can_read_object, is_hidden, is_shared_with, outgoing_shares
+from app.services.access import (
+    can_read_object,
+    ensure_object_share,
+    is_hidden,
+    is_shared_with,
+    outgoing_shares,
+    revoke_paired_audio_share,
+)
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 from app.services.dispatcher import utterances_to_text
 from app.services.transcript_payload import (
@@ -884,21 +891,28 @@ def create_shares(
         )
         if membership is None:
             continue
-        existing = is_shared_with(db, body.object_type, body.object_id, uid)
-        if existing:
-            created.append(existing.id)
-            continue
-        row = Share(
-            id=new_id(),
+        row = ensure_object_share(
+            db,
             object_type=body.object_type,
             object_id=body.object_id,
             from_user_id=ctx.user.id,
             to_user_id=uid,
-            created_at=utcnow(),
         )
-        db.add(row)
-        db.flush()
         created.append(row.id)
+        if body.object_type == "transcript" and obj.source_audio_id:
+            audio = db.get(Audio, obj.source_audio_id)
+            if (
+                audio is not None
+                and audio.org_id == org.id
+                and audio.owner_user_id == ctx.user.id
+            ):
+                ensure_object_share(
+                    db,
+                    object_type="audio",
+                    object_id=audio.id,
+                    from_user_id=ctx.user.id,
+                    to_user_id=uid,
+                )
     return {"ids": created}
 
 
@@ -911,6 +925,15 @@ def delete_share(
         ctx.raise_error(ErrorCode.not_found)
     if row.from_user_id != ctx.user.id and row.to_user_id != ctx.user.id:
         ctx.raise_error(ErrorCode.forbidden)
+    if row.object_type == "transcript":
+        transcript = db.get(Transcript, row.object_id)
+        if transcript and transcript.source_audio_id:
+            revoke_paired_audio_share(
+                db,
+                audio_id=transcript.source_audio_id,
+                from_user_id=row.from_user_id,
+                to_user_id=row.to_user_id,
+            )
     db.delete(row)
     return {"status": "ok"}
 

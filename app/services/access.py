@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from app.deps import AuthContext
 from app.errors import ApiError, ErrorCode
 from app.i18n import t
-from app.models import HiddenItem, Membership, Share, User
+from app.models import HiddenItem, Membership, Share, User, new_id
+from app.timeutil import utcnow
 
 
 def count_active_org_admins(db: Session, org_id: str, exclude_user_id: str | None = None) -> int:
@@ -90,3 +91,46 @@ def outgoing_shares(db: Session, object_type: str, object_id: str) -> list[Share
             select(Share).where(Share.object_type == object_type, Share.object_id == object_id)
         )
     )
+
+
+def ensure_object_share(
+    db: Session,
+    *,
+    object_type: str,
+    object_id: str,
+    from_user_id: str,
+    to_user_id: str,
+) -> Share:
+    existing = is_shared_with(db, object_type, object_id, to_user_id)
+    if existing:
+        return existing
+    row = Share(
+        id=new_id(),
+        object_type=object_type,
+        object_id=object_id,
+        from_user_id=from_user_id,
+        to_user_id=to_user_id,
+        created_at=utcnow(),
+    )
+    db.add(row)
+    db.flush()
+    return row
+
+
+def revoke_paired_audio_share(
+    db: Session,
+    *,
+    audio_id: str,
+    from_user_id: str,
+    to_user_id: str,
+) -> None:
+    row = db.scalar(
+        select(Share).where(
+            Share.object_type == "audio",
+            Share.object_id == audio_id,
+            Share.from_user_id == from_user_id,
+            Share.to_user_id == to_user_id,
+        )
+    )
+    if row is not None:
+        db.delete(row)

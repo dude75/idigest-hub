@@ -82,6 +82,8 @@ POST /shares
 
 Recipients gain read access (and can use shared transcript in summarize if they have skill access). Response: `{ "ids": ["share_id", ...] }`.
 
+Sharing a **transcript** with `source_audio_id` also creates a share on the linked **audio** (playback and transcribe follow the same rules as a direct audio share). Revoking the transcript share (`DELETE /shares/{share_id}`) removes the paired audio share for the same from/to users.
+
 List recipients: `GET /shares?object_type=...&object_id=...` (owner). UI shows recipients and allows revoke.
 
 Revoke: `DELETE /shares/{share_id}` — owner or recipient.

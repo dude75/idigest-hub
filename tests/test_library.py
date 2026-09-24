@@ -534,6 +534,52 @@ def test_shares_incoming_and_recipient_decline(client):
     assert peer_id not in (updated.json().get("shared_with") or [])
 
 
+def test_transcript_share_cascades_audio_and_revoke(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    owner = client.post(
+        "/api/v1/org/users",
+        json={"email": "owner@example.com", "password": "ownerpass", "role": "org_member"},
+    )
+    peer = client.post(
+        "/api/v1/org/users",
+        json={"email": "peer@example.com", "password": "peerpass1", "role": "org_member"},
+    )
+    assert owner.status_code == 200 and peer.status_code == 200
+    peer_id = peer.json()["id"]
+
+    logout(client)
+    login_ready(client, "owner@example.com", "ownerpass")
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    audio_id = audio.json()["id"]
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    transcript_id, _ = _insert_transcript_and_summary(org_id, user_id, audio_id)
+
+    shared = client.post(
+        "/api/v1/shares",
+        json={"object_type": "transcript", "object_id": transcript_id, "to_user_ids": [peer_id]},
+    )
+    assert shared.status_code == 200, shared.text
+
+    logout(client)
+    login_ready(client, "peer@example.com", "peerpass1")
+    assert client.get(f"/api/v1/transcripts/{transcript_id}").status_code == 200
+    assert client.get(f"/api/v1/audios/{audio_id}/file").status_code == 200
+    incoming = client.get("/api/v1/audios")
+    assert any(item["id"] == audio_id for item in incoming.json()["items"])
+    tr_list = client.get("/api/v1/transcripts")
+    tr_match = next(item for item in tr_list.json()["items"] if item["id"] == transcript_id)
+    share_id = tr_match["share_id"]
+
+    revoked = client.delete(f"/api/v1/shares/{share_id}")
+    assert revoked.status_code == 200, revoked.text
+    assert client.get(f"/api/v1/transcripts/{transcript_id}").status_code == 404
+    assert client.get(f"/api/v1/audios/{audio_id}/file").status_code == 404
+
+
 def test_transfer_offboarding_retargets_incoming_shares_and_frees_email(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

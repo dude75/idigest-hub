@@ -82,6 +82,8 @@ POST /shares
 
 Получатели получают read-доступ (и могут использовать расшаренный transcript в summarize, если есть доступ к навыкам). Ответ: `{ "ids": ["share_id", ...] }`.
 
+При шаринге **transcript** с `source_audio_id` hub автоматически создаёт share на связанное **audio** (прослушивание и transcribe по тем же правилам, что и при прямом шаринге audio). Отзыв share на transcript (`DELETE /shares/{share_id}`) снимает парный share на это audio для той же пары from/to.
+
 Список получателей: `GET /shares?object_type=...&object_id=...` (владелец). UI показывает получателей и позволяет отозвать доступ.
 
 Отзыв: `DELETE /shares/{share_id}` — владелец или получатель.
