@@ -833,6 +833,18 @@ def schedule_locked_tick(
     background_tasks.add_task(locked_tick_job, task_id, refresh_health=refresh_health)
 
 
+def schedule_locked_tick_asyncio(
+    task_id: str | None = None,
+    *,
+    refresh_health: bool = True,
+    wait: bool = True,
+) -> None:
+    """Same as schedule_locked_tick for MCP/async callers (asyncio.create_task)."""
+    if not wait and tick_lock().locked():
+        return
+    asyncio.create_task(locked_tick_job(task_id, refresh_health=refresh_health))
+
+
 async def tick_once(db: Session, task_id: str | None = None, *, refresh_health: bool = True) -> None:
     # Persist the caller's pending writes first so SQLite is not locked during worker HTTP.
     _commit(db)

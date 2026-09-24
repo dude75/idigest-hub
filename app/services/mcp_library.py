@@ -24,14 +24,8 @@ from app.routers.library import (
     _transcripts_by_id,
 )
 from app.routers.skills import _can_read_skill, _visible_skills
-from app.routers.tasks import (
-    ImportBody,
-    _can_manage_task,
-    _can_see_task,
-    _task_list_extra,
-    _validate_summarize_skills,
-    enqueue_import_task,
-)
+from app.routers.tasks import ImportBody, _validate_summarize_skills, enqueue_import_task
+from app.services.task_access import can_manage_task, can_see_task, task_list_extra
 from app.services.access import can_read_object, can_use_transcript, is_hidden
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 from app.services.audit import write_audit
@@ -209,11 +203,11 @@ def get_task_payload(
     """Task JSON plus dispatcher tick hints (schedule tick, refresh_health)."""
     _require_oauth_scope(ctx, SCOPE_TASKS_WRITE)
     task = db.get(Task, task_id)
-    if task is None or not _can_see_task(ctx, task):
+    if task is None or not can_see_task(ctx, task):
         raise ValueError("not found")
     schedule = task.status in {"queued", "running"}
     refresh_health = schedule and task.type not in {"import", "capture"}
-    payload = task_public(task, _task_list_extra(db, [task]).get(task.id))
+    payload = task_public(task, task_list_extra(db, [task]).get(task.id))
     return payload, schedule, refresh_health
 
 
@@ -225,9 +219,9 @@ async def stop_capture_task_payload(
 ) -> dict:
     _require_oauth_scope(ctx, SCOPE_TASKS_WRITE)
     task = db.get(Task, task_id)
-    if task is None or not _can_see_task(ctx, task):
+    if task is None or not can_see_task(ctx, task):
         raise ValueError("not found")
-    if not _can_manage_task(ctx, task):
+    if not can_manage_task(ctx, task):
         raise PermissionError("forbidden")
     if task.type != "capture":
         raise ValueError("capture task required")

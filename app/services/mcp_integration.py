@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from contextlib import asynccontextmanager
@@ -19,7 +18,7 @@ from app.config import get_settings
 import app.db as db
 from app.deps import AuthContext, load_org_bundle
 from app.errors import ApiError
-from app.services.dispatcher import locked_tick_job
+from app.services.dispatcher import schedule_locked_tick_asyncio
 from app.services.hub_mcp_token_verifier import HubMcpTokenVerifier
 from app.services.mcp_library import (
     create_audio_import_payload,
@@ -161,9 +160,9 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         raise ValueError(message) from exc
 
     def _schedule_task(task_payload: dict, *, refresh_health: bool = True) -> None:
-        task_id = task_payload.get("id")
+        task_id = task_payload.get("task_id")
         if task_id:
-            asyncio.create_task(locked_tick_job(str(task_id), refresh_health=refresh_health))
+            schedule_locked_tick_asyncio(str(task_id), refresh_health=refresh_health)
 
     @server.tool(
         name="list_audios",
@@ -236,7 +235,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
         if schedule:
-            asyncio.create_task(locked_tick_job(task_id, refresh_health=refresh_health))
+            schedule_locked_tick_asyncio(task_id, refresh_health=refresh_health, wait=False)
         return json.dumps(payload, ensure_ascii=False)
 
     @server.tool(
@@ -264,7 +263,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             raise ToolError(str(exc)) from exc
         except ValueError as exc:
             raise ToolError(str(exc)) from exc
-        asyncio.create_task(locked_tick_job(task_id, refresh_health=False))
+        schedule_locked_tick_asyncio(task_id, refresh_health=False, wait=False)
         return json.dumps(payload, ensure_ascii=False)
 
     @server.tool(
