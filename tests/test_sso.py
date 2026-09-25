@@ -130,7 +130,7 @@ def test_sso_callback_provisions_member(client, monkeypatch):
         follow_redirects=False,
     )
     assert response.status_code == 302, response.text
-    assert response.headers["location"] == "https://hub.example/app"
+    assert response.headers["location"] == "/app"
 
     payload = me(client)
     assert payload["user"]["email"] == "newbie@example.com"

@@ -381,6 +381,8 @@ def oauth_login_page(
     sso_active = " active" if mode == "sso" else ""
     email_panel_class = "stack auth-panel" if mode == "email" else "stack auth-panel auth-panel-hidden"
     sso_panel_class = "stack auth-panel" if mode == "sso" else "stack auth-panel auth-panel-hidden"
+    email_inert = " inert" if mode != "email" else ""
+    sso_inert = " inert" if mode != "sso" else ""
     err_block = (
         f'<div class="alert alert-error" role="alert"><p class="alert-body">{_esc(error_message)}</p></div>'
         if error_message
@@ -394,7 +396,7 @@ def oauth_login_page(
 </div>
 {err_block}
 <div class="auth-panel-stack">
-  <form method="post" action="/oauth/login" class="{email_panel_class}" target="_top" aria-hidden="{str(mode != "email").lower()}">
+  <form method="post" action="/oauth/login" class="{email_panel_class}" target="_top"{email_inert} aria-hidden="{str(mode != "email").lower()}">
     <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
     <label>{_esc(t(locale, "oauth_email"))}
       <input name="email" type="email" autocomplete="username" required/>
@@ -404,7 +406,7 @@ def oauth_login_page(
     </label>
     <button type="submit" class="primary">{_esc(t(locale, "oauth_sign_in"))}</button>
   </form>
-  <form method="post" action="/oauth/sso" class="{sso_panel_class}" target="_top" aria-hidden="{str(mode != "sso").lower()}">
+  <form method="post" action="/oauth/sso" class="{sso_panel_class}" target="_top"{sso_inert} aria-hidden="{str(mode != "sso").lower()}">
     <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
     <label>{_esc(t(locale, "oauth_org_id"))}
       <input name="org_id" type="text" required spellcheck="false" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value="{_esc(prefill_org_id)}"/>
@@ -416,13 +418,20 @@ def oauth_login_page(
     return _page(request, locale, title=t(locale, "oauth_title_sign_in"), body=body)
 
 
-def oauth_client_redirect_page(request: Request, redirect_url: str) -> HTMLResponse:
-    """Return to the OAuth client (break out of iframe/popup when embedded in Open WebUI)."""
+def oauth_browser_redirect_page(
+    request: Request,
+    redirect_url: str,
+    *,
+    title_key: str = "oauth_redirect_title",
+    hint_key: str = "oauth_redirect_hint",
+    continue_key: str = "oauth_continue",
+) -> HTMLResponse:
+    """Break out of iframe/popup (Open WebUI) and navigate to an external or internal URL."""
     locale = oauth_locale(request)
     js_url = json.dumps(redirect_url)
-    body = f"""<h1>{_esc(t(locale, "oauth_redirect_title"))}</h1>
-<p class="muted">{_esc(t(locale, "oauth_redirect_hint"))}</p>
-<a class="btn primary" href="{_esc(redirect_url)}">{_esc(t(locale, "oauth_continue"))}</a>
+    body = f"""<h1>{_esc(t(locale, title_key))}</h1>
+<p class="muted">{_esc(t(locale, hint_key))}</p>
+<a class="btn primary" href="{_esc(redirect_url)}">{_esc(t(locale, continue_key))}</a>
 <script>
 (function () {{
   var url = {js_url};
@@ -436,4 +445,9 @@ def oauth_client_redirect_page(request: Request, redirect_url: str) -> HTMLRespo
 }})();
 </script>
 <noscript><meta http-equiv="refresh" content="0;url={_esc(redirect_url)}"/></noscript>"""
-    return _page(request, locale, title=t(locale, "oauth_redirect_title"), body=body)
+    return _page(request, locale, title=t(locale, title_key), body=body)
+
+
+def oauth_client_redirect_page(request: Request, redirect_url: str) -> HTMLResponse:
+    """Return to the OAuth client (break out of iframe/popup when embedded in Open WebUI)."""
+    return oauth_browser_redirect_page(request, redirect_url)

@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.cookies import issue_auth_cookies
+from app.cookies import issue_auth_cookies, oauth_embedded_session_samesite
 from app.db import get_session
 from app.deps import get_instance_settings, resolve_auth
 from app.routers.auth import create_session, session_ttl_sec_from_db
@@ -44,6 +44,7 @@ from app.rate_limit import (
 )
 from app.services.oauth_pages import (
     oauth_blocked_page,
+    oauth_browser_redirect_page,
     oauth_client_redirect_page,
     oauth_consent_page,
     oauth_login_page,
@@ -51,13 +52,13 @@ from app.services.oauth_pages import (
     oauth_message_page,
 )
 from app.services.oauth_scopes import scopes_to_string
-from app.services.sso import begin_org_sso_login, sso_configured
+from app.services.sso import HUB_OAUTH_AUTH_MODE, begin_org_sso_login, sso_configured
 
 log = logging.getLogger("app")
 
 router = APIRouter(include_in_schema=False)
 
-HUB_AUTH_MODE = "hub_auth_mode"
+HUB_AUTH_MODE = HUB_OAUTH_AUTH_MODE
 _OAUTH_ORG_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 
 
@@ -443,7 +444,11 @@ def _begin_oauth_sso(
             prefill_org_id=org_id,
             error_message=t(locale, "oauth_sso_not_configured"),
         )
-    return RedirectResponse(idp_url, status_code=302)
+    return oauth_browser_redirect_page(
+        request,
+        idp_url,
+        hint_key="oauth_sso_redirect_hint",
+    )
 
 
 @router.get("/oauth/sso/start")
@@ -520,7 +525,12 @@ def oauth_login(
     db.commit()
     query = urlencode(params)
     redirect = RedirectResponse(f"/oauth/authorize?{query}", status_code=303)
-    issue_auth_cookies(redirect, raw, max_age=session_ttl_sec_from_db(db))
+    issue_auth_cookies(
+        redirect,
+        raw,
+        max_age=session_ttl_sec_from_db(db),
+        samesite=oauth_embedded_session_samesite(),
+    )
     return redirect
 
 

@@ -527,24 +527,30 @@ def test_oauth_sso_flow_returns_to_consent(client, monkeypatch):
         data={"org_id": org_id, "oauth_params": oauth_params},
         follow_redirects=False,
     )
-    assert start.status_code == 302, start.text
-    assert start.headers["location"].startswith("https://keycloak.example/authorize")
+    assert start.status_code == 200, start.text
+    assert "keycloak.example/authorize" in start.text
 
     monkeypatch.setattr("app.routers.auth.exchange_code", lambda **kwargs: {"id_token": "token"})
     monkeypatch.setattr(
         "app.routers.auth.validate_id_token",
         lambda **kwargs: {"sub": "kc-oauth", "email": "sso-oauth@example.com"},
     )
-    state = parse_qs(urlparse(start.headers["location"]).query)["state"][0]
+    import html as html_module
+    import re
+
+    idp_match = re.search(r'href="(https://keycloak\.example/authorize[^"]+)"', start.text)
+    assert idp_match is not None, start.text[:500]
+    idp_url = html_module.unescape(idp_match.group(1))
+    state = parse_qs(urlparse(idp_url).query)["state"][0]
     callback = client.get(
         f"/api/v1/auth/sso/{org_id}/callback?code=abc&state={state}",
         follow_redirects=False,
     )
     assert callback.status_code == 302, callback.text
-    assert callback.headers["location"].startswith("https://hub.test/oauth/authorize?")
+    assert callback.headers["location"].startswith("/oauth/authorize?")
+    assert "hub_auth_mode=sso" in callback.headers["location"]
 
-    return_path = urlparse(callback.headers["location"])
-    consent = client.get(f"{return_path.path}?{return_path.query}", follow_redirects=False)
+    consent = client.get(callback.headers["location"], follow_redirects=False)
     assert consent.status_code == 200, consent.text
     assert "Allow" in consent.text
 
@@ -584,7 +590,7 @@ def test_oauth_sso_callback_redirects_to_app_without_authorize_query(client, mon
         follow_redirects=False,
     )
     assert callback.status_code == 302
-    assert callback.headers["location"] == "https://hub.example/app"
+    assert callback.headers["location"] == "/app"
 
 
 def test_pat_still_works(client, monkeypatch):

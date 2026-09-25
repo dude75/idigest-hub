@@ -27,7 +27,7 @@ from app.constants import (
     SECURITY_TABS,
     SUPPORTED_LOCALES,
 )
-from app.cookies import bind_csrf_token, clear_auth_cookies, issue_auth_cookies
+from app.cookies import bind_csrf_token, clear_auth_cookies, issue_auth_cookies, oauth_embedded_session_samesite
 from app.services.secrets_bootstrap import session_secret_configured
 from app.db import get_session
 from app.deps import AuthContext, abort, get_instance_settings, locale_from_request, optional_auth, require_auth, session_ttl_sec_from_db
@@ -620,7 +620,12 @@ def sso_callback(
     raw = create_session(db, user.id)
     location = sso_post_login_url(public_base, oauth_authorize_query=oauth_authorize_query)
     redirect = RedirectResponse(location, status_code=302)
-    issue_auth_cookies(redirect, raw, max_age=session_ttl_sec_from_db(db))
+    issue_auth_cookies(
+        redirect,
+        raw,
+        max_age=session_ttl_sec_from_db(db),
+        samesite=oauth_embedded_session_samesite() if oauth_authorize_query else "lax",
+    )
     return redirect
 
 

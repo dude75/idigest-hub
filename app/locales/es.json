@@ -106,6 +106,8 @@
   "oauth_error_retry_hint": "Cierre esta ventana y vuelva a iniciar la autorización desde su aplicación.",
   "oauth_redirect_title": "Redirigiendo…",
   "oauth_redirect_hint": "Vuelva a la aplicación para terminar la conexión.",
+  "oauth_sso_redirect_hint": "Continúe en la página de inicio de sesión de su organización.",
+  "oauth_sso_redirect_hint": "Continúe en la página de inicio de sesión de su organización.",
   "oauth_continue": "Continuar",
   "oauth_org_membership_required": "MCP solo está disponible para administradores y miembros de la organización."
 }

@@ -9,35 +9,63 @@ from app.constants import COOKIE_NAME, CSRF_COOKIE_NAME, SESSION_TTL_SEC
 from app.security import new_session_token
 
 
-def set_session_cookie(response: Response, token: str, *, max_age: int = SESSION_TTL_SEC) -> None:
+def set_session_cookie(
+    response: Response,
+    token: str,
+    *,
+    max_age: int = SESSION_TTL_SEC,
+    samesite: str = "lax",
+) -> None:
     settings = get_settings()
     response.set_cookie(
         key=COOKIE_NAME,
         value=token,
         httponly=True,
-        samesite="lax",
+        samesite=samesite,
         secure=settings.COOKIE_SECURE,
         max_age=max_age,
         path="/",
     )
 
 
-def set_csrf_cookie(response: Response, token: str, *, max_age: int = SESSION_TTL_SEC) -> None:
+def set_csrf_cookie(
+    response: Response,
+    token: str,
+    *,
+    max_age: int = SESSION_TTL_SEC,
+    samesite: str = "lax",
+) -> None:
     settings = get_settings()
     response.set_cookie(
         key=CSRF_COOKIE_NAME,
         value=token,
         httponly=False,
-        samesite="lax",
+        samesite=samesite,
         secure=settings.COOKIE_SECURE,
         max_age=max_age,
         path="/",
     )
 
 
-def issue_auth_cookies(response: Response, session_token: str, *, max_age: int = SESSION_TTL_SEC) -> None:
-    set_session_cookie(response, session_token, max_age=max_age)
-    set_csrf_cookie(response, new_session_token(), max_age=max_age)
+def issue_auth_cookies(
+    response: Response,
+    session_token: str,
+    *,
+    max_age: int = SESSION_TTL_SEC,
+    samesite: str = "lax",
+) -> None:
+    set_session_cookie(response, session_token, max_age=max_age, samesite=samesite)
+    set_csrf_cookie(response, new_session_token(), max_age=max_age, samesite=samesite)
+
+
+def oauth_embedded_session_samesite() -> str:
+    """SameSite for MCP/OAuth browser login (iframe / cross-site return from IdP)."""
+    settings = get_settings()
+    if not settings.COOKIE_SECURE:
+        return "lax"
+    from app.services.oauth_provider import oauth_provider_enabled
+
+    return "none" if oauth_provider_enabled() else "lax"
 
 
 def clear_session_cookie(response: Response) -> None:

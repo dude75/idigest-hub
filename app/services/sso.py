@@ -11,7 +11,7 @@ import logging
 import secrets
 import time
 from typing import Any
-from urllib.parse import urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import httpx2
 import jwt
@@ -164,11 +164,20 @@ def verify_oauth_state(state: str, org_id: str) -> tuple[str, str, str | None]:
     return str(nonce), str(code_verifier), oauth_query
 
 
+HUB_OAUTH_AUTH_MODE = "hub_auth_mode"
+
+
+def oauth_authorize_return_path(oauth_authorize_query: str) -> str:
+    """Relative path back to MCP OAuth authorize after SSO (keeps SSO tab if login is shown again)."""
+    merged = {key: values[0] for key, values in parse_qs(oauth_authorize_query, keep_blank_values=True).items()}
+    merged[HUB_OAUTH_AUTH_MODE] = "sso"
+    return f"/oauth/authorize?{urlencode(merged)}"
+
+
 def sso_post_login_url(public_base_url: str, *, oauth_authorize_query: str | None) -> str:
-    base = public_base_url.rstrip("/")
     if oauth_authorize_query:
-        return f"{base}/oauth/authorize?{oauth_authorize_query}"
-    return f"{base}/app"
+        return oauth_authorize_return_path(oauth_authorize_query)
+    return "/app"
 
 
 def begin_org_sso_login(
