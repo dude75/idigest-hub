@@ -898,6 +898,110 @@ def test_maybe_start_capture_resumes_running_task(client, fake_workers):
         reset_capture_runner()
 
 
+def test_capture_salvages_audio_when_worker_reports_canceled_with_artifact(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "capsalv@example.com", "capsalvpass1", tariff_id).status_code == 200
+    user = login_ready(client, "capsalv@example.com", "capsalvpass1")
+
+    from tests.conftest import open_db
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Organization, Task, new_id
+        from app.services.billing import snapshot_fields
+        from app.services.capture_runner import maybe_start_capture, reset_capture_runner
+        from app.timeutil import utcnow
+
+        reset_capture_runner()
+        fake_workers.capture_delete_calls.clear()
+        fake_workers.capture_poll_mode = "canceled_artifact"
+        org = db.get(Organization, user["org"]["id"])
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="running",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=worker["id"],
+            worker_task_id=fake_workers.capture_worker_task_id,
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={
+                "meeting_url": "https://meet.example.com/room1",
+                "stage": "finalizing",
+                "stop_requested": True,
+                "connector": "jitsi",
+            },
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+        hub_task_id = task.id
+        maybe_start_capture(db, task)
+        db.commit()
+    finally:
+        db.close()
+
+    body = wait_task(client, hub_task_id, status={"success"})
+    assert body["audio_id"]
+    assert fake_workers.capture_worker_task_id in fake_workers.capture_delete_calls
+    fake_workers.capture_poll_mode = "success"
+
+
+def test_retry_capture_forbidden(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "capretry@example.com", "capretrypass1", tariff_id).status_code == 200
+    user = login_ready(client, "capretry@example.com", "capretrypass1")
+
+    from tests.conftest import open_db
+
+    db = open_db()
+    try:
+        from app.deps import get_instance_settings
+        from app.models import Organization, Task, new_id
+        from app.services.billing import snapshot_fields
+        from app.timeutil import utcnow
+
+        org = db.get(Organization, user["org"]["id"])
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="error",
+            error_code="canceled",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=worker["id"],
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={"meeting_url": "https://meet.example.com/room1", "stage": "done"},
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+        hub_task_id = task.id
+    finally:
+        db.close()
+
+    blocked = client.post(f"/api/v1/tasks/{hub_task_id}/retry")
+    assert blocked.status_code == 400
+    assert err_code(blocked) == "validation_error"
+
+
 def test_import_meeting_url_without_capture_enabled(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

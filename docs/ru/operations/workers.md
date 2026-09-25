@@ -142,7 +142,10 @@ Dispatcher обновляет каждый узел примерно кажды�
 - `GET /health` → JSON с картой `connectors` (`id` → `{ "status": "loaded" | … }`)
 - На ноде хранится выбранный админом подмножество в `capture_connectors_json`
 - Нода dispatch-ready, если обслуживает connector из whitelist инстанса **и** отдаёт его как `loaded` (или connector в выбранном списке, если воркер не прислал status)
-- Poll GET `/tasks/{id}` до терминального состояния; опционально POST `/tasks/{id}/stop`; артефакт — GET `/tasks/{id}/download`
+- Poll GET `/tasks/{id}` до готовности артефакта или ошибки; опционально POST `/tasks/{id}/stop`; артефакт — GET `/tasks/{id}/download`
+- **Stop** (`POST /tasks/{id}/stop`): хаб ставит `meta.stop_requested` и просит воркер finalize. Poll продолжается в `finalizing` и при `canceled` на воркере, пока артефакт не готов или не истечёт `FINALIZING_STUCK_SEC` (по умолчанию **1200** с).
+- **Cancel** (`DELETE /tasks/{id}`): задача помечается отменённой. Если артефакт на воркере уже готов — хаб всё равно скачивает его (salvage), затем `canceled`. DELETE на воркере — только после **успешного** persist на хабе (не при cancel).
+- **Retry** (`POST /tasks/{id}/retry`) для `type: "capture"` **не поддерживается** (создайте новую capture-задачу).
 
 ## Балансировка нагрузки
 
@@ -192,6 +195,7 @@ score = in_flight_tasks / max(weight, 1)
 | `WORKER_HTTP_TIMEOUT_SEC` | 30 | Health, poll, delete |
 | `WORKER_UPLOAD_TIMEOUT_SEC` | 300 | Transcribe upload, summarize POST, capture download |
 | `WORKER_CAPTURE_TIMEOUT_SEC` | 660 | Capture POST `/capture` (блокируется до join) |
+| `FINALIZING_STUCK_SEC` | 1200 | Макс. время в `finalizing` на воркере до ошибки capture на хабе |
 
 ## Связанные страницы
 

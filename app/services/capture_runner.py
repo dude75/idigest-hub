@@ -38,7 +38,6 @@ _CAPTURE_ACTIVE_WORKER_STATUSES = frozenset(
     {"queued", "running", "capturing", "finalizing", "joining"},
 )
 _CAPTURE_STOP_FORWARD_STATUSES = frozenset({"queued", "running", "capturing", "joining"})
-_FINALIZING_STUCK_SEC = 900.0
 
 _active: set[str] = set()
 _cancelled: set[str] = set()
@@ -48,6 +47,19 @@ _start_lock = threading.Lock()
 _persist_locks_guard = threading.Lock()
 _persist_locks: dict[str, threading.Lock] = {}
 _DISPATCHED_CAPTURE_STAGES = frozenset({"joining", "capturing", "finalizing", "downloading"})
+
+
+def _finalizing_stuck_sec() -> float:
+    from app.config import get_settings
+
+    return float(get_settings().FINALIZING_STUCK_SEC)
+
+
+def _stop_was_graceful(task_id: str, task: Task) -> bool:
+    if capture_stop_pending(task_id, task):
+        return True
+    meta = task.meta_json if isinstance(task.meta_json, dict) else {}
+    return meta.get("stop_requested") is True
 
 
 def is_capture_canceled(task_id: str) -> bool:
@@ -292,9 +304,17 @@ def _persist_lock(task_id: str) -> threading.Lock:
 
 def _artifact_ready_in_poll(poll: dict[str, Any]) -> bool:
     status = str(poll.get("status") or "")
+    artifact = poll.get("artifact")
+    if isinstance(artifact, dict):
+        if artifact.get("ready") is False:
+            return False
+        size = artifact.get("size_bytes")
+        if isinstance(size, int) and 0 < size < MIN_CAPTURE_ARTIFACT_BYTES:
+            return False
+        if artifact.get("ready") is True:
+            return status in {"success", "finalizing", "canceled"}
     if status != "success":
         return False
-    artifact = poll.get("artifact")
     if not isinstance(artifact, dict):
         return True
     if artifact.get("ready") is False:
@@ -493,9 +513,9 @@ async def _poll_until_capture_artifact(
         if last_code != 200:
             return last_code, last_poll
         status = str(last_poll.get("status") or "")
-        if status in {"error", "canceled"}:
+        if status in {"error", "canceled"} and not _artifact_ready_in_poll(last_poll):
             return last_code, last_poll
-        if status == "success" and _artifact_ready_in_poll(last_poll):
+        if _artifact_ready_in_poll(last_poll):
             return last_code, last_poll
         await asyncio.sleep(0.5 if attempt < 3 else _POLL_SEC)
     return last_code, last_poll
@@ -534,8 +554,19 @@ async def recover_capture_task(db: Session, task: Task, nodes: list[WorkerNode])
         _fail_task(db, task, map_capture_worker_error(_worker_error_code(poll)))
         return
     if worker_status == "canceled":
-        _fail_task(db, task, "canceled")
-        return
+        if _artifact_ready_in_poll(poll):
+            worker_status = "success"
+        elif _stop_was_graceful(task.id, task):
+            _update_task_meta(
+                db,
+                task,
+                "finalizing",
+                {"worker_capture_status": "finalizing"},
+            )
+            return
+        else:
+            _fail_task(db, task, "canceled")
+            return
     if worker_status == "success" or worker_status in _CAPTURE_ACTIVE_WORKER_STATUSES or worker_status:
         ready = worker_status == "success" and _artifact_ready_in_poll(poll)
         _update_task_meta(
@@ -787,6 +818,10 @@ async def _run_capture_task(task_id: str) -> None:
         while True:
             db.refresh(task)
             if is_capture_canceled(task_id):
+                status_code, salvage_poll = await get_capture_task(db, worker_node, worker_task_id)
+                if status_code == 200 and _artifact_ready_in_poll(salvage_poll):
+                    poll = salvage_poll
+                    break
                 await forward_capture_cancel(db, task)
                 _fail_task(db, task, "canceled")
                 db.commit()
@@ -832,14 +867,14 @@ async def _run_capture_task(task_id: str) -> None:
 
                         since = as_utc(datetime.fromisoformat(since_raw.replace("Z", "+00:00")))
                         elapsed = (utcnow() - since).total_seconds()
-                        if elapsed > _FINALIZING_STUCK_SEC:
+                        if elapsed > _finalizing_stuck_sec():
                             _fail_task(db, task, "pipeline_error", {"error_detail": "capture finalize timeout"})
                             db.commit()
                             return
                     except ValueError:
                         pass
 
-            if worker_status == "success":
+            if worker_status == "success" or _artifact_ready_in_poll(poll):
                 if not _artifact_ready_in_poll(poll):
                     await asyncio.sleep(_POLL_SEC)
                     continue
@@ -854,6 +889,11 @@ async def _run_capture_task(task_id: str) -> None:
                 db.commit()
                 return
             if worker_status == "canceled":
+                if _artifact_ready_in_poll(poll):
+                    break
+                if _stop_was_graceful(task_id, task):
+                    await asyncio.sleep(_POLL_SEC)
+                    continue
                 _fail_task(db, task, "canceled")
                 db.commit()
                 return
@@ -864,7 +904,7 @@ async def _run_capture_task(task_id: str) -> None:
         if task.audio_id or task.status != "running":
             return
 
-        if not _artifact_ready_in_poll(poll) or str(poll.get("status") or "") != "success":
+        if not _artifact_ready_in_poll(poll):
             status_code, poll = await _poll_until_capture_artifact(db, worker_node, worker_task_id)
             if status_code == 404:
                 _fail_task(db, task, "not_found")
@@ -875,12 +915,11 @@ async def _run_capture_task(task_id: str) -> None:
                 _fail_task(db, task, map_capture_worker_error(_worker_error_code(poll)))
                 db.commit()
                 return
-            if worker_status == "canceled":
-                _fail_task(db, task, "canceled")
-                db.commit()
-                return
-            if worker_status != "success" or not _artifact_ready_in_poll(poll):
-                _fail_task(db, task, "download_failed", {"error_detail": "capture artifact not ready"})
+            if not _artifact_ready_in_poll(poll):
+                if worker_status == "canceled" and not _stop_was_graceful(task_id, task):
+                    _fail_task(db, task, "canceled")
+                else:
+                    _fail_task(db, task, "download_failed", {"error_detail": "capture artifact not ready"})
                 db.commit()
                 return
 
@@ -905,7 +944,7 @@ async def _run_capture_task(task_id: str) -> None:
             temp_path.unlink(missing_ok=True)
         if worker_node is not None and worker_task_id:
             terminal = db.get(Task, task_id)
-            if terminal is not None and (terminal.status == "success" or is_capture_canceled(task_id)):
+            if terminal is not None and terminal.status == "success":
                 try:
                     await delete_capture_task(db, worker_node, worker_task_id)
                 except Exception:

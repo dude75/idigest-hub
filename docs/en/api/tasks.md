@@ -137,7 +137,7 @@ Errors: `not_found`, `forbidden`, `validation_error` (not capture), `task_runnin
 
 Cancel: **import** / **capture** in `queued` or `running`; **transcribe** / **summarize** — only `queued` with no `worker_task_id`.
 
-Success: `status: "error"`, `error.code: "canceled"`. For capture with an active background thread, worker DELETE is handled by the thread (same idea as stop).
+Success: `status: "error"`, `error.code: "canceled"`. For capture with an active background thread, worker DELETE is handled by the thread (same idea as stop). If the worker artifact is already ready, the hub may still download it before marking the task canceled.
 
 Errors: `not_found`, `forbidden`, `task_running` (transcribe/summarize already on a worker).
 
@@ -147,7 +147,7 @@ Errors: `not_found`, `forbidden`, `task_running` (transcribe/summarize already o
 
 Re-queue a failed task (`status: "error"`). Resets worker refs and error state, then runs an immediate dispatcher tick.
 
-Not allowed for terminal errors such as `canceled`, `source_deleted`, `text_too_long`, `payload_too_large`, `invalid_file`, `invalid_url`.
+Not allowed for **`type: "capture"`** (start a new capture job). Also blocked for terminal errors such as `canceled`, `source_deleted`, `text_too_long`, `payload_too_large`, `invalid_file`, `invalid_url`.
 
 Source must still exist (audio, transcript, import URL). Balance is checked again.
 

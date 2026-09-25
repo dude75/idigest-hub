@@ -142,7 +142,10 @@ Pool states: `ready`, `waiting` (engines loading — no timeout), `empty` (no no
 - `GET /health` → JSON with `connectors` map (`id` → `{ "status": "loaded" | … }`)
 - Hub stores the admin-selected subset in `capture_connectors_json`
 - A node is dispatch-ready if it offers the connector required by the instance whitelist **and** reports it as `loaded` (or the connector is in the selected list when the worker omits status)
-- Poll GET `/tasks/{id}` until terminal state; optional POST `/tasks/{id}/stop`; download artifact via GET `/tasks/{id}/download`
+- Poll GET `/tasks/{id}` until the artifact is ready or the job errors; optional POST `/tasks/{id}/stop`; download artifact via GET `/tasks/{id}/download`
+- **Stop** (`POST /tasks/{id}/stop`): hub sets `meta.stop_requested` and asks the worker to finalize. The hub keeps polling while the worker is `finalizing` or reports `canceled` until the artifact is ready or `FINALIZING_STUCK_SEC` elapses (default **1200** s).
+- **Cancel** (`DELETE /tasks/{id}`): hub marks the task canceled. If the worker already has a ready artifact, the hub still downloads it (salvage) before failing with `canceled`. Worker DELETE runs only after a **successful** hub persist (not on cancel).
+- **Retry** (`POST /tasks/{id}/retry`) is **not** supported for `type: "capture"` (create a new capture job instead).
 
 ## Load balancing
 
@@ -192,6 +195,7 @@ Worker error codes map to hub task errors (`pipeline_error`, `engine_unavailable
 | `WORKER_HTTP_TIMEOUT_SEC` | 30 | Health, poll, delete |
 | `WORKER_UPLOAD_TIMEOUT_SEC` | 300 | Transcribe upload, summarize POST, capture download |
 | `WORKER_CAPTURE_TIMEOUT_SEC` | 660 | Capture POST `/capture` (blocks until join completes) |
+| `FINALIZING_STUCK_SEC` | 1200 | Max time in worker `finalizing` before hub fails the capture task |
 
 ## Related pages
 

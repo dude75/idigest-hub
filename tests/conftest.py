@@ -423,6 +423,7 @@ class FakeWorkers:
         self.capture_artifact = SAMPLE_MP3_BYTES
         self.last_capture_display_name = ""
         self.capture_stop_calls: list[str] = []
+        self.capture_delete_calls: list[str] = []
         self.ready_status = 200
         self.transcribe_mode = "queued"
         self.summarize_mode = "success"
@@ -577,6 +578,18 @@ class FakeWorkers:
             return 404, {}
         if self.capture_poll_mode in {"running", "queued", "capturing", "finalizing"}:
             return 200, {"status": self.capture_poll_mode}
+        if self.capture_poll_mode == "canceled_artifact":
+            artifact_size = len(self.capture_artifact)
+            return 200, {
+                "status": "canceled",
+                "meta": {"task_id": worker_task_id, "duration_sec": 12.0},
+                "artifact": {
+                    "ready": True,
+                    "filename": "capture.mp3",
+                    "content_type": "audio/mpeg",
+                    "size_bytes": artifact_size,
+                },
+            }
         artifact_size = len(self.capture_artifact)
         return 200, {
             "status": "success",
@@ -591,10 +604,13 @@ class FakeWorkers:
 
     async def stop_capture_task(self, _db, node, worker_task_id: str) -> tuple[int, dict[str, Any]]:
         self.capture_stop_calls.append(worker_task_id)
+        if self.capture_poll_mode == "canceled_artifact":
+            return 200, {"status": "canceled", "meta": {"task_id": worker_task_id}}
         self.capture_poll_mode = "finalizing"
         return 200, {"status": "finalizing", "meta": {"task_id": worker_task_id}}
 
     async def delete_capture_task(self, _db, node, worker_task_id: str) -> int:
+        self.capture_delete_calls.append(worker_task_id)
         return 200
 
     async def download_capture_artifact(self, _db, node, worker_task_id: str) -> tuple[int, bytes, dict[str, str]]:

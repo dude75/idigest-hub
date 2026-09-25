@@ -137,7 +137,7 @@ Query-параметры:
 
 Отмена: **import** / **capture** в `queued` или `running`; **transcribe** / **summarize** — только `queued` без `worker_task_id`.
 
-Успех: `status: "error"`, `error.code: "canceled"`. Для capture с активным фоновым потоком DELETE на воркер делает поток (как при stop).
+Успех: `status: "error"`, `error.code: "canceled"`. Для capture с активным фоновым потоком DELETE на воркер делает поток (как при stop). Если артефакт на воркере уже готов, хаб может скачать его перед `canceled`.
 
 Ошибки: `not_found`, `forbidden`, `task_running` (transcribe/summarize уже на воркере).
 
@@ -147,7 +147,7 @@ Query-параметры:
 
 Повторная постановка упавшей задачи (`status: "error"`) в очередь. Сбрасывает worker refs и ошибку, затем сразу запускает tick диспетчера.
 
-Недоступно для терминальных ошибок: `canceled`, `source_deleted`, `text_too_long`, `payload_too_large`, `invalid_file`, `invalid_url`.
+Недоступно для **`type: "capture"`** (создайте новую capture-задачу). Также для терминальных ошибок: `canceled`, `source_deleted`, `text_too_long`, `payload_too_large`, `invalid_file`, `invalid_url`.
 
 Исходник должен существовать (audio, transcript, URL import). Баланс проверяется снова.
 

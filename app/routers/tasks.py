@@ -538,6 +538,8 @@ async def retry_task(
         ctx.raise_error(ErrorCode.forbidden)
     if task.status != "error":
         ctx.raise_error(ErrorCode.task_running)
+    if task.type == "capture":
+        ctx.raise_error(ErrorCode.validation_error)
     if task.error_code in NON_RETRIABLE_ERROR_CODES:
         ctx.raise_error(ErrorCode.validation_error)
     org, _ = ctx.require_org()
