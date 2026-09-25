@@ -43,6 +43,7 @@
   "import_disabled": "La importación por URL está desactivada en esta instancia.",
   "capture_disabled": "La grabación de reuniones está desactivada en esta instancia.",
   "meeting_host_not_configured": "Este host de reunión no está configurado para su organización.",
+  "capture_no_worker": "No hay worker de capture disponible para este tipo de reunión. Revise workers del instancia y conectores permitidos.",
   "invalid_capture_worker": "Worker de capture desconocido o no válido.",
   "meeting_use_capture": "Use la grabación de reunión para este enlace Jitsi, no la importación por URL.",
   "mfa_required": "Se requiere autenticación de dos factores.",

@@ -12,7 +12,7 @@ import { beginPipelineRun, captureRequest, endPipelineRun, importRequest, pipeli
 import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
 import { ApiError } from '../api'
 import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
-import { shouldRouteImportUrlToCapture } from '../util/captureHost'
+import { captureMeetingNeedsPin, shouldRouteImportUrlToCapture } from '../util/captureHost'
 
 type SourceGroup<T> = {
   key: string
@@ -245,6 +245,10 @@ export function LibraryPage() {
     captureEnabled &&
     trimmedIngestUrl.length > 0 &&
     shouldRouteImportUrlToCapture(trimmedIngestUrl, true)
+  const showCapturePin =
+    captureEnabled &&
+    trimmedIngestUrl.length > 0 &&
+    captureMeetingNeedsPin(trimmedIngestUrl, true)
   const proxyBlocked =
     importPlatforms?.download_proxy_required === true &&
     importPlatforms?.download_proxy_available === false
@@ -304,7 +308,7 @@ export function LibraryPage() {
                   }
                 }}
               />
-              {ingestToCapture && (
+              {showCapturePin && (
                 <input
                   className="library-capture-pin"
                   type="password"

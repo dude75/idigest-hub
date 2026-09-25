@@ -41,6 +41,7 @@ NON_RETRIABLE_ERROR_CODES = frozenset(
         "proxy_unavailable",
         "capture_disabled",
         "meeting_host_not_configured",
+        "capture_no_worker",
     }
 )
 
@@ -59,6 +60,7 @@ class ImportBody(BaseModel):
     url: str = Field(min_length=8, max_length=2048)
     transcribe: bool = False
     skill_ids: list[str] = Field(default_factory=list)
+    bot_display_name: str | None = None
 
 
 class CaptureBody(BaseModel):
@@ -66,6 +68,7 @@ class CaptureBody(BaseModel):
     pin: str = ""
     transcribe: bool = False
     skill_ids: list[str] = Field(default_factory=list)
+    bot_display_name: str | None = None
 
 
 def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Task:
@@ -73,7 +76,7 @@ def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Ta
     settings = get_instance_settings(db)
     if not settings.capture_enabled:
         ctx.raise_error(ErrorCode.capture_disabled)
-    from app.services.capture_meeting import CaptureMeetingError, org_capture_bot_display_name, resolve_capture_target
+    from app.services.capture_meeting import CaptureMeetingError, resolve_capture_bot_display_name, resolve_capture_target
     from app.services.capture_platforms import allowed_connectors
     from app.services.transcribe_models import resolve_transcribe_models
 
@@ -81,7 +84,11 @@ def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Ta
         assert_can_accept_task(ctx, org, ctx.locale)
         if body.skill_ids:
             _validate_summarize_skills(ctx, db, org, body.skill_ids)
-    display_name = org_capture_bot_display_name(org)
+    display_name = resolve_capture_bot_display_name(
+        user=ctx.user,
+        org=org,
+        override=body.bot_display_name,
+    )
     try:
         target = resolve_capture_target(
             db,
@@ -99,6 +106,8 @@ def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Ta
             ctx.raise_error(ErrorCode.invalid_url)
         if code == "meeting_host_not_configured":
             ctx.raise_error(ErrorCode.meeting_host_not_configured)
+        if code == "capture_no_worker":
+            ctx.raise_error(ErrorCode.capture_no_worker)
         ctx.raise_error(ErrorCode.pipeline_error)
     models = resolve_transcribe_models(ctx.user, settings)
     tariff = org.tariff
@@ -166,6 +175,7 @@ def enqueue_import_task(db: Session, ctx: AuthContext, body: ImportBody) -> Task
                 pin="",
                 transcribe=body.transcribe,
                 skill_ids=body.skill_ids,
+                bot_display_name=body.bot_display_name,
             ),
         )
     if import_url_looks_like_meeting(body.url):

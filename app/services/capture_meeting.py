@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.crypto import decrypt_str, encrypt_str
-from app.models import OrgCaptureJitsiHost, Organization, WorkerNode
+from app.models import InstanceSettings, OrgCaptureJitsiHost, Organization, User, WorkerNode
 from app.services.capture_platforms import allowed_connectors, catalog_entry
 from app.services.export import safe_filename
 from app.services.import_platforms import host_from_url
@@ -22,6 +22,7 @@ _MEETING_URL_RE = re.compile(r"^https?://", re.I)
 _DEFAULT_JWT_APP_ID = "chat"
 DEFAULT_CAPTURE_BOT_DISPLAY_NAME = "Transcription Bot"
 _CAPTURE_BOT_NAME_MAX_LEN = 128
+_TELEMOST_HOSTS = frozenset({"telemost.yandex.ru", "telemost.yandex.com"})
 
 
 def normalize_capture_bot_display_name(raw: str | None) -> str | None:
@@ -36,6 +37,51 @@ def org_capture_bot_display_name(org: Organization) -> str:
     if stored:
         return stored
     return DEFAULT_CAPTURE_BOT_DISPLAY_NAME
+
+
+def resolve_capture_bot_display_name(
+    *,
+    user: User | None,
+    org: Organization,
+    override: str | None = None,
+) -> str:
+    """Per-request override, then user profile, then org default."""
+    explicit = normalize_capture_bot_display_name(override)
+    if explicit:
+        return explicit
+    if user is not None:
+        user_stored = normalize_capture_bot_display_name(user.capture_bot_display_name)
+        if user_stored:
+            return user_stored
+    return org_capture_bot_display_name(org)
+
+
+def resolve_capture_prefs(
+    user: User,
+    org: Organization | None,
+    settings: InstanceSettings,
+) -> dict[str, Any]:
+    org_effective = org_capture_bot_display_name(org) if org is not None else DEFAULT_CAPTURE_BOT_DISPLAY_NAME
+    user_raw = normalize_capture_bot_display_name(user.capture_bot_display_name)
+    org_raw = normalize_capture_bot_display_name(org.capture_bot_display_name if org is not None else None)
+    if org is not None:
+        effective = resolve_capture_bot_display_name(user=user, org=org)
+    elif user_raw:
+        effective = user_raw
+    else:
+        effective = DEFAULT_CAPTURE_BOT_DISPLAY_NAME
+    if user_raw:
+        source = "user"
+    elif org_raw:
+        source = "org"
+    else:
+        source = "default"
+    return {
+        "capture_enabled": bool(settings.capture_enabled),
+        "bot_display_name": effective,
+        "source": source,
+        "org_bot_display_name": org_effective,
+    }
 
 
 class CaptureMeetingError(Exception):
@@ -70,25 +116,60 @@ def normalize_host(host: str) -> str:
     return value
 
 
-def import_url_routes_to_capture(url: str, settings: InstanceSettings) -> bool:
-    """True when POST /tasks/import should create a capture task instead."""
-    from app.services.capture_platforms import allowed_connectors
-    from app.services.import_platforms import catalog_platform_for_host, host_from_url
-
-    if not settings.capture_enabled or "jitsi" not in allowed_connectors(settings):
-        return False
-    raw = url.strip()
-    host = normalize_host(host_from_url(raw))
-    if not host or catalog_platform_for_host(host) is not None:
-        return False
+def is_telemost_meeting_url(meeting_url: str) -> bool:
     try:
-        parse_meeting_room(raw)
+        parse_telemost_meeting(meeting_url)
         return True
     except CaptureMeetingError:
         return False
 
 
+def parse_telemost_meeting(meeting_url: str) -> tuple[str, str]:
+    raw = meeting_url.strip()
+    if not _MEETING_URL_RE.match(raw):
+        raise CaptureMeetingError("invalid_url")
+    parsed = urlparse(raw)
+    if parsed.scheme not in {"http", "https"}:
+        raise CaptureMeetingError("invalid_url")
+    host = normalize_host(parsed.hostname or "")
+    if host not in _TELEMOST_HOSTS:
+        raise CaptureMeetingError("invalid_url")
+    parts = [part for part in (parsed.path or "").strip("/").split("/") if part]
+    if len(parts) >= 2 and parts[0] in {"j", "private-join"} and parts[1]:
+        return host, parts[1]
+    raise CaptureMeetingError("invalid_url")
+
+
+def detect_capture_connector(meeting_url: str, settings_allowed: list[str]) -> str | None:
+    raw = meeting_url.strip()
+    if is_telemost_meeting_url(raw):
+        return "telemost" if "telemost" in settings_allowed else None
+    if "jitsi" not in settings_allowed:
+        return None
+    from app.services.import_platforms import catalog_platform_for_host, host_from_url
+
+    host = normalize_host(host_from_url(raw))
+    if not host or catalog_platform_for_host(host) is not None:
+        return None
+    try:
+        parse_meeting_room(raw)
+        return "jitsi"
+    except CaptureMeetingError:
+        return None
+
+
+def import_url_routes_to_capture(url: str, settings: InstanceSettings) -> bool:
+    """True when POST /tasks/import should create a capture task instead."""
+    from app.services.capture_platforms import allowed_connectors
+
+    if not settings.capture_enabled:
+        return False
+    return detect_capture_connector(url, allowed_connectors(settings)) is not None
+
+
 def import_url_looks_like_meeting(url: str) -> bool:
+    if is_telemost_meeting_url(url.strip()):
+        return True
     from app.services.import_platforms import catalog_platform_for_host, host_from_url
 
     raw = url.strip()
@@ -130,6 +211,11 @@ def capture_storage_stem(meta: dict[str, Any] | None) -> str:
         return safe_filename(unquote(room.strip()), fallback="capture")
     url = data.get("meeting_url")
     if isinstance(url, str) and url.strip():
+        try:
+            _, parsed_room = parse_telemost_meeting(url.strip())
+            return safe_filename(unquote(parsed_room), fallback="capture")
+        except CaptureMeetingError:
+            pass
         try:
             _, parsed_room = parse_meeting_room(url.strip())
             return safe_filename(unquote(parsed_room), fallback="capture")
@@ -182,6 +268,23 @@ def _sign_jitsi_jwt(
     return jwt.encode(payload, secret, algorithm="HS256")
 
 
+def capture_worker_candidates(db: Session, connector_id: str) -> list[WorkerNode]:
+    from app.services.capture_platforms import worker_offers_connector
+
+    rows = list(
+        db.scalars(
+            select(WorkerNode).where(WorkerNode.type == "capture", WorkerNode.enabled.is_(True))
+        ).all()
+    )
+    return [node for node in rows if worker_offers_connector(node, connector_id)]
+
+
+def pick_capture_worker(db: Session, connector_id: str) -> WorkerNode | None:
+    from app.services.dispatcher import pick_node
+
+    return pick_node(db, capture_worker_candidates(db, connector_id))
+
+
 def resolve_capture_target(
     db: Session,
     *,
@@ -191,13 +294,36 @@ def resolve_capture_target(
     settings_allowed: list[str],
     display_name: str = DEFAULT_CAPTURE_BOT_DISPLAY_NAME,
 ) -> CaptureTarget:
-    if "jitsi" not in settings_allowed:
+    connector = detect_capture_connector(meeting_url, settings_allowed)
+    if connector is None:
         raise CaptureMeetingError("capture_disabled")
-    if catalog_entry("jitsi") is None:
+    if catalog_entry(connector) is None:
         raise CaptureMeetingError("unsupported_connector")
 
+    raw_url = meeting_url.strip()
+
+    if connector == "telemost":
+        try:
+            host, meeting_id = parse_telemost_meeting(raw_url)
+        except CaptureMeetingError:
+            raise
+        except Exception as exc:
+            raise CaptureMeetingError("invalid_url") from exc
+        worker = pick_capture_worker(db, "telemost")
+        if worker is None:
+            raise CaptureMeetingError("capture_no_worker")
+        return CaptureTarget(
+            connector="telemost",
+            meeting_url=raw_url,
+            meeting_host=host,
+            meeting_room=meeting_id,
+            pin="",
+            worker=worker,
+            jwt=None,
+        )
+
     try:
-        host, room = parse_meeting_room(meeting_url)
+        host, room = parse_meeting_room(raw_url)
     except CaptureMeetingError:
         raise
     except Exception as exc:
@@ -220,7 +346,7 @@ def resolve_capture_target(
 
     return CaptureTarget(
         connector="jitsi",
-        meeting_url=meeting_url.strip(),
+        meeting_url=raw_url,
         meeting_host=host,
         meeting_room=room,
         pin=pin or "",

@@ -59,6 +59,8 @@ export function ProfilePage() {
   const [transcribeOk, setTranscribeOk] = useState(false)
   const [summarizeModel, setSummarizeModelLocal] = useState<'inherit' | string>('inherit')
   const [summarizeOk, setSummarizeOk] = useState(false)
+  const [captureBotName, setCaptureBotNameLocal] = useState('')
+  const [captureBotOk, setCaptureBotOk] = useState(false)
   const [defaultRoute, setDefaultRouteLocal] = useState<DefaultRoute>(() => {
     const stored = normalizeDefaultRoute(me?.user.default_route)
     const allowed = allowedDefaultRoutes(me)
@@ -131,6 +133,7 @@ export function ProfilePage() {
     else if (me.user.diarization_model === '') setDiarizationModelLocal('off')
     else setDiarizationModelLocal(me.user.diarization_model)
     setSummarizeModelLocal(me.user.summarize_model || 'inherit')
+    setCaptureBotNameLocal(me.user.capture_bot_display_name || '')
   }, [me])
 
   const dateTimePreview = useMemo(() => {
@@ -240,6 +243,35 @@ export function ProfilePage() {
       showError(e)
     }
   }
+
+  async function saveCaptureBotPrefs() {
+    setCaptureBotOk(false)
+    setSummarizeOk(false)
+    setTranscribeOk(false)
+    setRouteOk(false)
+    setOk(false)
+    setDateTimeOk(false)
+    try {
+      const trimmed = captureBotName.trim()
+      await api('/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          capture_bot_display_name: trimmed ? trimmed : null,
+        }),
+      })
+      await refresh()
+      setCaptureBotOk(true)
+    } catch (e) {
+      showError(e)
+    }
+  }
+
+  const captureBotEffective = useMemo(() => {
+    if (!me) return ''
+    const custom = captureBotName.trim()
+    if (custom) return custom
+    return me.capture_prefs.org_bot_display_name
+  }, [me, captureBotName])
 
   async function changePw(e: FormEvent) {
     e.preventDefault()
@@ -565,6 +597,32 @@ export function ProfilePage() {
             </div>
           </AdminFormCard>
         )}
+
+        {me?.capture_prefs.capture_enabled ? (
+          <AdminFormCard title={t('profile.captureBotTitle')} lead={t('profile.captureBotHint')}>
+            <label>
+              {t('org.captureBotDisplayName')}
+              <input
+                type="text"
+                value={captureBotName}
+                maxLength={128}
+                placeholder={t('profile.captureBotInherit', { value: me.capture_prefs.org_bot_display_name })}
+                onChange={(e) => {
+                  setCaptureBotOk(false)
+                  setCaptureBotNameLocal(e.target.value)
+                }}
+              />
+            </label>
+            <p className="muted">{t('org.captureBotDisplayNameHint')}</p>
+            <p className="muted">{t('profile.captureBotPreview', { name: captureBotEffective })}</p>
+            <div className="profile-actions">
+              <button className="primary" type="button" onClick={() => void saveCaptureBotPrefs()}>
+                {t('common.save')}
+              </button>
+              {captureBotOk && <p className="ok">{t('profile.saved')}</p>}
+            </div>
+          </AdminFormCard>
+        ) : null}
 
         <AdminFormCard title={t('profile.dateTimeTitle')} lead={t('profile.dateTimeHint')}>
           <label>

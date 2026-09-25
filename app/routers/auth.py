@@ -166,6 +166,7 @@ class MePatchBody(BaseModel):
     asr_model: str | None = None
     diarization_model: str | None = Field(default=None)
     summarize_model: str | None = None
+    capture_bot_display_name: str | None = None
     show_only_my_items: bool | None = None
 
 
@@ -317,6 +318,9 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
     )
 
     settings = get_instance_settings(db)
+    from app.services.capture_meeting import resolve_capture_prefs
+
+    capture_prefs = resolve_capture_prefs(ctx.user, ctx.org, settings)
     agreement_pending = user_agreement_required(
         user=ctx.user,
         org=ctx.org,
@@ -340,6 +344,7 @@ def _me_payload(ctx: AuthContext, db: Session) -> dict:
         "date_time_prefs": resolve_date_time_prefs(ctx.user, settings),
         "transcribe_prefs": resolve_transcribe_models(ctx.user, settings),
         "transcribe_models": aggregate_instance_models(db),
+        "capture_prefs": capture_prefs,
         **_summarize_me_payload(ctx.user, settings, db),
         "must_change_password": ctx.user.must_change_password
         or (
@@ -1024,6 +1029,15 @@ def patch_me(
                 validate_dispatchable_summarize_model(db, model=prefs["summarize_model"])
             except ValueError:
                 ctx.raise_error(ErrorCode.validation_error)
+    if "capture_bot_display_name" in data:
+        from app.services.capture_meeting import normalize_capture_bot_display_name
+
+        raw = data["capture_bot_display_name"]
+        if raw is None or not str(raw).strip():
+            ctx.user.capture_bot_display_name = None
+        else:
+            ctx.user.capture_bot_display_name = normalize_capture_bot_display_name(str(raw))
+        ctx.user.updated_at = utcnow()
     if "show_only_my_items" in data and data["show_only_my_items"] is not None:
         ctx.user.show_only_my_items = bool(data["show_only_my_items"])
         ctx.user.updated_at = utcnow()

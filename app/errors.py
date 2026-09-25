@@ -56,6 +56,7 @@ class ErrorCode(str, Enum):
     import_disabled = "import_disabled"
     capture_disabled = "capture_disabled"
     meeting_host_not_configured = "meeting_host_not_configured"
+    capture_no_worker = "capture_no_worker"
     invalid_capture_worker = "invalid_capture_worker"
     meeting_use_capture = "meeting_use_capture"
     proxy_unavailable = "proxy_unavailable"
@@ -112,6 +113,7 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.import_disabled: 403,
     ErrorCode.capture_disabled: 403,
     ErrorCode.meeting_host_not_configured: 400,
+    ErrorCode.capture_no_worker: 503,
     ErrorCode.invalid_capture_worker: 400,
     ErrorCode.meeting_use_capture: 400,
     ErrorCode.proxy_unavailable: 503,

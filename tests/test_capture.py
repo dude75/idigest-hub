@@ -8,6 +8,7 @@ from tests.conftest import (
     add_worker,
     default_tariff_id,
     err_code,
+    get_task_row,
     login_ready,
     logout,
     seed_node_health,
@@ -55,6 +56,40 @@ def test_normalize_host_accepts_meeting_url():
     assert normalize_host("https://meet.realweb.ru/") == "meet.realweb.ru"
     assert normalize_host("meet.realweb.ru/MyRoom") == "meet.realweb.ru"
     assert normalize_host("www.meet.example.com") == "meet.example.com"
+
+
+def test_instance_settings_lists_worker_connectors(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(
+        worker["id"],
+        {
+            "status": "ok",
+            "version": "x",
+            "connectors": {
+                "jitsi": {"status": "loaded", "label": "Jitsi Meet"},
+                "telemost": {"status": "loaded", "label": "Yandex Telemost"},
+                "zoom": {"status": "unavailable", "label": "Zoom", "reason": "disabled"},
+            },
+            "workers": {"max": 4, "active": 0, "available": 4},
+        },
+    )
+    response = client.get("/api/v1/instance/settings")
+    assert response.status_code == 200, response.text
+    connectors = response.json()["capture_connectors"]
+    ids = {item["id"] for item in connectors}
+    assert ids == {"jitsi", "telemost", "zoom"}
+    telemost = next(item for item in connectors if item["id"] == "telemost")
+    assert telemost["label"] == "Yandex Telemost"
+    assert telemost["enabled"] is False
+
+    patched = client.patch(
+        "/api/v1/instance/settings",
+        json={"capture_allowed_connectors": ["jitsi", "telemost"]},
+    )
+    assert patched.status_code == 200, patched.text
+    enabled = {item["id"] for item in patched.json()["capture_connectors"] if item["enabled"]}
+    assert enabled == {"jitsi", "telemost"}
 
 
 def test_capture_platforms(client):
@@ -232,6 +267,23 @@ def test_capture_meeting_host_not_configured(client, fake_workers):
     assert err_code(response) == "meeting_host_not_configured"
 
 
+def test_resolve_capture_bot_display_name_precedence():
+    from app.models import Organization, User
+    from app.services.capture_meeting import (
+        DEFAULT_CAPTURE_BOT_DISPLAY_NAME,
+        resolve_capture_bot_display_name,
+    )
+
+    org = Organization(capture_bot_display_name="Org Bot")
+    user = User(capture_bot_display_name="User Bot")
+    assert resolve_capture_bot_display_name(user=user, org=org) == "User Bot"
+    assert resolve_capture_bot_display_name(user=user, org=org, override="Once") == "Once"
+    user.capture_bot_display_name = None
+    assert resolve_capture_bot_display_name(user=user, org=org) == "Org Bot"
+    org.capture_bot_display_name = None
+    assert resolve_capture_bot_display_name(user=user, org=org) == DEFAULT_CAPTURE_BOT_DISPLAY_NAME
+
+
 def test_capture_uses_org_bot_display_name(client, fake_workers):
     setup_admin(client)
     worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
@@ -257,6 +309,114 @@ def test_capture_uses_org_bot_display_name(client, fake_workers):
     task_id = created.json()["task_id"]
     wait_task(client, task_id, status={"success"})
     assert fake_workers.last_capture_display_name == "Realweb Recorder"
+
+
+def test_capture_user_bot_display_name_overrides_org(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "capuserbot@example.com", "capuserbotpass1", tariff_id).status_code == 200
+    login_ready(client, "capuserbot@example.com", "capuserbotpass1")
+    mapped = client.put(
+        "/api/v1/org/capture/jitsi",
+        json={
+            "bot_display_name": "Org Default Bot",
+            "items": [{"host": "meet.example.com", "worker_id": worker["id"]}],
+        },
+    )
+    assert mapped.status_code == 200, mapped.text
+    patched = client.patch("/api/v1/me", json={"capture_bot_display_name": "Personal Bot"})
+    assert patched.status_code == 200, patched.text
+    prefs = patched.json()["capture_prefs"]
+    assert prefs["bot_display_name"] == "Personal Bot"
+    assert prefs["source"] == "user"
+    assert prefs["capture_enabled"] is True
+
+    created = client.post(
+        "/api/v1/tasks/capture",
+        json={"meeting_url": "https://meet.example.com/room1"},
+    )
+    assert created.status_code == 202, created.text
+    task_id = created.json()["task_id"]
+    wait_task(client, task_id, status={"success"})
+    assert fake_workers.last_capture_display_name == "Personal Bot"
+
+
+def test_capture_request_bot_display_name_override(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(worker["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "capreqbot@example.com", "capreqbotpass1", tariff_id).status_code == 200
+    login_ready(client, "capreqbot@example.com", "capreqbotpass1")
+    _map_jitsi_host(client, worker["id"])
+    client.patch("/api/v1/me", json={"capture_bot_display_name": "Profile Bot"})
+
+    created = client.post(
+        "/api/v1/tasks/capture",
+        json={
+            "meeting_url": "https://meet.example.com/room1",
+            "bot_display_name": "One-off Bot",
+        },
+    )
+    assert created.status_code == 202, created.text
+    task_id = created.json()["task_id"]
+    wait_task(client, task_id, status={"success"})
+    assert fake_workers.last_capture_display_name == "One-off Bot"
+
+
+def test_parse_telemost_meeting_url():
+    from app.services.capture_meeting import parse_telemost_meeting
+
+    host, meeting_id = parse_telemost_meeting("https://telemost.yandex.ru/j/50")
+    assert host == "telemost.yandex.ru"
+    assert meeting_id == "50"
+
+
+def test_capture_telemost_success(client, fake_workers):
+    setup_admin(client)
+    fake_workers.health = {
+        "status": "ok",
+        "version": "x",
+        "connectors": {
+            "jitsi": {"status": "loaded", "label": "Jitsi Meet"},
+            "telemost": {"status": "loaded", "label": "Yandex Telemost"},
+        },
+        "workers": {"max": 4, "active": 0, "available": 4},
+    }
+    worker = add_worker(
+        client,
+        type="capture",
+        name="cap",
+        base_url="http://capture.test",
+        capture_connectors=["jitsi", "telemost"],
+    )
+    seed_node_health(worker["id"], dict(fake_workers.health))
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"capture_enabled": True, "capture_allowed_connectors": ["jitsi", "telemost"]},
+    )
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "captele@example.com", "captelepass1", tariff_id).status_code == 200
+    login_ready(client, "captele@example.com", "captelepass1")
+
+    created = client.post(
+        "/api/v1/tasks/capture",
+        json={"meeting_url": "https://telemost.yandex.ru/j/50"},
+    )
+    assert created.status_code == 202, created.text
+    body = created.json()
+    task_id = body["task_id"]
+    wait_task(client, task_id, status={"success"})
+    row = get_task_row(task_id)
+    assert row is not None
+    meta = row.meta_json or {}
+    assert meta.get("connector") == "telemost"
+    assert meta.get("meeting_url") == "https://telemost.yandex.ru/j/50"
+    assert meta.get("pin") in ("", None)
 
 
 def test_capture_success(client, fake_workers):

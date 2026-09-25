@@ -10,10 +10,14 @@ import { emptyWorker } from './constants'
 import { normalizeCaptureCapacitySummary, typeHubWorkerCapacity, workerCapacityCell } from './workerCapacity'
 import { WorkerImpactModal } from './WorkerImpactModal'
 
-const SELECTABLE_STATUSES = new Set(['loaded', 'unavailable'])
+const LOADED_CONNECTOR_STATUS = 'loaded'
 
 function selectableEngines(models: WorkerEngineOption[] | undefined) {
-  return (models || []).filter((item) => SELECTABLE_STATUSES.has(item.status))
+  return (models || []).filter((item) => item.status === LOADED_CONNECTOR_STATUS || item.status === 'unavailable')
+}
+
+function loadedCaptureConnectors(models: WorkerEngineOption[] | undefined) {
+  return (models || []).filter((item) => item.status === LOADED_CONNECTOR_STATUS)
 }
 
 export function InstanceWorkersTab() {
@@ -108,7 +112,7 @@ export function InstanceWorkersTab() {
 
   function toggleCaptureConnector(connectorId: string) {
     const status = probe?.connectors?.find((item) => item.id === connectorId)?.status
-    if (status && !SELECTABLE_STATUSES.has(status)) return
+    if (status !== LOADED_CONNECTOR_STATUS) return
     setWform((prev) => {
       const current = prev.capture_connectors
       const next = current.includes(connectorId)
@@ -159,12 +163,12 @@ export function InstanceWorkersTab() {
         }))
       }
       if (wform.type === 'capture') {
-        const connectorIds = selectableEngines(result.connectors).map((item) => item.id)
+        const loadedIds = loadedCaptureConnectors(result.connectors).map((item) => item.id)
         setWform((prev) => {
-          const kept = prev.capture_connectors.filter((id) => connectorIds.includes(id))
+          const kept = prev.capture_connectors.filter((id) => loadedIds.includes(id))
           return {
             ...prev,
-            capture_connectors: kept.length > 0 ? kept : connectorIds,
+            capture_connectors: kept.length > 0 ? kept : loadedIds,
           }
         })
       }
@@ -395,7 +399,7 @@ export function InstanceWorkersTab() {
                   <legend>{t('instance.captureConnectors')}</legend>
                   {allProbeConnectors.length === 0 ? <p className="muted">{t('instance.workerModelsEmpty')}</p> : null}
                   {allProbeConnectors.map((item) => {
-                    const selectable = SELECTABLE_STATUSES.has(item.status)
+                    const selectable = item.status === LOADED_CONNECTOR_STATUS
                     return (
                       <label className="row" key={item.id}>
                         <input
@@ -405,7 +409,7 @@ export function InstanceWorkersTab() {
                           onChange={() => toggleCaptureConnector(item.id)}
                         />
                         <span className="grow">
-                          <strong>{item.id}</strong>
+                          <strong>{item.label?.trim() || item.id}</strong>
                           <span className="muted"> — {item.status}</span>
                         </span>
                       </label>

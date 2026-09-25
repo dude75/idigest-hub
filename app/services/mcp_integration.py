@@ -122,6 +122,8 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             "- Call create_audio_import ONCE per meeting. That URL becomes a capture task (type=capture). "
             "Never call create_audio_import again for the same meeting to leave, stop, or transcribe — "
             "a second call starts a new bot join.\n"
+            "- Optional bot_display_name on create_audio_import sets the bot name in the meeting for that job "
+            "(overrides user profile and org default).\n"
             "- While recording: poll get_task(task_id) on the capture task; when the user should leave, "
             "call stop_capture_task(task_id) once, then keep polling the same task_id until status=success "
             "and audio_id is set.\n"
@@ -237,20 +239,21 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             "Start ONE async import or meeting capture from URL. Meeting links become type=capture "
             "(bot joins once). Do not call again for the same meeting — use stop_capture_task + get_task, "
             "then create_transcribe(audio_id) or set transcribe=true here and poll follow_up_task_id. "
-            "Requires tasks:write."
+            "Optional bot_display_name overrides user/org default for capture jobs. Requires tasks:write."
         ),
     )
     async def create_audio_import(
         url: str,
         transcribe: bool = False,
         skill_ids: list[str] | None = None,
+        bot_display_name: str | None = None,
     ) -> str:
         return await _mcp_json_tool(
             create_audio_import_payload,
             tool="create_audio_import",
             commit=True,
             post_commit=lambda payload: _schedule_task(payload, refresh_health=False),
-        )(url=url, transcribe=transcribe, skill_ids=skill_ids)
+        )(url=url, transcribe=transcribe, skill_ids=skill_ids, bot_display_name=bot_display_name)
 
     @server.tool(
         name="get_task",

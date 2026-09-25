@@ -41,6 +41,7 @@ def user_public(
         "asr_model": user.asr_model,
         "diarization_model": user.diarization_model,
         "summarize_model": user.summarize_model,
+        "capture_bot_display_name": user.capture_bot_display_name,
         "show_only_my_items": user.show_only_my_items,
         "disabled": user.disabled_at is not None,
         "must_change_password": user.must_change_password,

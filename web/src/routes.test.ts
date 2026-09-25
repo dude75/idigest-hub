@@ -20,6 +20,7 @@ const baseMe: Me = {
     asr_model: null,
     diarization_model: null,
     summarize_model: null,
+    capture_bot_display_name: null,
     show_only_my_items: false,
     disabled: false,
     must_change_password: false,
@@ -53,6 +54,12 @@ const baseMe: Me = {
   },
   summarize_models: {
     summarize_models: [],
+  },
+  capture_prefs: {
+    capture_enabled: false,
+    bot_display_name: 'Transcription Bot',
+    source: 'default',
+    org_bot_display_name: 'Transcription Bot',
   },
   org: {
     id: 'o1',

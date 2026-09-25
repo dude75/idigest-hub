@@ -164,6 +164,7 @@ class User(Base):
     asr_model: Mapped[str | None] = mapped_column(String(32))
     diarization_model: Mapped[str | None] = mapped_column(String(32))
     summarize_model: Mapped[str | None] = mapped_column(String(255))
+    capture_bot_display_name: Mapped[str | None] = mapped_column(String(128))
     show_only_my_items: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

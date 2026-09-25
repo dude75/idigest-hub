@@ -77,7 +77,7 @@ def capture_platforms(
                 jitsi_hosts.append(host)
     return {
         "enabled": settings.capture_enabled,
-        "connectors": public_connectors(settings),
+        "connectors": public_connectors(settings, db),
         "jitsi_hosts": jitsi_hosts,
     }
 

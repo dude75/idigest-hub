@@ -503,12 +503,15 @@ export function InstanceSettingsTab() {
           </label>
           <p className="muted">{t('instance.captureConnectorsHint')}</p>
           <div className="stack">
+            {settings.capture_connectors.length === 0 ? (
+              <p className="muted">{t('instance.captureConnectorsEmpty')}</p>
+            ) : null}
             {settings.capture_connectors.map((connector) => (
               <label className="row" key={connector.id}>
                 <input
                   type="checkbox"
                   checked={connector.enabled}
-                  disabled={!settings.capture_enabled}
+                  disabled={!settings.capture_enabled || connector.status === 'unavailable'}
                   onChange={(e) =>
                     setSettings({
                       ...settings,
@@ -520,6 +523,9 @@ export function InstanceSettingsTab() {
                 />
                 <span className="grow">
                   <strong>{connector.label}</strong>
+                  {connector.status && connector.status !== 'loaded' ? (
+                    <span className="muted"> — {connector.status}</span>
+                  ) : null}
                 </span>
               </label>
             ))}

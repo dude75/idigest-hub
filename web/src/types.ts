@@ -21,6 +21,7 @@ export type User = {
   asr_model: string | null
   diarization_model: string | null
   summarize_model: string | null
+  capture_bot_display_name: string | null
   show_only_my_items: boolean
   disabled: boolean
   must_change_password: boolean
@@ -129,6 +130,13 @@ export type SummarizePrefs = {
   instance_summarize_model: string | null
 }
 
+export type CapturePrefs = {
+  capture_enabled: boolean
+  bot_display_name: string
+  source: 'user' | 'org' | 'default'
+  org_bot_display_name: string
+}
+
 export type SummarizeModels = {
   summarize_models: string[]
 }
@@ -148,6 +156,7 @@ export type Me = {
   transcribe_models: TranscribeModels
   summarize_prefs: SummarizePrefs
   summarize_models: SummarizeModels
+  capture_prefs: CapturePrefs
   must_change_password: boolean
   mfa_enabled: boolean
   mfa_required: boolean
@@ -357,6 +366,7 @@ export type WorkersListSummary = {
 export type WorkerEngineOption = {
   id: string
   status: string
+  label?: string
 }
 
 export type WorkerProbeResult = {
@@ -453,6 +463,7 @@ export type CaptureConnector = {
   id: string
   label: string
   enabled: boolean
+  status?: string
 }
 
 export type CapturePlatformsResponse = {

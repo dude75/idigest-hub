@@ -190,12 +190,18 @@ def create_audio_import_payload(
     url: str,
     transcribe: bool = False,
     skill_ids: list[str] | None = None,
+    bot_display_name: str | None = None,
 ) -> dict:
     _require_oauth_scope(ctx, SCOPE_TASKS_WRITE)
     task = enqueue_import_task(
         db,
         ctx,
-        ImportBody(url=url, transcribe=transcribe, skill_ids=list(skill_ids or [])),
+        ImportBody(
+            url=url,
+            transcribe=transcribe,
+            skill_ids=list(skill_ids or []),
+            bot_display_name=bot_display_name,
+        ),
     )
     return task_public(task)
 

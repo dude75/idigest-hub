@@ -583,6 +583,8 @@ def _fail_capture_meeting_error(db: Session, task: Task, exc: Any) -> None:
         fail_code = "invalid_url"
     elif code == "meeting_host_not_configured":
         fail_code = "meeting_host_not_configured"
+    elif code == "capture_no_worker":
+        fail_code = "capture_no_worker"
     else:
         fail_code = "pipeline_error"
     meta: dict[str, Any] | None = None
@@ -612,10 +614,16 @@ def _bind_capture_worker(db: Session, task: Task, settings: Any) -> WorkerNode |
         _fail_task(db, task, "not_found")
         return None
 
-    from app.services.capture_meeting import CaptureMeetingError, org_capture_bot_display_name, resolve_capture_target
+    from app.models import User
+    from app.services.capture_meeting import CaptureMeetingError, resolve_capture_bot_display_name, resolve_capture_target
     from app.services.capture_platforms import allowed_connectors
 
-    display_name = str(meta.get("display_name") or org_capture_bot_display_name(org))
+    stored_name = meta.get("display_name")
+    if isinstance(stored_name, str) and stored_name.strip():
+        display_name = stored_name.strip()
+    else:
+        user = db.get(User, task.user_id) if task.user_id else None
+        display_name = resolve_capture_bot_display_name(user=user, org=org)
     pin = str(meta.get("pin") or "")
     try:
         target = resolve_capture_target(

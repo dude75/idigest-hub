@@ -254,17 +254,17 @@ def _apply_capture_worker_models(
     probe_health: dict | None,
     ctx: AuthContext,
 ) -> None:
-    from app.services.capture_platforms import normalize_allowed_connectors, selectable_connector_ids
+    from app.services.capture_platforms import validate_worker_capture_connectors
 
     if body.type != "capture":
         node.capture_connectors_json = None
         return
     if body.capture_connectors is None:
         return
-    allowed = set(selectable_connector_ids(probe_health or node.last_health))
-    selected = normalize_allowed_connectors(body.capture_connectors)
-    filtered = [item for item in selected if item in allowed]
-    if body.capture_connectors is not None and not filtered:
+    health = probe_health or node.last_health
+    try:
+        filtered = validate_worker_capture_connectors(body.capture_connectors, health)
+    except ValueError:
         ctx.raise_error(ErrorCode.validation_error)
     node.capture_connectors_json = filtered
 
@@ -391,12 +391,12 @@ async def probe_worker(
     if body.type == "transcribe":
         payload.update(parse_worker_engines(health))
     if body.type == "capture":
-        from app.services.capture_platforms import parse_worker_connectors
+        from app.services.capture_platforms import parse_worker_connector_meta
 
-        connectors = parse_worker_connectors(health)
+        connectors = parse_worker_connector_meta(health)
         payload["connectors"] = [
-            {"id": key, "status": value, "label": key}
-            for key, value in sorted(connectors.items())
+            {"id": key, "status": info["status"], "label": info["label"]}
+            for key, info in sorted(connectors.items())
         ]
     if body.type == "summarize":
         from app.services.summarize_model import summarize_model_from_health
@@ -497,11 +497,11 @@ async def patch_worker(
     ):
         await refresh_node_health(db, node)
         _apply_transcribe_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
-    elif body.type == "capture" and (
-        body.api_token or base_url != old_base_url or body.capture_connectors is not None
-    ):
-        await refresh_node_health(db, node)
-        _apply_capture_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
+    elif body.type == "capture":
+        if body.capture_connectors is not None or body.api_token or base_url != old_base_url:
+            await refresh_node_health(db, node)
+        if body.capture_connectors is not None:
+            _apply_capture_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
     if body.type != "transcribe":
         node.asr_models_json = None
         node.diarization_models_json = None
@@ -557,11 +557,11 @@ def worker_change_impact(
     if body.type not in {"transcribe", "summarize", "capture"}:
         ctx.raise_error(ErrorCode.validation_error)
     if body.type == "capture":
-        from app.services.capture_platforms import normalize_allowed_connectors
+        from app.services.capture_platforms import normalize_worker_capture_connectors
         from app.services.worker_impact import compute_worker_capture_change_impact
 
         connectors = (
-            normalize_allowed_connectors(body.capture_connectors)
+            normalize_worker_capture_connectors(body.capture_connectors, node.last_health)
             if body.capture_connectors is not None
             else list(node.capture_connectors_json or [])
         )
@@ -844,7 +844,7 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "capture_enabled": s.capture_enabled,
         "capture_connectors": __import__(
             "app.services.capture_platforms", fromlist=["admin_connectors"]
-        ).admin_connectors(s),
+        ).admin_connectors(s, db),
         "download_proxy_url": s.download_proxy_url,
         "download_proxy_configured": bool(proxy_url.strip()),
         "download_proxy_enabled": s.download_proxy_enabled,
@@ -996,7 +996,7 @@ def patch_settings(
 
         raw = data.pop("capture_allowed_connectors")
         try:
-            s.capture_allowed_connectors_json = validate_allowed_connectors(list(raw or []))
+            s.capture_allowed_connectors_json = validate_allowed_connectors(db, s, list(raw or []))
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
     if "session_ttl_hours" in data:

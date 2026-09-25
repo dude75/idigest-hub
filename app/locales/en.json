@@ -43,6 +43,7 @@
   "import_disabled": "URL import is disabled on this instance.",
   "capture_disabled": "Meeting capture is disabled on this instance.",
   "meeting_host_not_configured": "This meeting host is not configured for your organization.",
+  "capture_no_worker": "No capture worker is available for this meeting type. Check instance workers and allowed connectors.",
   "invalid_capture_worker": "Unknown or invalid capture worker.",
   "meeting_use_capture": "Use meeting capture for this Jitsi link, not URL import.",
   "mfa_required": "Two-factor authentication is required.",
