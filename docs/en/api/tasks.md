@@ -31,6 +31,53 @@ At least one skill required. Each skill must be accessible (see [Skills domain](
 
 Errors: `not_found`, `forbidden`, `validation_error`, `insufficient_balance`.
 
+## POST `/tasks/import`
+
+**202 Accepted**
+
+```json
+{
+  "url": "https://…",
+  "transcribe": false,
+  "skill_ids": [],
+  "bot_display_name": "Optional bot name"
+}
+```
+
+URL import (YouTube, etc.) when the host matches configured extractors, or **meeting capture** when capture is enabled and the URL matches an allowed connector (`jitsi`, `telemost`, …). Capture jobs get `type: "capture"`; file imports get `type: "import"`. Optional `transcribe` + `skill_ids` chain transcribe after success. `bot_display_name` overrides user/org capture bot name for that job only.
+
+Errors: `import_disabled`, `capture_disabled`, `validation_error`, `insufficient_balance`, task errors such as `meeting_host_not_configured` (Jitsi host not mapped for org).
+
+## POST `/tasks/capture`
+
+**202 Accepted** — explicit capture (same pipeline as import when URL routes to capture):
+
+```json
+{
+  "meeting_url": "https://…",
+  "pin": "",
+  "transcribe": false,
+  "skill_ids": [],
+  "bot_display_name": null
+}
+```
+
+`pin` is used for connectors that require it (not Telemost). Requires `capture_enabled`.
+
+## GET `/capture/platforms`
+
+Auth required. Discovery for library import/capture UI and agents:
+
+```json
+{
+  "enabled": true,
+  "connectors": [{ "id": "jitsi", "label": "Jitsi Meet" }],
+  "jitsi_hosts": ["meet.example.com"]
+}
+```
+
+`connectors` lists instance-allowed connectors (labels from worker health when available). `jitsi_hosts` lists org-mapped Jitsi hostnames when capture and `jitsi` are enabled.
+
 ## GET `/tasks`
 
 Query parameters:
@@ -124,7 +171,7 @@ curl -sS -b cookies.txt \
   http://127.0.0.1:8080/api/v1/tasks/TASK_UUID
 ```
 
-MCP equivalents: [MCP tools](mcp.md) — `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task`. Scope: `tasks:write`.
+MCP equivalents: [MCP tools](mcp.md) — `list_capture_platforms`, `create_audio_import`, `create_transcribe`, `create_summary`, `get_task`, `stop_capture_task`. Scope: `tasks:write`.
 
 ## Related pages
 

@@ -39,7 +39,7 @@ Extended from [README — Typical errors](../../../README.md#typical-errors).
 | Engines not `loaded` | Model not ready on worker | Worker startup / GPU |
 | Summarize never dispatches | `/ready` not 200 | Configure LLM on [isummarize-worker](https://github.com/dude75/isummarize-worker) |
 | Summarize stays `queued`, `no_matching_worker` | Snapshotted LLM name is not offered by any enabled summarize worker | Instance → Settings or Profile: pick a model a live worker reports; or remediate when deleting the last worker for that model |
-| Capture stays `queued` / does not start | Assigned capture node not dispatch-ready, `workers.available` is 0, or legacy one-job-per-node busy | Instance → Workers: connector `loaded`, capacity; org host → correct capture worker |
+| Capture stays `queued` / does not start | No enabled capture node offers the meeting connector (`loaded`), `workers.available` is 0, or legacy one-job-per-node busy | Instance → Workers: connector `loaded`, capacity; Instance → Settings: capture enabled + connector allowed; Jitsi: org host mapped in Org → capture |
 | 404 redispatch loop | Worker restarted | Usually self-heals; check worker stability |
 
 ## Data and encryption

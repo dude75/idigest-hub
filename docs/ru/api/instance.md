@@ -61,7 +61,7 @@
 
 - Transcribe: `lost_model_pairs`, `available_pairs`, `suggested_replacement`, затронутые пользователи и queued/running задачи, `can_remediate`.
 - Summarize: `lost_summarize_models`, `available_summarize_models`, `suggested_summarize_replacement`, затронутые пользователи и задачи, `can_remediate`.
-- Capture: `capture_jitsi_hosts`, `capture_tasks_count`, `available_capture_workers`, `suggested_capture_worker`, `can_remediate`.
+- Capture: `capture_tasks_count`, `capture_losing_jitsi` (при снятии connector `jitsi`), `available_capture_workers`, `suggested_capture_worker`, `can_remediate`. (`capture_jitsi_hosts` всегда пуст — карты Jitsi org не привязаны к воркерам.)
 
 ### POST `/workers/{id}/change-impact`
 
@@ -81,9 +81,9 @@
 | ---- | --- | ------ |
 | `asr_model`, `diarization_model` | transcribe | Перевести default инстанса, переопределения пользователей и queued/running задачи, которые потеряли бы пару, на пару, которую ещё отдают |
 | `summarize_model` | summarize | То же для имени LLM |
-| `capture_worker_id` | capture | Перенести карты Jitsi host организаций и queued capture-задачи на другой включённый capture-воркер с `jitsi`. Running capture возвращаются в очередь |
+| `capture_worker_id` | capture | Переназначить queued capture-задачи этой ноды на другой включённый capture-воркер с `jitsi`. Running capture возвращаются в очередь |
 
-Без `remediation` нода всё равно удаляется. Hub снимает внешние ключи: строки Jitsi host этого воркера удаляются (`cleanup.jitsi_hosts_removed`); у задач, которые на него ссылались, очищается `worker_id` (`cleanup.tasks_updated`). Running capture возвращаются в `queued`. Hub-задачи не помечаются canceled.
+Без `remediation` нода всё равно удаляется. Cleanup очищает `worker_id` у задач, которые на неё ссылались (`cleanup.tasks_updated`; `cleanup.jitsi_hosts_removed` остаётся `0` — строки Jitsi host org не привязаны к воркерам). Running capture возвращаются в `queued`. Hub-задачи не помечаются canceled.
 
 Ответ: `{ "status": "ok" }`, плюс `remediation` и/или `cleanup`, если они выполнились. Неизвестная замена → `validation_error`.
 
@@ -207,7 +207,7 @@ Query (те же правила дат, что у stats):
 
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, модели транскрибации по умолчанию (`asr_model`, `diarization_model`), списки доступных моделей транскрибации (`asr_models[]`, `diarization_models[]`), модель summarize по умолчанию (`summarize_model`) и `summarize_models[]`, import settings, `date_time_format`, `timezone`, rate limit matrix. Также `smtp_configured`: true только при host, from-address **и** `public_base_url` (нужно для писем сброса пароля и public summary links).
+SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, модели транскрибации по умолчанию (`asr_model`, `diarization_model`), списки доступных моделей транскрибации (`asr_models[]`, `diarization_models[]`), модель summarize по умолчанию (`summarize_model`) и `summarize_models[]`, import settings, `capture_enabled`, `capture_connectors[]` (каталог с воркеров с флагами `enabled` для разрешённых на инстансе id), `date_time_format`, `timezone`, rate limit matrix. Также `smtp_configured`: true только при host, from-address **и** `public_base_url` (нужно для писем сброса пароля и public summary links).
 
 ### PATCH `/instance/settings`
 
@@ -218,6 +218,7 @@ SMTP host/port/user/from/tls (password не возвращается), `allow_ne
 - Models: `asr_model`, `diarization_model` (должны быть в объединённом списке воркеров, если воркеры есть; пустой `diarization_model` отключает диаризацию); `summarize_model` (должен быть в `summarize_models`, если воркеры отдают имена)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)
 - Import: `import_enabled`, `import_allowed_extractors`, `download_proxy_*`, `download_cookies_path`, `import_audio_bitrate_kbps`
+- Capture: `capture_enabled`, `capture_allowed_connectors` (непустое подмножество каталога connectors)
 - Session: `session_ttl_hours`
 - Rate limits: `rate_limit_enabled`, `rate_limit_login_email`, `rate_limit_public_link_ip`, `rate_limit_public_pin_ip`, … (см. README)
 

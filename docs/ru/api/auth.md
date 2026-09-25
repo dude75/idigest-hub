@@ -104,7 +104,7 @@ Access token (JWT) принимается в **REST** `/api/v1` как `Authoriz
 | `summaries:write` | — | `update_summary`, `delete_summary` |
 | `skills:read` | — | `list_skills`, `get_skill` |
 | `skills:write` | — | `create_skill`, `update_skill`, `delete_skill` |
-| `tasks:write` | — | `list_capture_platforms`, `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
+| `tasks:write` | — | `list_capture_platforms`, `create_audio_import`, `create_transcribe`, `create_summary`, `get_task`, `stop_capture_task` |
 
 Если клиент не указал `scope`, выдаются все поддерживаемые scope. Подробно про tools: **[mcp.md](mcp.md)**.
 
@@ -235,6 +235,12 @@ Access token (JWT) принимается в **REST** `/api/v1` как `Authoriz
     "summarize_model", "source", "instance_summarize_model"
   },
   "summarize_models": { "summarize_models": [] },
+  "capture_prefs": {
+    "capture_enabled": true,
+    "bot_display_name": "…",
+    "source": "user|org|default",
+    "org_bot_display_name": "…"
+  },
   "must_change_password": false,
   "mfa_enabled": false,
   "mfa_required": false,
@@ -256,7 +262,8 @@ Access token (JWT) принимается в **REST** `/api/v1` как `Authoriz
   "timezone": "GMT+3",
   "asr_model": "parakeet",
   "diarization_model": "",
-  "summarize_model": "llm-b"
+  "summarize_model": "llm-b",
+  "capture_bot_display_name": "My bot"
 }
 ```
 
@@ -271,6 +278,8 @@ Access token (JWT) принимается в **REST** `/api/v1` как `Authoriz
 `diarization_model`: id из `transcribe_models.diarization_models`, `null` — наследовать default инстанса, или `""` — отключить диаризацию для своих задач.
 
 `summarize_model`: имя из `summarize_models.summarize_models`, или `null` — наследовать default инстанса. Разрешённое значение в `summarize_prefs` (`source`: `user` или `instance`). Неизвестное имя → `validation_error`.
+
+`capture_bot_display_name`: опциональное имя бота для capture, или `null` — наследовать org/default. Эффективное имя для новых capture job — в `capture_prefs` (`source`: `user`, `org` или `default`).
 
 ## Резервная копия профиля
 

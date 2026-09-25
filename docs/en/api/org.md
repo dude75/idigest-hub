@@ -78,6 +78,46 @@ Errors: `sso_misconfigured` when enabling without valid issuer/client, client se
 
 Member login URL: `{public_url}/sso/{org_id}` (also in GET response when Public URL is set).
 
+## Meeting capture (Jitsi hosts)
+
+org_admin. Requires instance capture enabled with `jitsi` in allowed connectors.
+
+### GET `/org/capture/jitsi`
+
+```json
+{
+  "allowed": true,
+  "bot_display_name": "Org bot default",
+  "items": [
+    {
+      "id": "uuid",
+      "host": "meet.example.com",
+      "jwt_app_id": "optional",
+      "jwt_secret_configured": true
+    }
+  ],
+  "workers": [{ "id": "uuid", "name": "Capture node 1" }]
+}
+```
+
+`workers` lists enabled capture nodes (informational — hosts are **not** bound to a worker id). JWT secret is write-only on update.
+
+### PUT `/org/capture/jitsi`
+
+Replace host list and optionally org default bot name:
+
+```json
+{
+  "bot_display_name": "Team recorder",
+  "items": [
+    { "host": "meet.example.com", "jwt_app_id": "myapp", "jwt_secret": "…" },
+    { "id": "existing-uuid", "host": "jitsi.internal", "clear_jwt_secret": true }
+  ]
+}
+```
+
+Errors: `capture_disabled`, `validation_error`.
+
 ## Statistics
 
 ### GET `/org/stats`

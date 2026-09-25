@@ -16,6 +16,10 @@
 
 Элементы списка/деталей включают share badges: `share_kind`, `shared_with`, `shared_by`, `hidden`, `owner_email`.
 
+### GET `/capture/platforms`
+
+Discovery capture встреч: `{ "enabled", "connectors": [{ "id", "label" }], "jitsi_hosts": [] }`. См. [Tasks API](tasks.md#get-captureplatforms).
+
 ## Transcripts
 
 | Method | Path | Описание |

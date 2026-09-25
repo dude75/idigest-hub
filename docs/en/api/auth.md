@@ -102,7 +102,7 @@ JWT access tokens work as `Authorization: Bearer` alongside PAT (`idg_…`) on *
 | `summaries:write` | — | `update_summary`, `delete_summary` |
 | `skills:read` | — | `list_skills`, `get_skill` |
 | `skills:write` | — | `create_skill`, `update_skill`, `delete_skill` |
-| `tasks:write` | — | `list_capture_platforms`, `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
+| `tasks:write` | — | `list_capture_platforms`, `create_audio_import`, `create_transcribe`, `create_summary`, `get_task`, `stop_capture_task` |
 
 If the client omits `scope`, the hub grants every supported scope. Full tool reference: **[mcp.md](mcp.md)**.
 
@@ -233,6 +233,12 @@ Admin reset (clears 2FA without user code): [Org reset-MFA](org.md#post-orgusers
     "summarize_model", "source", "instance_summarize_model"
   },
   "summarize_models": { "summarize_models": [] },
+  "capture_prefs": {
+    "capture_enabled": true,
+    "bot_display_name": "…",
+    "source": "user|org|default",
+    "org_bot_display_name": "…"
+  },
   "must_change_password": false,
   "mfa_enabled": false,
   "mfa_required": false,
@@ -254,7 +260,8 @@ When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, 
   "timezone": "GMT+3",
   "asr_model": "parakeet",
   "diarization_model": "",
-  "summarize_model": "llm-b"
+  "summarize_model": "llm-b",
+  "capture_bot_display_name": "My bot"
 }
 ```
 
@@ -269,6 +276,8 @@ When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, 
 `diarization_model`: model id from `transcribe_models.diarization_models`, `null` to inherit instance default, or `""` to disable diarization for your tasks.
 
 `summarize_model`: name from `summarize_models.summarize_models`, or `null` to inherit the instance default. Resolved value is in `summarize_prefs` (`source`: `user` or `instance`). Unknown name → `validation_error`.
+
+`capture_bot_display_name`: optional override for meeting capture bot display name, or `null` to inherit org/default. Effective name for new capture jobs is in `capture_prefs` (`source`: `user`, `org`, or `default`).
 
 ## Profile backup
 

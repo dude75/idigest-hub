@@ -54,11 +54,11 @@ Default задаёт instance admin в **Instance → Settings → Сервис�
 
 ### Capture
 
-Захват встреч требует **Instance → Settings** (`capture_enabled`, разрешённые connectors) и привязки Jitsi host → worker на уровне org — см. настройки инстанса в UI.
+Захват встреч требует **Instance → Settings** (`capture_enabled`, разрешённые connectors). Каталог connectors — объединение id из `/health` capture-воркеров (с label) и разрешённых на инстансе id (`jitsi`, `telemost`, `zoom`, …). Для **Jitsi** org admin задаёт **host** встречи (hostname + опционально JWT) в **Org → capture** — без привязки к конкретному воркеру.
 
 1. Указать `base_url` и `api_token`.
 2. **Проверить подключение** (`POST /workers/probe`) — hub проверяет Bearer-токен и читает connectors из `GET /health`.
-3. Выбрать один или несколько **connectors**, которые обслуживает нода (`jitsi`, `zoom`, … — подмножество разрешённых на инстансе и со статусом `loaded` на воркере).
+3. Выбрать один или несколько **connectors**, которые обслуживает нода (подмножество разрешённых на инстансе со статусом `loaded` на воркере).
 4. Сохранить. Нужен хотя бы один connector.
 
 ```json
@@ -73,7 +73,7 @@ Default задаёт instance admin в **Instance → Settings → Сервис�
 }
 ```
 
-Capture-задачи привязаны к worker, выбранному для host встречи org; hub не балансирует один capture между несколькими нодами.
+При старте capture hub выбирает включённую ноду с нужным connector (score/weight среди кандидатов). Для Jitsi используется конфиг host/JWT org; Telemost не требует карт host. Если у выбранной ноды нет ёмкости, hub может перевыбрать другую eligible-ноду до POST на воркер.
 
 **Важно:** `base_url` должен быть достижим из **процесса hub**, а не из браузера пользователя.
 
@@ -173,9 +173,9 @@ score = in_flight_tasks / max(weight, 1)
 | --- | -------------------- | ------ |
 | `transcribe` | Default инстанса, переопределения пользователей, queued/running задачи, чья пара ASR+диаризация исчезнет | Другая пара, которую ещё отдают оставшиеся воркеры |
 | `summarize` | То же для имени LLM из health воркера | Другая модель summarize, которую ещё отдают |
-| `capture` | Привязки org Jitsi host → worker и активные capture-задачи на этой ноде | Другой включённый capture-воркер с connector `jitsi` |
+| `capture` | Queued/running capture с `worker_id` на этой ноде (особенно при снятии connector `jitsi` или удалении ноды) | Другой включённый capture-воркер с тем же connector (`jitsi` и т.д.) |
 
-Если замена есть, UI (или `remediation` в PATCH/DELETE) переписывает эти prefs, snapshot и карты, затем возвращает running-задачи в очередь, чтобы dispatcher выбрал новую ноду. Удаление без remediation всё равно снимает ноду: строки Jitsi host для неё удаляются, задачи, которые на неё ссылались, отвязываются (running capture возвращается в `queued`). См. [Instance API](../api/instance.md).
+Если замена есть, UI (или `remediation` в PATCH/DELETE с `capture_worker_id`) переназначает затронутые capture-задачи. Строки Jitsi host org не привязаны к воркерам и **не** удаляются при delete воркера. Удаление без remediation снимает ноду и очищает `worker_id` у затронутых capture (running возвращаются в `queued`). См. [Instance API](../api/instance.md).
 
 ## Метрики
 

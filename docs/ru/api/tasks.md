@@ -31,6 +31,53 @@ Audio должен существовать в org, быть доступен п
 
 Ошибки: `not_found`, `forbidden`, `validation_error`, `insufficient_balance`.
 
+## POST `/tasks/import`
+
+**202 Accepted**
+
+```json
+{
+  "url": "https://…",
+  "transcribe": false,
+  "skill_ids": [],
+  "bot_display_name": "Опциональное имя бота"
+}
+```
+
+Import URL (YouTube и т.д.), если host в extractors, или **capture встречи**, если capture включён и URL подходит под разрешённый connector (`jitsi`, `telemost`, …). Capture даёт `type: "capture"`; файловый import — `type: "import"`. Опционально `transcribe` + `skill_ids` после успеха. `bot_display_name` переопределяет имя бота user/org только для этой job.
+
+Ошибки: `import_disabled`, `capture_disabled`, `validation_error`, `insufficient_balance`, на задаче — например `meeting_host_not_configured` (Jitsi host не задан в org).
+
+## POST `/tasks/capture`
+
+**202 Accepted** — явный capture (тот же pipeline, что import при routing в capture):
+
+```json
+{
+  "meeting_url": "https://…",
+  "pin": "",
+  "transcribe": false,
+  "skill_ids": [],
+  "bot_display_name": null
+}
+```
+
+`pin` — для connectors, где нужен PIN (не Telemost). Нужен `capture_enabled`.
+
+## GET `/capture/platforms`
+
+Auth required. Discovery для UI import/capture и агентов:
+
+```json
+{
+  "enabled": true,
+  "connectors": [{ "id": "jitsi", "label": "Jitsi Meet" }],
+  "jitsi_hosts": ["meet.example.com"]
+}
+```
+
+`connectors` — разрешённые на инстансе connectors (label из health воркеров, если есть). `jitsi_hosts` — hostnames Jitsi org, когда capture и `jitsi` включены.
+
 ## GET `/tasks`
 
 Query-параметры:
@@ -124,7 +171,7 @@ curl -sS -b cookies.txt \
   http://127.0.0.1:8080/api/v1/tasks/TASK_UUID
 ```
 
-Эквиваленты MCP: [MCP tools](mcp.md) — `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task`. Scope: `tasks:write`.
+Эквиваленты MCP: [MCP tools](mcp.md) — `list_capture_platforms`, `create_audio_import`, `create_transcribe`, `create_summary`, `get_task`, `stop_capture_task`. Scope: `tasks:write`.
 
 ## Связанные страницы
 

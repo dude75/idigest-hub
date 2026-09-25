@@ -54,11 +54,11 @@ Instance admin sets the default in **Instance → Settings → Service models**.
 
 ### Capture
 
-Meeting capture requires **Instance → Settings** (`capture_enabled`, allowed connectors) and org-level Jitsi host → worker mapping — see instance settings in the UI.
+Meeting capture requires **Instance → Settings** (`capture_enabled`, allowed connectors). The connector catalog merges ids reported on capture workers’ `/health` (labels included) with instance-allowed ids (`jitsi`, `telemost`, `zoom`, …). For **Jitsi**, org admins map meeting **hosts** (hostname + optional JWT) under **Org → capture** — not to a specific worker.
 
 1. Enter `base_url` and `api_token`.
 2. **Test connection** (`POST /workers/probe`) — hub verifies the Bearer token and reads connectors from `GET /health`.
-3. Select one or more **connectors** the node should serve (`jitsi`, `zoom`, … — subset of instance-allowed connectors with status `loaded` on the worker).
+3. Select one or more **connectors** the node should serve (subset of instance-allowed connectors with status `loaded` on the worker).
 4. Save. At least one connector is required.
 
 ```json
@@ -73,7 +73,7 @@ Meeting capture requires **Instance → Settings** (`capture_enabled`, allowed c
 }
 ```
 
-Capture tasks are bound to the worker chosen for the org’s meeting host; the hub does not load-balance capture across nodes for a single task.
+When a capture job starts, the hub picks an enabled node that offers the meeting’s connector (score/weight among candidates). Jitsi uses org host/JWT config only; Telemost needs no org host map. If the bound node loses capacity, the hub can re-pick another eligible node before the worker POST completes.
 
 **Important:** `base_url` must be reachable from the **hub process**, not from the user's browser.
 
@@ -173,9 +173,9 @@ Before delete, disable, or a change that drops models, the hub computes impact (
 | ---- | -------------- | ----------- |
 | `transcribe` | Instance default, user overrides, queued/running tasks whose ASR+diarization pair would disappear | Another pair still offered by remaining workers |
 | `summarize` | Same, for the LLM name read from worker health | Another summarize model still offered |
-| `capture` | Org Jitsi host → worker maps and active capture tasks on this node | Another enabled capture worker that offers `jitsi` |
+| `capture` | Queued/running capture tasks with `worker_id` on this node (especially when dropping the `jitsi` connector or deleting the node) | Another enabled capture worker that offers the same connector (`jitsi`, etc.) |
 
-When a replacement exists, the UI (or `remediation` on PATCH/DELETE) rewrites those prefs, snapshots, and maps, then requeues running tasks so the dispatcher can pick the new node. Delete without remediation still removes the node: Jitsi host rows for it are dropped, and tasks that pointed at it are detached (running capture jobs return to `queued`). See [Instance API](../api/instance.md).
+When a replacement exists, the UI (or `remediation` on PATCH/DELETE with `capture_worker_id`) reassigns affected capture tasks. Org Jitsi host rows are independent of workers and are **not** removed on worker delete. Delete without remediation still removes the node and clears `worker_id` on affected capture tasks (running jobs return to `queued` for re-dispatch). See [Instance API](../api/instance.md).
 
 ## Metrics
 

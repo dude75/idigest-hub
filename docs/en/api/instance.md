@@ -61,7 +61,7 @@ Preview of what delete would break. `blocking` is true when something still depe
 
 - Transcribe: `lost_model_pairs`, `available_pairs`, `suggested_replacement`, affected users and queued/running tasks, `can_remediate`.
 - Summarize: `lost_summarize_models`, `available_summarize_models`, `suggested_summarize_replacement`, affected users and tasks, `can_remediate`.
-- Capture: `capture_jitsi_hosts`, `capture_tasks_count`, `available_capture_workers`, `suggested_capture_worker`, `can_remediate`.
+- Capture: `capture_tasks_count`, `capture_losing_jitsi` (when dropping the `jitsi` connector), `available_capture_workers`, `suggested_capture_worker`, `can_remediate`. (`capture_jitsi_hosts` is always empty — org Jitsi maps are not tied to workers.)
 
 ### POST `/workers/{id}/change-impact`
 
@@ -81,9 +81,9 @@ Send the field that matches the node type:
 | ----- | ---- | ------ |
 | `asr_model`, `diarization_model` | transcribe | Point instance default, user overrides, and queued/running tasks that would lose the pair at a pair still offered |
 | `summarize_model` | summarize | Same for the LLM name |
-| `capture_worker_id` | capture | Move org Jitsi host maps and queued capture tasks to another enabled capture worker that offers `jitsi`. Running capture tasks are requeued |
+| `capture_worker_id` | capture | Reassign queued capture tasks on this node to another enabled capture worker that offers `jitsi`. Running capture tasks are requeued |
 
-Without `remediation` the node is still removed. The hub clears foreign keys: Jitsi host rows for this worker are deleted (`cleanup.jitsi_hosts_removed`); tasks that pointed at it have `worker_id` cleared (`cleanup.tasks_updated`). Running capture tasks return to `queued`. Hub tasks are not marked canceled.
+Without `remediation` the node is still removed. Cleanup clears `worker_id` on tasks that pointed at it (`cleanup.tasks_updated`; `cleanup.jitsi_hosts_removed` stays `0` — org Jitsi host rows are not worker-scoped). Running capture tasks return to `queued`. Hub tasks are not marked canceled.
 
 Response: `{ "status": "ok" }`, plus `remediation` and/or `cleanup` when those ran. Unknown replacement → `validation_error`.
 
@@ -207,7 +207,7 @@ Names come from each worker’s last `/health` (`model`, `llm_model`, or `llm`).
 
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, default transcription models (`asr_model`, `diarization_model`), available transcription lists (`asr_models[]`, `diarization_models[]`), default summarize model (`summarize_model`) and `summarize_models[]`, import settings, `date_time_format`, `timezone`, rate limit matrix. Also `smtp_configured`: true only when host, from-address, **and** `public_base_url` are set (required for password reset emails and public summary links).
+SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, default transcription models (`asr_model`, `diarization_model`), available transcription lists (`asr_models[]`, `diarization_models[]`), default summarize model (`summarize_model`) and `summarize_models[]`, import settings, `capture_enabled`, `capture_connectors[]` (worker-reported catalog with `enabled` flags for instance-allowed ids), `date_time_format`, `timezone`, rate limit matrix. Also `smtp_configured`: true only when host, from-address, **and** `public_base_url` are set (required for password reset emails and public summary links).
 
 ### PATCH `/instance/settings`
 
@@ -218,6 +218,7 @@ Partial update. Fields include:
 - Models: `asr_model`, `diarization_model` (must be in aggregated worker lists when workers exist; empty `diarization_model` disables diarization); `summarize_model` (must be in `summarize_models` when workers report names)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)
 - Import: `import_enabled`, `import_allowed_extractors`, `download_proxy_*`, `download_cookies_path`, `import_audio_bitrate_kbps`
+- Capture: `capture_enabled`, `capture_allowed_connectors` (non-empty subset of the connector catalog)
 - Session: `session_ttl_hours`
 - Rate limits: `rate_limit_enabled`, `rate_limit_login_email`, `rate_limit_public_link_ip`, `rate_limit_public_pin_ip`, … (see README)
 

@@ -49,7 +49,7 @@ MCP принимает **только OAuth JWT**, выданные хабом (
 | `summaries:write` | `update_summary`, `delete_summary` |
 | `skills:read` | `list_skills`, `get_skill` |
 | `skills:write` | `create_skill`, `update_skill`, `delete_skill` |
-| `tasks:write` | `list_capture_platforms`, `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
+| `tasks:write` | `list_capture_platforms`, `create_audio_import`, `create_transcribe`, `create_summary`, `get_task`, `stop_capture_task` |
 
 Проверка scope срабатывает при `via_oauth_token` (OAuth JWT). Cookie-сессия и PAT в REST подчиняются обычным правилам ролей, не этим scope. В REST OAuth JWT сейчас проверяет **`transcripts:read`** только на `GET /transcripts` и `GET /transcripts/{id}`.
 
@@ -66,7 +66,7 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 | Сущность | Create | Read | Update | Delete |
 | -------- | ------ | ---- | ------ | ------ |
 | **Аудио** | `create_audio_upload`, `create_audio_import` | `list_audios`, `get_audio` | — | `delete_audio` |
-| **Транскрипт** | — (задача transcribe / UI) | `list_transcripts`, `get_transcript` | `update_transcript` (`title`) | `delete_transcript` |
+| **Транскрипт** | `create_transcribe` (async task) | `list_transcripts`, `get_transcript` | `update_transcript` (`title`) | `delete_transcript` |
 | **Саммари** | `create_summary` (async task) | `list_summaries`, `get_summary` | `update_summary` (`title`, `body`) | `delete_summary` |
 | **Skill** | `create_skill` | `list_skills`, `get_skill` | `update_skill` | `delete_skill` |
 
@@ -78,7 +78,8 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 | `get_audio` | `audio_id` | `audio:read` | Аудио + `transcripts[]` (видимые) + `can_transcribe` |
 | `create_audio_upload` | `filename`, `content_base64` (standard или data-URL) | `audio:write` | Созданное аудио (как REST upload) |
 | `list_capture_platforms` | — | `tasks:write` | `{ enabled, connectors[{id,label}], jitsi_hosts[] }` (как `GET /capture/platforms`) |
-| `create_audio_import` | `url`, `transcribe` (bool, по умолчанию `false`), `skill_ids` опционально | `tasks:write` | JSON **задачи** (import или capture) |
+| `create_audio_import` | `url`, `transcribe` (bool, по умолчанию `false`), `skill_ids` опционально, `bot_display_name` опционально | `tasks:write` | JSON **задачи** (import или capture) |
+| `create_transcribe` | `audio_id`, `skill_ids` опционально | `tasks:write` | JSON **задачи** (`type: "transcribe"`) |
 | `get_task` | `task_id` | `tasks:write` | JSON **задачи** (как `GET /tasks/{id}`; tick при `queued`/`running`) |
 | `stop_capture_task` | `task_id` | `tasks:write` | JSON **задачи** capture после запроса stop (как `POST /tasks/{id}/stop`) |
 | `delete_audio` | `audio_id` | `audio:write` | `{ "status": "ok" }` |
@@ -119,7 +120,9 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 - **Списки** audio / transcripts / summaries — не более **100** элементов, при большем объёме `"truncated": true`. `list_skills` без лимита (как `GET /skills`).
 - Видимость как в REST: владелец + shares; org admin видит все строки org; `include_hidden` включает скрытые элементы вызывающего.
 - **`create_audio_upload`**: только `.wav`, `.mp3`, `.m4a` (расширение + magic bytes); лимит размера по тарифу org (потолок 1 GiB).
-- **`create_audio_import`**: как `POST /tasks/import` (import или capture). Пока нет файла — JSON задачи. Опционально `transcribe` + `skill_ids` запускают пайплайн после импорта.
+- **`list_capture_platforms`**: перед capture встречи — `enabled`, разрешённые `connectors`, org `jitsi_hosts` (как `GET /capture/platforms`).
+- **`create_audio_import`**: как `POST /tasks/import` (import или capture). Один вызов на встречу — не повторять тот же URL для stop/transcribe. Пока нет файла — JSON задачи. Опционально `transcribe` + `skill_ids` после импорта; `bot_display_name` переопределяет имя бота user/org для этой capture job.
+- **`create_transcribe`**: как `POST /tasks/transcribe` после успешного capture/import — `audio_id` из `get_task` или `list_audios`, не повторный import URL встречи.
 - **`get_task`**: как `GET /tasks/{id}`. Dispatcher tick для активных задач, **кроме** running capture с живым фоновым потоком (см. REST).
 - **`stop_capture_task`**: как `POST /tasks/{id}/stop`. Running **capture** only; worker stop делает фоновый поток, если он есть (не `DELETE` cancel).
 - **`delete_audio`** / **`delete_transcript`**: только org admin.

@@ -17,6 +17,10 @@ Auth required. Org membership required for all endpoints.
 
 List/detail items include share badges: `share_kind`, `shared_with`, `shared_by`, `hidden`, `owner_email`.
 
+### GET `/capture/platforms`
+
+Meeting capture discovery: `{ "enabled", "connectors": [{ "id", "label" }], "jitsi_hosts": [] }`. See [Tasks API](tasks.md#get-captureplatforms).
+
 ## Transcripts
 
 | Method | Path | Description |

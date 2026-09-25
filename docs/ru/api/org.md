@@ -78,6 +78,46 @@ Omit `client_secret`, чтобы сохранить текущий секрет.
 
 URL входа участников: `{public_url}/sso/{org_id}` (также в ответе GET при заданном Public URL).
 
+## Capture встреч (Jitsi hosts)
+
+org_admin. Нужны capture на инстансе и `jitsi` в разрешённых connectors.
+
+### GET `/org/capture/jitsi`
+
+```json
+{
+  "allowed": true,
+  "bot_display_name": "Default бота org",
+  "items": [
+    {
+      "id": "uuid",
+      "host": "meet.example.com",
+      "jwt_app_id": "optional",
+      "jwt_secret_configured": true
+    }
+  ],
+  "workers": [{ "id": "uuid", "name": "Capture node 1" }]
+}
+```
+
+`workers` — включённые capture-ноды (информационно; host **не** привязан к id воркера). JWT secret только на запись при update.
+
+### PUT `/org/capture/jitsi`
+
+Замена списка host и опционально default имени бота org:
+
+```json
+{
+  "bot_display_name": "Team recorder",
+  "items": [
+    { "host": "meet.example.com", "jwt_app_id": "myapp", "jwt_secret": "…" },
+    { "id": "existing-uuid", "host": "jitsi.internal", "clear_jwt_secret": true }
+  ]
+}
+```
+
+Ошибки: `capture_disabled`, `validation_error`.
+
 ## Статистика
 
 ### GET `/org/stats`

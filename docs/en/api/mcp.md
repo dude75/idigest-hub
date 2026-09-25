@@ -49,7 +49,7 @@ If the client omits `scope` on `/oauth/authorize`, the hub grants **every suppor
 | `summaries:write` | `update_summary`, `delete_summary` |
 | `skills:read` | `list_skills`, `get_skill` |
 | `skills:write` | `create_skill`, `update_skill`, `delete_skill` |
-| `tasks:write` | `list_capture_platforms`, `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
+| `tasks:write` | `list_capture_platforms`, `create_audio_import`, `create_transcribe`, `create_summary`, `get_task`, `stop_capture_task` |
 
 Scope checks apply when `via_oauth_token` is true (OAuth JWT). Session cookies and PAT on REST are governed by normal role rules, not these scopes. On REST, OAuth JWT currently enforces **`transcripts:read`** on `GET /transcripts` and `GET /transcripts/{id}` only.
 
@@ -66,7 +66,7 @@ Errors surface as tool failures (`PermissionError`, `ValueError`, etc.) — not 
 | Entity | Create | Read | Update | Delete |
 | ------ | ------ | ---- | ------ | ------ |
 | **Audio** | `create_audio_upload`, `create_audio_import` | `list_audios`, `get_audio` | — | `delete_audio` |
-| **Transcript** | — (via transcribe task / UI) | `list_transcripts`, `get_transcript` | `update_transcript` (`title`) | `delete_transcript` |
+| **Transcript** | `create_transcribe` (async task) | `list_transcripts`, `get_transcript` | `update_transcript` (`title`) | `delete_transcript` |
 | **Summary** | `create_summary` (async task) | `list_summaries`, `get_summary` | `update_summary` (`title`, `body`) | `delete_summary` |
 | **Skill** | `create_skill` | `list_skills`, `get_skill` | `update_skill` | `delete_skill` |
 
@@ -78,7 +78,8 @@ Errors surface as tool failures (`PermissionError`, `ValueError`, etc.) — not 
 | `get_audio` | `audio_id` | `audio:read` | Audio + `transcripts[]` (visible) + `can_transcribe` |
 | `create_audio_upload` | `filename`, `content_base64` (standard or data-URL base64) | `audio:write` | Created audio (same shape as REST upload) |
 | `list_capture_platforms` | — | `tasks:write` | `{ enabled, connectors[{id,label}], jitsi_hosts[] }` (same as `GET /capture/platforms`) |
-| `create_audio_import` | `url`, `transcribe` (bool, default `false`), `skill_ids` optional | `tasks:write` | **Task** JSON (import or capture) |
+| `create_audio_import` | `url`, `transcribe` (bool, default `false`), `skill_ids` optional, `bot_display_name` optional | `tasks:write` | **Task** JSON (import or capture) |
+| `create_transcribe` | `audio_id`, `skill_ids` optional | `tasks:write` | **Task** JSON (`type: "transcribe"`) |
 | `get_task` | `task_id` | `tasks:write` | **Task** JSON (same as `GET /tasks/{id}`; tick when `queued`/`running`) |
 | `stop_capture_task` | `task_id` | `tasks:write` | **Capture task** JSON after stop request (same as `POST /tasks/{id}/stop`) |
 | `delete_audio` | `audio_id` | `audio:write` | `{ "status": "ok" }` |
@@ -119,7 +120,9 @@ List derived flags: `has_transcript`, `has_summary`, `transcript_id`, `summary_t
 - **List tools** (audio / transcripts / summaries) cap at **100** items and set `"truncated": true` when the library has more. `list_skills` is uncapped (same as `GET /skills`).
 - Visibility matches REST: owner + shares; org admin sees all org rows; `include_hidden` includes the caller’s hidden items.
 - **`create_audio_upload`**: `.wav`, `.mp3`, `.m4a` only (extension + magic bytes, same as REST); max size follows org tariff (capped at 1 GiB).
-- **`create_audio_import`**: same rules as `POST /tasks/import` (may enqueue import or capture). Returns task JSON until audio exists. Optional `transcribe` + `skill_ids` start the pipeline after import.
+- **`list_capture_platforms`**: call before meeting capture to see `enabled`, allowed `connectors`, and org `jitsi_hosts` (same as `GET /capture/platforms`).
+- **`create_audio_import`**: same rules as `POST /tasks/import` (may enqueue import or capture). One call per meeting — do not re-import the same URL to stop or transcribe. Returns task JSON until audio exists. Optional `transcribe` + `skill_ids` start the pipeline after import; optional `bot_display_name` overrides user/org bot name for that capture job.
+- **`create_transcribe`**: same as `POST /tasks/transcribe` after capture/import success — use `audio_id` from `get_task` or `list_audios`, not another import of the meeting URL.
 - **`get_task`**: same as `GET /tasks/{id}`. Dispatcher tick for active tasks, **except** running capture with a live background thread (see REST).
 - **`stop_capture_task`**: same as `POST /tasks/{id}/stop`. Running **capture** only; the background thread sends worker stop when present (not DELETE cancel).
 - **`delete_audio`** / **`delete_transcript`**: org admin only (same as REST wipe).
