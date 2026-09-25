@@ -172,7 +172,7 @@ def try_decrypt_str(token: str | None, db: Session) -> str | None:
         return None
     try:
         return decrypt_str(token, db)
-    except InvalidToken:
+    except (InvalidToken, RuntimeError):
         return None
 
 

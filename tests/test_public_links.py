@@ -250,3 +250,41 @@ def test_org_public_links_list_survives_corrupt_token_encrypted(client):
     assert len(items) == 1
     assert items[0]["id"] == link_id
     assert items[0]["url"] is None
+
+
+def test_org_public_links_list_tolerates_missing_dek(client):
+    _member_client(client)
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    _t1, summary_a = _insert_transcript_and_summary(org_id, user_id)
+    _t2, summary_b = _insert_transcript_and_summary(org_id, user_id)
+
+    bad = client.post(
+        f"/api/v1/summaries/{summary_a}/public-link",
+        json={"expires_in_days": 7, "pin": None},
+    )
+    assert bad.status_code == 200, bad.text
+    bad_link_id = bad.json()["link"]["id"]
+
+    good = client.post(
+        f"/api/v1/summaries/{summary_b}/public-link",
+        json={"expires_in_days": 7, "pin": None},
+    )
+    assert good.status_code == 200, good.text
+    good_link_id = good.json()["link"]["id"]
+    good_url = good.json()["link"]["url"]
+
+    with open_db() as db:
+        from app.models import SummaryPublicLink
+
+        row = db.get(SummaryPublicLink, bad_link_id)
+        assert row is not None
+        row.token_encrypted = "v1:00000000-0000-0000-0000-000000000000:bad"
+        db.commit()
+
+    listed = client.get("/api/v1/org/public-links")
+    assert listed.status_code == 200, listed.text
+    by_id = {item["id"]: item for item in listed.json()["items"]}
+    assert len(by_id) == 2
+    assert by_id[bad_link_id]["url"] is None
+    assert by_id[good_link_id]["url"] == good_url

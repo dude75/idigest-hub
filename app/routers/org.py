@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func, select
@@ -28,6 +30,8 @@ from app.services.sso import (
 )
 from app.services.stats import org_usage_stats, parse_org_stats_range
 from app.timeutil import utcnow
+
+log = logging.getLogger("app")
 
 router = APIRouter()
 
@@ -251,7 +255,15 @@ def org_public_links(
             not ctx.is_org_admin or ctx.user.show_only_my_items
         ):
             continue
-        items.append(link_org_list_item(link, summary, owner, org, db))
+        try:
+            items.append(link_org_list_item(link, summary, owner, org, db))
+        except Exception:
+            log.exception(
+                "public link list item failed link=%s summary=%s user=%s",
+                link.id,
+                link.summary_id,
+                ctx.user.id,
+            )
     return {"items": items}
 
 

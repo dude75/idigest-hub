@@ -9,6 +9,8 @@ import { Modal } from './Modal'
 type Props = {
   objectType: 'audio' | 'transcript' | 'summary' | 'skill'
   objectId: string
+  /** Summary public links: only the summary owner may create/revoke. */
+  canManagePublicLink?: boolean
   onClose: () => void
 }
 
@@ -21,7 +23,7 @@ const EXPIRY_OPTIONS = [
   { days: 365, key: 'd365' },
 ] as const
 
-export function ShareDialog({ objectType, objectId, onClose }: Props) {
+export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose }: Props) {
   const { t } = useTranslation()
   const { me } = useAuth()
   const [users, setUsers] = useState<User[]>([])
@@ -36,8 +38,7 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
   const [pin, setPin] = useState('')
   const [copied, setCopied] = useState(false)
 
-  const showPublic = objectType === 'summary'
-  const isOwner = objectType === 'summary'
+  const showPublic = objectType === 'summary' && (canManagePublicLink ?? false)
 
   async function loadShares() {
     const r = await api<{ items: ShareRecord[] }>(
@@ -148,7 +149,7 @@ export function ShareDialog({ objectType, objectId, onClose }: Props) {
       <h2 className="share-dialog-title">{t('share.title')}</h2>
 
       <div className="modal-body stack">
-      {showPublic && isOwner && (
+      {showPublic && (
         <section className="share-section">
           <h3 className="share-section-head">{t('share.publicLink')}</h3>
           {!me?.org?.public_base_url_set ? (

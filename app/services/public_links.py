@@ -258,8 +258,18 @@ def list_org_public_links(db: Session, org_id: str) -> list[tuple[SummaryPublicL
     out: list[tuple[SummaryPublicLink, Summary, User]] = []
     for link in rows:
         summary = db.get(Summary, link.summary_id)
-        owner = db.get(User, summary.owner_user_id) if summary else None
-        if summary is None or owner is None:
+        if summary is None:
+            log.warning("orphan public link without summary link=%s summary=%s", link.id, link.summary_id)
+            db.delete(link)
+            continue
+        owner = db.get(User, summary.owner_user_id)
+        if owner is None:
+            log.warning(
+                "public link summary owner missing link=%s summary=%s owner=%s",
+                link.id,
+                link.summary_id,
+                summary.owner_user_id,
+            )
             continue
         out.append((link, summary, owner))
     return out

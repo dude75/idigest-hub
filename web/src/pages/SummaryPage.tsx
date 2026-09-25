@@ -192,7 +192,14 @@ export function SummaryPage() {
           )}
         </>
       )}
-      {share && id && <ShareDialog objectType="summary" objectId={id} onClose={() => { setShare(false); void load() }} />}
+      {share && id && (
+        <ShareDialog
+          objectType="summary"
+          objectId={id}
+          canManagePublicLink={mine}
+          onClose={() => { setShare(false); void load() }}
+        />
+      )}
       {confirmDelete && item && (
         <ConfirmDialog
           message={t('library.deleteConfirm', { title: item.display_title || item.title || item.id.slice(0, 8) })}
