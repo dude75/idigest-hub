@@ -25,6 +25,7 @@ from app.services.mcp_library import (
     get_task_payload,
     get_transcript_payload,
     list_audios_payload,
+    list_capture_platforms_payload,
     list_transcripts_payload,
     stop_capture_task_payload,
     update_summary_payload,
@@ -453,6 +454,50 @@ def test_mcp_summary_read_update_delete(client):
         db.commit()
         with pytest.raises(ValueError, match="not found"):
             get_summary_payload(db, ctx_read, summary_id)
+
+
+def test_mcp_list_capture_platforms_scope_and_per_org(client):
+    setup_admin(client)
+    patch = client.patch("/api/v1/instance/settings", json={"capture_enabled": True})
+    assert patch.status_code == 200, patch.text
+    tariff_id = default_tariff_id(client)
+
+    signup(client, "mcp-cap-a@example.com", "capapass12", tariff_id)
+    login_ready(client, "mcp-cap-a@example.com", "capapass12")
+    put_a = client.put(
+        "/api/v1/org/capture/jitsi",
+        json={"items": [{"host": "jitsi-org-a.example.com"}]},
+    )
+    assert put_a.status_code == 200, put_a.text
+    logout(client)
+
+    signup(client, "mcp-cap-b@example.com", "capbpass12", tariff_id)
+    login_ready(client, "mcp-cap-b@example.com", "capbpass12")
+    put_b = client.put(
+        "/api/v1/org/capture/jitsi",
+        json={"items": [{"host": "jitsi-org-b.example.com"}]},
+    )
+    assert put_b.status_code == 200, put_b.text
+
+    import app.db as hub_db
+
+    with hub_db.SessionLocal() as db:
+        user_a = _user(db, "mcp-cap-a@example.com")
+        user_b = _user(db, "mcp-cap-b@example.com")
+        ctx_a = _oauth_ctx(db, user_a, frozenset({SCOPE_TASKS_WRITE}))
+        ctx_b = _oauth_ctx(db, user_b, frozenset({SCOPE_TASKS_WRITE}))
+
+        body_a = list_capture_platforms_payload(db, ctx_a)
+        body_b = list_capture_platforms_payload(db, ctx_b)
+        assert body_a["enabled"] is True
+        assert body_b["enabled"] is True
+        assert any(c["id"] == "jitsi" for c in body_a["connectors"])
+        assert body_a["jitsi_hosts"] == ["jitsi-org-a.example.com"]
+        assert body_b["jitsi_hosts"] == ["jitsi-org-b.example.com"]
+
+        ctx_no_scope = _oauth_ctx(db, user_a, frozenset({SCOPE_AUDIO_READ}))
+        with pytest.raises(PermissionError, match="tasks:write"):
+            list_capture_platforms_payload(db, ctx_no_scope)
 
 
 def test_mcp_create_summary_queues_task(client, fake_workers):

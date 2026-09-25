@@ -206,6 +206,30 @@ def create_audio_import_payload(
     return task_public(task)
 
 
+def list_capture_platforms_payload(db: Session, ctx: AuthContext) -> dict:
+    """Same shape as GET /capture/platforms."""
+    _require_oauth_scope(ctx, SCOPE_TASKS_WRITE)
+    org, _ = ctx.require_org()
+    from app.services.capture_meeting import normalize_host, org_jitsi_hosts_public
+    from app.services.capture_platforms import allowed_connectors, public_connectors
+
+    settings = get_instance_settings(db)
+    allowed = allowed_connectors(settings)
+    jitsi_hosts: list[str] = []
+    if settings.capture_enabled and "jitsi" in allowed:
+        seen: set[str] = set()
+        for item in org_jitsi_hosts_public(db, org.id):
+            host = normalize_host(str(item.get("host") or ""))
+            if host and host not in seen:
+                seen.add(host)
+                jitsi_hosts.append(host)
+    return {
+        "enabled": settings.capture_enabled,
+        "connectors": public_connectors(settings, db),
+        "jitsi_hosts": jitsi_hosts,
+    }
+
+
 def get_task_payload(
     db: Session,
     ctx: AuthContext,

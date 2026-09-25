@@ -31,6 +31,7 @@ from app.services.mcp_library import (
     create_summary_payload,
     create_transcribe_payload,
     get_task_payload,
+    list_capture_platforms_payload,
     stop_capture_task_payload,
     delete_audio_payload,
     delete_skill_payload,
@@ -119,6 +120,8 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         instructions=(
             "idigest hub library (audio, transcripts, summaries, skills). OAuth scopes gate each tool.\n\n"
             "Meeting / conference capture (Jitsi and similar URLs via create_audio_import):\n"
+            "- Call list_capture_platforms before capture to see enabled, connectors (jitsi, telemost, …), "
+            "and org jitsi_hosts for allowed Jitsi servers. Requires tasks:write.\n"
             "- Call create_audio_import ONCE per meeting. That URL becomes a capture task (type=capture). "
             "Never call create_audio_import again for the same meeting to leave, stop, or transcribe — "
             "a second call starts a new bot join.\n"
@@ -232,6 +235,17 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         return await _mcp_json_tool(create_audio_upload_payload, tool="create_audio_upload", commit=True)(
             filename=filename, content_base64=content_base64
         )
+
+    @server.tool(
+        name="list_capture_platforms",
+        description=(
+            "List meeting capture availability for your org: enabled flag, allowed connectors (id + label), "
+            "and jitsi_hosts (org-mapped Jitsi server hostnames when capture and jitsi are enabled). "
+            "Use before create_audio_import to pick a supported platform/URL. Requires tasks:write."
+        ),
+    )
+    async def list_capture_platforms() -> str:
+        return await _mcp_json_tool(list_capture_platforms_payload, tool="list_capture_platforms")()
 
     @server.tool(
         name="create_audio_import",

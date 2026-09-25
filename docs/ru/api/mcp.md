@@ -49,7 +49,7 @@ MCP принимает **только OAuth JWT**, выданные хабом (
 | `summaries:write` | `update_summary`, `delete_summary` |
 | `skills:read` | `list_skills`, `get_skill` |
 | `skills:write` | `create_skill`, `update_skill`, `delete_skill` |
-| `tasks:write` | `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
+| `tasks:write` | `list_capture_platforms`, `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
 
 Проверка scope срабатывает при `via_oauth_token` (OAuth JWT). Cookie-сессия и PAT в REST подчиняются обычным правилам ролей, не этим scope. В REST OAuth JWT сейчас проверяет **`transcripts:read`** только на `GET /transcripts` и `GET /transcripts/{id}`.
 
@@ -77,6 +77,7 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 | `list_audios` | `include_hidden` (bool, по умолчанию `false`) | `audio:read` | `{ "items": [audio + флаги], "truncated": bool }` |
 | `get_audio` | `audio_id` | `audio:read` | Аудио + `transcripts[]` (видимые) + `can_transcribe` |
 | `create_audio_upload` | `filename`, `content_base64` (standard или data-URL) | `audio:write` | Созданное аудио (как REST upload) |
+| `list_capture_platforms` | — | `tasks:write` | `{ enabled, connectors[{id,label}], jitsi_hosts[] }` (как `GET /capture/platforms`) |
 | `create_audio_import` | `url`, `transcribe` (bool, по умолчанию `false`), `skill_ids` опционально | `tasks:write` | JSON **задачи** (import или capture) |
 | `get_task` | `task_id` | `tasks:write` | JSON **задачи** (как `GET /tasks/{id}`; tick при `queued`/`running`) |
 | `stop_capture_task` | `task_id` | `tasks:write` | JSON **задачи** capture после запроса stop (как `POST /tasks/{id}/stop`) |

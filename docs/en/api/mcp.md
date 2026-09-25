@@ -49,7 +49,7 @@ If the client omits `scope` on `/oauth/authorize`, the hub grants **every suppor
 | `summaries:write` | `update_summary`, `delete_summary` |
 | `skills:read` | `list_skills`, `get_skill` |
 | `skills:write` | `create_skill`, `update_skill`, `delete_skill` |
-| `tasks:write` | `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
+| `tasks:write` | `list_capture_platforms`, `create_audio_import`, `create_summary`, `get_task`, `stop_capture_task` |
 
 Scope checks apply when `via_oauth_token` is true (OAuth JWT). Session cookies and PAT on REST are governed by normal role rules, not these scopes. On REST, OAuth JWT currently enforces **`transcripts:read`** on `GET /transcripts` and `GET /transcripts/{id}` only.
 
@@ -77,6 +77,7 @@ Errors surface as tool failures (`PermissionError`, `ValueError`, etc.) — not 
 | `list_audios` | `include_hidden` (bool, default `false`) | `audio:read` | `{ "items": [audio + derived flags], "truncated": bool }` |
 | `get_audio` | `audio_id` | `audio:read` | Audio + `transcripts[]` (visible) + `can_transcribe` |
 | `create_audio_upload` | `filename`, `content_base64` (standard or data-URL base64) | `audio:write` | Created audio (same shape as REST upload) |
+| `list_capture_platforms` | — | `tasks:write` | `{ enabled, connectors[{id,label}], jitsi_hosts[] }` (same as `GET /capture/platforms`) |
 | `create_audio_import` | `url`, `transcribe` (bool, default `false`), `skill_ids` optional | `tasks:write` | **Task** JSON (import or capture) |
 | `get_task` | `task_id` | `tasks:write` | **Task** JSON (same as `GET /tasks/{id}`; tick when `queued`/`running`) |
 | `stop_capture_task` | `task_id` | `tasks:write` | **Capture task** JSON after stop request (same as `POST /tasks/{id}/stop`) |
