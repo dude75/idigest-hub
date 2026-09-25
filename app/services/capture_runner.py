@@ -597,7 +597,7 @@ def _fail_capture_meeting_error(db: Session, task: Task, exc: Any) -> None:
 
 
 def _bind_capture_worker(db: Session, task: Task, settings: Any) -> WorkerNode | None:
-    """Resolve org host map → capture worker (also after retry/requeue cleared worker_id)."""
+    """Resolve org host/JWT and pick a capture worker (re-pick when prior node has no capacity)."""
     meta = dict(task.meta_json or {})
     meeting_url = str(meta.get("meeting_url") or "").strip()
     if not meeting_url:
@@ -606,8 +606,12 @@ def _bind_capture_worker(db: Session, task: Task, settings: Any) -> WorkerNode |
 
     if task.worker_id:
         node = db.get(WorkerNode, task.worker_id)
-        if node is not None and node.type == "capture" and node.enabled:
+        if node is not None and node.type == "capture" and node.enabled and capture_worker_capacity_available(
+            db, task
+        ):
             return node
+        task.worker_id = None
+        task.worker_task_id = None
 
     org = db.get(Organization, task.org_id)
     if org is None:
@@ -930,12 +934,19 @@ def maybe_start_capture(db: Session, task: Task) -> None:
         _active.discard(task.id)
         _bg_threads.pop(task.id, None)
         if not capture_worker_capacity_available(db, task):
-            meta = dict(task.meta_json or {})
-            meta["stage"] = "queue_full"
-            task.meta_json = meta
-            task.updated_at = utcnow()
-            db.flush()
-            return
+            from app.deps import get_instance_settings
+
+            settings = get_instance_settings(db)
+            rebound = _bind_capture_worker(db, task, settings)
+            if rebound is not None and capture_worker_capacity_available(db, task):
+                db.flush()
+            else:
+                meta = dict(task.meta_json or {})
+                meta["stage"] = "queue_full"
+                task.meta_json = meta
+                task.updated_at = utcnow()
+                db.flush()
+                return
 
         _active.add(task.id)
         if task.status == "queued":

@@ -81,7 +81,6 @@ export function OrgPage() {
   const [captureEditingId, setCaptureEditingId] = useState<string | null>(null)
   const [captureDraft, setCaptureDraft] = useState({
     host: '',
-    worker_id: '',
     jwt_app_id: '',
     jwt_secret: '',
     clear_jwt_secret: false,
@@ -151,7 +150,6 @@ export function OrgPage() {
     return {
       id: row.id,
       host: row.host,
-      worker_id: row.worker_id,
       jwt_app_id: row.jwt_app_id ?? null,
     }
   }
@@ -193,14 +191,13 @@ export function OrgPage() {
 
   function resetCaptureDraft() {
     setCaptureEditingId(null)
-    setCaptureDraft({ host: '', worker_id: '', jwt_app_id: '', jwt_secret: '', clear_jwt_secret: false })
+    setCaptureDraft({ host: '', jwt_app_id: '', jwt_secret: '', clear_jwt_secret: false })
   }
 
   function startEditCaptureHost(row: OrgCaptureJitsiHost) {
     setCaptureEditingId(row.id)
     setCaptureDraft({
       host: row.host,
-      worker_id: row.worker_id,
       jwt_app_id: row.jwt_app_id || '',
       jwt_secret: '',
       clear_jwt_secret: false,
@@ -209,12 +206,10 @@ export function OrgPage() {
 
   async function submitCaptureDraft() {
     const host = normalizeJitsiHostInput(captureDraft.host)
-    const worker_id = captureDraft.worker_id.trim()
-    if (!host || !worker_id) return
+    if (!host) return
 
     const draftFields: Record<string, unknown> = {
       host,
-      worker_id,
       jwt_app_id: captureDraft.jwt_app_id.trim() || null,
     }
     if (captureDraft.jwt_secret.trim()) {
@@ -572,7 +567,6 @@ export function OrgPage() {
                           <thead>
                             <tr>
                               <th>{t('org.captureHost')}</th>
-                              <th>{t('org.captureWorkerId')}</th>
                               <th>{t('org.captureJwtAppId')}</th>
                               <th>{t('org.captureJwtSecret')}</th>
                               <th />
@@ -582,7 +576,6 @@ export function OrgPage() {
                             {captureHosts.map((row) => (
                               <tr key={row.id}>
                                 <td>{row.host}</td>
-                                <td><code>{row.worker_id}</code></td>
                                 <td>{row.jwt_app_id ?? 'chat'}</td>
                                 <td>{row.jwt_secret_configured ? t('org.captureJwtSaved') : '—'}</td>
                                 <td className="table-actions">
@@ -618,21 +611,6 @@ export function OrgPage() {
                         />
                       </label>
                       <p className="muted">{t('org.captureHostHint')}</p>
-                      <label>
-                        {t('org.captureWorker')}
-                        <select
-                          value={captureDraft.worker_id}
-                          disabled={captureWorkers.length === 0}
-                          onChange={(e) => setCaptureDraft({ ...captureDraft, worker_id: e.target.value })}
-                        >
-                          <option value="">{t('org.captureWorkerPick')}</option>
-                          {captureWorkers.map((w) => (
-                            <option key={w.id} value={w.id}>
-                              {w.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
                       <label>
                         {t('org.captureJwtAppId')}
                         <input
@@ -675,7 +653,6 @@ export function OrgPage() {
                           className="primary"
                           disabled={
                             !normalizeJitsiHostInput(captureDraft.host) ||
-                            !captureDraft.worker_id.trim() ||
                             captureWorkers.length === 0
                           }
                           onClick={() => void submitCaptureDraft().catch(showError)}

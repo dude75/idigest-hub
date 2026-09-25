@@ -475,7 +475,6 @@ export type CapturePlatformsResponse = {
 export type OrgCaptureJitsiHost = {
   id: string
   host: string
-  worker_id: string
   jwt_app_id: string | null
   jwt_secret_configured: boolean
 }

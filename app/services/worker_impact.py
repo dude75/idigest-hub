@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.deps import get_instance_settings
-from app.models import OrgCaptureJitsiHost, Organization, Task, User, WorkerNode
+from app.models import Organization, Task, User, WorkerNode
 from app.services.capture_platforms import worker_offers_connector
 from app.services.summarize_models import resolve_summarize_models, worker_summarize_model
 from app.services.transcribe_models import dispatchable_pairs, resolve_transcribe_models
@@ -167,34 +167,6 @@ def _capture_replacement_workers(nodes: list[WorkerNode]) -> list[WorkerNode]:
     return out
 
 
-def _capture_jitsi_hosts(db: Session, worker_id: str) -> list[OrgCaptureJitsiHost]:
-    return list(
-        db.scalars(select(OrgCaptureJitsiHost).where(OrgCaptureJitsiHost.worker_id == worker_id)).all()
-    )
-
-
-def _capture_jitsi_hosts_detail(db: Session, worker_id: str) -> list[dict[str, str]]:
-    rows = _capture_jitsi_hosts(db, worker_id)
-    if not rows:
-        return []
-    org_ids = {row.org_id for row in rows}
-    names = {
-        org.id: org.name
-        for org in db.scalars(select(Organization).where(Organization.id.in_(org_ids))).all()
-    }
-    out: list[dict[str, str]] = []
-    for row in rows:
-        out.append(
-            {
-                "host": row.host,
-                "org_id": row.org_id,
-                "org_name": (names.get(row.org_id) or "").strip() or row.org_id,
-            }
-        )
-    out.sort(key=lambda item: (item["org_name"].lower(), item["host"]))
-    return out
-
-
 def _capture_tasks(db: Session, worker_id: str) -> list[Task]:
     return list(
         db.scalars(
@@ -218,24 +190,21 @@ def _capture_impact(
     action: str,
     after_nodes: list[WorkerNode],
 ) -> dict[str, Any]:
-    jitsi_hosts = _capture_jitsi_hosts_detail(db, worker_id)
     tasks = _capture_tasks(db, worker_id)
     losing_jitsi = "jitsi" in connectors_before and "jitsi" not in connectors_after
     disabling = enabled_before and not enabled_after
-    blocking = bool(jitsi_hosts) and (disabling or losing_jitsi or action == "delete")
-    if tasks and (disabling or action == "delete"):
-        blocking = True
+    blocking = bool(tasks) and (disabling or losing_jitsi or action == "delete")
     replacements = _capture_replacement_workers(after_nodes)
     suggested = replacements[0] if replacements else None
     return {
         "blocking": blocking,
-        "capture_jitsi_hosts": jitsi_hosts,
-        "capture_jitsi_hosts_count": len(jitsi_hosts),
+        "capture_jitsi_hosts": [],
+        "capture_jitsi_hosts_count": 0,
         "capture_tasks_count": len(tasks),
-        "capture_losing_jitsi": losing_jitsi and bool(jitsi_hosts),
+        "capture_losing_jitsi": losing_jitsi and bool(tasks),
         "available_capture_workers": [_capture_worker_public(node) for node in replacements],
         "suggested_capture_worker": _capture_worker_public(suggested) if suggested else None,
-        "can_remediate": bool(blocking and suggested),
+        "can_remediate": bool(blocking and suggested and tasks),
     }
 
 
@@ -419,11 +388,7 @@ def compute_worker_delete_impact(db: Session, node: WorkerNode) -> dict[str, Any
 
 
 def prepare_worker_node_delete(db: Session, worker_id: str) -> dict[str, int]:
-    """Drop FK references so worker_nodes row can be removed (capture Jitsi maps, task.worker_id)."""
-    jitsi_hosts = _capture_jitsi_hosts(db, worker_id)
-    for row in jitsi_hosts:
-        db.delete(row)
-
+    """Clear task.worker_id references so worker_nodes row can be removed."""
     tasks_updated = 0
     for task in db.scalars(select(Task).where(Task.worker_id == worker_id)).all():
         if task.type == "capture" and task.status in ("queued", "running"):
@@ -439,7 +404,7 @@ def prepare_worker_node_delete(db: Session, worker_id: str) -> dict[str, int]:
         task.updated_at = utcnow()
         tasks_updated += 1
 
-    return {"jitsi_hosts_removed": len(jitsi_hosts), "tasks_updated": tasks_updated}
+    return {"jitsi_hosts_removed": 0, "tasks_updated": tasks_updated}
 
 
 def apply_capture_remediation(
@@ -454,12 +419,6 @@ def apply_capture_remediation(
         raise ValueError("invalid_replacement")
     if not worker_offers_connector(replacement, "jitsi"):
         raise ValueError("invalid_replacement")
-
-    jitsi_hosts_updated = 0
-    for row in _capture_jitsi_hosts(db, focus_worker_id):
-        row.worker_id = replacement_worker_id
-        row.updated_at = utcnow()
-        jitsi_hosts_updated += 1
 
     tasks_updated = 0
     for task in _capture_tasks(db, focus_worker_id):
@@ -476,7 +435,7 @@ def apply_capture_remediation(
         tasks_updated += 1
 
     db.flush()
-    return {"jitsi_hosts_updated": jitsi_hosts_updated, "tasks_updated": tasks_updated}
+    return {"jitsi_hosts_updated": 0, "tasks_updated": tasks_updated}
 
 
 def apply_summarize_remediation(

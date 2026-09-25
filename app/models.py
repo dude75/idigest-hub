@@ -318,7 +318,6 @@ class OrgCaptureJitsiHost(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     org_id: Mapped[str] = mapped_column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
     host: Mapped[str] = mapped_column(String(255), nullable=False)
-    worker_id: Mapped[str] = mapped_column(String(36), ForeignKey("worker_nodes.id"), nullable=False)
     jwt_secret_encrypted: Mapped[str | None] = mapped_column(Text)
     jwt_app_id: Mapped[str | None] = mapped_column(String(128))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

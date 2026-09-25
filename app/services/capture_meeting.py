@@ -333,9 +333,9 @@ def resolve_capture_target(
     if row is None:
         raise CaptureMeetingError("meeting_host_not_configured")
 
-    worker = db.get(WorkerNode, row.worker_id)
-    if worker is None or worker.type != "capture" or not worker.enabled:
-        raise CaptureMeetingError("meeting_host_not_configured")
+    worker = pick_capture_worker(db, "jitsi")
+    if worker is None:
+        raise CaptureMeetingError("capture_no_worker")
 
     token: str | None = None
     # Public meet.jit.si uses guest XMPP; org JWT breaks icapture-worker join (hub-only symptom).
@@ -369,7 +369,6 @@ def org_jitsi_hosts_public(db: Session, org_id: str) -> list[dict]:
             {
                 "id": row.id,
                 "host": row.host,
-                "worker_id": row.worker_id,
                 "jwt_app_id": row.jwt_app_id,
                 "jwt_secret_configured": bool((row.jwt_secret_encrypted or "").strip()),
             }
@@ -417,17 +416,11 @@ def replace_org_jitsi_hosts(
     for item in items:
         raw_host = str(item.get("host") or "")
         host = normalize_host(raw_host)
-        worker_id = str(item.get("worker_id") or "").strip()
         if not host:
             raise ValueError(f"invalid host: {raw_host.strip() or '(empty)'}")
-        if not worker_id:
-            raise ValueError("host and worker_id required")
         if host in seen_hosts:
             raise ValueError(f"duplicate host: {host}")
         seen_hosts.add(host)
-        worker = db.get(WorkerNode, worker_id)
-        if worker is None or worker.type != "capture":
-            raise ValueError(f"invalid capture worker: {worker_id}")
 
         row_id = str(item.get("id") or "").strip()
         jwt_secret = item.get("jwt_secret")
@@ -436,7 +429,6 @@ def replace_org_jitsi_hosts(
         if row_id and row_id in by_id:
             row = by_id[row_id]
             row.host = host
-            row.worker_id = worker_id
             row.updated_at = now
             row.jwt_app_id = normalize_jwt_app_id(jwt_app_id)
             if clear_secret:
@@ -451,7 +443,6 @@ def replace_org_jitsi_hosts(
                 id=new_id(),
                 org_id=org_id,
                 host=host,
-                worker_id=worker_id,
                 jwt_secret_encrypted=secret_encrypted,
                 jwt_app_id=normalize_jwt_app_id(jwt_app_id),
                 created_at=now,

@@ -32,10 +32,10 @@ def _enable_capture(client) -> None:
     assert response.status_code == 200, response.text
 
 
-def _map_jitsi_host(client, worker_id: str, host: str = "meet.example.com") -> None:
+def _map_jitsi_host(client, host: str = "meet.example.com") -> None:
     response = client.put(
         "/api/v1/org/capture/jitsi",
-        json={"items": [{"host": host, "worker_id": worker_id}]},
+        json={"items": [{"host": host}]},
     )
     assert response.status_code == 200, response.text
 
@@ -169,7 +169,6 @@ def test_meet_jitsi_skips_org_jwt(client, fake_workers):
             "items": [
                 {
                     "host": "meet.jit.si",
-                    "worker_id": worker["id"],
                     "jwt_secret": "test-secret",
                     "jwt_app_id": "chat",
                 }
@@ -204,7 +203,7 @@ def test_capture_meet_jitsi_requires_org_host_map(client, fake_workers):
     tariff_id = default_tariff_id(client)
     assert signup(client, "jitorg@example.com", "jitorgpass1", tariff_id).status_code == 200
     login_ready(client, "jitorg@example.com", "jitorgpass1")
-    _map_jitsi_host(client, worker["id"], host="meet.jit.si")
+    _map_jitsi_host(client, host="meet.jit.si")
     response = client.post(
         "/api/v1/tasks/capture",
         json={"meeting_url": "https://meet.jit.si/IncorrectToysSpellAbove"},
@@ -225,7 +224,7 @@ def test_bind_capture_worker_after_worker_id_cleared(client, fake_workers):
     tariff_id = default_tariff_id(client)
     assert signup(client, "rebind@example.com", "rebindpass1", tariff_id).status_code == 200
     login_ready(client, "rebind@example.com", "rebindpass1")
-    _map_jitsi_host(client, worker["id"], host="meet.jit.si")
+    _map_jitsi_host(client, host="meet.jit.si")
     created = client.post(
         "/api/v1/tasks/capture",
         json={"meeting_url": "https://meet.jit.si/RoomName"},
@@ -247,6 +246,38 @@ def test_bind_capture_worker_after_worker_id_cleared(client, fake_workers):
         assert node is not None
         assert node.id == worker["id"]
         assert task.meta_json["meeting_host"] == "meet.jit.si"
+    finally:
+        db.close()
+
+
+def test_resolve_jitsi_picks_any_jitsi_capture_worker(client, fake_workers):
+    from tests.conftest import open_db
+
+    from app.models import Organization
+    from app.services.capture_meeting import resolve_capture_target
+
+    setup_admin(client)
+    worker_a = add_worker(client, type="capture", name="cap-a", base_url="http://capture-a.test")
+    worker_b = add_worker(client, type="capture", name="cap-b", base_url="http://capture-b.test")
+    seed_node_health(worker_a["id"])
+    seed_node_health(worker_b["id"])
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "jitsipool@example.com", "jitsipoolpass1", tariff_id).status_code == 200
+    user = login_ready(client, "jitsipool@example.com", "jitsipoolpass1")
+    _map_jitsi_host(client, host="meet.example.com")
+    db = open_db()
+    try:
+        org = db.get(Organization, user["org"]["id"])
+        assert org is not None
+        target = resolve_capture_target(
+            db,
+            org=org,
+            meeting_url="https://meet.example.com/room-pool",
+            pin="",
+            settings_allowed=["jitsi"],
+        )
+        assert target.worker.id in {worker_a["id"], worker_b["id"]}
     finally:
         db.close()
 
@@ -296,7 +327,7 @@ def test_capture_uses_org_bot_display_name(client, fake_workers):
         "/api/v1/org/capture/jitsi",
         json={
             "bot_display_name": "Realweb Recorder",
-            "items": [{"host": "meet.example.com", "worker_id": worker["id"]}],
+            "items": [{"host": "meet.example.com"}],
         },
     )
     assert mapped.status_code == 200, mapped.text
@@ -323,7 +354,7 @@ def test_capture_user_bot_display_name_overrides_org(client, fake_workers):
         "/api/v1/org/capture/jitsi",
         json={
             "bot_display_name": "Org Default Bot",
-            "items": [{"host": "meet.example.com", "worker_id": worker["id"]}],
+            "items": [{"host": "meet.example.com"}],
         },
     )
     assert mapped.status_code == 200, mapped.text
@@ -352,7 +383,7 @@ def test_capture_request_bot_display_name_override(client, fake_workers):
     tariff_id = default_tariff_id(client)
     assert signup(client, "capreqbot@example.com", "capreqbotpass1", tariff_id).status_code == 200
     login_ready(client, "capreqbot@example.com", "capreqbotpass1")
-    _map_jitsi_host(client, worker["id"])
+    _map_jitsi_host(client)
     client.patch("/api/v1/me", json={"capture_bot_display_name": "Profile Bot"})
 
     created = client.post(
@@ -427,7 +458,7 @@ def test_capture_success(client, fake_workers):
     tariff_id = default_tariff_id(client)
     assert signup(client, "capsuccess@example.com", "capsuccesspass1", tariff_id).status_code == 200
     login_ready(client, "capsuccess@example.com", "capsuccesspass1")
-    _map_jitsi_host(client, worker["id"])
+    _map_jitsi_host(client)
 
     created = client.post(
         "/api/v1/tasks/capture",
@@ -462,7 +493,7 @@ def test_org_capture_jitsi_crud(client, fake_workers):
     assert len(body["workers"]) == 1
     assert body["workers"][0]["id"] == worker["id"]
 
-    _map_jitsi_host(client, worker["id"], host="jitsi.example.com")
+    _map_jitsi_host(client, host="jitsi.example.com")
     listed = client.get("/api/v1/org/capture/jitsi")
     assert len(listed.json()["items"]) == 1
     assert listed.json()["items"][0]["host"] == "jitsi.example.com"
@@ -475,7 +506,6 @@ def test_org_capture_jitsi_crud(client, fake_workers):
                 {
                     "id": host_id,
                     "host": "jitsi.example.com",
-                    "worker_id": worker["id"],
                     "jwt_app_id": "miSpy",
                 }
             ]
@@ -491,7 +521,6 @@ def test_org_capture_jitsi_crud(client, fake_workers):
                 {
                     "id": host_id,
                     "host": "jitsi.example.com",
-                    "worker_id": worker["id"],
                     "jwt_app_id": "",
                 }
             ]
@@ -507,7 +536,7 @@ def test_org_capture_jitsi_crud(client, fake_workers):
     assert cleared.json()["items"] == []
 
 
-def test_org_capture_jitsi_rejects_invalid_worker(client, fake_workers):
+def test_org_capture_jitsi_rejects_empty_host(client, fake_workers):
     setup_admin(client)
     worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
     seed_node_health(worker["id"])
@@ -517,10 +546,10 @@ def test_org_capture_jitsi_rejects_invalid_worker(client, fake_workers):
     login_ready(client, "capbad@example.com", "capbadpass1")
     response = client.put(
         "/api/v1/org/capture/jitsi",
-        json={"items": [{"host": "https://meet.realweb.ru/", "worker_id": "not-a-worker"}]},
+        json={"items": [{"host": "   "}]},
     )
     assert response.status_code == 400
-    assert err_code(response) == "invalid_capture_worker"
+    assert err_code(response) == "validation_error"
 
 
 def test_import_meeting_url_creates_capture_via_import_endpoint(client, fake_workers):
@@ -531,7 +560,7 @@ def test_import_meeting_url_creates_capture_via_import_endpoint(client, fake_wor
     tariff_id = default_tariff_id(client)
     assert signup(client, "capmeet@example.com", "capmeetpass1", tariff_id).status_code == 200
     login_ready(client, "capmeet@example.com", "capmeetpass1")
-    _map_jitsi_host(client, worker["id"], host="meet.realweb.ru")
+    _map_jitsi_host(client, host="meet.realweb.ru")
     response = client.post(
         "/api/v1/tasks/import",
         json={"url": "https://meet.realweb.ru/some-room"},
@@ -549,7 +578,7 @@ async def test_recover_capture_without_worker_task_requeues(client, fake_workers
     tariff_id = default_tariff_id(client)
     assert signup(client, "caprec1@example.com", "caprec1pass1", tariff_id).status_code == 200
     user = login_ready(client, "caprec1@example.com", "caprec1pass1")
-    _map_jitsi_host(client, worker["id"])
+    _map_jitsi_host(client)
 
     from tests.conftest import open_db
 
@@ -660,7 +689,7 @@ async def test_capture_stop_calls_worker_without_local_thread(client, fake_worke
     tariff_id = default_tariff_id(client)
     assert signup(client, "capstop@example.com", "capstoppass1", tariff_id).status_code == 200
     user = login_ready(client, "capstop@example.com", "capstoppass1")
-    _map_jitsi_host(client, worker["id"])
+    _map_jitsi_host(client)
 
     from tests.conftest import open_db
 

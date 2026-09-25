@@ -55,7 +55,6 @@ class OrgSettingsPatch(BaseModel):
 class OrgCaptureJitsiHostBody(BaseModel):
     id: str | None = None
     host: str
-    worker_id: str
     jwt_secret: str | None = None
     jwt_app_id: str | None = None
     clear_jwt_secret: bool = False
@@ -204,9 +203,7 @@ def replace_org_capture_jitsi(
             org_id=org.id,
             items=[item.model_dump() for item in body.items],
         )
-    except ValueError as exc:
-        if str(exc).startswith("invalid capture worker"):
-            ctx.raise_error(ErrorCode.invalid_capture_worker)
+    except ValueError:
         ctx.raise_error(ErrorCode.validation_error)
     db.commit()
     from app.services.capture_meeting import org_capture_worker_choices

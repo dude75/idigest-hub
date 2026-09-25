@@ -6,6 +6,7 @@ from tests.conftest import (
     add_worker,
     get_task_row,
     login,
+    login_ready,
     seed_node_health,
     setup_admin,
     signup,
@@ -302,6 +303,13 @@ def test_delete_summarize_worker_with_remediation_updates_user_and_task(client, 
 
 
 def test_delete_impact_capture_can_remediate(client, fake_workers):
+    from tests.conftest import open_db
+
+    from app.deps import get_instance_settings
+    from app.models import Organization, Task, new_id
+    from app.services.billing import snapshot_fields
+    from app.timeutil import utcnow
+
     setup_admin(client)
     doomed = add_worker(client, type="capture", name="cap-a", base_url="http://capture-a.test")
     keeper = add_worker(client, type="capture", name="cap-b", base_url="http://capture-b.test")
@@ -313,8 +321,33 @@ def test_delete_impact_capture_can_remediate(client, fake_workers):
     login(client, "capimpact@example.com", "capimpactpass1")
     assert client.put(
         "/api/v1/org/capture/jitsi",
-        json={"items": [{"host": "meet.example.com", "worker_id": doomed["id"]}]},
+        json={"items": [{"host": "meet.example.com"}]},
     ).status_code == 200
+
+    user = login_ready(client, "capimpact@example.com", "capimpactpass1")
+    db = open_db()
+    try:
+        org = db.get(Organization, user["org"]["id"])
+        assert org is not None
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="queued",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=doomed["id"],
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={"meeting_url": "https://meet.example.com/room1", "stage": "queued"},
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+    finally:
+        db.close()
 
     login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     impact = client.get(f"/api/v1/workers/{doomed['id']}/delete-impact")
@@ -326,7 +359,14 @@ def test_delete_impact_capture_can_remediate(client, fake_workers):
     assert {item["id"] for item in body["available_capture_workers"]} == {keeper["id"]}
 
 
-def test_delete_capture_worker_with_remediation_reassigns_jitsi_host(client, fake_workers):
+def test_delete_capture_worker_with_remediation_reassigns_tasks(client, fake_workers):
+    from tests.conftest import open_db
+
+    from app.deps import get_instance_settings
+    from app.models import Organization, Task, new_id
+    from app.services.billing import snapshot_fields
+    from app.timeutil import utcnow
+
     setup_admin(client)
     doomed = add_worker(client, type="capture", name="cap-a", base_url="http://capture-a.test")
     keeper = add_worker(client, type="capture", name="cap-b", base_url="http://capture-b.test")
@@ -338,8 +378,35 @@ def test_delete_capture_worker_with_remediation_reassigns_jitsi_host(client, fak
     login(client, "capremed@example.com", "capremedpass1")
     assert client.put(
         "/api/v1/org/capture/jitsi",
-        json={"items": [{"host": "meet.example.com", "worker_id": doomed["id"]}]},
+        json={"items": [{"host": "meet.example.com"}]},
     ).status_code == 200
+
+    user = login_ready(client, "capremed@example.com", "capremedpass1")
+    db = open_db()
+    task_id = None
+    try:
+        org = db.get(Organization, user["org"]["id"])
+        assert org is not None
+        settings = get_instance_settings(db)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="capture",
+            status="queued",
+            org_id=org.id,
+            user_id=user["user"]["id"],
+            worker_id=doomed["id"],
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            meta_json={"meeting_url": "https://meet.example.com/room1", "stage": "queued"},
+            **snapshot_fields(org.tariff, settings.asr_model, settings.diarization_model),
+        )
+        db.add(task)
+        db.commit()
+        task_id = task.id
+    finally:
+        db.close()
 
     login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
     deleted = client.request(
@@ -353,16 +420,23 @@ def test_delete_capture_worker_with_remediation_reassigns_jitsi_host(client, fak
     )
     assert deleted.status_code == 200, deleted.text
     remediation = deleted.json()["remediation"]
-    assert remediation["jitsi_hosts_updated"] == 1
+    assert remediation["tasks_updated"] == 1
 
     login(client, "capremed@example.com", "capremedpass1")
     hosts = client.get("/api/v1/org/capture/jitsi").json()["items"]
     assert len(hosts) == 1
     assert hosts[0]["host"] == "meet.example.com"
-    assert hosts[0]["worker_id"] == keeper["id"]
+
+    db = open_db()
+    try:
+        row = db.get(Task, task_id)
+        assert row is not None
+        assert row.worker_id == keeper["id"]
+    finally:
+        db.close()
 
 
-def test_delete_capture_worker_removes_jitsi_host_map(client, fake_workers):
+def test_delete_capture_worker_keeps_jitsi_host_map(client, fake_workers):
     setup_admin(client)
     worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
     seed_node_health(worker["id"])
@@ -372,7 +446,7 @@ def test_delete_capture_worker_removes_jitsi_host_map(client, fake_workers):
     login(client, "delcap@example.com", "delcappass12")
     mapped = client.put(
         "/api/v1/org/capture/jitsi",
-        json={"items": [{"host": "meet.example.com", "worker_id": worker["id"]}]},
+        json={"items": [{"host": "meet.example.com"}]},
     )
     assert mapped.status_code == 200, mapped.text
 
@@ -380,7 +454,12 @@ def test_delete_capture_worker_removes_jitsi_host_map(client, fake_workers):
     deleted = client.delete(f"/api/v1/workers/{worker['id']}")
     assert deleted.status_code == 200, deleted.text
     body = deleted.json()
-    assert body["cleanup"]["jitsi_hosts_removed"] == 1
+    assert body.get("cleanup", {}).get("jitsi_hosts_removed", 0) == 0
 
     workers = client.get("/api/v1/workers").json()["items"]
     assert all(row["id"] != worker["id"] for row in workers)
+
+    login(client, "delcap@example.com", "delcappass12")
+    hosts = client.get("/api/v1/org/capture/jitsi").json()["items"]
+    assert len(hosts) == 1
+    assert hosts[0]["host"] == "meet.example.com"
