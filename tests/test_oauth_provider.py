@@ -422,6 +422,169 @@ def test_oauth_authorize_blocked_api_disabled_styled(client, monkeypatch):
     assert "Cannot authorize" in response.text or "Нельзя выдать доступ" in response.text
 
 
+def _authorize_login_page(client, monkeypatch) -> tuple[str, str, dict[str, str]]:
+    from tests.conftest import logout
+
+    _enable_oauth(client, monkeypatch)
+    client_id = _register_client(client)
+    logout(client)
+    verifier, challenge = _pkce_pair()
+    params = {
+        "client_id": client_id,
+        "redirect_uri": REDIRECT_URI,
+        "response_type": "code",
+        "scope": "transcripts:read",
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+        "resource": MCP_RESOURCE,
+        "state": "abc",
+    }
+    authorize = client.get("/oauth/authorize", params=params, follow_redirects=False)
+    assert authorize.status_code == 200, authorize.text
+    assert "auth-segment" in authorize.text
+    assert "Continue with SSO" in authorize.text or "Продолжить через SSO" in authorize.text
+    from app.routers.oauth import _encode_oauth_params
+
+    return client_id, verifier, {**params, "oauth_params": _encode_oauth_params(params)}
+
+
+def _configure_sso_on_hub_test(client) -> str:
+    org_id = client.get("/api/v1/me").json()["org"]["id"]
+    patched = client.patch(
+        "/api/v1/org/sso",
+        json={
+            "issuer": "https://keycloak.example/realms/demo",
+            "client_id": "hub",
+            "client_secret": "secret",
+            "enabled": True,
+        },
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["org_id"] == org_id
+    return org_id
+
+
+def test_oauth_login_page_sso_tab_and_mode_links(client, monkeypatch):
+    _client_id, _verifier, ctx = _authorize_login_page(client, monkeypatch)
+    sso = client.get(
+        "/oauth/authorize",
+        params={
+            "client_id": ctx["client_id"],
+            "redirect_uri": REDIRECT_URI,
+            "response_type": "code",
+            "scope": "transcripts:read",
+            "code_challenge": ctx["code_challenge"],
+            "code_challenge_method": "S256",
+            "resource": MCP_RESOURCE,
+            "hub_auth_mode": "sso",
+        },
+    )
+    assert sso.status_code == 200
+    assert 'name="org_id"' in sso.text
+    assert 'action="/oauth/sso"' in sso.text
+
+
+def test_oauth_sso_flow_returns_to_consent(client, monkeypatch):
+    from tests.conftest import logout
+    from urllib.parse import parse_qs, urlparse
+
+    from app.services import sso as sso_service
+
+    _enable_oauth(client, monkeypatch)
+    client_id = _register_client(client)
+    tariffs = client.get("/api/v1/auth/signup-tariffs").json()["items"]
+    signup(client, "sso-oauth@example.com", "ssopass12", tariffs[0]["id"])
+    login(client, "sso-oauth@example.com", "ssopass12")
+    org_id = _configure_sso_on_hub_test(client)
+    logout(client)
+
+    verifier, challenge = _pkce_pair()
+    params = {
+        "client_id": client_id,
+        "redirect_uri": REDIRECT_URI,
+        "response_type": "code",
+        "scope": "transcripts:read",
+        "code_challenge": challenge,
+        "code_challenge_method": "S256",
+        "resource": MCP_RESOURCE,
+        "state": "sso-state",
+    }
+    login_page = client.get("/oauth/authorize", params=params, follow_redirects=False)
+    assert login_page.status_code == 200
+    from app.routers.oauth import _encode_oauth_params
+
+    oauth_params = _encode_oauth_params(params)
+
+    monkeypatch.setattr(
+        sso_service,
+        "fetch_oidc_config",
+        lambda issuer: {"authorization_endpoint": "https://keycloak.example/authorize"},
+    )
+    start = client.post(
+        "/oauth/sso",
+        data={"org_id": org_id, "oauth_params": oauth_params},
+        follow_redirects=False,
+    )
+    assert start.status_code == 302, start.text
+    assert start.headers["location"].startswith("https://keycloak.example/authorize")
+
+    monkeypatch.setattr("app.routers.auth.exchange_code", lambda **kwargs: {"id_token": "token"})
+    monkeypatch.setattr(
+        "app.routers.auth.validate_id_token",
+        lambda **kwargs: {"sub": "kc-oauth", "email": "sso-oauth@example.com"},
+    )
+    state = parse_qs(urlparse(start.headers["location"]).query)["state"][0]
+    callback = client.get(
+        f"/api/v1/auth/sso/{org_id}/callback?code=abc&state={state}",
+        follow_redirects=False,
+    )
+    assert callback.status_code == 302, callback.text
+    assert callback.headers["location"].startswith("https://hub.test/oauth/authorize?")
+
+    return_path = urlparse(callback.headers["location"])
+    consent = client.get(f"{return_path.path}?{return_path.query}", follow_redirects=False)
+    assert consent.status_code == 200, consent.text
+    assert "Allow" in consent.text
+
+
+def test_oauth_sso_callback_redirects_to_app_without_authorize_query(client, monkeypatch):
+    from app.services import sso as sso_service
+    from tests.conftest import setup_admin
+
+    setup_admin(client)
+    patched = client.patch("/api/v1/instance/settings", json={"public_base_url": "https://hub.example"})
+    assert patched.status_code == 200
+    from tests.conftest import default_tariff_id, login_ready, logout, signup
+
+    tariff_id = default_tariff_id(client)
+    signup(client, "plain-sso@example.com", "plainpass1", tariff_id)
+    login_ready(client, "plain-sso@example.com", "plainpass1")
+    org_id = client.get("/api/v1/me").json()["org"]["id"]
+    client.patch(
+        "/api/v1/org/sso",
+        json={
+            "issuer": "https://keycloak.example/realms/demo",
+            "client_id": "hub",
+            "client_secret": "secret",
+            "enabled": True,
+        },
+    )
+    logout(client)
+
+    monkeypatch.setattr("app.routers.auth.exchange_code", lambda **kwargs: {"id_token": "token"})
+    monkeypatch.setattr(
+        "app.routers.auth.validate_id_token",
+        lambda **kwargs: {"sub": "kc-plain", "email": "plain-sso@example.com"},
+    )
+    state, _nonce, _challenge = sso_service.make_oauth_state(org_id)
+    callback = client.get(
+        f"/api/v1/auth/sso/{org_id}/callback?code=abc&state={state}",
+        follow_redirects=False,
+    )
+    assert callback.status_code == 302
+    assert callback.headers["location"] == "https://hub.example/app"
+
+
 def test_pat_still_works(client, monkeypatch):
     _enable_oauth(client, monkeypatch)
     created = client.post("/api/v1/auth/tokens", json={"name": "test"})

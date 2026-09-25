@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import re
 from typing import Any
 from urllib.parse import parse_qs, urlencode
 
@@ -50,11 +51,14 @@ from app.services.oauth_pages import (
     oauth_message_page,
 )
 from app.services.oauth_scopes import scopes_to_string
-from app.services.sso import sso_login_url
+from app.services.sso import begin_org_sso_login, sso_configured
 
 log = logging.getLogger("app")
 
 router = APIRouter(include_in_schema=False)
+
+HUB_AUTH_MODE = "hub_auth_mode"
+_OAUTH_ORG_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 
 
 def _oauth_disabled() -> JSONResponse:
@@ -179,7 +183,7 @@ def oauth_authorize_get(
 
     ctx = resolve_auth(request, db)
     if ctx is None or ctx.session is None or ctx.impersonating:
-        return _login_html(request, db, params)
+        return _login_html(request, db, _oauth_authorize_params(params))
     blocked = user_oauth_blocked(ctx.user, db)
     if blocked:
         return oauth_blocked_page(request, blocked, user=ctx.user)
@@ -290,39 +294,195 @@ def oauth_authorize_confirm(
     return oauth_client_redirect_page(request, redirect_url)
 
 
+def _oauth_authorize_params(params: dict[str, str]) -> dict[str, str]:
+    return {key: value for key, value in params.items() if key != HUB_AUTH_MODE}
+
+
+def _login_auth_mode(params: dict[str, str]) -> str:
+    mode = (params.get(HUB_AUTH_MODE) or "email").strip().lower()
+    return mode if mode in ("email", "sso") else "email"
+
+
+def _login_prefill_org_id(db: Session, params: dict[str, str]) -> str:
+    login_hint = (params.get("login_hint") or "").strip().lower()
+    if not login_hint:
+        return ""
+    from sqlalchemy import select
+
+    from app.models import Membership, Organization, User
+
+    user = db.scalar(select(User).where(User.email == login_hint))
+    if user is None:
+        return ""
+    membership = db.scalar(select(Membership).where(Membership.user_id == user.id))
+    if membership is None:
+        return ""
+    org = db.get(Organization, membership.org_id)
+    if org is None or not sso_configured(org) or not org.sso_enabled:
+        return ""
+    return org.id
+
+
+def _validate_oauth_authorize_params(db: Session, params: dict[str, str]) -> None:
+    validate_authorize_params(
+        db,
+        client_id=params.get("client_id", ""),
+        redirect_uri=params.get("redirect_uri", ""),
+        response_type=params.get("response_type", ""),
+        scope=params.get("scope"),
+        code_challenge=params.get("code_challenge", ""),
+        code_challenge_method=params.get("code_challenge_method", ""),
+        resource=params.get("resource"),
+    )
+
+
 def _login_html(
     request: Request,
     db: Session,
     params: dict[str, str],
     *,
+    auth_mode: str | None = None,
+    prefill_org_id: str | None = None,
     error_message: str | None = None,
 ) -> HTMLResponse:
-    settings = get_instance_settings(db)
-    base = (settings.public_base_url or "").strip().rstrip("/")
-    sso_href: str | None = None
-    from sqlalchemy import select
-    from app.models import Membership, Organization
-
-    # Show SSO link for first org with SSO (best-effort v1).
-    membership = None
-    if params.get("login_hint"):
-        from app.models import User
-
-        user = db.scalar(select(User).where(User.email == params["login_hint"].strip().lower()))
-        if user:
-            membership = db.scalar(select(Membership).where(Membership.user_id == user.id))
-    org = db.get(Organization, membership.org_id) if membership else None
-    if org and base:
-        url = sso_login_url(base, org.id)
-        if url:
-            sso_href = url
-    hidden = _encode_oauth_params(params)
+    authorize_params = _oauth_authorize_params(params)
+    mode = auth_mode or _login_auth_mode(params)
+    org_hint = prefill_org_id if prefill_org_id is not None else _login_prefill_org_id(db, authorize_params)
+    if org_hint and mode == "email" and (params.get("login_hint") or "").strip():
+        mode = "sso"
+    hidden = _encode_oauth_params(authorize_params)
     return oauth_login_page(
         request,
         hidden_params=hidden,
-        sso_href=sso_href,
+        authorize_params=authorize_params,
+        auth_mode=mode,
+        prefill_org_id=org_hint,
         error_message=error_message,
     )
+
+
+def _begin_oauth_sso(
+    request: Request,
+    db: Session,
+    *,
+    org_id: str,
+    oauth_params: str,
+) -> Response:
+    locale = oauth_locale(request)
+    if not provider_ready(db):
+        return oauth_message_page(
+            request,
+            title_key="oauth_title_error",
+            message=t(locale, "oauth_provider_unconfigured"),
+            status_code=503,
+        )
+    params = _decode_oauth_params(oauth_params)
+    try:
+        _validate_oauth_authorize_params(db, params)
+    except ValueError as exc:
+        return oauth_message_page(
+            request,
+            title_key="oauth_title_error",
+            message=str(exc),
+            status_code=400,
+        )
+    from app.models import Organization
+
+    org = db.get(Organization, org_id)
+    if org is None:
+        return _login_html(
+            request,
+            db,
+            params,
+            auth_mode="sso",
+            prefill_org_id=org_id,
+            error_message=t(locale, "oauth_org_id_invalid"),
+        )
+    settings = get_instance_settings(db)
+    public_base = (settings.public_base_url or "").strip().rstrip("/")
+    if not public_base:
+        return oauth_message_page(
+            request,
+            title_key="oauth_title_error",
+            message=t(locale, "oauth_provider_unconfigured"),
+            status_code=503,
+        )
+    try:
+        idp_url = begin_org_sso_login(
+            org=org,
+            public_base_url=public_base,
+            oauth_authorize_query=urlencode(params),
+        )
+    except ValueError as exc:
+        code = str(exc)
+        if code == "sso_disabled":
+            message = t(locale, "oauth_sso_disabled")
+        elif code == "sso_misconfigured":
+            message = t(locale, "oauth_sso_not_configured")
+        else:
+            message = t(locale, "oauth_invalid_request")
+        return _login_html(
+            request,
+            db,
+            params,
+            auth_mode="sso",
+            prefill_org_id=org_id,
+            error_message=message,
+        )
+    except Exception:
+        return _login_html(
+            request,
+            db,
+            params,
+            auth_mode="sso",
+            prefill_org_id=org_id,
+            error_message=t(locale, "oauth_sso_not_configured"),
+        )
+    return RedirectResponse(idp_url, status_code=302)
+
+
+@router.get("/oauth/sso/start")
+def oauth_sso_start_get(
+    request: Request,
+    org_id: str = "",
+    oauth_params: str = "",
+    db: Session = Depends(get_session, scope="function"),
+) -> Response:
+    org_id = org_id.strip()
+    if not _OAUTH_ORG_ID_RE.match(org_id):
+        locale = oauth_locale(request)
+        params = _decode_oauth_params(oauth_params)
+        return _login_html(
+            request,
+            db,
+            params,
+            auth_mode="sso",
+            prefill_org_id=org_id,
+            error_message=t(locale, "oauth_org_id_invalid"),
+        )
+    return _begin_oauth_sso(request, db, org_id=org_id, oauth_params=oauth_params)
+
+
+@router.post("/oauth/sso")
+def oauth_sso_start_post(
+    request: Request,
+    org_id: str = Form(""),
+    oauth_params: str = Form(""),
+    db: Session = Depends(get_session, scope="function"),
+) -> Response:
+    org_id = org_id.strip()
+    if not _OAUTH_ORG_ID_RE.match(org_id):
+        locale = oauth_locale(request)
+        params = _decode_oauth_params(oauth_params)
+        return _login_html(
+            request,
+            db,
+            params,
+            auth_mode="sso",
+            prefill_org_id=org_id,
+            error_message=t(locale, "oauth_org_id_invalid"),
+        )
+    return _begin_oauth_sso(request, db, org_id=org_id, oauth_params=oauth_params)
 
 
 @router.post("/oauth/login")
@@ -344,7 +504,13 @@ def oauth_login(
     params = _decode_oauth_params(oauth_params)
     user = authenticate_login_for_oauth(db, email=email, password=password)
     if user is None:
-        return _login_html(request, db, params, error_message=t(locale, "invalid_credentials"))
+        return _login_html(
+            request,
+            db,
+            params,
+            auth_mode="email",
+            error_message=t(locale, "invalid_credentials"),
+        )
     raw = create_session(db, user.id)
     db.commit()
     query = urlencode(params)

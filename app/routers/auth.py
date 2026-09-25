@@ -56,14 +56,14 @@ from app.security import (
 )
 from app.services.audit import write_audit
 from app.services.sso import (
-    build_authorization_url,
+    begin_org_sso_login,
     email_from_claims,
     exchange_code,
-    make_oauth_state,
     org_sso_public,
     password_login_allowed,
     resolve_or_provision_user,
     sso_configured,
+    sso_post_login_url,
     validate_id_token,
     verify_oauth_state,
 )
@@ -556,14 +556,11 @@ def sso_start(org_id: str, request: Request, db: Session = Depends(get_session, 
     if not public_base:
         abort(locale, ErrorCode.sso_misconfigured)
     try:
-        state, nonce, code_challenge = make_oauth_state(org_id)
-        url = build_authorization_url(
-            org=org,
-            public_base_url=public_base,
-            state=state,
-            nonce=nonce,
-            code_challenge=code_challenge,
-        )
+        url = begin_org_sso_login(org=org, public_base_url=public_base, oauth_authorize_query=None)
+    except ValueError as exc:
+        if str(exc) == "sso_disabled":
+            abort(locale, ErrorCode.sso_disabled)
+        abort(locale, ErrorCode.sso_misconfigured)
     except Exception:
         abort(locale, ErrorCode.sso_misconfigured)
     return RedirectResponse(url, status_code=302)
@@ -594,7 +591,7 @@ def sso_callback(
     if not public_base or not code or not state:
         return fail(ErrorCode.sso_misconfigured)
     try:
-        nonce, code_verifier = verify_oauth_state(state, org_id)
+        nonce, code_verifier, oauth_authorize_query = verify_oauth_state(state, org_id)
         token_payload = exchange_code(
             db=db,
             org=org,
@@ -621,7 +618,8 @@ def sso_callback(
     except Exception:
         return fail(ErrorCode.sso_misconfigured)
     raw = create_session(db, user.id)
-    redirect = RedirectResponse(f"{public_base.rstrip('/')}/app", status_code=302)
+    location = sso_post_login_url(public_base, oauth_authorize_query=oauth_authorize_query)
+    redirect = RedirectResponse(location, status_code=302)
     issue_auth_cookies(redirect, raw, max_age=session_ttl_sec_from_db(db))
     return redirect
 

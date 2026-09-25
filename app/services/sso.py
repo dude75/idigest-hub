@@ -126,7 +126,10 @@ def _verify_state(state: str) -> dict[str, Any]:
     return payload
 
 
-def make_oauth_state(org_id: str) -> tuple[str, str, str]:
+_OAUTH_AUTHORIZE_QUERY_MAX_LEN = 2048
+
+
+def make_oauth_state(org_id: str, *, oauth_authorize_query: str | None = None) -> tuple[str, str, str]:
     """Return signed state, OIDC nonce, and PKCE code_challenge (S256)."""
     nonce = secrets.token_urlsafe(16)
     code_verifier = secrets.token_urlsafe(_PKCE_VERIFIER_BYTES)
@@ -136,11 +139,16 @@ def make_oauth_state(org_id: str) -> tuple[str, str, str]:
         "code_verifier": code_verifier,
         "exp": int(time.time()) + STATE_TTL_SEC,
     }
+    if oauth_authorize_query:
+        query = oauth_authorize_query.strip()
+        if not query or len(query) > _OAUTH_AUTHORIZE_QUERY_MAX_LEN:
+            raise ValueError("invalid oauth authorize query")
+        payload["oauth_authorize_query"] = query
     return _sign_state(payload), nonce, _pkce_challenge(code_verifier)
 
 
-def verify_oauth_state(state: str, org_id: str) -> tuple[str, str]:
-    """Return OIDC nonce and PKCE code_verifier from signed state."""
+def verify_oauth_state(state: str, org_id: str) -> tuple[str, str, str | None]:
+    """Return OIDC nonce, PKCE code_verifier, and optional OAuth authorize query from signed state."""
     payload = _verify_state(state)
     if payload.get("org_id") != org_id:
         raise ValueError("org mismatch")
@@ -150,7 +158,38 @@ def verify_oauth_state(state: str, org_id: str) -> tuple[str, str]:
     code_verifier = payload.get("code_verifier")
     if not code_verifier:
         raise ValueError("missing code_verifier")
-    return str(nonce), str(code_verifier)
+    oauth_query = payload.get("oauth_authorize_query")
+    if oauth_query is not None:
+        oauth_query = str(oauth_query)
+    return str(nonce), str(code_verifier), oauth_query
+
+
+def sso_post_login_url(public_base_url: str, *, oauth_authorize_query: str | None) -> str:
+    base = public_base_url.rstrip("/")
+    if oauth_authorize_query:
+        return f"{base}/oauth/authorize?{oauth_authorize_query}"
+    return f"{base}/app"
+
+
+def begin_org_sso_login(
+    *,
+    org: Organization,
+    public_base_url: str,
+    oauth_authorize_query: str | None = None,
+) -> str:
+    """Build IdP authorization URL for organization SSO."""
+    if not sso_configured(org):
+        raise ValueError("sso_misconfigured")
+    if not org.sso_enabled:
+        raise ValueError("sso_disabled")
+    state, nonce, code_challenge = make_oauth_state(org.id, oauth_authorize_query=oauth_authorize_query)
+    return build_authorization_url(
+        org=org,
+        public_base_url=public_base_url,
+        state=state,
+        nonce=nonce,
+        code_challenge=code_challenge,
+    )
 
 
 def callback_url(public_base_url: str, org_id: str) -> str:

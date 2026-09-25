@@ -259,9 +259,21 @@ def test_oauth_state_roundtrip(client):
     org_id = "org-roundtrip"
     for _ in range(200):
         state, nonce, code_challenge = sso_service.make_oauth_state(org_id)
-        roundtrip_nonce, code_verifier = sso_service.verify_oauth_state(state, org_id)
+        roundtrip_nonce, code_verifier, oauth_query = sso_service.verify_oauth_state(state, org_id)
+        assert oauth_query is None
         assert roundtrip_nonce == nonce
         assert code_challenge == sso_service._pkce_challenge(code_verifier)
+
+
+def test_oauth_state_carries_authorize_query(client):
+    from app.services import sso as sso_service
+
+    org_id = "org-oauth-return"
+    query = "client_id=test&response_type=code"
+    state, nonce, _challenge = sso_service.make_oauth_state(org_id, oauth_authorize_query=query)
+    roundtrip_nonce, _verifier, oauth_query = sso_service.verify_oauth_state(state, org_id)
+    assert roundtrip_nonce == nonce
+    assert oauth_query == query
 
 
 def test_build_authorization_url_includes_pkce(monkeypatch):

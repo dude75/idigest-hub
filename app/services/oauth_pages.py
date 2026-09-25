@@ -5,6 +5,7 @@ from __future__ import annotations
 import html
 import json
 from typing import Iterable
+from urllib.parse import urlencode
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse
@@ -140,6 +141,22 @@ button.primary, a.btn.primary {
 }
 button.primary:hover, a.btn.primary:hover { filter: brightness(1.05); background: var(--accent); }
 a.text-link { font-size: 0.9rem; }
+.auth-segment {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem;
+  padding: 0.2rem; border: 1px solid var(--line); border-radius: 8px; background: #f6f7f9;
+}
+.auth-segment a.seg-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 100%; border: none; background: transparent; color: var(--muted);
+  font-weight: 500; padding: 0.45rem 0.6rem; border-radius: 6px; text-decoration: none;
+}
+.auth-segment a.seg-link:hover { text-decoration: none; color: var(--ink); }
+.auth-segment a.seg-link.active {
+  background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+.auth-panel-stack { display: grid; }
+.auth-panel-stack > .auth-panel { grid-area: 1 / 1; min-width: 0; }
+.auth-panel-stack > .auth-panel-hidden { visibility: hidden; pointer-events: none; }
 """
 
 
@@ -343,17 +360,27 @@ def oauth_consent_page(
     return _page(request, locale, title=t(locale, "oauth_title_authorize"), body=body)
 
 
+def _oauth_mode_href(authorize_params: dict[str, str], mode: str) -> str:
+    query = dict(authorize_params)
+    query["hub_auth_mode"] = mode
+    return f"/oauth/authorize?{urlencode(query)}"
+
+
 def oauth_login_page(
     request: Request,
     *,
     hidden_params: str,
-    sso_href: str | None = None,
+    authorize_params: dict[str, str],
+    auth_mode: str = "email",
+    prefill_org_id: str = "",
     error_message: str | None = None,
 ) -> HTMLResponse:
     locale = oauth_locale(request)
-    sso_block = ""
-    if sso_href:
-        sso_block = f'<p><a class="text-link" href="{_esc(sso_href)}">{_esc(t(locale, "oauth_sso"))}</a></p>'
+    mode = auth_mode if auth_mode in ("email", "sso") else "email"
+    email_active = " active" if mode == "email" else ""
+    sso_active = " active" if mode == "sso" else ""
+    email_panel_class = "stack auth-panel" if mode == "email" else "stack auth-panel auth-panel-hidden"
+    sso_panel_class = "stack auth-panel" if mode == "sso" else "stack auth-panel auth-panel-hidden"
     err_block = (
         f'<div class="alert alert-error" role="alert"><p class="alert-body">{_esc(error_message)}</p></div>'
         if error_message
@@ -361,18 +388,31 @@ def oauth_login_page(
     )
     body = f"""<h1>{_esc(t(locale, "oauth_title_sign_in"))}</h1>
 <p class="lead">{_esc(t(locale, "oauth_sign_in_intro"))}</p>
-{sso_block}
+<div class="auth-segment" role="group" aria-label="{_esc(t(locale, "oauth_title_sign_in"))}">
+  <a class="seg-link{email_active}" href="{_esc(_oauth_mode_href(authorize_params, "email"))}">{_esc(t(locale, "oauth_mode_email"))}</a>
+  <a class="seg-link{sso_active}" href="{_esc(_oauth_mode_href(authorize_params, "sso"))}">{_esc(t(locale, "oauth_mode_sso"))}</a>
+</div>
 {err_block}
-<form method="post" action="/oauth/login" class="stack" target="_top">
-  <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
-  <label>{_esc(t(locale, "oauth_email"))}
-    <input name="email" type="email" autocomplete="username" required/>
-  </label>
-  <label>{_esc(t(locale, "oauth_password"))}
-    <input name="password" type="password" autocomplete="current-password" required/>
-  </label>
-  <button type="submit" class="primary">{_esc(t(locale, "oauth_sign_in"))}</button>
-</form>"""
+<div class="auth-panel-stack">
+  <form method="post" action="/oauth/login" class="{email_panel_class}" target="_top" aria-hidden="{str(mode != "email").lower()}">
+    <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
+    <label>{_esc(t(locale, "oauth_email"))}
+      <input name="email" type="email" autocomplete="username" required/>
+    </label>
+    <label>{_esc(t(locale, "oauth_password"))}
+      <input name="password" type="password" autocomplete="current-password" required/>
+    </label>
+    <button type="submit" class="primary">{_esc(t(locale, "oauth_sign_in"))}</button>
+  </form>
+  <form method="post" action="/oauth/sso" class="{sso_panel_class}" target="_top" aria-hidden="{str(mode != "sso").lower()}">
+    <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
+    <label>{_esc(t(locale, "oauth_org_id"))}
+      <input name="org_id" type="text" required spellcheck="false" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value="{_esc(prefill_org_id)}"/>
+    </label>
+    <p class="muted">{_esc(t(locale, "oauth_org_id_hint"))}</p>
+    <button type="submit" class="primary">{_esc(t(locale, "oauth_sso_continue"))}</button>
+  </form>
+</div>"""
     return _page(request, locale, title=t(locale, "oauth_title_sign_in"), body=body)
 
 

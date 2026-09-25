@@ -25,6 +25,7 @@ CSRF_EXEMPT_PATHS: frozenset[str] = frozenset(
         "/oauth/register",
         "/oauth/token",
         "/oauth/login",
+        "/oauth/sso",
         "/oauth/authorize",
     }
 )
