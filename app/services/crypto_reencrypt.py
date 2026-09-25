@@ -24,6 +24,7 @@ from app.models import (
     InstanceSettings,
     Organization,
     Summary,
+    SummaryPublicLink,
     Transcript,
     WorkerNode,
     new_id,
@@ -91,6 +92,12 @@ def _count_pending(db: Session, table: str, column: str, retiring_ids: set[str])
             if dek in retiring_ids:
                 pending += 1
         return pending
+    if table == "summary_public_links":
+        for row in db.scalars(select(SummaryPublicLink)).all():
+            dek = token_dek_id(getattr(row, column))
+            if dek in retiring_ids:
+                pending += 1
+        return pending
     return pending
 
 
@@ -151,6 +158,18 @@ def _reencrypt_batch(
         return done
     if table == "summaries":
         rows = list(db.scalars(select(Summary)).all())
+        for row in rows:
+            if done >= limit:
+                break
+            value = getattr(row, column)
+            if token_dek_id(value) not in retiring_ids:
+                continue
+            plain = decrypt_str(value, db)
+            setattr(row, column, encrypt_str(plain, db))
+            done += 1
+        return done
+    if table == "summary_public_links":
+        rows = list(db.scalars(select(SummaryPublicLink)).all())
         for row in rows:
             if done >= limit:
                 break

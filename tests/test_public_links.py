@@ -221,3 +221,32 @@ def test_delete_summary_invalidates_public_link(client):
 
     gone = client.get(f"/api/v1/public/summary/{token}")
     assert gone.status_code == 404
+
+
+def test_org_public_links_list_survives_corrupt_token_encrypted(client):
+    _member_client(client)
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    _transcript_id, summary_id = _insert_transcript_and_summary(org_id, user_id)
+
+    created = client.post(
+        f"/api/v1/summaries/{summary_id}/public-link",
+        json={"expires_in_days": 7, "pin": None},
+    )
+    assert created.status_code == 200, created.text
+    link_id = created.json()["link"]["id"]
+
+    with open_db() as db:
+        from app.models import SummaryPublicLink
+
+        row = db.get(SummaryPublicLink, link_id)
+        assert row is not None
+        row.token_encrypted = "v1:00000000-0000-0000-0000-000000000000:bad"
+        db.commit()
+
+    listed = client.get("/api/v1/org/public-links")
+    assert listed.status_code == 200, listed.text
+    items = listed.json()["items"]
+    assert len(items) == 1
+    assert items[0]["id"] == link_id
+    assert items[0]["url"] is None

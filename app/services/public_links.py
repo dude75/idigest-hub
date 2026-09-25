@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 
 from fastapi import Request, Response
@@ -14,13 +15,15 @@ from app.constants import (
     PUBLIC_LINK_UNLOCK_COOKIE,
     PUBLIC_LINK_UNLOCK_TTL_SEC,
 )
-from app.crypto import decrypt_str
+from app.crypto import try_decrypt_str
 from app.deps import get_instance_settings
 from app.errors import ApiError, ErrorCode
 from app.models import Organization, Summary, SummaryPublicLink, User, new_id
 from app.presenters import summary_display_title
 from app.security import compare_digest, hash_password, hash_secret, new_reset_token, verify_password
 from app.timeutil import as_utc, isoformat_utc, utcnow
+
+log = logging.getLogger("app")
 
 
 def instance_public_base_url(db: Session) -> str | None:
@@ -90,8 +93,10 @@ def resolve_link(db: Session, raw_token: str) -> tuple[SummaryPublicLink, Summar
 
 
 def link_public_payload(link: SummaryPublicLink, db: Session) -> dict:
-    raw = decrypt_str(link.token_encrypted, db)
-    url = public_summary_url(db, raw)
+    raw = try_decrypt_str(link.token_encrypted, db)
+    if raw is None:
+        log.warning("public link token decrypt failed link=%s summary=%s", link.id, link.summary_id)
+    url = public_summary_url(db, raw) if raw else None
     return {
         "id": link.id,
         "summary_id": link.summary_id,
@@ -129,10 +134,19 @@ def create_or_update_link(
             db.delete(existing)
             db.flush()
         else:
-            existing.expires_at = expires
-            existing.pin_hash = hash_password(pin_clean) if pin_clean else None
-            raw = decrypt_str(existing.token_encrypted, db)
-            return existing, raw
+            raw = try_decrypt_str(existing.token_encrypted, db)
+            if raw is None:
+                log.warning(
+                    "public link token decrypt failed on update; recreating link=%s summary=%s",
+                    existing.id,
+                    summary.id,
+                )
+                db.delete(existing)
+                db.flush()
+            else:
+                existing.expires_at = expires
+                existing.pin_hash = hash_password(pin_clean) if pin_clean else None
+                return existing, raw
 
     from app.crypto import encrypt_str
 

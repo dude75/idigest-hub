@@ -11,7 +11,16 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import DataEncryptionKey, EncryptionJob, InstanceSettings, Organization, Summary, Transcript, WorkerNode
+from app.models import (
+    DataEncryptionKey,
+    EncryptionJob,
+    InstanceSettings,
+    Organization,
+    Summary,
+    SummaryPublicLink,
+    Transcript,
+    WorkerNode,
+)
 
 V1_PREFIX = "v1:"
 _DEK_ID_RE = re.compile(r"^[0-9a-f-]{36}$")
@@ -27,6 +36,7 @@ ENCRYPTED_COLUMNS: list[EncryptedColumn] = [
     ("users", "totp_secret_encrypted"),
     ("transcripts", "utterances_encrypted"),
     ("summaries", "body_encrypted"),
+    ("summary_public_links", "token_encrypted"),
 ]
 
 
@@ -221,6 +231,15 @@ def _count_column_usage(db: Session, table: str, column: str, dek_id: str) -> in
         return int(
             db.scalar(
                 select(func.count()).select_from(Summary).where(Summary.body_encrypted.like(f"{prefix}%"))
+            )
+            or 0
+        )
+    if table == "summary_public_links":
+        return int(
+            db.scalar(
+                select(func.count())
+                .select_from(SummaryPublicLink)
+                .where(SummaryPublicLink.token_encrypted.like(f"{prefix}%"))
             )
             or 0
         )

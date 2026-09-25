@@ -25,6 +25,7 @@ from app.models import (
     InstanceSettings,
     Organization,
     Summary,
+    SummaryPublicLink,
     Transcript,
     WorkerNode,
 )
@@ -168,6 +169,16 @@ def _migrate_table(db: Session, table: str, column: str, dek_id: str) -> int:
         return migrated
     if table == "summaries":
         rows = list(db.scalars(select(Summary)).all())
+        for row in rows:
+            value = getattr(row, column)
+            if not value or value.startswith("v1:"):
+                continue
+            plain = decrypt_str(value, db)
+            setattr(row, column, encrypt_str(plain, db))
+            migrated += 1
+        return migrated
+    if table == "summary_public_links":
+        rows = list(db.scalars(select(SummaryPublicLink)).all())
         for row in rows:
             value = getattr(row, column)
             if not value or value.startswith("v1:"):
