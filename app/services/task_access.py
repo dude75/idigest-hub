@@ -36,8 +36,6 @@ def visible_tasks_filters(ctx: AuthContext) -> list:
     if ctx.org is None:
         return [Task.user_id == ctx.user.id]
     if ctx.is_org_admin:
-        if ctx.user.show_only_my_items:
-            return [Task.org_id == ctx.org.id, Task.user_id == ctx.user.id]
         return [Task.org_id == ctx.org.id]
     return [Task.org_id == ctx.org.id, Task.user_id == ctx.user.id]
 

@@ -1,10 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiUpload } from '../api'
-import { useAuth } from '../auth'
+import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
-import type { Audio, CapturePlatformsResponse, ImportPlatformsResponse, Summary, Task, Transcript } from '../types'
+import type {
+  Audio,
+  CapturePlatformsResponse,
+  ImportPlatformsResponse,
+  Summary,
+  Task,
+  Transcript,
+  User,
+} from '../types'
 import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
 import { ListRow } from '../components/ListRow'
 import { Tabs } from '../components/Tabs'
@@ -18,6 +26,36 @@ type SourceGroup<T> = {
   key: string
   sourceId: string | null
   items: T[]
+}
+
+const PAGE_SIZES = [10, 50, 100] as const
+type PageSize = (typeof PAGE_SIZES)[number]
+
+function librarySearchHaystack(tab: LibraryTab, item: Audio | Transcript | Summary): string {
+  if (tab === 'audio') {
+    const a = item as Audio
+    return [a.filename, a.owner_email || ''].join(' ').toLowerCase()
+  }
+  if (tab === 'transcripts') {
+    const tr = item as Transcript
+    return [tr.display_title, tr.title, tr.source_filename, tr.owner_email].filter(Boolean).join(' ').toLowerCase()
+  }
+  const s = item as Summary
+  return [s.display_title, s.title, s.source_transcript_title, s.owner_email].filter(Boolean).join(' ').toLowerCase()
+}
+
+function filterLibraryItems<T extends { owner_user_id: string }>(
+  items: T[],
+  tab: LibraryTab,
+  query: string,
+  userId: string,
+): T[] {
+  const q = query.trim().toLowerCase()
+  return items.filter((item) => {
+    if (userId && item.owner_user_id !== userId) return false
+    if (!q) return true
+    return librarySearchHaystack(tab, item as unknown as Audio | Transcript | Summary).includes(q)
+  })
 }
 
 function groupBySource<T extends { created_at: string }>(
@@ -58,6 +96,12 @@ export function LibraryPage() {
   const [audios, setAudios] = useState<Audio[]>([])
   const [transcripts, setTranscripts] = useState<Transcript[]>([])
   const [summaries, setSummaries] = useState<Summary[]>([])
+  const [query, setQuery] = useState('')
+  const [userId, setUserId] = useState('')
+  const [orgUsers, setOrgUsers] = useState<User[]>([])
+  const [groupListBySource, setGroupListBySource] = useState(false)
+  const [pageSize, setPageSize] = useState<PageSize>(10)
+  const [page, setPage] = useState(0)
   const [busy, setBusy] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{
     name: string
@@ -70,6 +114,7 @@ export function LibraryPage() {
   const [capturePin, setCapturePin] = useState('')
   const [capturePlatforms, setCapturePlatforms] = useState<CapturePlatformsResponse | null>(null)
   const hasOrg = Boolean(me?.org)
+  const showOwnerFilter = isOrgAdmin(me) || isInstanceAdmin(me)
 
   async function load(activeTab: LibraryTab = tab) {
     try {
@@ -96,6 +141,69 @@ export function LibraryPage() {
     if (!hasOrg) return
     void load()
   }, [tab, hidden, hasOrg])
+
+  useEffect(() => {
+    setPage(0)
+  }, [tab, hidden, query, userId, groupListBySource, pageSize])
+
+  useEffect(() => {
+    if (!hasOrg || !showOwnerFilter) return
+    let stop = false
+    async function loadUsers() {
+      try {
+        const r = await api<{ items: User[] }>('/org/users')
+        if (!stop) setOrgUsers(r.items)
+      } catch (e) {
+        if (!stop) showError(e)
+      }
+    }
+    void loadUsers()
+    return () => {
+      stop = true
+    }
+  }, [hasOrg, showOwnerFilter])
+
+  const filteredAudios = useMemo(
+    () => filterLibraryItems(audios, 'audio', query, userId),
+    [audios, query, userId],
+  )
+  const filteredTranscripts = useMemo(
+    () => filterLibraryItems(transcripts, 'transcripts', query, userId),
+    [transcripts, query, userId],
+  )
+  const filteredSummaries = useMemo(
+    () => filterLibraryItems(summaries, 'summaries', query, userId),
+    [summaries, query, userId],
+  )
+  const transcriptGroups = useMemo(
+    () => groupBySource(filteredTranscripts, (tr) => tr.source_audio_id),
+    [filteredTranscripts],
+  )
+  const summaryGroups = useMemo(
+    () => groupBySource(filteredSummaries, (s) => s.source_transcript_id),
+    [filteredSummaries],
+  )
+
+  const listTotal =
+    tab === 'audio'
+      ? filteredAudios.length
+      : tab === 'transcripts'
+        ? groupListBySource
+          ? transcriptGroups.length
+          : filteredTranscripts.length
+        : groupListBySource
+          ? summaryGroups.length
+          : filteredSummaries.length
+  const pageCount = Math.max(1, Math.ceil(listTotal / pageSize))
+  const safePage = Math.min(page, pageCount - 1)
+  const listOffset = safePage * pageSize
+  const listFrom = listTotal === 0 ? 0 : listOffset + 1
+  const listTo = Math.min(listTotal, listOffset + pageSize)
+  const pagedAudios = filteredAudios.slice(listOffset, listOffset + pageSize)
+  const pagedTranscripts = filteredTranscripts.slice(listOffset, listOffset + pageSize)
+  const pagedTranscriptGroups = transcriptGroups.slice(listOffset, listOffset + pageSize)
+  const pagedSummaries = filteredSummaries.slice(listOffset, listOffset + pageSize)
+  const pagedSummaryGroups = summaryGroups.slice(listOffset, listOffset + pageSize)
 
   useEffect(() => {
     if (!sourceFilter) return
@@ -377,45 +485,133 @@ export function LibraryPage() {
           to: libraryPath(id),
         }))}
       />
-      <label className="row" style={{ marginBottom: 12 }}>
-        <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
-        {t('library.showHidden', { count: hiddenCount })}
-      </label>
-      {tab === 'audio' && (
-        <div className="list">
-          {audios.length === 0 && <p className="muted">{t('common.empty')}</p>}
-          {audios.map((a) => (
-            <ListRow
-              key={a.id}
-              to={`/app/audio/${a.id}`}
-              title={a.filename}
-              meta={
-                <>
-                  <span>{fmtDate(a.created_at)}</span>
-                  <AudioDerivedBadges audio={a} />
-                  {a.owner_email && <span>· {a.owner_email}</span>}
-                </>
-              }
-              trailing={<ShareBadges item={a} />}
+      <div className="card stack library-list-controls">
+        <div className="library-list-filters">
+          <label className="library-list-search">
+            {t('library.search')}
+            <input
+              type="search"
+              value={query}
+              placeholder={t('library.searchPlaceholder')}
+              aria-label={t('library.search')}
+              onChange={(e) => setQuery(e.target.value)}
             />
-          ))}
+          </label>
+          {showOwnerFilter ? (
+            <label className="library-list-user">
+              {t('task.filterUser')}
+              <select value={userId} onChange={(e) => setUserId(e.target.value)}>
+                <option value="">{t('common.all')}</option>
+                {[...orgUsers]
+                  .sort((a, b) => a.email.localeCompare(b.email))
+                  .map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.email}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          ) : (
+            <div className="library-list-user library-list-user-placeholder" aria-hidden="true" />
+          )}
+          <div className="library-list-toggles">
+            <label
+              className={`library-list-toggle${tab === 'audio' ? ' library-list-toggle-reserved' : ''}`}
+            >
+              <input
+                type="checkbox"
+                checked={groupListBySource}
+                disabled={tab === 'audio'}
+                tabIndex={tab === 'audio' ? -1 : 0}
+                aria-hidden={tab === 'audio'}
+                onChange={(e) => setGroupListBySource(e.target.checked)}
+              />
+              {t('library.groupBySource')}
+            </label>
+            <label className="library-list-toggle">
+              <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
+              {t('library.showHidden', { count: hiddenCount })}
+            </label>
+          </div>
         </div>
-      )}
-      {tab === 'transcripts' && (
+        <div className="stats-section-head tasks-section-head library-list-footer">
+          <span className="muted library-list-range">
+            {t('task.pageRange', { from: listFrom, to: listTo, total: listTotal })}
+          </span>
+          <label className="inline">
+            {t('task.pageSize')}
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
+            >
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
+      <div className="card stack library-list-section">
         <div className="list">
-          {transcripts.length === 0 && <p className="muted">{t('common.empty')}</p>}
-          {groupBySource(transcripts, (tr) => tr.source_audio_id).map((g) => (
-            <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
-              <div className="group-title">
-                {g.sourceId ? (
-                  <Link to={`/app/audio/${g.sourceId}`}>
-                    {g.items[0]?.source_filename || t('transcript.sourceAudio', { id: g.sourceId.slice(0, 8) })}
-                  </Link>
-                ) : (
-                  <span className="muted">{t('transcript.noSource')}</span>
-                )}
-              </div>
-              {g.items.map((tr) => (
+          {tab === 'audio' && (
+            <>
+              {pagedAudios.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
+              {pagedAudios.map((a) => (
+                <ListRow
+                  key={a.id}
+                  to={`/app/audio/${a.id}`}
+                  title={a.filename}
+                  meta={
+                    <>
+                      <span>{fmtDate(a.created_at)}</span>
+                      <AudioDerivedBadges audio={a} />
+                      {a.owner_email && <span>· {a.owner_email}</span>}
+                    </>
+                  }
+                  trailing={<ShareBadges item={a} />}
+                />
+              ))}
+            </>
+          )}
+          {tab === 'transcripts' && groupListBySource && (
+            <>
+              {pagedTranscriptGroups.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
+              {pagedTranscriptGroups.map((g) => (
+                <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
+                  <div className="group-title">
+                    {g.sourceId ? (
+                      <Link to={`/app/audio/${g.sourceId}`}>
+                        {g.items[0]?.source_filename || t('transcript.sourceAudio', { id: g.sourceId.slice(0, 8) })}
+                      </Link>
+                    ) : (
+                      <span className="muted">{t('transcript.noSource')}</span>
+                    )}
+                  </div>
+                  {g.items.map((tr) => (
+                    <ListRow
+                      key={tr.id}
+                      to={`/app/transcript/${tr.id}`}
+                      title={tr.display_title || tr.title || tr.id.slice(0, 8)}
+                      meta={
+                        <>
+                          <span>{fmtDate(tr.created_at)}</span>
+                          <TranscriptDerivedBadges transcript={tr} />
+                          {tr.owner_email && <span>· {tr.owner_email}</span>}
+                        </>
+                      }
+                      trailing={<ShareBadges item={tr} />}
+                    />
+                  ))}
+                </section>
+              ))}
+            </>
+          )}
+          {tab === 'transcripts' && !groupListBySource && (
+            <>
+              {pagedTranscripts.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
+              {pagedTranscripts.map((tr) => (
                 <ListRow
                   key={tr.id}
                   to={`/app/transcript/${tr.id}`}
@@ -424,31 +620,61 @@ export function LibraryPage() {
                     <>
                       <span>{fmtDate(tr.created_at)}</span>
                       <TranscriptDerivedBadges transcript={tr} />
+                      {tr.source_audio_id && (
+                        <>
+                          <span>
+                            {' · '}
+                            <Link to={`/app/audio/${tr.source_audio_id}`}>
+                              {tr.source_filename || t('transcript.sourceAudio', { id: tr.source_audio_id.slice(0, 8) })}
+                            </Link>
+                          </span>
+                        </>
+                      )}
                       {tr.owner_email && <span>· {tr.owner_email}</span>}
                     </>
                   }
                   trailing={<ShareBadges item={tr} />}
                 />
               ))}
-            </section>
-          ))}
-        </div>
-      )}
-      {tab === 'summaries' && (
-        <div className="list">
-          {summaries.length === 0 && <p className="muted">{t('common.empty')}</p>}
-          {groupBySource(summaries, (s) => s.source_transcript_id).map((g) => (
-            <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
-              <div className="group-title">
-                {g.sourceId ? (
-                  <Link to={`/app/transcript/${g.sourceId}`}>
-                    {g.items[0]?.source_transcript_title || t('summary.sourceTranscript', { id: g.sourceId.slice(0, 8) })}
-                  </Link>
-                ) : (
-                  <span className="muted">{t('summary.noSource')}</span>
-                )}
-              </div>
-              {g.items.map((s) => (
+            </>
+          )}
+          {tab === 'summaries' && groupListBySource && (
+            <>
+              {pagedSummaryGroups.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
+              {pagedSummaryGroups.map((g) => (
+                <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
+                  <div className="group-title">
+                    {g.sourceId ? (
+                      <Link to={`/app/transcript/${g.sourceId}`}>
+                        {g.items[0]?.source_transcript_title ||
+                          t('summary.sourceTranscript', { id: g.sourceId.slice(0, 8) })}
+                      </Link>
+                    ) : (
+                      <span className="muted">{t('summary.noSource')}</span>
+                    )}
+                  </div>
+                  {g.items.map((s) => (
+                    <ListRow
+                      key={s.id}
+                      to={`/app/summary/${s.id}`}
+                      title={s.display_title || s.title || s.id.slice(0, 8)}
+                      meta={
+                        <>
+                          <span>{fmtDate(s.created_at)}</span>
+                          {s.owner_email && <span>· {s.owner_email}</span>}
+                        </>
+                      }
+                      trailing={<ShareBadges item={s} />}
+                    />
+                  ))}
+                </section>
+              ))}
+            </>
+          )}
+          {tab === 'summaries' && !groupListBySource && (
+            <>
+              {pagedSummaries.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
+              {pagedSummaries.map((s) => (
                 <ListRow
                   key={s.id}
                   to={`/app/summary/${s.id}`}
@@ -456,16 +682,40 @@ export function LibraryPage() {
                   meta={
                     <>
                       <span>{fmtDate(s.created_at)}</span>
+                      {s.source_transcript_id && (
+                        <span>
+                          {' · '}
+                          <Link to={`/app/transcript/${s.source_transcript_id}`}>
+                            {s.source_transcript_title ||
+                              t('summary.sourceTranscript', { id: s.source_transcript_id.slice(0, 8) })}
+                          </Link>
+                        </span>
+                      )}
                       {s.owner_email && <span>· {s.owner_email}</span>}
                     </>
                   }
                   trailing={<ShareBadges item={s} />}
                 />
               ))}
-            </section>
-          ))}
+            </>
+          )}
         </div>
-      )}
+        {listTotal > pageSize && (
+          <div className="row pager">
+            <button type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
+              {t('common.prev')}
+            </button>
+            <span className="muted">{t('task.pageRange', { from: listFrom, to: listTo, total: listTotal })}</span>
+            <button
+              type="button"
+              disabled={safePage >= pageCount - 1}
+              onClick={() => setPage(safePage + 1)}
+            >
+              {t('common.next')}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

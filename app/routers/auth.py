@@ -167,7 +167,6 @@ class MePatchBody(BaseModel):
     diarization_model: str | None = Field(default=None)
     summarize_model: str | None = None
     capture_bot_display_name: str | None = None
-    show_only_my_items: bool | None = None
 
 
 class AccountDeleteBody(BaseModel):
@@ -1037,9 +1036,6 @@ def patch_me(
             ctx.user.capture_bot_display_name = None
         else:
             ctx.user.capture_bot_display_name = normalize_capture_bot_display_name(str(raw))
-        ctx.user.updated_at = utcnow()
-    if "show_only_my_items" in data and data["show_only_my_items"] is not None:
-        ctx.user.show_only_my_items = bool(data["show_only_my_items"])
         ctx.user.updated_at = utcnow()
     return _me_with_csrf(request, response, ctx, db)
 

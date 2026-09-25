@@ -268,10 +268,6 @@ def _list_filter(
         owner = row.owner_user_id
         own = owner == ctx.user.id
         if membership.role == "org_admin":
-            from app.services.access import org_admin_own_items_only
-
-            if org_admin_own_items_only(ctx) and not own:
-                continue
             if not include_hidden and is_hidden(db, ctx.user.id, object_type, row.id):
                 continue
             visible.append(row)

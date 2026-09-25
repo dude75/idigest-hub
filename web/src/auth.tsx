@@ -16,7 +16,6 @@ type AuthState = {
   setDefaultRoute: (route: DefaultRoute) => Promise<void>
   setDateTimeFormat: (format: string | null) => Promise<void>
   setTimezone: (timezone: string | null) => Promise<void>
-  setShowOnlyMyItems: (enabled: boolean) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -111,17 +110,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [me],
   )
 
-  const setShowOnlyMyItems = useCallback(
-    async (enabled: boolean) => {
-      if (me) {
-        const next = await api<Me>('/me', { method: 'PATCH', body: JSON.stringify({ show_only_my_items: enabled }) })
-        setMe(next)
-        setDateTimePrefs(next.date_time_prefs)
-      }
-    },
-    [me],
-  )
-
   const logout = useCallback(async () => {
     const redirect = resolveLoginPath(me)
     await api('/auth/logout', { method: 'POST' })
@@ -139,10 +127,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setDefaultRoute,
       setDateTimeFormat,
       setTimezone,
-      setShowOnlyMyItems,
       logout,
     }),
-    [ready, bootstrapDone, bootstrapError, me, refresh, setLocale, setDefaultRoute, setDateTimeFormat, setTimezone, setShowOnlyMyItems, logout],
+    [ready, bootstrapDone, bootstrapError, me, refresh, setLocale, setDefaultRoute, setDateTimeFormat, setTimezone, logout],
   )
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>

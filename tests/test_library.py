@@ -56,7 +56,7 @@ def _insert_transcript_and_summary(org_id: str, user_id: str, audio_id: str | No
         db.close()
 
 
-def test_org_admin_show_only_my_items_filters_library(client):
+def test_org_admin_sees_all_org_library_despite_show_only_my_items_flag(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)
     assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
@@ -83,11 +83,11 @@ def test_org_admin_show_only_my_items_filters_library(client):
 
     scoped = client.patch("/api/v1/me", json={"show_only_my_items": True})
     assert scoped.status_code == 200, scoped.text
-    own_items = client.get("/api/v1/audios")
-    assert own_items.status_code == 200
-    ids = [item["id"] for item in own_items.json()["items"]]
+    scoped_items = client.get("/api/v1/audios")
+    assert scoped_items.status_code == 200
+    ids = [item["id"] for item in scoped_items.json()["items"]]
     assert admin_audio_id in ids
-    assert member_audio_id not in ids
+    assert member_audio_id in ids
 
     still_readable = client.get(f"/api/v1/audios/{member_audio_id}")
     assert still_readable.status_code == 200, still_readable.text

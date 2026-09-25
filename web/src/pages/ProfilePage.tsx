@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { api, apiDownload } from '../api'
-import { isOrgAdmin, useAuth } from '../auth'
+import { useAuth } from '../auth'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../components/AdminSection'
 import { Modal } from '../components/Modal'
 import { MfaSetupPanel } from '../components/MfaSetupPanel'
@@ -39,7 +39,7 @@ type AccountDeletePreview = {
 export function ProfilePage() {
   const { t, i18n } = useTranslation()
   const nav = useNavigate()
-  const { me, refresh, setDefaultRoute, setDateTimeFormat, setTimezone, setShowOnlyMyItems, logout } = useAuth()
+  const { me, refresh, setDefaultRoute, setDateTimeFormat, setTimezone, logout } = useAuth()
   const [current, setCurrent] = useState('')
   const [next, setNext] = useState('')
   const [tokens, setTokens] = useState<ApiToken[]>([])
@@ -49,8 +49,6 @@ export function ProfilePage() {
   const [creating, setCreating] = useState(false)
   const [ok, setOk] = useState(false)
   const [routeOk, setRouteOk] = useState(false)
-  const [scopeOk, setScopeOk] = useState(false)
-  const [showOnlyMyItems, setShowOnlyMyItemsLocal] = useState(false)
   const [dateTimeOk, setDateTimeOk] = useState(false)
   const [dateTimeFormat, setDateTimeFormatLocal] = useState<'inherit' | DateTimeFormatId>('inherit')
   const [timezone, setTimezoneLocal] = useState<'inherit' | string>('inherit')
@@ -117,7 +115,6 @@ export function ProfilePage() {
     const allowed = allowedDefaultRoutes(me)
     if (stored && allowed.includes(stored)) setDefaultRouteLocal(stored)
     else if (allowed.length > 0) setDefaultRouteLocal(allowed[0])
-    setShowOnlyMyItemsLocal(Boolean(me?.user.show_only_my_items))
   }, [me])
 
   useEffect(() => {
@@ -167,23 +164,10 @@ export function ProfilePage() {
 
   async function saveDefaultRoute() {
     setRouteOk(false)
-    setScopeOk(false)
     setOk(false)
     try {
       await setDefaultRoute(defaultRoute)
       setRouteOk(true)
-    } catch (e) {
-      showError(e)
-    }
-  }
-
-  async function saveShowOnlyMyItems() {
-    setScopeOk(false)
-    setRouteOk(false)
-    setOk(false)
-    try {
-      await setShowOnlyMyItems(showOnlyMyItems)
-      setScopeOk(true)
     } catch (e) {
       showError(e)
     }
@@ -473,28 +457,6 @@ export function ProfilePage() {
             {routeOk && <p className="ok">{t('profile.saved')}</p>}
           </div>
         </AdminFormCard>
-
-        {isOrgAdmin(me) && (
-          <AdminFormCard title={t('profile.showOnlyMyItems')} lead={t('profile.showOnlyMyItemsHint')}>
-            <label className="profile-check-row">
-              <input
-                type="checkbox"
-                checked={showOnlyMyItems}
-                onChange={(e) => {
-                  setScopeOk(false)
-                  setShowOnlyMyItemsLocal(e.target.checked)
-                }}
-              />
-              {t('profile.showOnlyMyItemsLabel')}
-            </label>
-            <div className="profile-actions">
-              <button className="primary" type="button" onClick={() => void saveShowOnlyMyItems()}>
-                {t('common.save')}
-              </button>
-              {scopeOk && <p className="ok">{t('profile.saved')}</p>}
-            </div>
-          </AdminFormCard>
-        )}
 
         {me && (me.transcribe_models.asr_models.length > 0 || me.transcribe_models.diarization_models.length > 0) && (
           <AdminFormCard title={t('profile.transcribeTitle')} lead={t('profile.transcribeHint')}>

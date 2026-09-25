@@ -126,8 +126,6 @@ def org_stats(
     except ValueError:
         ctx.raise_error(ErrorCode.validation_error)
     effective_user_id = (user_id or "").strip() or None
-    if effective_user_id is None and ctx.user.show_only_my_items:
-        effective_user_id = ctx.user.id
     return org_usage_stats(
         db,
         org.id,
@@ -251,9 +249,7 @@ def org_public_links(
 
     items = []
     for link, summary, owner in list_org_public_links(db, org.id):
-        if summary.owner_user_id != ctx.user.id and (
-            not ctx.is_org_admin or ctx.user.show_only_my_items
-        ):
+        if summary.owner_user_id != ctx.user.id and not ctx.is_org_admin:
             continue
         try:
             items.append(link_org_list_item(link, summary, owner, org, db))

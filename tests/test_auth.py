@@ -257,22 +257,6 @@ def test_patch_default_route(client):
     assert encryption.json()["user"]["default_route"] == "security/encryption"
 
 
-def test_patch_show_only_my_items(client):
-    setup_admin(client)
-    tariff_id = default_tariff_id(client)
-    assert signup(client, "scope@example.com", "scopepass1", tariff_id).status_code == 200
-    payload = me(client)
-    assert payload["user"]["show_only_my_items"] is False
-
-    enabled = client.patch("/api/v1/me", json={"show_only_my_items": True})
-    assert enabled.status_code == 200, enabled.text
-    assert enabled.json()["user"]["show_only_my_items"] is True
-
-    disabled = client.patch("/api/v1/me", json={"show_only_my_items": False})
-    assert disabled.status_code == 200, disabled.text
-    assert disabled.json()["user"]["show_only_my_items"] is False
-
-
 def test_password_reset_routes_recovery_disabled_without_smtp(client):
     setup_admin(client)
     request = client.post("/api/v1/auth/password/reset/request", json={"email": ADMIN_EMAIL})
