@@ -124,7 +124,7 @@ Hub сам эти заголовки не выставляет — настра�
 - `HUB_SECRET` — KEK envelope encryption; backup `.env`; неверный секрет блокирует старт при наличии DEK/данных
 - `HUB_SECRET_PREV` — прежний KEK только на время ротации; удалить после переобёртки DEK
 - `SESSION_SECRET` — обязателен до `/setup`; смена разлогинивает всех; пустое значение блокирует старт при наличии sessions или API tokens
-- `OPENAPI_ENABLED=false` — отключить `/docs`, `/redoc` и `/openapi.json` в production (рекомендуется)
+- `OPENAPI_ENABLED` — по умолчанию `false`; для `/docs`, `/redoc` и `/openapi.json` локально задайте `true`
 - `INSTANCE_BOOTSTRAP_TOKEN` — только для одноразовой настройки
 - `OAUTH_PROVIDER_ENABLED=true` — включить OAuth 2.1 хаба + MCP на `/mcp` (нужен Публичный URL)
 - `OAUTH_SIGNING_KEY_PEM` — опциональный RSA PEM; иначе хаб пишет `{DATA_DIR}/oauth_signing_key.pem`
@@ -166,12 +166,10 @@ Auth-трафик: email + IP + global buckets. Bearer API: user + IP + global. 
 
 ## Исследование API
 
-При `OPENAPI_ENABLED=true` (по умолчанию для разработки):
+OpenAPI **выключен по умолчанию** (`OPENAPI_ENABLED=false`). Для локального исследования API задайте `OPENAPI_ENABLED=true`:
 
 - OpenAPI JSON: `GET /openapi.json`
 - Swagger UI: `/docs` (Authorize с session cookie или Bearer token `idg_…`)
-
-В production `.env` задайте `OPENAPI_ENABLED=false`, чтобы скрыть схему API и Swagger UI.
 
 ## Связанные страницы
 

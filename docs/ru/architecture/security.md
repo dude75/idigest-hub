@@ -18,7 +18,7 @@
 | `HUB_SECRET_PREV` | Прежний `HUB_SECRET` только на время **ротации KEK**. Unwrap: сначала current, затем `PREV`. Удалить из `.env` после переобёртки всех DEK. |
 | `SESSION_SECRET` | Pepper для хеширования session tokens и raw значений API token. **Обязателен до `/setup`.** Пустое значение блокирует setup и старт hub, если уже есть sessions или API tokens (fail-closed). |
 | `INSTANCE_BOOTSTRAP_TOKEN` | Одноразовый gate для `POST /setup` |
-| `OPENAPI_ENABLED` | При `false` отключает `/docs`, `/redoc` и `/openapi.json` (рекомендуется в production). По умолчанию `true` для разработки. |
+| `OPENAPI_ENABLED` | При `false` отключает `/docs`, `/redoc` и `/openapi.json` (по умолчанию). Для Swagger UI локально задайте `true`. |
 
 **Ротация `SESSION_SECRET`** инвалидирует все session cookies и API tokens (хеши перестают совпадать).
 

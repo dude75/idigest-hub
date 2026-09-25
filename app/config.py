@@ -66,8 +66,8 @@ class Settings(BaseSettings):
     # Bearer token for Prometheus scrape. Required; empty = /metrics returns 401.
     METRICS_TOKEN: str = ""
 
-    # Swagger UI, ReDoc, and /openapi.json. Set false in production.
-    OPENAPI_ENABLED: bool = True
+    # Swagger UI, ReDoc, and /openapi.json. Set true locally if you need /docs.
+    OPENAPI_ENABLED: bool = False
 
     # OAuth 2.1 Authorization Server (Open WebUI / idigest-mcp). Off by default.
     OAUTH_PROVIDER_ENABLED: bool = False

@@ -18,7 +18,7 @@ The hub is designed for **on-premise / private network** deployment:
 | `HUB_SECRET_PREV` | Previous `HUB_SECRET` during **KEK rotation** only. Unwrap tries current, then `PREV`. Removed from `.env` after all DEKs are re-wrapped. |
 | `SESSION_SECRET` | Pepper for hashing session tokens and API token raw values. **Required before `/setup`.** Empty value blocks setup and prevents hub start once sessions or API tokens exist (fail-closed). |
 | `INSTANCE_BOOTSTRAP_TOKEN` | One-time gate for `POST /setup` |
-| `OPENAPI_ENABLED` | When `false`, disables `/docs`, `/redoc`, and `/openapi.json` (recommended in production). Default `true` for development. |
+| `OPENAPI_ENABLED` | When `false`, disables `/docs`, `/redoc`, and `/openapi.json` (default). Set `true` locally if you need Swagger UI. |
 
 **Rotating `SESSION_SECRET`** invalidates all session cookies and API tokens (hashes no longer match).
 
