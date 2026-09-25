@@ -482,6 +482,8 @@ def test_oauth_login_page_sso_tab_and_mode_links(client, monkeypatch):
     assert sso.status_code == 200
     assert 'name="org_id"' in sso.text
     assert 'action="/oauth/sso"' in sso.text
+    assert 'action="/oauth/login" class="stack auth-panel auth-panel-hidden"' in sso.text
+    assert 'action="/oauth/sso" class="stack auth-panel"' in sso.text
 
 
 def test_oauth_sso_flow_returns_to_consent(client, monkeypatch):

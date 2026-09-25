@@ -183,7 +183,7 @@ def oauth_authorize_get(
 
     ctx = resolve_auth(request, db)
     if ctx is None or ctx.session is None or ctx.impersonating:
-        return _login_html(request, db, _oauth_authorize_params(params))
+        return _login_html(request, db, params)
     blocked = user_oauth_blocked(ctx.user, db)
     if blocked:
         return oauth_blocked_page(request, blocked, user=ctx.user)
@@ -348,7 +348,12 @@ def _login_html(
     authorize_params = _oauth_authorize_params(params)
     mode = auth_mode or _login_auth_mode(params)
     org_hint = prefill_org_id if prefill_org_id is not None else _login_prefill_org_id(db, authorize_params)
-    if org_hint and mode == "email" and (params.get("login_hint") or "").strip():
+    if (
+        org_hint
+        and mode == "email"
+        and (authorize_params.get("login_hint") or "").strip()
+        and HUB_AUTH_MODE not in params
+    ):
         mode = "sso"
     hidden = _encode_oauth_params(authorize_params)
     return oauth_login_page(
