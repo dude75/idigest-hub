@@ -1,6 +1,6 @@
 import { forwardRef, type ReactNode } from 'react'
 import { AppField } from './AppField'
-import { AuthSelect } from '../auth/AuthSelect'
+import { AppSelect, type AppSelectOption } from './AppSelect'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,19 +24,29 @@ export const AppInputField = forwardRef<
   )
 })
 
+export type { AppSelectOption }
+
 export function AppSelectField({
   label,
   htmlFor,
   description,
   error,
-  children,
+  className,
+  options,
   ...props
-}: FieldProps & React.ComponentProps<typeof AuthSelect>) {
+}: FieldProps &
+  Omit<React.ComponentProps<typeof AppSelect>, 'id' | 'options' | 'aria-invalid'> & {
+    options: AppSelectOption[]
+  }) {
   return (
     <AppField label={label} htmlFor={htmlFor} description={description} error={error}>
-      <AuthSelect id={htmlFor} {...props}>
-        {children}
-      </AuthSelect>
+      <AppSelect
+        id={htmlFor}
+        className={className}
+        options={options}
+        aria-invalid={error ? true : undefined}
+        {...props}
+      />
     </AppField>
   )
 }
@@ -58,17 +68,24 @@ export function AppPageSizeField({
   htmlFor,
   className,
   selectClassName,
-  children,
+  options,
   ...props
-}: FieldProps & React.ComponentProps<typeof AuthSelect> & { selectClassName?: string }) {
+}: FieldProps &
+  Omit<React.ComponentProps<typeof AppSelect>, 'id' | 'options'> & {
+    options: AppSelectOption[]
+    selectClassName?: string
+  }) {
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <Label htmlFor={htmlFor} className="font-normal text-muted-foreground">
         {label}
       </Label>
-      <AuthSelect id={htmlFor} className={cn('h-8 w-[4.5rem] shrink-0', selectClassName)} {...props}>
-        {children}
-      </AuthSelect>
+      <AppSelect
+        id={htmlFor}
+        className={cn('h-8 w-[4.5rem] shrink-0', selectClassName)}
+        options={options}
+        {...props}
+      />
     </div>
   )
 }

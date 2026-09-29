@@ -30,7 +30,7 @@ import {
   adminTableHeadActions,
 } from '../components/app/AdminDataTable'
 import { AdminRowActions, HubBadge } from '../components/app/AdminUi'
-import { AuthSelect } from '../components/auth/AuthSelect'
+import { AppSelect } from '../components/app/AppSelect'
 import { AppCheckboxRow, AppInputField, AppSelectField } from '../components/app/AppFormControls'
 import { AppField } from '../components/app/AppField'
 import { AdminFormActions, AppSubmitButton } from '../components/app/AdminUi'
@@ -516,15 +516,15 @@ export function OrgPage() {
                   label={currentSelectable ? t('org.tariff') : t('org.tariffSwitch')}
                   htmlFor="org-tariff-select"
                   value={tariffId}
-                  onChange={(e) => setTariffId(e.target.value)}
-                >
-                  {!currentSelectable && <option value="">—</option>}
-                  {tariffs.map((tr) => (
-                    <option key={tr.id} value={tr.id}>
-                      {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
-                    </option>
-                  ))}
-                </AppSelectField>
+                  onValueChange={setTariffId}
+                  options={[
+                    ...(!currentSelectable ? [{ value: '', label: '—' }] : []),
+                    ...tariffs.map((tr) => ({
+                      value: tr.id,
+                      label: `${tr.name}${tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}`,
+                    })),
+                  ]}
+                />
               )}
               {admin && selectedTariff && currentSelectable && (
                 <TariffDetails tariff={selectedTariff} />
@@ -790,11 +790,12 @@ export function OrgPage() {
               label={t('common.role')}
               htmlFor="org-add-user-role"
               value={role}
-              onChange={(e) => setRole(e.target.value as 'org_admin' | 'org_member')}
-            >
-              <option value="org_member">{t('org.roleMember')}</option>
-              <option value="org_admin">{t('org.roleAdmin')}</option>
-            </AppSelectField>
+              onValueChange={(next) => setRole(next as 'org_admin' | 'org_member')}
+              options={[
+                { value: 'org_member', label: t('org.roleMember') },
+                { value: 'org_admin', label: t('org.roleAdmin') },
+              ]}
+            />
             <AdminFormActions>
               <AppSubmitButton ready={canAddUser} onClick={() => void addUser()}>
                 {t('common.create')}
@@ -832,14 +833,15 @@ export function OrgPage() {
                   <TableCell className={adminTableCellPrimary}>{u.email}</TableCell>
                   <TableCell>
                     {admin ? (
-                      <AuthSelect
+                      <AppSelect
                         className="h-8 min-w-[8rem]"
                         value={u.role || 'org_member'}
-                        onChange={(e) => void changeRole(u, e.target.value)}
-                      >
-                        <option value="org_member">{t('org.roleMember')}</option>
-                        <option value="org_admin">{t('org.roleAdmin')}</option>
-                      </AuthSelect>
+                        onValueChange={(next) => void changeRole(u, next)}
+                        options={[
+                          { value: 'org_member', label: t('org.roleMember') },
+                          { value: 'org_admin', label: t('org.roleAdmin') },
+                        ]}
+                      />
                     ) : (
                       <HubBadge tone="muted">
                         {u.role === 'org_admin' ? t('org.roleAdmin') : t('org.roleMember')}
@@ -925,23 +927,25 @@ export function OrgPage() {
             label={t('org.offboard')}
             htmlFor="org-offboard-action"
             value={action}
-            onChange={(e) => setAction(e.target.value as 'transfer' | 'wipe')}
-          >
-            <option value="wipe">{t('org.wipe')}</option>
-            <option value="transfer">{t('org.transfer')}</option>
-          </AppSelectField>
+            onValueChange={(next) => setAction(next as 'transfer' | 'wipe')}
+            options={[
+              { value: 'wipe', label: t('org.wipe') },
+              { value: 'transfer', label: t('org.transfer') },
+            ]}
+          />
           {action === 'transfer' && (
             <AppSelectField
               label={t('org.target')}
               htmlFor="org-offboard-target"
               value={target}
-              onChange={(e) => setTarget(e.target.value)}
-            >
-              <option value="">—</option>
-              {users.filter((u) => u.id !== offUser.id && !u.disabled).map((u) => (
-                <option key={u.id} value={u.id}>{u.email}</option>
-              ))}
-            </AppSelectField>
+              onValueChange={setTarget}
+              options={[
+                { value: '', label: '—' },
+                ...users
+                  .filter((u) => u.id !== offUser.id && !u.disabled)
+                  .map((u) => ({ value: u.id, label: u.email })),
+              ]}
+            />
           )}
           <div className="flex flex-wrap items-center gap-2 modal-actions">
             <Button variant="destructive" type="button" onClick={() => void offboard()}>{t('common.confirm')}</Button>

@@ -615,19 +615,16 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
                 htmlFor="worker-impact-remediation-pair"
                 value={selectedPairKey}
                 disabled={busy || !applyRemediation}
-                onChange={(e) => setSelectedPairKey(e.target.value)}
-              >
-                {(impact.available_pairs ?? []).map((pair) => {
+                onValueChange={setSelectedPairKey}
+                options={(impact.available_pairs ?? []).map((pair) => {
                   const key = pairKey(pair)
                   const suggested = key === suggestedKey
-                  return (
-                    <option key={key} value={key}>
-                      {formatPairLabel(pair, t)}
-                      {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
-                    </option>
-                  )
+                  return {
+                    value: key,
+                    label: `${formatPairLabel(pair, t)}${suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}`,
+                  }
                 })}
-              </AppSelectField>
+              />
             </section>
           ) : null}
 
@@ -651,18 +648,15 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
                 htmlFor="worker-impact-summarize-model"
                 value={selectedSummarizeModel}
                 disabled={busy || !applyRemediation}
-                onChange={(e) => setSelectedSummarizeModel(e.target.value)}
-              >
-                {(impact.available_summarize_models ?? []).map((item: SummarizeModelChoice) => {
+                onValueChange={setSelectedSummarizeModel}
+                options={(impact.available_summarize_models ?? []).map((item: SummarizeModelChoice) => {
                   const suggested = item.summarize_model === suggestedSummarizeModel
-                  return (
-                    <option key={item.summarize_model} value={item.summarize_model}>
-                      {item.summarize_model}
-                      {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
-                    </option>
-                  )
+                  return {
+                    value: item.summarize_model,
+                    label: `${item.summarize_model}${suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}`,
+                  }
                 })}
-              </AppSelectField>
+              />
             </section>
           ) : null}
 
@@ -686,19 +680,15 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
                 htmlFor="worker-impact-capture-worker"
                 value={selectedCaptureWorker.id}
                 disabled={busy || !applyRemediation}
-                onChange={(e) => setSelectedCaptureWorkerId(e.target.value)}
-              >
-                {(impact.available_capture_workers ?? []).map((item) => {
+                onValueChange={setSelectedCaptureWorkerId}
+                options={(impact.available_capture_workers ?? []).map((item) => {
                   const suggested = item.id === suggestedCaptureWorkerId
-                  return (
-                    <option key={item.id} value={item.id}>
-                      {formatCaptureWorkerLabel(item)}
-                      {item.base_url && item.name.trim() ? ` — ${item.base_url}` : ''}
-                      {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
-                    </option>
-                  )
+                  return {
+                    value: item.id,
+                    label: `${formatCaptureWorkerLabel(item)}${item.base_url && item.name.trim() ? ` — ${item.base_url}` : ''}${suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}`,
+                  }
                 })}
-              </AppSelectField>
+              />
             </section>
           ) : null}
         </>

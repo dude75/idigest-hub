@@ -6,6 +6,7 @@ import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
 import { Button } from '@/components/ui/button'
 import { AppCheckboxRow, AppInputField, AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
+import { allOption, pageSizeOptions } from '../components/app/selectOptions'
 import type {
   Audio,
   CapturePlatformsResponse,
@@ -396,14 +397,9 @@ export function LibraryPage() {
       label={t('task.pageSize')}
       htmlFor="library-page-size"
       value={String(pageSize)}
-      onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
-    >
-      {PAGE_SIZES.map((n) => (
-        <option key={n} value={n}>
-          {n}
-        </option>
-      ))}
-    </AppPageSizeField>
+      onValueChange={(v) => setPageSize(Number(v) as PageSize)}
+      options={pageSizeOptions(PAGE_SIZES)}
+    />
   )
 
   return (
@@ -539,17 +535,14 @@ export function LibraryPage() {
               label={t('task.filterUser')}
               htmlFor="library-list-user"
               value={userId}
-              onChange={(e) => setUserId(e.target.value)}
-            >
-              <option value="">{t('common.all')}</option>
-              {[...orgUsers]
-                .sort((a, b) => a.email.localeCompare(b.email))
-                .map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.email}
-                  </option>
-                ))}
-            </AppSelectField>
+              onValueChange={setUserId}
+              options={[
+                allOption(t('common.all')),
+                ...[...orgUsers]
+                  .sort((a, b) => a.email.localeCompare(b.email))
+                  .map((user) => ({ value: user.id, label: user.email })),
+              ]}
+            />
           ) : (
             <div className="library-list-user library-list-user-placeholder" aria-hidden="true" />
           )}

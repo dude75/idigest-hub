@@ -7,7 +7,7 @@ import { fmtDate, showError } from '../util'
 import { Modal } from './Modal'
 import { Button } from '@/components/ui/button'
 import { AppCheckboxRow } from './app/AppFormControls'
-import { AuthSelect } from './auth/AuthSelect'
+import { AppSelect } from './app/AppSelect'
 import { FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { AppUrlCopyRow } from './app/AppUrlCopyRow'
@@ -176,18 +176,16 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
                   <FieldLabel htmlFor="share-expiry" className="share-field-label font-normal">
                     {t('share.expiry')}
                   </FieldLabel>
-                  <AuthSelect
+                  <AppSelect
                     id="share-expiry"
                     className="share-expiry-select"
                     value={expiryDays === null ? '' : String(expiryDays)}
-                    onChange={(e) => setExpiryDays(e.target.value === '' ? null : Number(e.target.value))}
-                  >
-                    {EXPIRY_OPTIONS.map((opt) => (
-                      <option key={opt.key} value={opt.days === null ? '' : String(opt.days)}>
-                        {t(`share.expiry_${opt.key}`)}
-                      </option>
-                    ))}
-                  </AuthSelect>
+                    onValueChange={(v) => setExpiryDays(v === '' ? null : Number(v))}
+                    options={EXPIRY_OPTIONS.map((opt) => ({
+                      value: opt.days === null ? '' : String(opt.days),
+                      label: t(`share.expiry_${opt.key}`),
+                    }))}
+                  />
                 </div>
                 <AppCheckboxRow
                   id="share-use-pin"

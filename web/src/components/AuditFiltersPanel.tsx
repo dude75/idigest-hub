@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { AppStackCard } from './AdminSection'
 import { AppDateField, AppSelectField } from './app/AppFormControls'
+import { allOption } from './app/selectOptions'
 import { DatePresetBar } from './DatePresetBar'
 
 export const AUDIT_ACTIONS = [
@@ -90,39 +91,30 @@ export function AuditFiltersPanel({
           label={t('instance.orgs')}
           htmlFor="audit-filter-org"
           value={orgId}
-          onChange={(e) => {
-            onOrgIdChange(e.target.value)
+          onValueChange={(next) => {
+            onOrgIdChange(next)
             onUserIdChange('')
           }}
-        >
-          <option value="">{t('common.all')}</option>
-          {orgs.map((o) => (
-            <option key={o.id} value={o.id}>{o.name}</option>
-          ))}
-        </AppSelectField>
+          options={[allOption(t('common.all')), ...orgs.map((o) => ({ value: o.id, label: o.name }))]}
+        />
         <AppSelectField
           label={t('stats.user')}
           htmlFor="audit-filter-user"
           value={userId}
           disabled={!orgId}
-          onChange={(e) => onUserIdChange(e.target.value)}
-        >
-          <option value="">{t('common.all')}</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>{u.email}</option>
-          ))}
-        </AppSelectField>
+          onValueChange={onUserIdChange}
+          options={[allOption(t('common.all')), ...users.map((u) => ({ value: u.id, label: u.email }))]}
+        />
         <AppSelectField
           label={t('audit.action')}
           htmlFor="audit-filter-action"
           value={action}
-          onChange={(e) => onActionChange(e.target.value)}
-        >
-          <option value="">{t('common.all')}</option>
-          {AUDIT_ACTIONS.map((a) => (
-            <option key={a} value={a}>{auditActionLabel(a, t)}</option>
-          ))}
-        </AppSelectField>
+          onValueChange={onActionChange}
+          options={[
+            allOption(t('common.all')),
+            ...AUDIT_ACTIONS.map((a) => ({ value: a, label: auditActionLabel(a, t) })),
+          ]}
+        />
       </div>
       <DatePresetBar
         fromDay={fromDay}

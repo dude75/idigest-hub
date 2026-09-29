@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { HubBadge } from '../components/app/AdminUi'
 import { AppUrlCopyRow } from '../components/app/AppUrlCopyRow'
 import { AppPageSizeField } from '../components/app/AppFormControls'
+import { pageSizeOptions } from '../components/app/selectOptions'
 
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
@@ -135,17 +136,12 @@ export function PublicLinksPage() {
       label={t('task.pageSize')}
       htmlFor="public-links-page-size"
       value={String(pageSize)}
-      onChange={(e) => {
-        setPageSize(Number(e.target.value) as PageSize)
+      onValueChange={(v) => {
+        setPageSize(Number(v) as PageSize)
         setPage(0)
       }}
-    >
-      {PAGE_SIZES.map((n) => (
-        <option key={n} value={n}>
-          {n}
-        </option>
-      ))}
-    </AppPageSizeField>
+      options={pageSizeOptions(PAGE_SIZES)}
+    />
   )
 
   return (

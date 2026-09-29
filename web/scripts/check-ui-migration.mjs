@@ -134,6 +134,12 @@ for (const file of files) {
     if (/type=["']date["']/.test(line)) {
       issues.push(`${rel(file)}:${i + 1}: native type="date" — use AppDateField (shadcn Calendar)`)
     }
+    if (/<select\b/.test(line) || /AuthSelect\b/.test(line)) {
+      issues.push(`${rel(file)}:${i + 1}: native select — use AppSelect / AppSelectField (shadcn Select)`)
+    }
+    if (/<option\b/.test(line)) {
+      issues.push(`${rel(file)}:${i + 1}: native option — use AppSelect options prop`)
+    }
     const badgeMatches = line.match(/className=["'][^"']*\bbadge\b/g)
     if (badgeMatches) legacyBadgeCount += badgeMatches.length
 
@@ -184,6 +190,20 @@ for (const font of ['geist-latin.woff2', 'geist-cyrillic.woff2']) {
   } catch {
     issues.push(`missing web/public/fonts/${font} — OAuth auth-shell Geist @font-face`)
   }
+}
+
+const oauthPagesPath = path.join(import.meta.dirname, '../../app/services/oauth_pages.py')
+const oauthPages = await readFile(oauthPagesPath, 'utf8')
+if (!oauthPages.includes('auth-shell.js')) {
+  issues.push('oauth_pages.py must load /auth-shell.js for popup selects on OAuth HTML')
+}
+if (!authShell.includes('.hub-select-trigger')) {
+  issues.push('auth-shell.css must define .hub-select-* popup select styles')
+}
+try {
+  await access(path.join(import.meta.dirname, '../public/auth-shell.js'))
+} catch {
+  issues.push('missing web/public/auth-shell.js — OAuth popup select enhancement')
 }
 
 if (issues.length) {

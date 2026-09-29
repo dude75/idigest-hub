@@ -5,7 +5,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { AuthCard } from '../components/auth/AuthCard'
 import { AuthField } from '../components/auth/AuthField'
-import { AuthSelect } from '../components/auth/AuthSelect'
+import { AppSelect } from '../components/app/AppSelect'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { LOCALES } from '../i18n'
@@ -81,17 +81,12 @@ export function SetupPage() {
             <Input id="setup-token" required value={token} onChange={(e) => setToken(e.target.value)} />
           </AuthField>
           <AuthField label="Locale" htmlFor="setup-locale">
-            <AuthSelect
+            <AppSelect
               id="setup-locale"
               value={i18n.language}
-              onChange={(e) => void i18n.changeLanguage(e.target.value as Locale)}
-            >
-              {LOCALES.map((l) => (
-                <option key={l} value={l}>
-                  {t(`lang.${l}`)}
-                </option>
-              ))}
-            </AuthSelect>
+              onValueChange={(l) => void i18n.changeLanguage(l as Locale)}
+              options={LOCALES.map((l) => ({ value: l, label: t(`lang.${l}`) }))}
+            />
           </AuthField>
           <AppSubmitButton
             className="w-full"

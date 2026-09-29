@@ -14,6 +14,7 @@ import type { Skill } from '../types'
 import { fmtDate, formatInteger, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { AppInputField, AppPageSizeField } from '../components/app/AppFormControls'
+import { pageSizeOptions } from '../components/app/selectOptions'
 import { AppField } from '../components/app/AppField'
 
 const FILTERS = ['all', 'base', 'org', 'self', 'shared'] as const
@@ -115,17 +116,12 @@ export function SkillsPage() {
       label={t('task.pageSize')}
       htmlFor="skills-page-size"
       value={String(pageSize)}
-      onChange={(e) => {
-        setPageSize(Number(e.target.value) as PageSize)
+      onValueChange={(v) => {
+        setPageSize(Number(v) as PageSize)
         setPage(0)
       }}
-    >
-      {PAGE_SIZES.map((n) => (
-        <option key={n} value={n}>
-          {n}
-        </option>
-      ))}
-    </AppPageSizeField>
+      options={pageSizeOptions(PAGE_SIZES)}
+    />
   )
 
   return (

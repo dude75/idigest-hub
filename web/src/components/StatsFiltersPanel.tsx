@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { AppStackCard } from './AdminSection'
 import { AppDateField, AppSelectField } from './app/AppFormControls'
+import { allOption } from './app/selectOptions'
 import { DatePresetBar } from './DatePresetBar'
 
 type UserOption = { id: string; email: string }
@@ -60,39 +61,32 @@ export function StatsFiltersPanel({
             label={t('instance.orgs')}
             htmlFor="stats-filter-org"
             value={orgId ?? ''}
-            onChange={(e) => {
-              onOrgIdChange(e.target.value)
+            onValueChange={(next) => {
+              onOrgIdChange(next)
               onUserIdChange('')
             }}
-          >
-            <option value="">{t('common.all')}</option>
-            {orgs.map((o) => (
-              <option key={o.id} value={o.id}>{o.name}</option>
-            ))}
-          </AppSelectField>
+            options={[allOption(t('common.all')), ...orgs.map((o) => ({ value: o.id, label: o.name }))]}
+          />
         ) : null}
         <AppSelectField
           label={t('stats.user')}
           htmlFor="stats-filter-user"
           value={userId}
           disabled={showOrgFilter && !orgId}
-          onChange={(e) => onUserIdChange(e.target.value)}
-        >
-          <option value="">{t('common.all')}</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>{u.email}</option>
-          ))}
-        </AppSelectField>
+          onValueChange={onUserIdChange}
+          options={[allOption(t('common.all')), ...users.map((u) => ({ value: u.id, label: u.email }))]}
+        />
         <AppSelectField
           label={t('stats.kind')}
           htmlFor="stats-filter-kind"
           value={kind}
-          onChange={(e) => onKindChange(e.target.value)}
-        >
-          <option value="">{t('common.all')}</option>
-          <option value="transcribe">{t('task.type.transcribe')}</option>
-          <option value="summarize">{t('task.type.summarize')}</option>
-        </AppSelectField>
+          onValueChange={onKindChange}
+          options={[
+            allOption(t('common.all')),
+            { value: 'transcribe', label: t('task.type.transcribe') },
+            { value: 'summarize', label: t('task.type.summarize') },
+          ]}
+        />
       </div>
       <DatePresetBar
         fromDay={fromDay}

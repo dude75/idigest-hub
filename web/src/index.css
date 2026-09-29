@@ -100,7 +100,7 @@ label.inline {
   gap: 0.45rem;
   margin: 0;
 }
-label.inline select { width: auto; min-width: 4.25rem; }
+label.inline [data-slot="select-trigger"] { width: auto; min-width: 4.25rem; }
 .fold { margin: 1.25rem 0 0.5rem; }
 .card.stack > .fold { margin: 0; }
 .fold-body {
@@ -407,7 +407,7 @@ a.brand:hover,
 .library-list-search input {
   width: 100%;
 }
-.library-list-user select {
+.library-list-user [data-slot="select-trigger"] {
   width: 100%;
 }
 .library-list-user-placeholder {
@@ -1164,7 +1164,7 @@ th { color: var(--hub-muted); font-weight: 550; }
   gap: 0.25rem;
   font-size: 0.82rem;
 }
-.worker-impact-remediation-pair select {
+.worker-impact-remediation-pair [data-slot="select-trigger"] {
   width: 100%;
 }
 .dialog-subhead { margin: 1rem 0 0.5rem; font-size: 0.95rem; }
@@ -1203,7 +1203,7 @@ th { color: var(--hub-muted); font-weight: 550; }
   width: auto;
 }
 .share-field-label { color: var(--hub-muted); font-size: 0.76rem; }
-.share-panel .share-expiry-select {
+.share-panel .share-expiry-select[data-slot="select-trigger"] {
   width: auto;
   min-width: 6.75rem;
   height: auto;
@@ -1603,7 +1603,7 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
   font-size: 0.75rem;
   color: var(--hub-muted);
 }
-.org-ops-field select,
+.org-ops-field [data-slot="select-trigger"],
 .org-ops-field input {
   width: 100%;
   padding: 0.4rem 0.5rem;
@@ -1662,7 +1662,7 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
   white-space: nowrap;
   width: 1%;
 }
-.org-users-table select {
+.org-users-table [data-slot="select-trigger"] {
   font-size: 0.75rem;
   max-width: 8rem;
 }

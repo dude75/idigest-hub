@@ -516,17 +516,15 @@ export function ProfilePage() {
             label={t('profile.defaultRoute')}
             htmlFor="profile-default-route"
             value={defaultRoute}
-            onChange={(e) => {
+            onValueChange={(route) => {
               setRouteOk(false)
-              setDefaultRouteLocal(e.target.value as DefaultRoute)
+              setDefaultRouteLocal(route as DefaultRoute)
             }}
-          >
-            {allowedDefaultRoutes(me).map((route) => (
-              <option key={route} value={route}>
-                {defaultRouteLabel(route, t)}
-              </option>
-            ))}
-          </AppSelectField>
+            options={allowedDefaultRoutes(me).map((route) => ({
+              value: route,
+              label: defaultRouteLabel(route, t),
+            }))}
+          />
           <AdminFormActions className="profile-actions">
             <AppSubmitButton ready={defaultRouteDirty} onClick={() => void saveDefaultRoute()}>
               {t('common.save')}
@@ -541,9 +539,8 @@ export function ProfilePage() {
               label={t('instance.asr')}
               htmlFor="profile-asr"
               value={asrModel}
-              onChange={(e) => {
+              onValueChange={(nextAsr) => {
                 setTranscribeOk(false)
-                const nextAsr = e.target.value
                 setAsrModelLocal(nextAsr)
                 if (!me) return
                 const effectiveAsr = resolveEffectiveAsr(nextAsr, me.transcribe_prefs)
@@ -552,33 +549,33 @@ export function ProfilePage() {
                   setDiarizationModelLocal('inherit')
                 }
               }}
-            >
-              <option value="inherit">
-                {t('profile.dateTimeInherit', { value: me.transcribe_prefs.instance_asr_model })}
-              </option>
-              {me.transcribe_models.asr_models.map((modelId) => (
-                <option key={modelId} value={modelId}>{modelId}</option>
-              ))}
-            </AppSelectField>
+              options={[
+                {
+                  value: 'inherit',
+                  label: t('profile.dateTimeInherit', { value: me.transcribe_prefs.instance_asr_model }),
+                },
+                ...me.transcribe_models.asr_models.map((modelId) => ({ value: modelId, label: modelId })),
+              ]}
+            />
             <AppSelectField
               label={t('instance.diarization')}
               htmlFor="profile-diarization"
               value={diarizationModel}
-              onChange={(e) => {
+              onValueChange={(next) => {
                 setTranscribeOk(false)
-                setDiarizationModelLocal(e.target.value)
+                setDiarizationModelLocal(next)
               }}
-            >
-              <option value="inherit">
-                {t('profile.transcribeDiarizationInherit', {
-                  value: me.transcribe_prefs.instance_diarization_model || t('instance.diarizationOff'),
-                })}
-              </option>
-              <option value="off">{t('instance.diarizationOff')}</option>
-              {availableDiarizationModels.map((modelId) => (
-                <option key={modelId} value={modelId}>{modelId}</option>
-              ))}
-            </AppSelectField>
+              options={[
+                {
+                  value: 'inherit',
+                  label: t('profile.transcribeDiarizationInherit', {
+                    value: me.transcribe_prefs.instance_diarization_model || t('instance.diarizationOff'),
+                  }),
+                },
+                { value: 'off', label: t('instance.diarizationOff') },
+                ...availableDiarizationModels.map((modelId) => ({ value: modelId, label: modelId })),
+              ]}
+            />
             <p className="muted">
               {t('profile.transcribePreview', {
                 asr: resolveEffectiveAsr(asrModel, me.transcribe_prefs),
@@ -603,20 +600,20 @@ export function ProfilePage() {
               label={t('instance.summarizeModelLabel')}
               htmlFor="profile-summarize"
               value={summarizeModel}
-              onChange={(e) => {
+              onValueChange={(next) => {
                 setSummarizeOk(false)
-                setSummarizeModelLocal(e.target.value)
+                setSummarizeModelLocal(next)
               }}
-            >
-              <option value="inherit">
-                {t('profile.dateTimeInherit', {
-                  value: me.summarize_prefs.instance_summarize_model || t('instance.summarizeModelUnset'),
-                })}
-              </option>
-              {me.summarize_models.summarize_models.map((modelId) => (
-                <option key={modelId} value={modelId}>{modelId}</option>
-              ))}
-            </AppSelectField>
+              options={[
+                {
+                  value: 'inherit',
+                  label: t('profile.dateTimeInherit', {
+                    value: me.summarize_prefs.instance_summarize_model || t('instance.summarizeModelUnset'),
+                  }),
+                },
+                ...me.summarize_models.summarize_models.map((modelId) => ({ value: modelId, label: modelId })),
+              ]}
+            />
             <p className="muted">
               {t('profile.summarizePreview', {
                 model: resolveEffectiveSummarizeModel(summarizeModel, me.summarize_prefs) || t('instance.summarizeModelUnset'),
@@ -664,45 +661,42 @@ export function ProfilePage() {
             label={t('profile.dateTimeFormat')}
             htmlFor="profile-dt-format"
             value={dateTimeFormat}
-            onChange={(e) => {
+            onValueChange={(next) => {
               setDateTimeOk(false)
-              setDateTimeFormatLocal(e.target.value as 'inherit' | DateTimeFormatId)
+              setDateTimeFormatLocal(next as 'inherit' | DateTimeFormatId)
             }}
-          >
-            <option value="inherit">
-              {t('profile.dateTimeInherit', {
-                value: t(`dateTime.format.${me?.date_time_prefs.instance_format ?? 'eu_24h'}`),
-              })}
-            </option>
-            {DATE_TIME_FORMATS.map((id) => (
-              <option key={id} value={id}>
-                {t(`dateTime.format.${id}`)}
-              </option>
-            ))}
-          </AppSelectField>
+            options={[
+              {
+                value: 'inherit',
+                label: t('profile.dateTimeInherit', {
+                  value: t(`dateTime.format.${me?.date_time_prefs.instance_format ?? 'eu_24h'}`),
+                }),
+              },
+              ...DATE_TIME_FORMATS.map((id) => ({ value: id, label: t(`dateTime.format.${id}`) })),
+            ]}
+          />
           <AppSelectField
             label={t('profile.timezone')}
             htmlFor="profile-timezone"
             value={timezone}
-            onChange={(e) => {
+            onValueChange={(next) => {
               setDateTimeOk(false)
-              setTimezoneLocal(e.target.value)
+              setTimezoneLocal(next)
             }}
-          >
-            <option value="inherit">
-              {t('profile.dateTimeInherit', {
-                value: me?.date_time_prefs.instance_timezone ?? 'GMT+0',
-              })}
-            </option>
-            {TIMEZONE_OPTIONS.map((tz) => (
-              <option key={tz} value={tz}>
-                {tz}
-              </option>
-            ))}
-            {timezone !== 'inherit' && !TIMEZONE_OPTIONS.includes(timezone as (typeof TIMEZONE_OPTIONS)[number]) && (
-              <option value={timezone}>{timezone}</option>
-            )}
-          </AppSelectField>
+            options={[
+              {
+                value: 'inherit',
+                label: t('profile.dateTimeInherit', {
+                  value: me?.date_time_prefs.instance_timezone ?? 'GMT+0',
+                }),
+              },
+              ...TIMEZONE_OPTIONS.map((tz) => ({ value: tz, label: tz })),
+              ...(timezone !== 'inherit' &&
+              !TIMEZONE_OPTIONS.includes(timezone as (typeof TIMEZONE_OPTIONS)[number])
+                ? [{ value: timezone, label: timezone }]
+                : []),
+            ]}
+          />
           <p className="muted">
             {t('profile.dateTimePreview', { sample: dateTimePreview })}
           </p>
@@ -986,15 +980,12 @@ export function ProfilePage() {
                 required
                 value={deleteSuccessor}
                 disabled={deleteBusy}
-                onChange={(e) => setDeleteSuccessor(e.target.value)}
-              >
-                {deletePreview.candidates.length > 1 && (
-                  <option value="">{t('org.target')}</option>
-                )}
-                {deletePreview.candidates.map((c) => (
-                  <option key={c.id} value={c.id}>{c.email}</option>
-                ))}
-              </AppSelectField>
+                onValueChange={setDeleteSuccessor}
+                options={[
+                  ...(deletePreview.candidates.length > 1 ? [{ value: '', label: t('org.target') }] : []),
+                  ...deletePreview.candidates.map((c) => ({ value: c.id, label: c.email })),
+                ]}
+              />
             </>
           )}
           {showLocalAuthDelete && (

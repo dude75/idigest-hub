@@ -17,6 +17,7 @@ import {
 import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage, taskIsRetriable } from '../util'
 import { Button } from '@/components/ui/button'
 import { AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
+import { allOption, pageSizeOptions } from '../components/app/selectOptions'
 
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
@@ -230,17 +231,12 @@ export function TasksPage() {
       label={t('task.pageSize')}
       htmlFor="tasks-page-size"
       value={String(pageSize)}
-      onChange={(e) => {
-        setPageSize(Number(e.target.value) as PageSize)
+      onValueChange={(v) => {
+        setPageSize(Number(v) as PageSize)
         setPage(0)
       }}
-    >
-      {PAGE_SIZES.map((n) => (
-        <option key={n} value={n}>
-          {n}
-        </option>
-      ))}
-    </AppPageSizeField>
+      options={pageSizeOptions(PAGE_SIZES)}
+    />
   )
 
   return (
@@ -253,38 +249,31 @@ export function TasksPage() {
                 label={t('task.filterOrg')}
                 htmlFor="tasks-filter-org"
                 value={orgId}
-                onChange={(e) => {
-                  const next = e.target.value
+                onValueChange={(next) => {
                   const allowed = new Set(uniqueUsers(orgs, next).map((u) => u.id))
                   setOrgId(next)
                   if (userId && !allowed.has(userId)) setUserId('')
                   setPage(0)
                 }}
-              >
-                <option value="">{t('common.all')}</option>
-                {[...orgs].sort((a, b) => a.name.localeCompare(b.name)).map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </AppSelectField>
+                options={[
+                  allOption(t('common.all')),
+                  ...[...orgs].sort((a, b) => a.name.localeCompare(b.name)).map((org) => ({
+                    value: org.id,
+                    label: org.name,
+                  })),
+                ]}
+              />
             ) : null}
             <AppSelectField
               label={t('task.filterUser')}
               htmlFor="tasks-filter-user"
               value={userId}
-              onChange={(e) => {
-                setUserId(e.target.value)
+              onValueChange={(next) => {
+                setUserId(next)
                 setPage(0)
               }}
-            >
-              <option value="">{t('common.all')}</option>
-              {userOptions.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.email}
-                </option>
-              ))}
-            </AppSelectField>
+              options={[allOption(t('common.all')), ...userOptions.map((user) => ({ value: user.id, label: user.email }))]}
+            />
           </div>
         </AppStackCard>
       ) : null}

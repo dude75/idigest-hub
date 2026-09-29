@@ -5,7 +5,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { AuthCard } from '../components/auth/AuthCard'
 import { AuthField } from '../components/auth/AuthField'
-import { AuthSelect } from '../components/auth/AuthSelect'
+import { AppSelect } from '../components/app/AppSelect'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { LegalDocumentAcceptance } from '../components/LegalDocumentAcceptance'
 import { type LegalDocumentKey, type PublicLegalDocument } from '../legalDocuments'
@@ -115,13 +115,15 @@ export function SignupPage() {
                 />
               </AuthField>
               <AuthField label={t('auth.tariff')} htmlFor="signup-tariff">
-                <AuthSelect id="signup-tariff" value={tariffId} onChange={(e) => setTariffId(e.target.value)}>
-                  {tariffs.map((tr) => (
-                    <option key={tr.id} value={tr.id}>
-                      {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
-                    </option>
-                  ))}
-                </AuthSelect>
+                <AppSelect
+                  id="signup-tariff"
+                  value={tariffId}
+                  onValueChange={setTariffId}
+                  options={tariffs.map((tr) => ({
+                    value: tr.id,
+                    label: `${tr.name}${tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}`,
+                  }))}
+                />
               </AuthField>
               {legalDocs.length > 0 && (
                 <LegalDocumentAcceptance

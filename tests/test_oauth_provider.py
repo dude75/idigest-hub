@@ -442,6 +442,8 @@ def _authorize_login_page(client, monkeypatch) -> tuple[str, str, dict[str, str]
     authorize = client.get("/oauth/authorize", params=params, follow_redirects=False)
     assert authorize.status_code == 200, authorize.text
     assert "auth-segment" in authorize.text
+    assert "/auth-shell.js" in authorize.text
+    assert "/auth-shell.css" in authorize.text
     assert "Continue with SSO" in authorize.text or "Продолжить через SSO" in authorize.text
     from app.routers.oauth import _encode_oauth_params
 

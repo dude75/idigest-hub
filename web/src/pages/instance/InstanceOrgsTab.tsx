@@ -28,7 +28,7 @@ import { formatInteger, showError, WalletLabel } from '../../util'
 import { canAdminResetMemberMfa } from '../../mfa'
 import { emptyOrg } from './constants'
 import { Button } from '@/components/ui/button'
-import { AuthSelect } from '../../components/auth/AuthSelect'
+import { AppSelect } from '../../components/app/AppSelect'
 import { AppCheckboxRow, AppInputField, AppSelectField } from '../../components/app/AppFormControls'
 import { AppField } from '../../components/app/AppField'
 import { AppUrlCopyRow } from '../../components/app/AppUrlCopyRow'
@@ -223,12 +223,9 @@ export function InstanceOrgsTab() {
             label={t('org.tariff')}
             htmlFor="instance-org-create-tariff"
             value={orgForm.tariff_id || activeTariffs[0]?.id || ''}
-            onChange={(e) => setOrgForm({ ...orgForm, tariff_id: e.target.value })}
-          >
-            {activeTariffs.map((tr) => (
-              <option key={tr.id} value={tr.id}>{tr.name}</option>
-            ))}
-          </AppSelectField>
+            onValueChange={(tariff_id) => setOrgForm({ ...orgForm, tariff_id })}
+            options={activeTariffs.map((tr) => ({ value: tr.id, label: tr.name }))}
+          />
           <AppInputField
             label={t('instance.orgAdminEmail')}
             htmlFor="instance-org-create-email"
@@ -339,12 +336,11 @@ export function InstanceOrgsTab() {
                     label={t('org.tariff')}
                     htmlFor={`org-tariff-${o.id}`}
                     value={o.tariff.id}
-                    onChange={(e) => void api(`/orgs/${o.id}/tariff`, { method: 'PATCH', body: JSON.stringify({ tariff_id: e.target.value }) }).then(load)}
-                  >
-                    {tariffs.map((tr) => (
-                      <option key={tr.id} value={tr.id}>{tr.name}</option>
-                    ))}
-                  </AppSelectField>
+                    onValueChange={(tariff_id) =>
+                      void api(`/orgs/${o.id}/tariff`, { method: 'PATCH', body: JSON.stringify({ tariff_id }) }).then(load)
+                    }
+                    options={tariffs.map((tr) => ({ value: tr.id, label: tr.name }))}
+                  />
                 </div>
                 <div className="org-ops-field">
                   <AppField label={t('instance.walletDelta')} htmlFor={`org-wallet-${o.id}`}>
@@ -386,22 +382,23 @@ export function InstanceOrgsTab() {
                             </TableCell>
                             <TableCell>
                               {!u.is_instance_admin ? (
-                                <AuthSelect
+                                <AppSelect
                                   id={`org-user-role-${u.id}`}
                                   className="h-8 min-w-[8rem]"
                                   value={u.role ?? 'org_member'}
-                                  onChange={(e) =>
+                                  onValueChange={(role) =>
                                     void api(`/orgs/${o.id}/users/${u.id}`, {
                                       method: 'PATCH',
-                                      body: JSON.stringify({ role: e.target.value }),
+                                      body: JSON.stringify({ role }),
                                     })
                                       .then(load)
                                       .catch(showError)
                                   }
-                                >
-                                  <option value="org_admin">{t('org.roleAdmin')}</option>
-                                  <option value="org_member">{t('org.roleMember')}</option>
-                                </AuthSelect>
+                                  options={[
+                                    { value: 'org_admin', label: t('org.roleAdmin') },
+                                    { value: 'org_member', label: t('org.roleMember') },
+                                  ]}
+                                />
                               ) : (
                                 <HubBadge tone="muted">{u.role}</HubBadge>
                               )}

@@ -53,6 +53,26 @@ def _esc(value: str) -> str:
     return html.escape(value, quote=True)
 
 
+def _auth_select(
+    name: str,
+    options: Iterable[tuple[str, str]],
+    *,
+    selected: str = "",
+    select_id: str | None = None,
+    required: bool = False,
+    disabled: bool = False,
+) -> str:
+    """Native select enhanced to popup UI by auth-shell.js (must live under .auth-layout)."""
+    id_attr = f' id="{_esc(select_id)}"' if select_id else ""
+    req = " required" if required else ""
+    dis = " disabled" if disabled else ""
+    opts = []
+    for value, label in options:
+        sel = ' selected' if value == selected else ""
+        opts.append(f'<option value="{_esc(value)}"{sel}>{_esc(label)}</option>')
+    return f'<select name="{_esc(name)}"{id_attr}{req}{dis}>{"".join(opts)}</select>'
+
+
 def _scope_labels(locale: str, scopes: Iterable[str]) -> list[str]:
     return [t(locale, scope_label_key(scope)) for scope in ordered_scopes(scopes)]
 
@@ -99,6 +119,7 @@ def _page(
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{_esc(title)} — {_esc(t(locale, "oauth_app_name"))}</title>
   <link rel="stylesheet" href="/auth-shell.css"/>
+  <script src="/auth-shell.js" defer></script>
 </head>
 <body>
   <div class="auth-layout">

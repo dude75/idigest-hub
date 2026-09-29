@@ -21,6 +21,7 @@ import { defaultFilterRange } from '../../util/date'
 import { formatInteger, fmtDate, showError } from '../../util'
 import { Button } from '@/components/ui/button'
 import { AppPageSizeField } from '../../components/app/AppFormControls'
+import { pageSizeOptions } from '../../components/app/selectOptions'
 
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
@@ -171,17 +172,12 @@ export function AuditLogTab() {
               label={t('task.pageSize')}
               htmlFor="audit-page-size"
               value={String(pageSize)}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value) as PageSize)
+              onValueChange={(v) => {
+                setPageSize(Number(v) as PageSize)
                 setPage(0)
               }}
-            >
-              {PAGE_SIZES.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </AppPageSizeField>
+              options={pageSizeOptions(PAGE_SIZES)}
+            />
           </div>
         }
       >

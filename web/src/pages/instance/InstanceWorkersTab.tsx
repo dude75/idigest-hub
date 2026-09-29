@@ -363,16 +363,17 @@ export function InstanceWorkersTab() {
           label={t('instance.type')}
           htmlFor="worker-type"
           value={wform.type}
-          onChange={(e) => {
-            setWform({ ...wform, type: e.target.value })
+          onValueChange={(type) => {
+            setWform({ ...wform, type })
             setProbe(null)
             setProbeOk(false)
           }}
-        >
-          <option value="transcribe">{t('instance.transcribe')}</option>
-          <option value="summarize">{t('instance.summarize')}</option>
-          <option value="capture">{t('instance.capture')}</option>
-        </AppSelectField>
+          options={[
+            { value: 'transcribe', label: t('instance.transcribe') },
+            { value: 'summarize', label: t('instance.summarize') },
+            { value: 'capture', label: t('instance.capture') },
+          ]}
+        />
         <AppInputField label={t('common.name')} htmlFor="worker-name" value={wform.name} onChange={(e) => setWform({ ...wform, name: e.target.value })} />
         <AppInputField label={t('instance.baseUrl')} htmlFor="worker-base-url" value={wform.base_url} onChange={(e) => { setWform({ ...wform, base_url: e.target.value }); setProbeOk(false) }} />
         <AppInputField label={t('instance.apiToken')} htmlFor="worker-api-token" value={wform.api_token} onChange={(e) => { setWform({ ...wform, api_token: e.target.value }); setProbeOk(false) }} placeholder={editW ? t('instance.apiTokenKeep') : ''} />

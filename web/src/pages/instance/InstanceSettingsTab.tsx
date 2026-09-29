@@ -258,8 +258,7 @@ export function InstanceSettingsTab() {
             label={t('instance.asr')}
             htmlFor="instance-asr"
             value={settings.asr_model}
-            onChange={(e) => {
-              const nextAsr = e.target.value
+            onValueChange={(nextAsr) => {
               const allowedDiar = diarizationOptionsForAsr(settings, nextAsr)
               const nextDiar =
                 settings.diarization_model && allowedDiar.includes(settings.diarization_model)
@@ -268,45 +267,38 @@ export function InstanceSettingsTab() {
               setSettings({ ...settings, asr_model: nextAsr, diarization_model: nextDiar })
             }}
             disabled={settings.asr_models.length === 0}
-          >
-            {settings.asr_models.length === 0 ? (
-              <option value={settings.asr_model}>{settings.asr_model}</option>
-            ) : (
-              settings.asr_models.map((modelId) => (
-                <option key={modelId} value={modelId}>{modelId}</option>
-              ))
-            )}
-          </AppSelectField>
+            options={
+              settings.asr_models.length === 0
+                ? [{ value: settings.asr_model, label: settings.asr_model }]
+                : settings.asr_models.map((modelId) => ({ value: modelId, label: modelId }))
+            }
+          />
           <AppSelectField
             label={t('instance.diarization')}
             htmlFor="instance-diarization"
             value={settings.diarization_model || ''}
-            onChange={(e) => setSettings({ ...settings, diarization_model: e.target.value || null })}
+            onValueChange={(next) => setSettings({ ...settings, diarization_model: next || null })}
             disabled={settings.diarization_models.length === 0}
-          >
-            <option value="">{t('instance.diarizationOff')}</option>
-            {availableDiarizationModels.map((modelId) => (
-              <option key={modelId} value={modelId}>{modelId}</option>
-            ))}
-          </AppSelectField>
+            options={[
+              { value: '', label: t('instance.diarizationOff') },
+              ...availableDiarizationModels.map((modelId) => ({ value: modelId, label: modelId })),
+            ]}
+          />
           <AppSelectField
             label={t('instance.summarizeModelLabel')}
             htmlFor="instance-summarize"
             value={settings.summarize_model || ''}
-            onChange={(e) => setSettings({ ...settings, summarize_model: e.target.value || null })}
+            onValueChange={(next) => setSettings({ ...settings, summarize_model: next || null })}
             disabled={settings.summarize_models.length === 0}
-          >
-            <option value="">{t('instance.summarizeModelUnset')}</option>
-              {settings.summarize_models.length === 0 ? (
-                settings.summarize_model ? (
-                  <option value={settings.summarize_model}>{settings.summarize_model}</option>
-                ) : null
-              ) : (
-                settings.summarize_models.map((modelId) => (
-                  <option key={modelId} value={modelId}>{modelId}</option>
-                ))
-              )}
-          </AppSelectField>
+            options={[
+              { value: '', label: t('instance.summarizeModelUnset') },
+              ...(settings.summarize_models.length === 0
+                ? settings.summarize_model
+                  ? [{ value: settings.summarize_model, label: settings.summarize_model }]
+                  : []
+                : settings.summarize_models.map((modelId) => ({ value: modelId, label: modelId }))),
+            ]}
+          />
           {!serviceModelsValid ? <p className="err">{t('instance.serviceModelsInvalid')}</p> : null}
         </div>
       </details>
@@ -568,28 +560,18 @@ export function InstanceSettingsTab() {
             label={t('instance.dateTimeFormat')}
             htmlFor="instance-date-time-format"
             value={settings.date_time_format || 'eu_24h'}
-            onChange={(e) => setSettings({ ...settings, date_time_format: e.target.value })}
+            onValueChange={(date_time_format) => setSettings({ ...settings, date_time_format })}
             description={t('instance.dateTimeFormatHint')}
-          >
-            {DATE_TIME_FORMATS.map((id) => (
-              <option key={id} value={id}>
-                {t(`dateTime.format.${id}`)}
-              </option>
-            ))}
-          </AppSelectField>
+            options={DATE_TIME_FORMATS.map((id) => ({ value: id, label: t(`dateTime.format.${id}`) }))}
+          />
           <AppSelectField
             label={t('instance.timezone')}
             htmlFor="instance-timezone"
             value={settings.timezone || 'GMT+0'}
-            onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
+            onValueChange={(timezone) => setSettings({ ...settings, timezone })}
             description={t('instance.timezoneHint')}
-          >
-            {TIMEZONE_OPTIONS.map((tz) => (
-              <option key={tz} value={tz}>
-                {tz}
-              </option>
-            ))}
-          </AppSelectField>
+            options={TIMEZONE_OPTIONS.map((tz) => ({ value: tz, label: tz }))}
+          />
         </div>
       </details>
       <details className="fold org-fold-section">
