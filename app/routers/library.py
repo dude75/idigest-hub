@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, Form, Query, Request, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -311,10 +311,31 @@ def _upload_as_video(suffix: str, file: UploadFile) -> bool:
     return True
 
 
+async def _store_upload_as_mp3(
+    file: UploadFile,
+    *,
+    suffix: str,
+    limit: int,
+    storage,
+    audio_id: str,
+    raw_name: str,
+) -> tuple[str, str]:
+    mp3_tmp: Path | None = None
+    try:
+        mp3_tmp = await video_upload_to_mp3_temp(file, suffix=suffix, max_bytes=limit)
+        storage_path = await storage.save_file_path(audio_id, ".mp3", mp3_tmp, max_bytes=limit)
+    finally:
+        if mp3_tmp is not None:
+            cleanup_extract_temp(mp3_tmp)
+    stem = safe_filename(Path(raw_name).stem or "original")
+    return storage_path, f"{stem}.mp3"
+
+
 @router.post("/audios")
 async def upload_audio(
     request: Request,
     file: UploadFile,
+    from_microphone: bool = Form(False),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
@@ -335,22 +356,22 @@ async def upload_audio(
     audio_id = new_id()
     storage = get_storage()
     raw_name = file.filename or f"original{suffix}"
-    if is_video:
-        mp3_tmp: Path | None = None
+    if is_video or from_microphone:
         try:
-            mp3_tmp = await video_upload_to_mp3_temp(file, suffix=suffix, max_bytes=limit)
-            storage_path = await storage.save_file_path(audio_id, ".mp3", mp3_tmp, max_bytes=limit)
+            storage_path, original_filename = await _store_upload_as_mp3(
+                file,
+                suffix=suffix,
+                limit=limit,
+                storage=storage,
+                audio_id=audio_id,
+                raw_name=raw_name,
+            )
         except PayloadTooLarge:
             ctx.raise_error(ErrorCode.payload_too_large)
         except VideoExtractError:
             ctx.raise_error(ErrorCode.invalid_file)
         except InvalidAudioContent:
             ctx.raise_error(ErrorCode.invalid_file)
-        finally:
-            if mp3_tmp is not None:
-                cleanup_extract_temp(mp3_tmp)
-        stem = safe_filename(Path(raw_name).stem or "original")
-        original_filename = f"{stem}.mp3"
     else:
         try:
             storage_path = await storage.save_upload(audio_id, suffix, file, max_bytes=limit)

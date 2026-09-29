@@ -6,7 +6,7 @@ Auth required. Org membership required for all endpoints.
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
-| POST | `/audios` | Multipart upload (`file` field) |
+| POST | `/audios` | Multipart upload (`file`; optional `from_microphone=true` → MP3 extract) |
 | GET | `/audios?include_hidden=false&tag=` | List (`tag`: your tag id or name) |
 | GET | `/audios/{id}` | Detail + transcript list + `can_transcribe` |
 | GET | `/audios/{id}/file` | Stream audio (inline playback) |

@@ -6,7 +6,7 @@
 
 | Method | Path | Описание |
 | ------ | ---- | -------- |
-| POST | `/audios` | Multipart upload (поле `file`) |
+| POST | `/audios` | Multipart upload (поле `file`; опционально `from_microphone=true` → extract в MP3) |
 | GET | `/audios?include_hidden=false&tag=` | Список (`tag` — id или имя вашего тега) |
 | GET | `/audios/{id}` | Детали + список transcript + `can_transcribe` |
 | GET | `/audios/{id}/file` | Потоковая отдача или скачивание (`?download=true`) |

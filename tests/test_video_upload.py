@@ -74,3 +74,22 @@ def test_audio_upload_unchanged(client):
     response = upload_audio(client, name="clip.wav")
     assert response.status_code == 200
     assert response.json()["filename"] == "clip.wav"
+
+
+def test_upload_microphone_extracts_mp3(client, tmp_path):
+    _login_org_uploader(client)
+    fake_mp3 = tmp_path / "mic.mp3"
+    fake_mp3.write_bytes(SAMPLE_MP3_BYTES + b"mic")
+
+    def _fake_extract(file, *, suffix: str, max_bytes: int) -> Path:
+        return fake_mp3
+
+    with patch("app.routers.library.video_upload_to_mp3_temp", side_effect=_fake_extract):
+        with patch("app.routers.library.cleanup_extract_temp"):
+            response = client.post(
+                "/api/v1/audios",
+                data={"from_microphone": "true"},
+                files={"file": ("recording.webm", BytesIO(b"\x00" * 64), "audio/webm")},
+            )
+    assert response.status_code == 200, response.text
+    assert response.json()["filename"] == "recording.mp3"

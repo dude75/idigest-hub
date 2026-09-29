@@ -18,7 +18,7 @@ Invalid extension → `invalid_file`. Over limit → `payload_too_large`.
 
 #### Web UI: record from microphone
 
-On the library page, users can record in the browser (`MediaRecorder`): **WebM** in Chromium/Firefox, **M4A** when Safari exposes `audio/mp4`. The blob is uploaded via the same `POST /audios` path as a file pick. After upload, the UI applies user tag **`mic`** through `PUT /object-tags`. Switching the input device mid-session restarts capture (prior audio in that session is discarded).
+On the library page, users can record in the browser (`MediaRecorder`): **WebM** in Chromium/Firefox, **M4A** when Safari exposes `audio/mp4`. The blob is uploaded via the same `POST /audios` path with form field **`from_microphone=true`**; the hub runs the same **ffmpeg → MP3** extract as video upload and stores **`original.mp3`**. After upload, the UI applies user tag **`mic`** through `PUT /object-tags`. Switching the input device mid-session restarts capture (prior audio in that session is discarded).
 
 ### Endpoints
 

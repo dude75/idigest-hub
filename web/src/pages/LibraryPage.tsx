@@ -378,17 +378,22 @@ export function LibraryPage() {
     const pipeline = beginPipelineRun()
     setBusy(true)
     const video = isVideoUploadFilename(file.name)
-    setUploadProgress({ name: file.name, percent: 0, phase: 'uploading', video })
+    const fromMicrophone = Boolean(opts?.fromMicrophone)
+    const serverExtract = video || fromMicrophone
+    setUploadProgress({ name: file.name, percent: 0, phase: 'uploading', video: serverExtract })
     try {
       const body = new FormData()
       body.append('file', file)
+      if (fromMicrophone) {
+        body.append('from_microphone', 'true')
+      }
       const item = await apiUpload<Audio>('/audios', body, (loaded, total) => {
         const percent = total ? Math.round((loaded / total) * 100) : 0
         setUploadProgress({
           name: file.name,
           percent,
           phase: percent >= 100 ? 'processing' : 'uploading',
-          video,
+          video: serverExtract,
         })
       })
       if (opts?.fromMicrophone) {
