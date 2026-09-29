@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
+import { ApiError, api } from '../api'
+import {
+  USER_TAG_MAX_PER_OBJECT,
+  normalizeUserTagName,
+  userTagNameErrorKey,
+} from '../constants/userTags'
 import type { LibraryObjectType, UserTag } from '../types'
 import { showError } from '../util'
 import { AppSelect } from './app/AppSelect'
@@ -46,12 +51,36 @@ export function UserTagsEditor({ objectType, objectId, tags, onChange }: Props) 
       .map((tag) => ({ value: tag.id, label: tag.name }))
   }, [catalog, tags])
 
+  function cleanedTagNames(nextNames: string[]): string[] | null {
+    const cleaned: string[] = []
+    const seenKeys = new Set<string>()
+    for (const raw of nextNames) {
+      const invalid = userTagNameErrorKey(raw)
+      if (invalid) {
+        showError(new ApiError(invalid, t(`errors.${invalid}`)))
+        return null
+      }
+      const name = normalizeUserTagName(raw)
+      const key = name.toLowerCase()
+      if (seenKeys.has(key)) continue
+      seenKeys.add(key)
+      cleaned.push(name)
+    }
+    if (cleaned.length > USER_TAG_MAX_PER_OBJECT) {
+      showError(new ApiError('user_tag_limit_per_object', t('errors.user_tag_limit_per_object')))
+      return null
+    }
+    return cleaned
+  }
+
   async function save(nextNames: string[]) {
+    const cleaned = cleanedTagNames(nextNames)
+    if (!cleaned) return
     setBusy(true)
     try {
       const r = await api<{ tags: UserTag[] }>('/object-tags', {
         method: 'PUT',
-        body: JSON.stringify({ object_type: objectType, object_id: objectId, tags: nextNames }),
+        body: JSON.stringify({ object_type: objectType, object_id: objectId, tags: cleaned }),
       })
       onChange(r.tags)
       const refreshed = await api<{ items: UserTag[] }>('/tags')
@@ -72,8 +101,13 @@ export function UserTagsEditor({ objectType, objectId, tags, onChange }: Props) 
   }
 
   function addTag() {
-    const name = draft.trim()
-    if (!name || busy) return
+    if (busy) return
+    const invalid = userTagNameErrorKey(draft)
+    if (invalid) {
+      showError(new ApiError(invalid, t(`errors.${invalid}`)))
+      return
+    }
+    const name = normalizeUserTagName(draft)
     const exists = tags.some((tag) => tag.name.toLowerCase() === name.toLowerCase())
     if (exists) {
       setDraft('')

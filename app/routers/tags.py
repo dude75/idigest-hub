@@ -28,7 +28,7 @@ class TagRenameBody(BaseModel):
 class ObjectTagsBody(BaseModel):
     object_type: str
     object_id: str
-    tags: list[str] = Field(default_factory=list, max_length=32)
+    tags: list[str] = Field(default_factory=list)
 
 
 def _readable_library_object(db: Session, ctx: AuthContext, object_type: str, object_id: str):

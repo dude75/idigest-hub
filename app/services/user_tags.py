@@ -13,13 +13,13 @@ from app.timeutil import utcnow
 
 LIBRARY_OBJECT_TYPES = frozenset({"audio", "transcript", "summary"})
 MAX_TAG_NAME_LEN = 64
-_MAX_TAGS_PER_OBJECT = 32
+MAX_TAGS_PER_OBJECT = 32
 
 
 def normalize_tag_name(raw: str) -> str:
     name = " ".join(raw.strip().split())
     if not name or len(name) > MAX_TAG_NAME_LEN:
-        raise ApiError(ErrorCode.validation_error)
+        raise ApiError(ErrorCode.user_tag_name_invalid)
     return name
 
 
@@ -145,8 +145,8 @@ def set_object_tags(
             continue
         seen_keys.add(key)
         cleaned.append(name)
-    if len(cleaned) > _MAX_TAGS_PER_OBJECT:
-        raise ApiError(ErrorCode.validation_error)
+    if len(cleaned) > MAX_TAGS_PER_OBJECT:
+        raise ApiError(ErrorCode.user_tag_limit_per_object)
 
     db.execute(
         delete(UserTagLink).where(
@@ -183,7 +183,7 @@ def rename_user_tag(db: Session, user_id: str, tag_id: str, raw_name: str) -> di
             select(UserTag).where(UserTag.user_id == user_id, UserTag.name_key == key, UserTag.id != tag_id)
         )
         if conflict is not None:
-            raise ApiError(ErrorCode.validation_error)
+            raise ApiError(ErrorCode.user_tag_name_taken)
     row.name = name
     row.name_key = key
     db.flush()

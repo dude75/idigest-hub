@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { api } from '../api'
+import { ApiError, api } from '../api'
+import { normalizeUserTagName, userTagNameErrorKey } from '../constants/userTags'
 import type { UserTag } from '../types'
 import { showError } from '../util'
 import { Button } from '@/components/ui/button'
@@ -39,8 +40,12 @@ export function TagManageDialog({ onClose, onUpdated }: Props) {
   }, [])
 
   async function saveRename(tagId: string) {
-    const name = renameDraft.trim()
-    if (!name) return
+    const invalid = userTagNameErrorKey(renameDraft)
+    if (invalid) {
+      showError(new ApiError(invalid, t(`errors.${invalid}`)))
+      return
+    }
+    const name = normalizeUserTagName(renameDraft)
     setBusy(true)
     try {
       await api(`/tags/${tagId}`, { method: 'PATCH', body: JSON.stringify({ name }) })

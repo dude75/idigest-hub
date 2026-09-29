@@ -72,6 +72,9 @@ class ErrorCode(str, Enum):
     public_base_url_missing = "public_base_url_missing"
     public_links_disabled = "public_links_disabled"
     invalid_pin = "invalid_pin"
+    user_tag_limit_per_object = "user_tag_limit_per_object"
+    user_tag_name_invalid = "user_tag_name_invalid"
+    user_tag_name_taken = "user_tag_name_taken"
 
 
 HTTP_STATUS: dict[ErrorCode, int] = {
@@ -128,6 +131,9 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.public_base_url_missing: 400,
     ErrorCode.public_links_disabled: 403,
     ErrorCode.invalid_pin: 401,
+    ErrorCode.user_tag_limit_per_object: 400,
+    ErrorCode.user_tag_name_invalid: 400,
+    ErrorCode.user_tag_name_taken: 400,
 }
 
 

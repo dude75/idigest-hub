@@ -777,8 +777,12 @@ def rename_tag_payload(db: Session, ctx: AuthContext, *, tag_id: str, name: str)
     except ApiError as exc:
         if exc.code == ErrorCode.not_found:
             raise ValueError("not found") from exc
-        if exc.code == ErrorCode.validation_error:
-            raise ValueError("validation error") from exc
+        if exc.code in (
+            ErrorCode.validation_error,
+            ErrorCode.user_tag_name_invalid,
+            ErrorCode.user_tag_name_taken,
+        ):
+            raise ValueError(exc.code.value) from exc
         raise
 
 
@@ -814,7 +818,12 @@ def set_object_tags_payload(
             tag_names=tags,
         )
     except ApiError as exc:
-        if exc.code == ErrorCode.validation_error:
-            raise ValueError("validation error") from exc
+        if exc.code in (
+            ErrorCode.validation_error,
+            ErrorCode.user_tag_limit_per_object,
+            ErrorCode.user_tag_name_invalid,
+            ErrorCode.user_tag_name_taken,
+        ):
+            raise ValueError(exc.code.value) from exc
         raise
     return {"object_type": object_type, "object_id": object_id, "tags": assigned}

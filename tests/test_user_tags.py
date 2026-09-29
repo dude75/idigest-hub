@@ -60,3 +60,36 @@ def test_user_tags_private_and_filter(client):
     after = client.get(f"/api/v1/audios/{audio_id}")
     assert len(after.json()["user_tags"]) == 1
     assert after.json()["user_tags"][0]["name"] == "Client"
+
+
+def test_user_tag_limits(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "limits@example.com", "limitspass1", tariff_id).status_code == 200
+
+    audio_id = upload_audio(client).json()["id"]
+    too_many = [f"tag-{i}" for i in range(33)]
+    over = client.put(
+        "/api/v1/object-tags",
+        json={"object_type": "audio", "object_id": audio_id, "tags": too_many},
+    )
+    assert over.status_code == 400, over.text
+    assert over.json()["error"]["code"] == "user_tag_limit_per_object"
+
+    long_name = "x" * 65
+    bad_name = client.put(
+        "/api/v1/object-tags",
+        json={"object_type": "audio", "object_id": audio_id, "tags": [long_name]},
+    )
+    assert bad_name.status_code == 400, bad_name.text
+    assert bad_name.json()["error"]["code"] == "user_tag_name_invalid"
+
+    ok = client.put(
+        "/api/v1/object-tags",
+        json={"object_type": "audio", "object_id": audio_id, "tags": ["Alpha", "Beta"]},
+    )
+    assert ok.status_code == 200, ok.text
+    tag_id = ok.json()["tags"][0]["id"]
+    taken = client.patch(f"/api/v1/tags/{tag_id}", json={"name": "Beta"})
+    assert taken.status_code == 400, taken.text
+    assert taken.json()["error"]["code"] == "user_tag_name_taken"
