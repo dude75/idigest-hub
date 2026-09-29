@@ -7,7 +7,7 @@ Auth required. Org membership required for all endpoints.
 | Method | Path | Description |
 | ------ | ---- | ----------- |
 | POST | `/audios` | Multipart upload (`file` field) |
-| GET | `/audios?include_hidden=false` | List |
+| GET | `/audios?include_hidden=false&tag=` | List (`tag`: your tag id or name) |
 | GET | `/audios/{id}` | Detail + transcript list + `can_transcribe` |
 | GET | `/audios/{id}/file` | Stream audio (inline playback) |
 | GET | `/audios/{id}/file?download=true` | Download original file |
@@ -15,7 +15,7 @@ Auth required. Org membership required for all endpoints.
 | POST | `/audios/{id}/unhide` | Owner unhide |
 | DELETE | `/audios/{id}` | org_admin hard delete |
 
-List/detail items include share badges: `share_kind`, `shared_with`, `shared_by`, `hidden`, `owner_email`.
+List/detail items include share badges: `share_kind`, `shared_with`, `shared_by`, `hidden`, `owner_email`, and **`user_tags`** (personal tags for the current user only: `{ "id", "name" }[]`).
 
 ### GET `/capture/platforms`
 
@@ -25,7 +25,7 @@ Meeting capture discovery: `{ "enabled", "connectors": [{ "id", "label" }], "jit
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
-| GET | `/transcripts?include_hidden=false` | List |
+| GET | `/transcripts?include_hidden=false&tag=` | List |
 | GET | `/transcripts/{id}` | Detail with `utterances` array |
 | PATCH | `/transcripts/{id}` | `{ "title": "..." }` — owner or org_admin |
 | GET | `/transcripts/{id}/export?format=txt\|json` | Download transcript |
@@ -46,7 +46,7 @@ Utterance shape:
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
-| GET | `/summaries?include_hidden=false` | List |
+| GET | `/summaries?include_hidden=false&tag=` | List |
 | GET | `/summaries/{id}` | Detail with `body` |
 | GET | `/summaries/{id}/export?format=md\|txt` | Download summary (markdown fences stripped) |
 | PATCH | `/summaries/{id}` | `{ "body": "..." }` and/or `{ "title": "..." }` — owner or org_admin |
@@ -81,6 +81,21 @@ Response `{ "link": { "id", "summary_id", "url", "expires_at", "pin_required", "
 Errors: `public_base_url_missing` (400), `public_links_disabled` (403).
 
 Guest access (no auth): [public.md](public.md).
+
+## Personal tags (no ACL)
+
+Per-user labels on library objects you can read (own, shared, or org_admin). Other users never see your tags.
+
+| Method | Path | Description |
+| ------ | ---- | ----------- |
+| GET | `/tags` | Your tag catalog: `{ "items": [{ "id", "name", "usage_count" }, ...] }` |
+| PATCH | `/tags/{tag_id}` | `{ "name": "..." }` — rename |
+| DELETE | `/tags/{tag_id}` | Remove tag from all your objects |
+| PUT | `/object-tags` | `{ "object_type": "audio\|transcript\|summary", "object_id": "uuid", "tags": ["name", ...] }` — replace tags on one object (creates tags by name) |
+
+List endpoints accept `tag` (id or case-insensitive name) to filter to objects you tagged.
+
+MCP: [MCP tools](mcp.md#personal-tags) — `list_tags`, `rename_tag`, `delete_tag`, `set_object_tags`; list tools also accept optional `tag`.
 
 ## Shares
 

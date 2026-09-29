@@ -59,6 +59,9 @@ def _delete_org_member(db: Session, user: User, membership: Membership) -> None:
         delete(Share).where((Share.from_user_id == user.id) | (Share.to_user_id == user.id))
     )
     db.execute(delete(HiddenItem).where(HiddenItem.user_id == user.id))
+    from app.services.user_tags import delete_all_user_tags
+
+    delete_all_user_tags(db, user.id)
     db.delete(membership)
     db.delete(user)
 

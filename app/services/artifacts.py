@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.models import Audio, HiddenItem, Share, Summary, Task, Transcript
 from app.presenters import summary_display_title
 from app.services.storage_gc import queue_storage_delete
+from app.services.user_tags import wipe_object_tag_links
 
 
 def cancel_queued_for_source(db: Session, *, audio_id: str | None = None, transcript_id: str | None = None) -> None:
@@ -47,6 +48,7 @@ def wipe_object_shares(db: Session, object_type: str, object_id: str) -> None:
     db.execute(
         delete(HiddenItem).where(HiddenItem.object_type == object_type, HiddenItem.object_id == object_id)
     )
+    wipe_object_tag_links(db, object_type, object_id)
 
 
 def hard_delete_audio(db: Session, audio: Audio) -> None:

@@ -7,14 +7,14 @@
 | Method | Path | Описание |
 | ------ | ---- | -------- |
 | POST | `/audios` | Multipart upload (поле `file`) |
-| GET | `/audios?include_hidden=false` | Список |
+| GET | `/audios?include_hidden=false&tag=` | Список (`tag` — id или имя вашего тега) |
 | GET | `/audios/{id}` | Детали + список transcript + `can_transcribe` |
 | GET | `/audios/{id}/file` | Потоковая отдача или скачивание (`?download=true`) |
 | POST | `/audios/{id}/hide` | Скрытие владельцем |
 | POST | `/audios/{id}/unhide` | Показ владельцем |
 | DELETE | `/audios/{id}` | Жёсткое удаление org_admin |
 
-Элементы списка/деталей включают share badges: `share_kind`, `shared_with`, `shared_by`, `hidden`, `owner_email`.
+Элементы списка/деталей включают share badges: `share_kind`, `shared_with`, `shared_by`, `hidden`, `owner_email`, и **`user_tags`** (личные теги текущего пользователя: `{ "id", "name" }[]`, другим не видны).
 
 ### GET `/capture/platforms`
 
@@ -24,7 +24,7 @@ Discovery capture встреч: `{ "enabled", "connectors": [{ "id", "label" }],
 
 | Method | Path | Описание |
 | ------ | ---- | -------- |
-| GET | `/transcripts?include_hidden=false` | Список |
+| GET | `/transcripts?include_hidden=false&tag=` | Список |
 | GET | `/transcripts/{id}` | Детали с массивом `utterances` |
 | PATCH | `/transcripts/{id}` | `{ "title": "..." }` — владелец или org_admin |
 | GET | `/transcripts/{id}/export?format=txt\|json` | Скачать transcript |
@@ -45,7 +45,7 @@ Discovery capture встреч: `{ "enabled", "connectors": [{ "id", "label" }],
 
 | Method | Path | Описание |
 | ------ | ---- | -------- |
-| GET | `/summaries?include_hidden=false` | Список |
+| GET | `/summaries?include_hidden=false&tag=` | Список |
 | GET | `/summaries/{id}` | Детали с `body` |
 | GET | `/summaries/{id}/export?format=md\|txt` | Скачать summary (markdown fences убираются) |
 | PATCH | `/summaries/{id}` | `{ "body": "..." }` и/или `{ "title": "..." }` — владелец или org_admin |
@@ -80,6 +80,21 @@ Read-only гостевой URL (нужны Public URL + org `allow_public_links`
 Ошибки: `public_base_url_missing` (400), `public_links_disabled` (403).
 
 Гостевой доступ (без auth): [public.md](public.md).
+
+## Личные теги (без ACL)
+
+Метки пользователя на объектах библиотеки, к которым у него есть доступ (свои, shared, org_admin). Чужие пользователи ваши теги не видят.
+
+| Method | Path | Описание |
+| ------ | ---- | -------- |
+| GET | `/tags` | Каталог: `{ "items": [{ "id", "name", "usage_count" }, ...] }` |
+| PATCH | `/tags/{tag_id}` | `{ "name": "..." }` — переименование |
+| DELETE | `/tags/{tag_id}` | Удалить тег со всех ваших объектов |
+| PUT | `/object-tags` | `{ "object_type": "audio\|transcript\|summary", "object_id": "uuid", "tags": ["имя", ...] }` — заменить теги на объекте (создаёт по имени) |
+
+Списки поддерживают `tag` (id или имя без учёта регистра) для фильтрации.
+
+MCP: [инструменты MCP](mcp.md#личные-теги) — `list_tags`, `rename_tag`, `delete_tag`, `set_object_tags`; в list-инструментах опциональный `tag`.
 
 ## Shares
 

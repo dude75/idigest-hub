@@ -12,6 +12,7 @@ import { ShareDialog } from '../components/ShareDialog'
 import { loadSummarizeSkillIds, saveSummarizeSkillIds } from '../pipeline'
 import { libraryPath } from '../routes'
 import type { Skill, Summary, Task, Transcript } from '../types'
+import { UserTagsEditor } from '../components/UserTagsEditor'
 import { ShareBadges, fmtDate, showError } from '../util'
 import { utteranceDisplayText, utteranceStart, utteranceTimeLabel } from '../util/utteranceMedia'
 import { Button } from '@/components/ui/button'
@@ -252,6 +253,12 @@ export function TranscriptPage() {
                   </Link>
                 ) : null}
               </div>
+              <UserTagsEditor
+                objectType="transcript"
+                objectId={item.id}
+                tags={item.user_tags || []}
+                onChange={(user_tags) => setItem({ ...item, user_tags })}
+              />
               {item.source_audio_id ? <AudioPlayer ref={playerRef} audioId={item.source_audio_id} /> : null}
               <EntityToolbar>
                 <Button type="button" variant="outline" onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=txt`).catch(showError)}

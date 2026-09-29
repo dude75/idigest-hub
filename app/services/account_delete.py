@@ -100,6 +100,9 @@ def _purge_user_owned_data(db: Session, user: User) -> None:
         delete(Share).where((Share.from_user_id == user.id) | (Share.to_user_id == user.id))
     )
     db.execute(delete(HiddenItem).where(HiddenItem.user_id == user.id))
+    from app.services.user_tags import delete_all_user_tags
+
+    delete_all_user_tags(db, user.id)
 
 
 def _purge_user_auth(db: Session, user_id: str) -> None:

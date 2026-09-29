@@ -48,6 +48,7 @@ from app.rate_limit import enforce_write_limits, get_rate_limits
 from app.services.audit import write_audit
 from app.services.storage import PayloadTooLarge, get_storage
 from app.services.upload_validation import InvalidAudioContent
+from app.services.user_tags import batch_object_user_tags, object_ids_with_tag, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
@@ -134,7 +135,15 @@ def _share_items(db: Session, rows: list[Share]) -> list[dict]:
     ]
 
 
-def _share_badge(db: Session, object_type: str, object_id: str, owner_id: str, ctx: AuthContext) -> dict:
+def _share_badge(
+    db: Session,
+    object_type: str,
+    object_id: str,
+    owner_id: str,
+    ctx: AuthContext,
+    *,
+    user_tags: list[dict] | None = None,
+) -> dict:
     extra: dict = {}
     if owner_id == ctx.user.id:
         outgoing = outgoing_shares(db, object_type, object_id)
@@ -150,6 +159,9 @@ def _share_badge(db: Session, object_type: str, object_id: str, owner_id: str, c
             extra["share_id"] = row.id
     extra["hidden"] = is_hidden(db, ctx.user.id, object_type, object_id)
     extra["owner_email"] = (db.get(User, owner_id).email if db.get(User, owner_id) else None)
+    if user_tags is None:
+        user_tags = object_user_tags(db, ctx.user.id, object_type, object_id)
+    extra["user_tags"] = user_tags
     return extra
 
 
@@ -260,6 +272,7 @@ def _list_filter(
     model,
     object_type: str,
     include_hidden: bool,
+    tag: str | None = None,
 ):
     org, membership = ctx.require_org()
     rows = list(db.scalars(select(model).where(model.org_id == org.id).order_by(model.created_at.desc())).all())
@@ -278,6 +291,12 @@ def _list_filter(
         if not include_hidden and is_hidden(db, ctx.user.id, object_type, row.id):
             continue
         visible.append(row)
+    if tag:
+        row_tag = resolve_user_tag(db, ctx.user.id, tag)
+        if row_tag is None:
+            return []
+        allowed = object_ids_with_tag(db, ctx.user.id, object_type, row_tag.id)
+        visible = [row for row in visible if row.id in allowed]
     return visible
 
 
@@ -345,15 +364,27 @@ async def upload_audio(
 @router.get("/audios")
 def list_audios(
     include_hidden: bool = False,
+    tag: str | None = None,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
-    rows = _list_filter(ctx, db, Audio, "audio", include_hidden)
+    rows = _list_filter(ctx, db, Audio, "audio", include_hidden, tag)
+    tag_map = batch_object_user_tags(db, ctx.user.id, "audio", [row.id for row in rows])
     derived = _audio_derived_info(db, ctx, [row.id for row in rows])
     return {
         "items": [
             {
-                **audio_public(row, _share_badge(db, "audio", row.id, row.owner_user_id, ctx)),
+                **audio_public(
+                    row,
+                    _share_badge(
+                        db,
+                        "audio",
+                        row.id,
+                        row.owner_user_id,
+                        ctx,
+                        user_tags=tag_map.get(row.id, []),
+                    ),
+                ),
                 **derived.get(
                     row.id,
                     {
@@ -511,10 +542,12 @@ def _summary_source_context(
 @router.get("/transcripts")
 def list_transcripts(
     include_hidden: bool = False,
+    tag: str | None = None,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_oauth_scope(SCOPE_TRANSCRIPTS_READ)),
 ) -> dict:
-    rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden)
+    rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden, tag)
+    tag_map = batch_object_user_tags(db, ctx.user.id, "transcript", [row.id for row in rows])
     filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
     derived = _transcript_derived_info(db, ctx, [row.id for row in rows])
     return {
@@ -522,7 +555,14 @@ def list_transcripts(
             {
                 **transcript_public(
                     row,
-                    extra=_share_badge(db, "transcript", row.id, row.owner_user_id, ctx),
+                    extra=_share_badge(
+                        db,
+                        "transcript",
+                        row.id,
+                        row.owner_user_id,
+                        ctx,
+                        user_tags=tag_map.get(row.id, []),
+                    ),
                     source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
                 ),
                 **derived.get(row.id, {"has_summary": False}),
@@ -645,10 +685,12 @@ def delete_transcript(
 @router.get("/summaries")
 def list_summaries(
     include_hidden: bool = False,
+    tag: str | None = None,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
-    rows = _list_filter(ctx, db, Summary, "summary", include_hidden)
+    rows = _list_filter(ctx, db, Summary, "summary", include_hidden, tag)
+    tag_map = batch_object_user_tags(db, ctx.user.id, "summary", [row.id for row in rows])
     transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})
     audio_filenames = _audio_filenames(
         db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
@@ -659,7 +701,14 @@ def list_summaries(
         items.append(
             summary_public(
                 row,
-                extra=_share_badge(db, "summary", row.id, row.owner_user_id, ctx),
+                extra=_share_badge(
+                    db,
+                    "summary",
+                    row.id,
+                    row.owner_user_id,
+                    ctx,
+                    user_tags=tag_map.get(row.id, []),
+                ),
                 source_transcript=source_transcript,
                 source_filename=source_filename,
             )

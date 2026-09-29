@@ -55,6 +55,15 @@ from app.services.summarize_models import (
     validate_dispatchable_summarize_model,
 )
 from app.services.transcript_payload import decode_transcript_payload, extract_utterances
+from app.services.user_tags import (
+    LIBRARY_OBJECT_TYPES,
+    batch_object_user_tags,
+    delete_user_tag,
+    list_user_tags,
+    rename_user_tag,
+    set_object_tags,
+)
+from app.errors import ApiError, ErrorCode
 from app.timeutil import utcnow
 
 MCP_AUDIO_LIST_LIMIT = 100
@@ -66,6 +75,29 @@ _SKILL_CATALOGS = frozenset({"self", "org", "base"})
 def _require_oauth_scope(ctx: AuthContext, scope: str) -> None:
     if ctx.via_oauth_token and scope not in ctx.oauth_scopes:
         raise PermissionError(f"{scope} scope required")
+
+
+_LIBRARY_READ_SCOPES = frozenset(
+    {SCOPE_AUDIO_READ, SCOPE_TRANSCRIPTS_READ, SCOPE_SUMMARIES_READ}
+)
+_OBJECT_READ_SCOPE = {
+    "audio": SCOPE_AUDIO_READ,
+    "transcript": SCOPE_TRANSCRIPTS_READ,
+    "summary": SCOPE_SUMMARIES_READ,
+}
+
+
+def _require_any_library_read_scope(ctx: AuthContext) -> None:
+    if ctx.via_oauth_token and not _LIBRARY_READ_SCOPES.intersection(ctx.oauth_scopes):
+        raise PermissionError(
+            "audio:read, transcripts:read, or summaries:read scope required"
+        )
+
+
+def _require_object_read_scope(ctx: AuthContext, object_type: str) -> None:
+    if object_type not in LIBRARY_OBJECT_TYPES:
+        raise ValueError("invalid object_type")
+    _require_oauth_scope(ctx, _OBJECT_READ_SCOPE[object_type])
 
 
 def _decode_upload_base64(raw: str) -> bytes:
@@ -83,15 +115,27 @@ def list_audios_payload(
     ctx: AuthContext,
     *,
     include_hidden: bool = False,
+    tag: str | None = None,
 ) -> dict:
     _require_oauth_scope(ctx, SCOPE_AUDIO_READ)
-    rows = _list_filter(ctx, db, Audio, "audio", include_hidden)
+    rows = _list_filter(ctx, db, Audio, "audio", include_hidden, tag)
     rows = rows[:MCP_AUDIO_LIST_LIMIT]
+    tag_map = batch_object_user_tags(db, ctx.user.id, "audio", [row.id for row in rows])
     derived = _audio_derived_info(db, ctx, [row.id for row in rows])
     return {
         "items": [
             {
-                **audio_public(row, _share_badge(db, "audio", row.id, row.owner_user_id, ctx)),
+                **audio_public(
+                    row,
+                    _share_badge(
+                        db,
+                        "audio",
+                        row.id,
+                        row.owner_user_id,
+                        ctx,
+                        user_tags=tag_map.get(row.id, []),
+                    ),
+                ),
                 **derived.get(
                     row.id,
                     {
@@ -291,10 +335,12 @@ def list_transcripts_payload(
     ctx: AuthContext,
     *,
     include_hidden: bool = False,
+    tag: str | None = None,
 ) -> dict:
     _require_oauth_scope(ctx, SCOPE_TRANSCRIPTS_READ)
-    rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden)
+    rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden, tag)
     rows = rows[:MCP_TRANSCRIPT_LIST_LIMIT]
+    tag_map = batch_object_user_tags(db, ctx.user.id, "transcript", [row.id for row in rows])
     filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
     derived = _transcript_derived_info(db, ctx, [row.id for row in rows])
     return {
@@ -302,7 +348,14 @@ def list_transcripts_payload(
             {
                 **transcript_public(
                     row,
-                    extra=_share_badge(db, "transcript", row.id, row.owner_user_id, ctx),
+                    extra=_share_badge(
+                        db,
+                        "transcript",
+                        row.id,
+                        row.owner_user_id,
+                        ctx,
+                        user_tags=tag_map.get(row.id, []),
+                    ),
                     source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
                 ),
                 **derived.get(row.id, {"has_summary": False}),
@@ -392,10 +445,12 @@ def list_summaries_payload(
     ctx: AuthContext,
     *,
     include_hidden: bool = False,
+    tag: str | None = None,
 ) -> dict:
     _require_oauth_scope(ctx, SCOPE_SUMMARIES_READ)
-    rows = _list_filter(ctx, db, Summary, "summary", include_hidden)
+    rows = _list_filter(ctx, db, Summary, "summary", include_hidden, tag)
     rows = rows[:MCP_SUMMARY_LIST_LIMIT]
+    tag_map = batch_object_user_tags(db, ctx.user.id, "summary", [row.id for row in rows])
     transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})
     audio_filenames = _audio_filenames(
         db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
@@ -406,7 +461,14 @@ def list_summaries_payload(
         items.append(
             summary_public(
                 row,
-                extra=_share_badge(db, "summary", row.id, row.owner_user_id, ctx),
+                extra=_share_badge(
+                    db,
+                    "summary",
+                    row.id,
+                    row.owner_user_id,
+                    ctx,
+                    user_tags=tag_map.get(row.id, []),
+                ),
                 source_transcript=source_transcript,
                 source_filename=source_filename,
             )
@@ -688,3 +750,71 @@ def delete_skill_payload(db: Session, ctx: AuthContext, skill_id: str) -> dict:
         raise ValueError("not found")
     db.delete(skill)
     return {"status": "ok"}
+
+
+def _assert_readable_library_object(
+    db: Session, ctx: AuthContext, object_type: str, object_id: str
+) -> None:
+    model = {"audio": Audio, "transcript": Transcript, "summary": Summary}[object_type]
+    row = db.get(model, object_id)
+    if row is None or not can_read_object(
+        ctx, db, object_type, row.owner_user_id, row.org_id, row.id
+    ):
+        raise ValueError("not found")
+
+
+def list_tags_payload(db: Session, ctx: AuthContext) -> dict:
+    ctx.require_org()
+    _require_any_library_read_scope(ctx)
+    return {"items": list_user_tags(db, ctx.user.id)}
+
+
+def rename_tag_payload(db: Session, ctx: AuthContext, *, tag_id: str, name: str) -> dict:
+    ctx.require_org()
+    _require_any_library_read_scope(ctx)
+    try:
+        return rename_user_tag(db, ctx.user.id, tag_id, name)
+    except ApiError as exc:
+        if exc.code == ErrorCode.not_found:
+            raise ValueError("not found") from exc
+        if exc.code == ErrorCode.validation_error:
+            raise ValueError("validation error") from exc
+        raise
+
+
+def delete_tag_payload(db: Session, ctx: AuthContext, *, tag_id: str) -> dict:
+    ctx.require_org()
+    _require_any_library_read_scope(ctx)
+    try:
+        delete_user_tag(db, ctx.user.id, tag_id)
+    except ApiError as exc:
+        if exc.code == ErrorCode.not_found:
+            raise ValueError("not found") from exc
+        raise
+    return {"status": "ok"}
+
+
+def set_object_tags_payload(
+    db: Session,
+    ctx: AuthContext,
+    *,
+    object_type: str,
+    object_id: str,
+    tags: list[str],
+) -> dict:
+    ctx.require_org()
+    _require_object_read_scope(ctx, object_type)
+    _assert_readable_library_object(db, ctx, object_type, object_id)
+    try:
+        assigned = set_object_tags(
+            db,
+            user_id=ctx.user.id,
+            object_type=object_type,
+            object_id=object_id,
+            tag_names=tags,
+        )
+    except ApiError as exc:
+        if exc.code == ErrorCode.validation_error:
+            raise ValueError("validation error") from exc
+        raise
+    return {"object_type": object_type, "object_id": object_id, "tags": assigned}

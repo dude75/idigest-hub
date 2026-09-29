@@ -201,6 +201,14 @@ export type OrgPublicLinkItem = {
   active: boolean
 }
 
+export type UserTag = {
+  id: string
+  name: string
+  usage_count?: number
+}
+
+export type LibraryObjectType = 'audio' | 'transcript' | 'summary'
+
 export type ShareBadge = {
   share_kind?: 'incoming' | 'outgoing' | null
   shared_by?: string
@@ -210,6 +218,7 @@ export type ShareBadge = {
   hidden?: boolean
   owner_email?: string | null
   edited?: boolean
+  user_tags?: UserTag[]
 }
 
 export type Audio = ShareBadge & {

@@ -88,6 +88,16 @@ List recipients: `GET /shares?object_type=...&object_id=...` (owner). UI shows r
 
 Revoke: `DELETE /shares/{share_id}` — owner or recipient.
 
+## Personal tags
+
+Per-user labels on audio, transcripts, and summaries (not shared, not org-wide ACL). You can tag anything you can read, including items shared to you. Tags appear in the UI library filter and on object detail pages.
+
+- Catalog: `GET /tags` (rename/delete via `PATCH` / `DELETE`)
+- Assign: `PUT /object-tags` replaces the tag set on one object
+- Filter lists: `?tag=` on `/audios`, `/transcripts`, `/summaries`
+
+Hard delete removes tag links on that object for all users. See [Library API](../api/library.md#personal-tags-no-acl) and [MCP personal tags](../api/mcp.md#personal-tags).
+
 ## Public summary links
 
 Owners can publish a **read-only guest URL** for a summary (not full org sharing). Requires instance **Public URL** and org `allow_public_links` (org_admin can disable in **Org → Settings**).
@@ -124,7 +134,7 @@ Org admins see all org rows regardless of share/hide.
 
 `hard_delete_audio` / `hard_delete_transcript` / `hard_delete_summary` in `app/services/artifacts.py`:
 
-- Removes files, DB rows, shares, hidden_items
+- Removes files, DB rows, shares, hidden_items, user tag links on that object
 - Running tasks referencing artifact may get `skip_persist` / `source_deleted`
 
 Org admin DELETE on audio/transcript is destructive for the whole org view.

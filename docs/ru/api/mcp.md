@@ -41,15 +41,17 @@ MCP принимает **только OAuth JWT**, выданные хабом (
 
 | Scope | MCP tools |
 | ----- | --------- |
-| `audio:read` | `list_audios`, `get_audio` |
+| `audio:read` | `list_audios`, `get_audio`, `set_object_tags` (`object_type=audio`) |
 | `audio:write` | `create_audio_upload`, `delete_audio` |
-| `transcripts:read` | `list_transcripts`, `get_transcript` |
+| `transcripts:read` | `list_transcripts`, `get_transcript`, `set_object_tags` (`object_type=transcript`) |
 | `transcripts:write` | `update_transcript`, `delete_transcript` |
-| `summaries:read` | `list_summaries`, `get_summary` |
+| `summaries:read` | `list_summaries`, `get_summary`, `set_object_tags` (`object_type=summary`) |
 | `summaries:write` | `update_summary`, `delete_summary` |
 | `skills:read` | `list_skills`, `get_skill` |
 | `skills:write` | `create_skill`, `update_skill`, `delete_skill` |
 | `tasks:write` | `list_capture_platforms`, `create_audio_import`, `create_transcribe`, `create_summary`, `get_task`, `stop_capture_task` |
+
+Каталог тегов (`list_tags`, `rename_tag`, `delete_tag`) требует **хотя бы один** scope: `audio:read`, `transcripts:read` или `summaries:read`.
 
 Проверка scope срабатывает при `via_oauth_token` (OAuth JWT). Cookie-сессия и PAT в REST подчиняются обычным правилам ролей, не этим scope. В REST OAuth JWT сейчас проверяет **`transcripts:read`** только на `GET /transcripts` и `GET /transcripts/{id}`.
 
@@ -74,7 +76,7 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 
 | Tool | Параметры | Scope | Ответ |
 | ---- | --------- | ----- | ----- |
-| `list_audios` | `include_hidden` (bool, по умолчанию `false`) | `audio:read` | `{ "items": [audio + флаги], "truncated": bool }` |
+| `list_audios` | `include_hidden` (bool, по умолчанию `false`), `tag` опционально (id или имя) | `audio:read` | `{ "items": [audio + флаги + `user_tags`], "truncated": bool }` |
 | `get_audio` | `audio_id` | `audio:read` | Аудио + `transcripts[]` (видимые) + `can_transcribe` |
 | `create_audio_upload` | `filename`, `content_base64` (standard или data-URL) | `audio:write` | Созданное аудио (как REST upload) |
 | `list_capture_platforms` | — | `tasks:write` | `{ enabled, connectors[{id,label}], jitsi_hosts[] }` (как `GET /capture/platforms`) |
@@ -90,7 +92,7 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 
 | Tool | Параметры | Scope | Ответ |
 | ---- | --------- | ----- | ----- |
-| `list_transcripts` | `include_hidden` (bool, по умолчанию `false`) | `transcripts:read` | `{ "items": [транскрипт + `has_summary`], "truncated": bool }` — без utterances |
+| `list_transcripts` | `include_hidden` (bool, по умолчанию `false`), `tag` опционально | `transcripts:read` | `{ "items": [транскрипт + `has_summary` + `user_tags`], "truncated": bool }` — без utterances |
 | `get_transcript` | `transcript_id` | `transcripts:read` | Транскрипт + `utterances` + видимые `summaries[]` (метаданные, без body) |
 | `update_transcript` | `transcript_id`, `title` | `transcripts:write` | Обновлённый транскрипт |
 | `delete_transcript` | `transcript_id` | `transcripts:write` | `{ "status": "ok" }` |
@@ -99,11 +101,22 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 
 | Tool | Параметры | Scope | Ответ |
 | ---- | --------- | ----- | ----- |
-| `list_summaries` | `include_hidden` (bool, по умолчанию `false`) | `summaries:read` | `{ "items": [метаданные], "truncated": bool }` — без body |
+| `list_summaries` | `include_hidden` (bool, по умолчанию `false`), `tag` опционально | `summaries:read` | `{ "items": [метаданные + `user_tags`], "truncated": bool }` — без body |
 | `get_summary` | `summary_id` | `summaries:read` | Саммари включая `body` |
 | `create_summary` | `transcript_id`, `skill_ids` (непустой список) | `tasks:write` | JSON **задачи** (`type: "summarize"`) |
 | `update_summary` | `summary_id`, `title` опционально, `body` опционально (нужно хотя бы одно) | `summaries:write` | Обновлённое саммари включая body |
 | `delete_summary` | `summary_id` | `summaries:write` | `{ "status": "ok" }` |
+
+### Личные теги
+
+Приватные метки (как REST [Library API](library.md#личные-теги-без-acl)). В list/get — поле `user_tags` для пользователя токена.
+
+| Tool | Параметры | Scope | Ответ |
+| ---- | --------- | ----- | ----- |
+| `list_tags` | — | любой из `audio:read`, `transcripts:read`, `summaries:read` | `{ "items": [{ "id", "name", "usage_count" }, ...] }` |
+| `rename_tag` | `tag_id`, `name` | любой library read scope выше | Тег + `usage_count` |
+| `delete_tag` | `tag_id` | любой library read scope выше | `{ "status": "ok" }` |
+| `set_object_tags` | `object_type`, `object_id`, `tags` (список строк, по умолчанию `[]`) | read scope для `object_type` | `{ "object_type", "object_id", "tags": [{ "id", "name" }, ...] }` |
 
 ### Skills
 

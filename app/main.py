@@ -251,6 +251,9 @@ def _register_routes(application: FastAPI) -> None:
     application.include_router(crypto.router, prefix="/api/v1")
     application.include_router(org.router, prefix="/api/v1")
     application.include_router(library.router, prefix="/api/v1")
+    from app.routers import tags as tags_router
+
+    application.include_router(tags_router.router, prefix="/api/v1")
     application.include_router(tasks.router, prefix="/api/v1")
     application.include_router(skills.router, prefix="/api/v1")
     application.include_router(public.router, prefix="/api/v1")

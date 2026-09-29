@@ -402,6 +402,33 @@ class HiddenItem(Base):
     object_id: Mapped[str] = mapped_column(String(36), nullable=False)
 
 
+class UserTag(Base):
+    __tablename__ = "user_tags"
+    __table_args__ = (UniqueConstraint("user_id", "name_key"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    name_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class UserTagLink(Base):
+    __tablename__ = "user_tag_links"
+    __table_args__ = (
+        UniqueConstraint("user_id", "object_type", "object_id", "tag_id"),
+        Index("ix_user_tag_links_user_tag", "user_id", "tag_id"),
+        Index("ix_user_tag_links_object", "object_type", "object_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"), nullable=False)
+    tag_id: Mapped[str] = mapped_column(String(36), ForeignKey("user_tags.id", ondelete="CASCADE"), nullable=False)
+    object_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    object_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class SummaryPublicLink(Base):
     __tablename__ = "summary_public_links"
     __table_args__ = (

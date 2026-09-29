@@ -8,10 +8,16 @@ export type LibraryTab = (typeof LIBRARY_TABS)[number]
 
 export const LIBRARY_FIRST_TAB: LibraryTab = LIBRARY_TABS[0]
 
-export function libraryPath(tab: LibraryTab = LIBRARY_FIRST_TAB, source?: string | null): string {
+export function libraryPath(
+  tab: LibraryTab = LIBRARY_FIRST_TAB,
+  opts?: { source?: string | null; tag?: string | null },
+): string {
   const base = `/app/library/${tab}`
-  if (source) return `${base}?source=${encodeURIComponent(source)}`
-  return base
+  const params = new URLSearchParams()
+  if (opts?.source) params.set('source', opts.source)
+  if (opts?.tag) params.set('tag', opts.tag)
+  const q = params.toString()
+  return q ? `${base}?${q}` : base
 }
 
 export const LIBRARY_DEFAULT = libraryPath(LIBRARY_FIRST_TAB)

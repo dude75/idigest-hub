@@ -26,7 +26,11 @@ from app.services.mcp_library import (
     get_transcript_payload,
     list_audios_payload,
     list_capture_platforms_payload,
+    list_tags_payload,
     list_transcripts_payload,
+    set_object_tags_payload,
+    rename_tag_payload,
+    delete_tag_payload,
     stop_capture_task_payload,
     update_summary_payload,
     update_transcript_payload,
@@ -531,3 +535,52 @@ def test_mcp_create_summary_queues_task(client, fake_workers):
         assert task["type"] == "summarize"
         assert task["status"] == "queued"
         assert task["source_transcript_id"] == transcript_id
+
+
+def test_mcp_user_tags_scopes_and_filter(client):
+    setup_admin(client)
+    tariffs = client.get("/api/v1/auth/signup-tariffs").json()["items"]
+    signup(client, "mcp-tag@example.com", "mcppass44", tariffs[0]["id"])
+
+    import app.db as hub_db
+
+    with hub_db.SessionLocal() as db:
+        user = _user(db, "mcp-tag@example.com")
+        ctx_write = _oauth_ctx(db, user, frozenset({SCOPE_AUDIO_WRITE}))
+        created = create_audio_upload_payload(
+            db,
+            ctx_write,
+            filename="clip.wav",
+            content_base64=base64.b64encode(SAMPLE_WAV_BYTES).decode("ascii"),
+        )
+        db.commit()
+        audio_id = created["id"]
+
+        ctx_read = _oauth_ctx(db, user, frozenset({SCOPE_AUDIO_READ}))
+        ctx_skill_only = _oauth_ctx(db, user, frozenset({SCOPE_SKILLS_READ}))
+        with pytest.raises(PermissionError):
+            list_tags_payload(db, ctx_skill_only)
+
+        assigned = set_object_tags_payload(
+            db,
+            ctx_read,
+            object_type="audio",
+            object_id=audio_id,
+            tags=["mcp-weekly"],
+        )
+        db.commit()
+        tag_id = assigned["tags"][0]["id"]
+
+        catalog = list_tags_payload(db, ctx_read)
+        assert catalog["items"][0]["usage_count"] == 1
+
+        filtered = list_audios_payload(db, ctx_read, tag=tag_id)
+        assert [item["id"] for item in filtered["items"]] == [audio_id]
+
+        renamed = rename_tag_payload(db, ctx_read, tag_id=tag_id, name="MCP Weekly")
+        db.commit()
+        assert renamed["name"] == "MCP Weekly"
+
+        delete_tag_payload(db, ctx_read, tag_id=tag_id)
+        db.commit()
+        assert list_tags_payload(db, ctx_read)["items"] == []

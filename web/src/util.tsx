@@ -4,8 +4,11 @@ import { ApiError } from './api'
 import i18n from './i18n'
 import { libraryPath } from './routes'
 import { HubBadge, HubBadgeLink } from './components/app/AdminUi'
+import { Badge } from '@/components/ui/badge'
+import { userTagBadgeClassName } from './components/userTagBadgeStyles'
+import { cn } from '@/lib/utils'
 import { formatAge, formatDateTime } from './util/datetimeFormat'
-import type { Audio, ShareBadge, Task, Transcript } from './types'
+import type { Audio, ShareBadge, Task, Transcript, UserTag } from './types'
 
 type TaskTranslate = (
   key: string,
@@ -172,12 +175,12 @@ export function AudioDerivedBadges({ audio }: { audio: Audio }) {
   return (
     <>
       {audio.has_transcript && (
-        <HubBadgeLink to={libraryPath('transcripts', audio.id)} tone="success">
+        <HubBadgeLink to={libraryPath('transcripts', { source: audio.id })} tone="success">
           {t('library.transcripts')}
         </HubBadgeLink>
       )}
       {audio.has_summary && audio.summary_transcript_id && (
-        <HubBadgeLink to={libraryPath('summaries', audio.summary_transcript_id)} tone="success">
+        <HubBadgeLink to={libraryPath('summaries', { source: audio.summary_transcript_id })} tone="success">
           {t('library.summaries')}
         </HubBadgeLink>
       )}
@@ -189,9 +192,25 @@ export function TranscriptDerivedBadges({ transcript }: { transcript: Transcript
   const { t } = useTranslation()
   if (!transcript.has_summary) return null
   return (
-    <HubBadgeLink to={libraryPath('summaries', transcript.id)} tone="success">
+    <HubBadgeLink to={libraryPath('summaries', { source: transcript.id })} tone="success">
       {t('library.summaries')}
     </HubBadgeLink>
+  )
+}
+
+export function UserTagBadges({ tags, max = 3 }: { tags?: UserTag[]; max?: number }) {
+  if (!tags?.length) return null
+  const shown = tags.slice(0, max)
+  const rest = tags.length - shown.length
+  return (
+    <span className="row user-tag-badges">
+      {shown.map((tag) => (
+        <Badge key={tag.id} variant="outline" className={cn('h-5 max-w-[10rem]', userTagBadgeClassName)}>
+          <span className="truncate">{tag.name}</span>
+        </Badge>
+      ))}
+      {rest > 0 ? <span className="muted text-xs">+{rest}</span> : null}
+    </span>
   )
 }
 

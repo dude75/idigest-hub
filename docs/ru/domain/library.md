@@ -88,6 +88,16 @@ POST /shares
 
 Отзыв: `DELETE /shares/{share_id}` — владелец или получатель.
 
+## Личные теги
+
+Метки пользователя на audio, transcript и summary (не шаринг, не org ACL). Можно помечать всё, к чему есть read-доступ, в том числе расшаренное. В UI — фильтр в библиотеке и блок на карточке объекта.
+
+- Каталог: `GET /tags` (переименование/удаление через `PATCH` / `DELETE`)
+- Назначение: `PUT /object-tags` заменяет набор тегов на объекте
+- Фильтр списков: `?tag=` на `/audios`, `/transcripts`, `/summaries`
+
+При hard delete объекта снимаются tag links на этом объекте у всех пользователей. См. [Library API](../api/library.md#личные-теги-без-acl) и [MCP](../api/mcp.md#личные-теги).
+
 ## Публичные ссылки на summary
 
 Владелец может опубликовать **read-only гостевой URL** на summary (не полный org sharing). Нужны **Публичный URL** и org `allow_public_links` (org_admin может выключить в **Org → Settings**).
@@ -124,7 +134,7 @@ org admin видит все строки org независимо от share/hid
 
 `hard_delete_audio` / `hard_delete_transcript` / `hard_delete_summary` в `app/services/artifacts.py`:
 
-- Удаляет файлы, строки БД, shares, hidden_items
+- Удаляет файлы, строки БД, shares, hidden_items, user tag links на этом объекте
 - Выполняющиеся задачи, ссылающиеся на артефакт, могут получить `skip_persist` / `source_deleted`
 
 DELETE org admin на audio/transcript разрушителен для всего org-представления.

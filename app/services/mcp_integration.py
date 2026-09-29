@@ -45,6 +45,10 @@ from app.services.mcp_library import (
     list_skills_payload,
     list_summaries_payload,
     list_transcripts_payload,
+    list_tags_payload,
+    rename_tag_payload,
+    delete_tag_payload,
+    set_object_tags_payload,
     update_skill_payload,
     update_summary_payload,
     update_transcript_payload,
@@ -210,8 +214,10 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
             "Use to pick a valid id; truncated=true means more rows exist — do not guess ids. Requires audio:read."
         ),
     )
-    async def list_audios(include_hidden: bool = False) -> str:
-        return await _mcp_json_tool(list_audios_payload, tool="list_audios")(include_hidden=include_hidden)
+    async def list_audios(include_hidden: bool = False, tag: str | None = None) -> str:
+        return await _mcp_json_tool(list_audios_payload, tool="list_audios")(
+            include_hidden=include_hidden, tag=tag
+        )
 
     @server.tool(
         name="get_audio",
@@ -358,8 +364,10 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         name="list_transcripts",
         description="List transcript metadata (no utterances). Requires transcripts:read.",
     )
-    async def list_transcripts(include_hidden: bool = False) -> str:
-        return await _mcp_json_tool(list_transcripts_payload, tool="list_transcripts")(include_hidden=include_hidden)
+    async def list_transcripts(include_hidden: bool = False, tag: str | None = None) -> str:
+        return await _mcp_json_tool(list_transcripts_payload, tool="list_transcripts")(
+            include_hidden=include_hidden, tag=tag
+        )
 
     @server.tool(
         name="get_transcript",
@@ -390,8 +398,10 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
         name="list_summaries",
         description="List summary metadata (no body text). Requires summaries:read.",
     )
-    async def list_summaries(include_hidden: bool = False) -> str:
-        return await _mcp_json_tool(list_summaries_payload, tool="list_summaries")(include_hidden=include_hidden)
+    async def list_summaries(include_hidden: bool = False, tag: str | None = None) -> str:
+        return await _mcp_json_tool(list_summaries_payload, tool="list_summaries")(
+            include_hidden=include_hidden, tag=tag
+        )
 
     @server.tool(
         name="get_summary",
@@ -456,6 +466,55 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     async def delete_summary(summary_id: str) -> str:
         return await _mcp_json_tool(delete_summary_payload, tool="delete_summary", commit=True)(
             summary_id=summary_id
+        )
+
+    @server.tool(
+        name="list_tags",
+        description=(
+            "List your personal library tags with usage_count (only you see these tags). "
+            "Requires audio:read, transcripts:read, or summaries:read."
+        ),
+    )
+    async def list_tags() -> str:
+        return await _mcp_json_tool(list_tags_payload, tool="list_tags")()
+
+    @server.tool(
+        name="rename_tag",
+        description=(
+            "Rename one of your personal tags by tag_id (from list_tags). "
+            "Requires audio:read, transcripts:read, or summaries:read."
+        ),
+    )
+    async def rename_tag(tag_id: str, name: str) -> str:
+        return await _mcp_json_tool(rename_tag_payload, tool="rename_tag", commit=True)(
+            tag_id=tag_id, name=name
+        )
+
+    @server.tool(
+        name="delete_tag",
+        description=(
+            "Delete a personal tag and remove it from all your library objects. "
+            "Requires audio:read, transcripts:read, or summaries:read."
+        ),
+    )
+    async def delete_tag(tag_id: str) -> str:
+        return await _mcp_json_tool(delete_tag_payload, tool="delete_tag", commit=True)(tag_id=tag_id)
+
+    @server.tool(
+        name="set_object_tags",
+        description=(
+            "Replace personal tags on one library object (audio, transcript, or summary). "
+            "Pass tag names as strings; unknown names create new tags. Empty list clears tags. "
+            "Requires read scope for object_type: audio:read, transcripts:read, or summaries:read."
+        ),
+    )
+    async def set_object_tags(
+        object_type: str,
+        object_id: str,
+        tags: list[str] | None = None,
+    ) -> str:
+        return await _mcp_json_tool(set_object_tags_payload, tool="set_object_tags", commit=True)(
+            object_type=object_type, object_id=object_id, tags=tags or []
         )
 
     @server.tool(

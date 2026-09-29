@@ -11,6 +11,7 @@ import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
 import { libraryPath } from '../routes'
 import type { Summary } from '../types'
+import { UserTagsEditor } from '../components/UserTagsEditor'
 import { ShareBadges, fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { AppHoverHint } from '../components/app/AppHoverHint'
@@ -144,6 +145,12 @@ export function SummaryPage() {
                   </Link>
                 ) : null}
               </div>
+              <UserTagsEditor
+                objectType="summary"
+                objectId={item.id}
+                tags={item.user_tags || []}
+                onChange={(user_tags) => setItem({ ...item, user_tags })}
+              />
               {item.source_audio_id ? <AudioPlayer audioId={item.source_audio_id} /> : null}
               <EntityToolbar>
                 <Button type="button" variant="outline" onClick={() => void apiDownload(`/summaries/${item.id}/export?format=md`).catch(showError)}

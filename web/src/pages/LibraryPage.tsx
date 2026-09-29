@@ -15,6 +15,7 @@ import type {
   Task,
   Transcript,
   User,
+  UserTag,
 } from '../types'
 import { AppStackCard } from '../components/AdminSection'
 import { AdminTablePager } from '../components/app/AdminDataTable'
@@ -29,7 +30,8 @@ import { Input } from '@/components/ui/input'
 import { beginPipelineRun, captureRequest, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
 import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
 import { ApiError } from '../api'
-import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
+import { TagManageDialog } from '../components/TagManageDialog'
+import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, UserTagBadges, fmtDate, showError } from '../util'
 import { captureMeetingNeedsPin, shouldRouteImportUrlToCapture } from '../util/captureHost'
 
 type SourceGroup<T> = {
@@ -100,6 +102,7 @@ export function LibraryPage() {
   const nav = useNavigate()
   const [searchParams] = useSearchParams()
   const sourceFilter = searchParams.get('source')
+  const tagFilter = searchParams.get('tag') || ''
   const tab: LibraryTab = isLibraryTab(tabParam) ? tabParam : LIBRARY_FIRST_TAB
   const [hidden, setHidden] = useState(false)
   const [hiddenCount, setHiddenCount] = useState(0)
@@ -123,13 +126,32 @@ export function LibraryPage() {
   const [importPlatforms, setImportPlatforms] = useState<ImportPlatformsResponse | null>(null)
   const [capturePin, setCapturePin] = useState('')
   const [capturePlatforms, setCapturePlatforms] = useState<CapturePlatformsResponse | null>(null)
+  const [userTags, setUserTags] = useState<UserTag[]>([])
+  const [manageTagsOpen, setManageTagsOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const hasOrg = Boolean(me?.org)
   const showOwnerFilter = isOrgAdmin(me) || isInstanceAdmin(me)
 
+  function libraryListQuery() {
+    const params = new URLSearchParams()
+    if (hidden) params.set('include_hidden', 'true')
+    if (tagFilter) params.set('tag', tagFilter)
+    const qs = params.toString()
+    return qs ? `?${qs}` : ''
+  }
+
+  async function loadUserTags() {
+    try {
+      const r = await api<{ items: UserTag[] }>('/tags')
+      setUserTags(r.items)
+    } catch (e) {
+      showError(e)
+    }
+  }
+
   async function load(activeTab: LibraryTab = tab) {
     try {
-      const q = hidden ? '?include_hidden=true' : ''
+      const q = libraryListQuery()
       if (activeTab === 'audio') {
         const r = await api<{ items: Audio[]; hidden_count: number }>(`/audios${q}`)
         setAudios(r.items)
@@ -151,11 +173,28 @@ export function LibraryPage() {
   useEffect(() => {
     if (!hasOrg) return
     void load()
-  }, [tab, hidden, hasOrg])
+  }, [tab, hidden, tagFilter, hasOrg])
+
+  useEffect(() => {
+    if (!hasOrg) return
+    void loadUserTags()
+  }, [hasOrg, manageTagsOpen])
 
   useEffect(() => {
     setPage(0)
-  }, [tab, hidden, query, userId, groupListBySource, pageSize])
+  }, [tab, hidden, tagFilter, query, userId, groupListBySource, pageSize])
+
+  function setTagFilter(value: string) {
+    const params = new URLSearchParams(searchParams)
+    if (value) params.set('tag', value)
+    else params.delete('tag')
+    const qs = params.toString()
+    nav(qs ? `${libraryPath(tab)}?${qs}` : libraryPath(tab))
+  }
+
+  function libraryNavPath(nextTab: LibraryTab) {
+    return libraryPath(nextTab, { source: sourceFilter, tag: tagFilter || null })
+  }
 
   useEffect(() => {
     if (!hasOrg || !showOwnerFilter) return
@@ -514,7 +553,7 @@ export function LibraryPage() {
           id,
           label: t(`library.${id}`),
           active: tab === id,
-          onClick: () => nav(libraryPath(id)),
+          onClick: () => nav(libraryNavPath(id)),
         }))}
       />
       <AppStackCard className="library-panel mb-4">
@@ -546,6 +585,25 @@ export function LibraryPage() {
           ) : (
             <div className="library-list-user library-list-user-placeholder" aria-hidden="true" />
           )}
+          <AppSelectField
+            className="library-list-user"
+            label={t('library.filterTag')}
+            htmlFor="library-list-tag"
+            value={tagFilter}
+            onValueChange={setTagFilter}
+            options={[
+              allOption(t('common.all')),
+              ...userTags.map((tag) => ({
+                value: tag.id,
+                label: `${tag.name}${tag.usage_count != null ? ` (${tag.usage_count})` : ''}`,
+              })),
+            ]}
+          />
+          <div className="library-list-tag-actions">
+            <Button type="button" size="sm" variant="outline" onClick={() => setManageTagsOpen(true)}>
+              {t('library.manageTags')}
+            </Button>
+          </div>
           <div className="library-list-toggles">
             <AppCheckboxRow
               id="library-group-by-source"
@@ -599,7 +657,12 @@ export function LibraryPage() {
                       {a.owner_email && <span>· {a.owner_email}</span>}
                     </>
                   }
-                  trailing={<ShareBadges item={a} />}
+                  trailing={
+                    <>
+                      <UserTagBadges tags={a.user_tags} />
+                      <ShareBadges item={a} />
+                    </>
+                  }
                 />
               ))}
             </>
@@ -629,7 +692,12 @@ export function LibraryPage() {
                           {tr.owner_email && <span>· {tr.owner_email}</span>}
                         </>
                       }
-                      trailing={<ShareBadges item={tr} />}
+                      trailing={
+                        <>
+                          <UserTagBadges tags={tr.user_tags} />
+                          <ShareBadges item={tr} />
+                        </>
+                      }
                     />
                   ))}
                 </section>
@@ -660,7 +728,12 @@ export function LibraryPage() {
                       {tr.owner_email && <span>· {tr.owner_email}</span>}
                     </>
                   }
-                  trailing={<ShareBadges item={tr} />}
+                  trailing={
+                    <>
+                      <UserTagBadges tags={tr.user_tags} />
+                      <ShareBadges item={tr} />
+                    </>
+                  }
                 />
               ))}
             </>
@@ -690,7 +763,12 @@ export function LibraryPage() {
                           {s.owner_email && <span>· {s.owner_email}</span>}
                         </>
                       }
-                      trailing={<ShareBadges item={s} />}
+                      trailing={
+                        <>
+                          <UserTagBadges tags={s.user_tags} />
+                          <ShareBadges item={s} />
+                        </>
+                      }
                     />
                   ))}
                 </section>
@@ -719,7 +797,12 @@ export function LibraryPage() {
                       {s.owner_email && <span>· {s.owner_email}</span>}
                     </>
                   }
-                  trailing={<ShareBadges item={s} />}
+                  trailing={
+                    <>
+                      <UserTagBadges tags={s.user_tags} />
+                      <ShareBadges item={s} />
+                    </>
+                  }
                 />
               ))}
             </>
@@ -727,6 +810,15 @@ export function LibraryPage() {
         </>
         ) : null}
       </ListSection>
+      {manageTagsOpen ? (
+        <TagManageDialog
+          onClose={() => setManageTagsOpen(false)}
+          onUpdated={() => {
+            void loadUserTags()
+            void load()
+          }}
+        />
+      ) : null}
     </div>
   )
 }

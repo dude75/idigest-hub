@@ -18,6 +18,7 @@ import { AppHoverHint } from '../components/app/AppHoverHint'
 import { pipelineNavState } from '../pipeline'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Audio, Task } from '../types'
+import { UserTagsEditor } from '../components/UserTagsEditor'
 import { ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
 
@@ -124,6 +125,12 @@ export function AudioPage() {
               <ShareBadges item={item} />
               <span className="muted">{fmtDate(item.created_at)}</span>
             </div>
+            <UserTagsEditor
+              objectType="audio"
+              objectId={item.id}
+              tags={item.user_tags || []}
+              onChange={(user_tags) => setItem({ ...item, user_tags })}
+            />
             <AudioPlayer audioId={item.id} />
             <EntityToolbar>
               {item.can_transcribe && (

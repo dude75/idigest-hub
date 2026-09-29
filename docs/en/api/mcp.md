@@ -41,15 +41,17 @@ If the client omits `scope` on `/oauth/authorize`, the hub grants **every suppor
 
 | Scope | MCP tools |
 | ----- | --------- |
-| `audio:read` | `list_audios`, `get_audio` |
+| `audio:read` | `list_audios`, `get_audio`, `set_object_tags` (`object_type=audio`) |
 | `audio:write` | `create_audio_upload`, `delete_audio` |
-| `transcripts:read` | `list_transcripts`, `get_transcript` |
+| `transcripts:read` | `list_transcripts`, `get_transcript`, `set_object_tags` (`object_type=transcript`) |
 | `transcripts:write` | `update_transcript`, `delete_transcript` |
-| `summaries:read` | `list_summaries`, `get_summary` |
+| `summaries:read` | `list_summaries`, `get_summary`, `set_object_tags` (`object_type=summary`) |
 | `summaries:write` | `update_summary`, `delete_summary` |
 | `skills:read` | `list_skills`, `get_skill` |
 | `skills:write` | `create_skill`, `update_skill`, `delete_skill` |
 | `tasks:write` | `list_capture_platforms`, `create_audio_import`, `create_transcribe`, `create_summary`, `get_task`, `stop_capture_task` |
+
+Tag catalog tools (`list_tags`, `rename_tag`, `delete_tag`) require **at least one** of `audio:read`, `transcripts:read`, or `summaries:read`.
 
 Scope checks apply when `via_oauth_token` is true (OAuth JWT). Session cookies and PAT on REST are governed by normal role rules, not these scopes. On REST, OAuth JWT currently enforces **`transcripts:read`** on `GET /transcripts` and `GET /transcripts/{id}` only.
 
@@ -74,7 +76,7 @@ Errors surface as tool failures (`PermissionError`, `ValueError`, etc.) — not 
 
 | Tool | Parameters | Scope | Returns |
 | ---- | ---------- | ----- | ------- |
-| `list_audios` | `include_hidden` (bool, default `false`) | `audio:read` | `{ "items": [audio + derived flags], "truncated": bool }` |
+| `list_audios` | `include_hidden` (bool, default `false`), `tag` optional (id or name) | `audio:read` | `{ "items": [audio + derived flags + `user_tags`], "truncated": bool }` |
 | `get_audio` | `audio_id` | `audio:read` | Audio + `transcripts[]` (visible) + `can_transcribe` |
 | `create_audio_upload` | `filename`, `content_base64` (standard or data-URL base64) | `audio:write` | Created audio (same shape as REST upload) |
 | `list_capture_platforms` | — | `tasks:write` | `{ enabled, connectors[{id,label}], jitsi_hosts[] }` (same as `GET /capture/platforms`) |
@@ -90,7 +92,7 @@ List derived flags: `has_transcript`, `has_summary`, `transcript_id`, `summary_t
 
 | Tool | Parameters | Scope | Returns |
 | ---- | ---------- | ----- | ------- |
-| `list_transcripts` | `include_hidden` (bool, default `false`) | `transcripts:read` | `{ "items": [transcript + `has_summary`], "truncated": bool }` — no utterances |
+| `list_transcripts` | `include_hidden` (bool, default `false`), `tag` optional | `transcripts:read` | `{ "items": [transcript + `has_summary` + `user_tags`], "truncated": bool }` — no utterances |
 | `get_transcript` | `transcript_id` | `transcripts:read` | Transcript + `utterances` + visible `summaries[]` (metadata, no body) |
 | `update_transcript` | `transcript_id`, `title` | `transcripts:write` | Updated transcript |
 | `delete_transcript` | `transcript_id` | `transcripts:write` | `{ "status": "ok" }` |
@@ -99,11 +101,22 @@ List derived flags: `has_transcript`, `has_summary`, `transcript_id`, `summary_t
 
 | Tool | Parameters | Scope | Returns |
 | ---- | ---------- | ----- | ------- |
-| `list_summaries` | `include_hidden` (bool, default `false`) | `summaries:read` | `{ "items": [summary metadata], "truncated": bool }` — no body |
+| `list_summaries` | `include_hidden` (bool, default `false`), `tag` optional | `summaries:read` | `{ "items": [summary metadata + `user_tags`], "truncated": bool }` — no body |
 | `get_summary` | `summary_id` | `summaries:read` | Summary including `body` |
 | `create_summary` | `transcript_id`, `skill_ids` (non-empty list) | `tasks:write` | **Task** JSON (`type: "summarize"`) |
 | `update_summary` | `summary_id`, `title` optional, `body` optional (at least one required) | `summaries:write` | Updated summary including body |
 | `delete_summary` | `summary_id` | `summaries:write` | `{ "status": "ok" }` |
+
+### Personal tags
+
+Private labels (same rules as REST [Library API](library.md#personal-tags-no-acl)). List/get payloads include `user_tags` for the token user.
+
+| Tool | Parameters | Scope | Returns |
+| ---- | ---------- | ----- | ------- |
+| `list_tags` | — | any of `audio:read`, `transcripts:read`, `summaries:read` | `{ "items": [{ "id", "name", "usage_count" }, ...] }` |
+| `rename_tag` | `tag_id`, `name` | any library read scope above | Updated tag + `usage_count` |
+| `delete_tag` | `tag_id` | any library read scope above | `{ "status": "ok" }` |
+| `set_object_tags` | `object_type`, `object_id`, `tags` (string list, default `[]`) | read scope for `object_type` | `{ "object_type", "object_id", "tags": [{ "id", "name" }, ...] }` |
 
 ### Skills
 

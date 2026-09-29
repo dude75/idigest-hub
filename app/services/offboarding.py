@@ -58,6 +58,9 @@ def transfer_user(db: Session, user: User, target: User) -> None:
             share.from_user_id = target.id
     db.execute(update(Task).where(Task.user_id == user.id).values(user_id=target.id))
     db.execute(delete(HiddenItem).where(HiddenItem.user_id == user.id))
+    from app.services.user_tags import delete_all_user_tags
+
+    delete_all_user_tags(db, user.id)
     db.execute(delete(ApiToken).where(ApiToken.user_id == user.id))
     db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
 
@@ -83,5 +86,8 @@ def wipe_user_content(db: Session, user: User) -> None:
         delete(Share).where((Share.from_user_id == user.id) | (Share.to_user_id == user.id))
     )
     db.execute(delete(HiddenItem).where(HiddenItem.user_id == user.id))
+    from app.services.user_tags import delete_all_user_tags
+
+    delete_all_user_tags(db, user.id)
     db.execute(delete(ApiToken).where(ApiToken.user_id == user.id))
     db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))

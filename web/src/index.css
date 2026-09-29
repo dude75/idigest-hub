@@ -388,14 +388,103 @@ a.brand:hover,
   gap: 0.65rem;
 }
 .library-list-filters {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(9.5rem, 11rem) auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.65rem 0.85rem;
   align-items: end;
 }
+.library-list-tag-actions {
+  padding-bottom: 0.35rem;
+}
+.user-tags-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.5rem 0;
+  max-width: 100%;
+}
+.user-tags-label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.user-tags-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.user-tags-pick {
+  width: 8.25rem;
+  flex: 0 1 8.25rem;
+}
+.user-tags-pick [data-slot='select-trigger'] {
+  width: 8.25rem;
+  max-width: 100%;
+  height: 2rem;
+  box-shadow: none;
+}
+.user-tags-pick [data-slot='select-trigger']:focus-visible {
+  border-color: var(--input);
+  box-shadow: none;
+  outline: none;
+}
+.user-tags-input {
+  width: 7.5rem !important;
+  max-width: 100%;
+  flex: 0 1 7.5rem;
+  height: 2rem;
+  box-shadow: none;
+}
+.user-tags-input:focus-visible {
+  border-color: var(--input);
+  box-shadow: none;
+  outline: none;
+}
+.user-tags-add {
+  height: 2rem;
+  white-space: nowrap;
+}
+.user-tags-editor .user-tag-chip-assigned {
+  flex: 0 0 auto;
+}
+.user-tag-chip-assigned button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.user-tag-badges {
+  gap: 0.25rem;
+}
+.tag-manage-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.tag-manage-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+.tag-manage-name {
+  font-weight: 500;
+  min-width: 5rem;
+}
+.tag-manage-actions {
+  margin-left: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
 @media (max-width: 720px) {
   .library-list-filters {
-    grid-template-columns: minmax(0, 1fr);
+    flex-direction: column;
+    align-items: stretch;
   }
   .library-list-user-placeholder {
     display: none;
