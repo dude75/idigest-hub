@@ -6,7 +6,7 @@
  * New UI code: shadcn primitives + App* wrappers; primary save/create → AppSubmitButton.
  * Layout: prefer Tailwind (flex/grid/gap) over new `.stack` / `.row` in TSX.
  */
-import { readdir, readFile } from 'node:fs/promises'
+import { access, readdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const SRC = path.join(import.meta.dirname, '../src')
@@ -167,6 +167,23 @@ if (legacyBadgeCount > MAX_LEGACY_BADGE) {
   issues.push(
     `legacy .badge usages (${legacyBadgeCount}) exceed cap ${MAX_LEGACY_BADGE} — migrate to HubBadge`,
   )
+}
+
+const indexCss = await readFile(path.join(SRC, 'index.css'), 'utf8')
+const authShell = await readFile(path.join(import.meta.dirname, '../public/auth-shell.css'), 'utf8')
+const hubAccent = indexCss.match(/--hub-accent:\s*([^;]+);/)?.[1]?.trim()
+const authPrimary = authShell.match(/^\s*--primary:\s*([^;]+);/m)?.[1]?.trim()
+if (hubAccent && authPrimary && authPrimary !== hubAccent) {
+  issues.push(
+    `auth-shell.css --primary must match index.css --hub-accent (${hubAccent}), got ${authPrimary}`,
+  )
+}
+for (const font of ['geist-latin.woff2', 'geist-cyrillic.woff2']) {
+  try {
+    await access(path.join(import.meta.dirname, '../public/fonts', font))
+  } catch {
+    issues.push(`missing web/public/fonts/${font} — OAuth auth-shell Geist @font-face`)
+  }
 }
 
 if (issues.length) {

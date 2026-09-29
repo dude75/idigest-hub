@@ -73,7 +73,7 @@ def _topbar(request: Request, locale: str) -> str:
     return f"""<header class="auth-topbar topbar">
       <a class="brand" href="/">{_esc(t(locale, "oauth_app_name"))}{version_badge}</a>
       <div class="right row">
-        <a class="btn" href="/">{_esc(t(locale, "oauth_back_home"))}</a>
+        <a class="btn outline" href="/">{_esc(t(locale, "oauth_back_home"))}</a>
         <a class="github-link github-link-icon" href="{_esc(_GITHUB_REPO_URL)}" target="_blank" rel="noopener noreferrer" aria-label="{github_label}">
           <svg class="github-icon" aria-hidden="true" viewBox="0 0 19 19">
             <use href="/icons.svg#github-icon"/>
@@ -104,7 +104,7 @@ def _page(
   <div class="auth-layout">
     {_topbar(request, locale)}
     <main class="auth-page">
-      <div class="card stack oauth-page">
+      <div class="card auth-card stack oauth-page">
         {body}
       </div>
     </main>
@@ -115,7 +115,7 @@ def _page(
 
 
 def _oauth_actions(locale: str, *, show_app_link: bool, app_href: str) -> str:
-    home = f'<a class="btn" href="/">{_esc(t(locale, "oauth_back_home"))}</a>'
+    home = f'<a class="btn outline" href="/">{_esc(t(locale, "oauth_back_home"))}</a>'
     if show_app_link:
         app = f'<a class="btn primary" href="{_esc(app_href)}">{_esc(t(locale, "oauth_open_app"))}</a>'
         return f'<div class="actions">{app}{home}</div>'
@@ -301,9 +301,11 @@ def oauth_browser_redirect_page(
     """Break out of iframe/popup (Open WebUI) and navigate to an external or internal URL."""
     locale = oauth_locale(request)
     js_url = json.dumps(redirect_url)
-    body = f"""<h1>{_esc(t(locale, title_key))}</h1>
+    body = f"""<div class="oauth-redirect">
+<h1>{_esc(t(locale, title_key))}</h1>
 <p class="muted">{_esc(t(locale, hint_key))}</p>
-<a class="btn primary" href="{_esc(redirect_url)}">{_esc(t(locale, continue_key))}</a>
+<a class="btn primary oauth-continue-btn" href="{_esc(redirect_url)}">{_esc(t(locale, continue_key))}</a>
+</div>
 <script>
 (function () {{
   var url = {js_url};
