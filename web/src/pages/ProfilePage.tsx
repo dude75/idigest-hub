@@ -826,7 +826,11 @@ export function ProfilePage() {
           </div>
           <p className="profile-backup-restore-hint">{t('profile.restoreBackupHint')}</p>
           <div className="profile-actions profile-backup-actions">
-            <Button type="button" disabled={backingUp || (!backupTranscripts && !backupSummaries && !backupSkills)} onClick={() => void downloadBackup()}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={backingUp || (!backupTranscripts && !backupSummaries && !backupSkills)}
+              onClick={() => void downloadBackup()}
             >
               {backingUp ? t('common.loading') : t('profile.downloadBackup')}
             </Button>
@@ -840,7 +844,11 @@ export function ProfilePage() {
                 if (file) void restoreBackup(file)
               }}
             />
-            <Button type="button" disabled={restoringUp || backingUp} onClick={() => restoreInputRef.current?.click()}
+            <Button
+              type="button"
+              variant="outline"
+              disabled={restoringUp || backingUp}
+              onClick={() => restoreInputRef.current?.click()}
             >
               {restoringUp ? t('common.loading') : t('profile.restoreBackup')}
             </Button>
@@ -881,7 +889,7 @@ export function ProfilePage() {
               >
                 {creating ? t('common.loading') : t('profile.newToken')}
               </Button>
-              <Button type="button" onClick={() => { setTokenTotpOpen(false); setTokenTotp('') }}>
+              <Button type="button" variant="outline" onClick={() => { setTokenTotpOpen(false); setTokenTotp('') }}>
                 {t('common.cancel')}
               </Button>
             </div>

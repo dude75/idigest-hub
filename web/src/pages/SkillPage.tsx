@@ -146,20 +146,39 @@ export function SkillPage() {
             <span className="muted">{fmtDate(item.created_at)}</span>
           </div>
           <EntityToolbar>
-            <Button type="button" onClick={() => void apiDownload(`/skills/${item.id}/export`, `${item.name}.md`).catch(showError)}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void apiDownload(`/skills/${item.id}/export`, `${item.name}.md`).catch(showError)}
             >
               {t('common.downloadMd')}
             </Button>
-            {mine && <Button type="button" onClick={() => setShare(true)}>{t('common.share')}</Button>}
+            {mine && (
+              <Button type="button" variant="outline" onClick={() => setShare(true)}>
+                {t('common.share')}
+              </Button>
+            )}
             {canEdit && !editing && (
-              <Button type="button" onClick={() => { setName(item.name); setDraft(item.body || ''); setEditing(true) }}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setName(item.name)
+                  setDraft(item.body || '')
+                  setEditing(true)
+                }}
+              >
                 {t('common.edit')}
               </Button>
             )}
             {canEdit && (
               <Button type="button" variant="destructive" onClick={() => void remove()}>{t('common.delete')}</Button>
             )}
-            {canCopy ? <Button type="button" onClick={() => void copy()}>{t('common.copy')}</Button> : null}
+            {canCopy ? (
+              <Button type="button" variant="outline" onClick={() => void copy()}>
+                {t('common.copy')}
+              </Button>
+            ) : null}
           </EntityToolbar>
           </EntityDetailCard>
           <EntityBodyCard title={t('skills.body')}>

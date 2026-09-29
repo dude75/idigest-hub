@@ -1,15 +1,20 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
-import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
+import { AdminFormCard, AdminPage } from '../../components/AdminSection'
 import { AdminFormActions, AppSubmitButton, HubBadge } from '../../components/app/AdminUi'
+import { AdminTablePager } from '../../components/app/AdminDataTable'
+import { ListSection } from '../../components/app/EntityUi'
 import { ListRow } from '../../components/ListRow'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import type { Skill } from '../../types'
 import { fmtDate, formatInteger, showError } from '../../util'
 import { Button } from '@/components/ui/button'
-import { AppInputField } from '../../components/app/AppFormControls'
+import { AppInputField, AppPageSizeField } from '../../components/app/AppFormControls'
 import { AppField } from '../../components/app/AppField'
+
+const PAGE_SIZES = [10, 50, 100] as const
+type PageSize = (typeof PAGE_SIZES)[number]
 
 export function InstanceBaseSkillsTab() {
   const { t } = useTranslation()
@@ -18,7 +23,21 @@ export function InstanceBaseSkillsTab() {
   const [sbody, setSbody] = useState('')
   const [formOpen, setFormOpen] = useState(false)
   const [saveBusy, setSaveBusy] = useState(false)
+  const [pageSize, setPageSize] = useState<PageSize>(10)
+  const [page, setPage] = useState(0)
   const formRef = useRef<HTMLDivElement>(null)
+
+  const sortedSkills = useMemo(
+    () => [...skills].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+    [skills],
+  )
+
+  const listTotal = sortedSkills.length
+  const pageCount = Math.max(1, Math.ceil(listTotal / pageSize))
+  const safePage = Math.min(page, pageCount - 1)
+  const listFrom = listTotal === 0 ? 0 : safePage * pageSize + 1
+  const listTo = Math.min(listTotal, (safePage + 1) * pageSize)
+  const pagedSkills = sortedSkills.slice(safePage * pageSize, safePage * pageSize + pageSize)
 
   async function load() {
     try {
@@ -62,6 +81,24 @@ export function InstanceBaseSkillsTab() {
     }
   }
 
+  const pageSizeSelect = (
+    <AppPageSizeField
+      label={t('task.pageSize')}
+      htmlFor="base-skills-page-size"
+      value={String(pageSize)}
+      onChange={(e) => {
+        setPageSize(Number(e.target.value) as PageSize)
+        setPage(0)
+      }}
+    >
+      {PAGE_SIZES.map((n) => (
+        <option key={n} value={n}>
+          {n}
+        </option>
+      ))}
+    </AppPageSizeField>
+  )
+
   return (
     <AdminPage>
       <StatGrid>
@@ -99,30 +136,56 @@ export function InstanceBaseSkillsTab() {
         </div>
       ) : null}
 
-      <AdminTableCard
+      <ListSection
         title={t('instance.baseSkillsList')}
         empty={t('common.empty')}
-        isEmpty={skills.length === 0}
+        isEmpty={listTotal === 0}
         actions={
-          <Button type="button" size="sm" onClick={openCreate}>
-            {t('instance.baseSkillCreate')}
-          </Button>
+          <div className="flex flex-wrap items-end gap-3">
+            <Button type="button" size="sm" onClick={openCreate}>
+              {t('instance.baseSkillCreate')}
+            </Button>
+            {pageSizeSelect}
+          </div>
+        }
+        footer={
+          listTotal > pageSize ? (
+            <AdminTablePager>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={safePage === 0}
+                onClick={() => setPage(safePage - 1)}
+              >
+                {t('common.prev')}
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {t('task.pageRange', { from: listFrom, to: listTo, total: listTotal })}
+              </span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={safePage >= pageCount - 1}
+                onClick={() => setPage(safePage + 1)}
+              >
+                {t('common.next')}
+              </Button>
+            </AdminTablePager>
+          ) : null
         }
       >
-        {skills.length > 0 ? (
-          <div className="list admin-list px-2 pb-2">
-            {skills.map((s) => (
-              <ListRow
-                key={s.id}
-                to={`/app/skill/${s.id}`}
-                title={s.name}
-                meta={fmtDate(s.created_at)}
-                trailing={<HubBadge tone="muted">{s.scope}</HubBadge>}
-              />
-            ))}
-          </div>
-        ) : null}
-      </AdminTableCard>
+        {pagedSkills.map((s) => (
+          <ListRow
+            key={s.id}
+            to={`/app/skill/${s.id}`}
+            title={s.name}
+            meta={fmtDate(s.created_at)}
+            trailing={<HubBadge tone="muted">{s.scope}</HubBadge>}
+          />
+        ))}
+      </ListSection>
     </AdminPage>
   )
 }
