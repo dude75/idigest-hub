@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
@@ -12,6 +12,14 @@ import { MarkdownBody } from '../markdown'
 import { libraryPath } from '../routes'
 import type { Summary } from '../types'
 import { ShareBadges, fmtDate, showError } from '../util'
+import { Button } from '@/components/ui/button'
+import { AdminFormActions, AppSubmitButton } from '../components/app/AdminUi'
+import {
+  EntityBackLink,
+  EntityBodyCard,
+  EntityDetailCard,
+  EntityPage,
+} from '../components/app/EntityUi'
 
 export function SummaryPage() {
   const { id } = useParams<{ id: string }>()
@@ -29,6 +37,11 @@ export function SummaryPage() {
   const canDelete = item && (item.owner_user_id === me?.user.id || admin)
   const canEdit = Boolean(canDelete)
   const mine = item?.owner_user_id === me?.user.id
+
+  const summaryEditReady = useMemo(() => {
+    if (!item) return false
+    return draft !== (item.body || '')
+  }, [item, draft])
 
   async function load() {
     if (!id) return
@@ -106,8 +119,8 @@ export function SummaryPage() {
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
-    <div>
-      <Link to={libraryPath('summaries')}>{t('common.back')}</Link>
+    <EntityPage>
+      <EntityBackLink to={libraryPath('summaries')}>{t('common.back')}</EntityBackLink>
       {item ? (
         <InlineRename
           value={item.display_title || item.title || item.id.slice(0, 8)}
@@ -120,76 +133,63 @@ export function SummaryPage() {
       )}
       {item && (
         <>
-          <div className="entity-actions">
-            <div className="audio-media">
-              <div className="row">
+          <EntityDetailCard>
+              <div className="flex flex-wrap items-center gap-2">
                 <ShareBadges item={item} />
                 <span className="muted">{fmtDate(item.created_at)}</span>
-                {item.source_transcript_id && (
+                {item.source_transcript_id ? (
                   <Link to={`/app/transcript/${item.source_transcript_id}`}>
                     {item.source_transcript_title || t('summary.sourceTranscript', { id: item.source_transcript_id.slice(0, 8) })}
                   </Link>
-                )}
+                ) : null}
               </div>
-              {item.source_audio_id && <AudioPlayer audioId={item.source_audio_id} />}
+              {item.source_audio_id ? <AudioPlayer audioId={item.source_audio_id} /> : null}
               <EntityToolbar>
-                <button
-                  type="button"
-                  onClick={() => void apiDownload(`/summaries/${item.id}/export?format=md`).catch(showError)}
+                <Button type="button" variant="outline" onClick={() => void apiDownload(`/summaries/${item.id}/export?format=md`).catch(showError)}
                 >
                   {t('common.downloadMd')}
-                </button>
-                {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
-                <button
-                  type="button"
-                  title={t('library.hideHint')}
-                  onClick={() => void toggleHidden()}
+                </Button>
+                {mine && <Button type="button" variant="outline" onClick={() => setShare(true)}>{t('common.share')}</Button>}
+                <Button type="button" variant="outline" title={t('library.hideHint')} onClick={() => void toggleHidden()}
                 >
                   {item.hidden ? t('common.unhide') : t('common.hide')}
-                </button>
+                </Button>
                 {canEdit && !editing && (
-                  <button type="button" onClick={() => { setDraft(item.body || ''); setEditing(true) }}>
+                  <Button type="button" variant="outline" onClick={() => { setDraft(item.body || ''); setEditing(true) }}>
                     {t('common.edit')}
-                  </button>
+                  </Button>
                 )}
                 {canDelete && (
-                  <button
-                    type="button"
-                    className="danger"
-                    title={admin && !mine ? t('library.deleteAdminHint') : t('library.deleteOwnerHint')}
-                    onClick={() => setConfirmDelete(true)}
+                  <Button type="button" variant="destructive" title={admin && !mine ? t('library.deleteAdminHint') : t('library.deleteOwnerHint')} onClick={() => setConfirmDelete(true)}
                   >
                     {t('common.delete')}
-                  </button>
+                  </Button>
                 )}
               </EntityToolbar>
-            </div>
-          </div>
-          {editing ? (
-            <div className="stack">
-              <textarea
-                className="summary-editor"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-              />
-              <div className="row">
-                <button className="primary" type="button" disabled={busy} onClick={() => void save()}>
-                  {t('common.save')}
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => { setDraft(item.body || ''); setEditing(false) }}
-                >
-                  {t('common.cancel')}
-                </button>
+          </EntityDetailCard>
+          <EntityBodyCard title={t('summary.body')}>
+            {editing ? (
+              <div className="flex flex-col gap-3">
+                <textarea
+                  className="summary-editor min-h-[12rem] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                />
+                <AdminFormActions>
+                  <AppSubmitButton ready={summaryEditReady} busy={busy} onClick={() => void save()}>
+                    {t('common.save')}
+                  </AppSubmitButton>
+                  <Button type="button" variant="outline" disabled={busy} onClick={() => { setDraft(item.body || ''); setEditing(false) }}>
+                    {t('common.cancel')}
+                  </Button>
+                </AdminFormActions>
               </div>
-            </div>
-          ) : (
-            <div className="summary-body">
-              <MarkdownBody text={item.body || ''} />
-            </div>
-          )}
+            ) : (
+              <div className="summary-body">
+                <MarkdownBody text={item.body || ''} />
+              </div>
+            )}
+          </EntityBodyCard>
         </>
       )}
       {share && id && (
@@ -210,6 +210,6 @@ export function SummaryPage() {
           onClose={() => setConfirmDelete(false)}
         />
       )}
-    </div>
+    </EntityPage>
   )
 }

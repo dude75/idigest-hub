@@ -1,15 +1,16 @@
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { ButtonLink } from '@/components/ui/button-link'
+import { cn } from '@/lib/utils'
 
 type Props = {
   className?: string
 }
 
-export function BackToLandingLink({ className = 'btn' }: Props) {
+export function BackToLandingLink({ className }: Props) {
   const { t } = useTranslation()
   return (
-    <Link to="/" className={className}>
+    <ButtonLink to="/" variant="outline" className={cn('legal-document-back', className)}>
       {t('landing.backHome')}
-    </Link>
+    </ButtonLink>
   )
 }

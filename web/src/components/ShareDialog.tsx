@@ -5,6 +5,12 @@ import { useAuth } from '../auth'
 import type { ShareRecord, SummaryPublicLink, User } from '../types'
 import { fmtDate, showError } from '../util'
 import { Modal } from './Modal'
+import { Button } from '@/components/ui/button'
+import { AppCheckboxRow } from './app/AppFormControls'
+import { AuthSelect } from './auth/AuthSelect'
+import { FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import { AppUrlCopyRow } from './app/AppUrlCopyRow'
 
 type Props = {
   objectType: 'audio' | 'transcript' | 'summary' | 'skill'
@@ -36,8 +42,6 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
   const [expiryDays, setExpiryDays] = useState<number | null>(7)
   const [usePin, setUsePin] = useState(false)
   const [pin, setPin] = useState('')
-  const [copied, setCopied] = useState(false)
-
   const showPublic = objectType === 'summary' && (canManagePublicLink ?? false)
 
   async function loadShares() {
@@ -125,7 +129,6 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
       setUsePin(false)
       setPin('')
       setExpiryDays(7)
-      setCopied(false)
     } catch (e) {
       showError(e)
     } finally {
@@ -133,22 +136,9 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
     }
   }
 
-  async function copyPublicUrl() {
-    if (!publicLink?.url) return
-    try {
-      await navigator.clipboard.writeText(publicLink.url)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-
   return (
-    <Modal onClose={onClose} panelClassName="share-dialog">
-      <h2 className="share-dialog-title">{t('share.title')}</h2>
-
-      <div className="modal-body stack">
+    <Modal onClose={onClose} title={t('share.title')} panelClassName="share-dialog sm:max-w-lg">
+      <div className="flex flex-col gap-4">
       {showPublic && (
         <section className="share-section">
           <h3 className="share-section-head">{t('share.publicLink')}</h3>
@@ -158,7 +148,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
             <p className="muted share-panel-meta">{t('share.publicLinksDisabled')}</p>
           ) : publicLink && publicLink.url ? (
             <div className="share-panel stack">
-              <SsoUrlRow url={publicLink.url} onCopy={() => void copyPublicUrl()} copied={copied} />
+              <AppUrlCopyRow value={publicLink.url} className="share-public-url-row" />
               {(publicLink.pin_required || publicLink.expires_at) && (
                 <p className="muted share-panel-meta">
                   {[
@@ -169,21 +159,26 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
                   ].filter(Boolean).join(' · ')}
                 </p>
               )}
-              <button
+              <Button
                 type="button"
-                className="danger share-panel-action"
+                variant="outline"
+                className="share-panel-action share-panel-action-block share-revoke-public"
                 disabled={publicBusy}
                 onClick={() => void revokePublicLink()}
               >
                 {t('share.revokePublic')}
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="share-panel stack">
               <div className="share-form-row row">
-                <label className="share-field">
-                  <span className="share-field-label">{t('share.expiry')}</span>
-                  <select
+                <div className="share-field">
+                  <FieldLabel htmlFor="share-expiry" className="share-field-label font-normal">
+                    {t('share.expiry')}
+                  </FieldLabel>
+                  <AuthSelect
+                    id="share-expiry"
+                    className="share-expiry-select"
                     value={expiryDays === null ? '' : String(expiryDays)}
                     onChange={(e) => setExpiryDays(e.target.value === '' ? null : Number(e.target.value))}
                   >
@@ -192,36 +187,43 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
                         {t(`share.expiry_${opt.key}`)}
                       </option>
                     ))}
-                  </select>
-                </label>
-                <label className="check-row share-pin-toggle">
-                  <input type="checkbox" checked={usePin} onChange={(e) => setUsePin(e.target.checked)} />
-                  {t('share.usePin')}
-                </label>
-                {usePin && (
+                  </AuthSelect>
+                </div>
+                <AppCheckboxRow
+                  id="share-use-pin"
+                  className="share-pin-toggle"
+                  label={t('share.usePin')}
+                  checked={usePin}
+                  onCheckedChange={setUsePin}
+                />
+                {usePin ? (
                   <div className="share-pin-wrap">
-                    <label className="share-field share-pin-field">
-                      <span className="share-field-label">PIN</span>
-                      <input
+                    <div className="share-field share-pin-field">
+                      <FieldLabel htmlFor="share-pin" className="share-field-label font-normal">
+                        PIN
+                      </FieldLabel>
+                      <Input
+                        id="share-pin"
+                        className="share-pin-input !w-[4.75rem] max-w-[4.75rem] shrink-0"
                         inputMode="numeric"
                         pattern="[0-9]*"
                         maxLength={6}
                         value={pin}
                         onChange={(e) => setPin(e.target.value)}
                       />
-                    </label>
+                    </div>
                     <span className="muted share-pin-hint">{t('share.pinLengthHint')}</span>
                   </div>
-                )}
+                ) : null}
               </div>
-              <button
+              <Button
                 type="button"
-                className="primary share-panel-action"
+                className="share-panel-action share-panel-action-block"
                 disabled={publicBusy || (usePin && pin.trim().length < 4)}
                 onClick={() => void createPublicLink()}
               >
                 {t('share.createPublic')}
-              </button>
+              </Button>
             </div>
           )}
         </section>
@@ -237,14 +239,10 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
               {shares.map((s) => (
                 <div key={s.id} className="share-member-row">
                   <span className="share-member-email">{s.email}</span>
-                  <button
-                    type="button"
-                    className="danger share-member-action"
-                    disabled={revoking === s.id}
-                    onClick={() => void revoke(s.id)}
+                  <Button type="button" variant="destructive" className="share-member-action" disabled={revoking === s.id} onClick={() => void revoke(s.id)}
                   >
                     {t('share.revoke')}
-                  </button>
+                  </Button>
                 </div>
               ))}
             </div>
@@ -255,18 +253,18 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
       {available.length > 0 && (
         <section className="share-section">
           <h3 className="share-section-head">{t('share.addMore')}</h3>
-          <div className="share-panel stack">
+          <div className="share-panel flex flex-col gap-3">
             <p className="muted share-panel-meta">{t('share.pick')}</p>
             <div className="share-picker-list">
               {available.map((u) => (
-                <label key={u.id} className="check-row share-picker-row">
-                  <input
-                    type="checkbox"
-                    checked={Boolean(picked[u.id])}
-                    onChange={(e) => setPicked((p) => ({ ...p, [u.id]: e.target.checked }))}
-                  />
-                  <span>{u.email}</span>
-                </label>
+                <AppCheckboxRow
+                  key={u.id}
+                  id={`share-pick-${u.id}`}
+                  className="share-picker-row"
+                  label={u.email}
+                  checked={Boolean(picked[u.id])}
+                  onCheckedChange={(checked) => setPicked((p) => ({ ...p, [u.id]: checked }))}
+                />
               ))}
             </div>
           </div>
@@ -276,29 +274,15 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
 
       <div className="share-dialog-footer">
         {available.length > 0 && (
-          <button
-            type="button"
-            className="primary"
-            disabled={busy || !Object.values(picked).some(Boolean)}
-            onClick={() => void submit()}
+          <Button type="button" disabled={busy || !Object.values(picked).some(Boolean)} onClick={() => void submit()}
           >
             {t('share.assign')}
-          </button>
+          </Button>
         )}
-        <button type="button" className="share-dialog-close" onClick={onClose}>{t('common.close')}</button>
+        <Button type="button" variant="outline" className="share-dialog-close" onClick={onClose}>
+          {t('common.close')}
+        </Button>
       </div>
     </Modal>
-  )
-}
-
-function SsoUrlRow({ url, onCopy, copied }: { url: string; onCopy: () => void; copied: boolean }) {
-  const { t } = useTranslation()
-  return (
-    <div className="sso-url-row">
-      <code className="sso-url-value" title={url}>{url}</code>
-      <button type="button" className="sso-url-copy" onClick={onCopy}>
-        {copied ? t('profile.copied') : t('common.copy')}
-      </button>
-    </div>
   )
 }

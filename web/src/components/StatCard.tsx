@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { Card, CardContent, CardDescription } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 export type StatTone =
   | 'default'
@@ -27,13 +29,15 @@ export function StatCard({ label, value, unit, title, tone = 'default', valueCla
     .join(' ')
 
   return (
-    <div className={`stat stat-${tone}`} title={title}>
-      <div className="stat-label">{label}</div>
-      <div className="stat-body">
-        <div className={valueClass}>{value}</div>
-        {unit ? <div className="stat-unit">{unit}</div> : null}
-      </div>
-    </div>
+    <Card className={cn('stat stat-card min-h-[5.25rem] py-4 shadow-none', `stat-${tone}`)} title={title}>
+      <CardContent className="flex h-full flex-col px-4 py-0">
+        <CardDescription className="stat-label m-0">{label}</CardDescription>
+        <div className="stat-body">
+          <div className={valueClass}>{value}</div>
+          {unit ? <div className="stat-unit">{unit}</div> : null}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

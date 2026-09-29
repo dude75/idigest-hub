@@ -3,10 +3,13 @@ import { Link, Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ApiError, api } from '../api'
 import { useAuth } from '../auth'
+import { AuthCard } from '../components/auth/AuthCard'
+import { AuthField } from '../components/auth/AuthField'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { showError } from '../util'
+import { AppSubmitButton } from '@/components/app/AdminUi'
+import { Input } from '@/components/ui/input'
 
-/** Matches PASSWORD_RESET_COOLDOWN_SEC on the backend. */
 const RESET_COOLDOWN_SEC = 900
 
 function cooldownMinutes(sec: number): number {
@@ -53,25 +56,36 @@ export function ForgotPage() {
 
   return (
     <AuthPageShell>
-      <form className="card auth-card stack" onSubmit={(e) => void onSubmit(e)}>
-        <h1>{t('auth.forgot')}</h1>
-        {ok && <p className="ok">{t('auth.sent')}</p>}
-        {cooldown > 0 && (
-          <p className="muted">{t('auth.resetCooldown', { minutes: cooldownMinutes(cooldown) })}</p>
-        )}
-        <label>
-          {t('common.email')}
-          <input
-            type="email"
-            required
-            disabled={locked}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-        <button className="primary" disabled={locked} type="submit">{t('common.confirm')}</button>
-        <Link to="/login">{t('auth.toLogin')}</Link>
-      </form>
+      <AuthCard title={t('auth.forgot')}>
+        <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+          {ok && <p className="ok text-sm">{t('auth.sent')}</p>}
+          {cooldown > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {t('auth.resetCooldown', { minutes: cooldownMinutes(cooldown) })}
+            </p>
+          )}
+          <AuthField label={t('common.email')} htmlFor="forgot-email">
+            <Input
+              id="forgot-email"
+              type="email"
+              required
+              disabled={locked}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </AuthField>
+          <AppSubmitButton
+            className="w-full"
+            type="submit"
+            ready={email.trim().includes('@') && !locked}
+          >
+            {t('common.confirm')}
+          </AppSubmitButton>
+          <Link to="/login" className="text-sm">
+            {t('auth.toLogin')}
+          </Link>
+        </form>
+      </AuthCard>
     </AuthPageShell>
   )
 }

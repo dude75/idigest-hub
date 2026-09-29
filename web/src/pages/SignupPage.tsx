@@ -3,12 +3,17 @@ import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { AuthCard } from '../components/auth/AuthCard'
+import { AuthField } from '../components/auth/AuthField'
+import { AuthSelect } from '../components/auth/AuthSelect'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { LegalDocumentAcceptance } from '../components/LegalDocumentAcceptance'
 import { type LegalDocumentKey, type PublicLegalDocument } from '../legalDocuments'
 import { resolveAuthContinuationPath } from '../routes'
 import type { Tariff } from '../types'
 import { showError } from '../util'
+import { AppSubmitButton } from '@/components/app/AdminUi'
+import { Input } from '@/components/ui/input'
 
 export function SignupPage() {
   const { t, i18n } = useTranslation()
@@ -82,47 +87,65 @@ export function SignupPage() {
 
   return (
     <AuthPageShell>
-      <form className="card auth-card stack" onSubmit={(e) => void onSubmit(e)}>
-        <h1>{t('auth.signup')}</h1>
-        {formLoading ? (
-          <p className="muted">{t('common.loading')}</p>
-        ) : tariffs.length === 0 ? (
-          <p className="muted">{t('auth.noSignup')}</p>
-        ) : (
-          <>
-            <label>
-              {t('common.email')}
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-            </label>
-            <label>
-              {t('common.password')}
-              <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
-            </label>
-            <label>
-              {t('auth.tariff')}
-              <select value={tariffId} onChange={(e) => setTariffId(e.target.value)}>
-                {tariffs.map((tr) => (
-                  <option key={tr.id} value={tr.id}>
-                    {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {legalDocs.length > 0 && (
-              <LegalDocumentAcceptance
-                documents={legalDocs}
-                checked={checked}
-                disabled={busy}
-                onCheckedChange={(key, value) => setChecked((prev) => ({ ...prev, [key]: value }))}
-              />
-            )}
-            <button className="primary" disabled={busy || !allLegalChecked} type="submit">
-              {t('auth.signup')}
-            </button>
-          </>
-        )}
-        <Link to="/login">{t('auth.toLogin')}</Link>
-      </form>
+      <AuthCard title={t('auth.signup')}>
+        <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+          {formLoading ? (
+            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+          ) : tariffs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('auth.noSignup')}</p>
+          ) : (
+            <>
+              <AuthField label={t('common.email')} htmlFor="signup-email">
+                <Input
+                  id="signup-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </AuthField>
+              <AuthField label={t('common.password')} htmlFor="signup-password">
+                <Input
+                  id="signup-password"
+                  type="password"
+                  required
+                  minLength={8}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </AuthField>
+              <AuthField label={t('auth.tariff')} htmlFor="signup-tariff">
+                <AuthSelect id="signup-tariff" value={tariffId} onChange={(e) => setTariffId(e.target.value)}>
+                  {tariffs.map((tr) => (
+                    <option key={tr.id} value={tr.id}>
+                      {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
+                    </option>
+                  ))}
+                </AuthSelect>
+              </AuthField>
+              {legalDocs.length > 0 && (
+                <LegalDocumentAcceptance
+                  documents={legalDocs}
+                  checked={checked}
+                  disabled={busy}
+                  onCheckedChange={(key, value) => setChecked((prev) => ({ ...prev, [key]: value }))}
+                />
+              )}
+              <AppSubmitButton
+                className="w-full"
+                type="submit"
+                ready={allLegalChecked && Boolean(email.trim() && password.length >= 8 && tariffId)}
+                busy={busy}
+              >
+                {t('auth.signup')}
+              </AppSubmitButton>
+            </>
+          )}
+          <Link to="/login" className="text-sm">
+            {t('auth.toLogin')}
+          </Link>
+        </form>
+      </AuthCard>
     </AuthPageShell>
   )
 }

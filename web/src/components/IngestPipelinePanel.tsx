@@ -4,6 +4,7 @@ import { api } from '../api'
 import { loadPipeline, normalizePipeline, savePipeline, type IngestPipeline } from '../pipeline'
 import type { Skill } from '../types'
 import { showError } from '../util'
+import { AppCheckboxRow } from './app/AppFormControls'
 
 function pipelineSummaryKey(pipeline: IngestPipeline): string {
   if (!pipeline.transcribe) return 'library.pipeline.summaryOff'
@@ -52,27 +53,26 @@ export function IngestPipelinePanel() {
         <span className="library-pipeline-summary">{t(summaryKey, summaryArgs)}</span>
       </summary>
       <div className="fold-body library-pipeline-body">
-        <label className="library-pipeline-step row">
-          <input
-            type="checkbox"
-            checked={pipeline.transcribe}
-            onChange={(e) => setTranscribe(e.target.checked)}
-          />
-          <span>{t('library.pipeline.transcribe')}</span>
-        </label>
+        <AppCheckboxRow
+          id="library-pipeline-transcribe"
+          className="library-pipeline-step"
+          label={t('library.pipeline.transcribe')}
+          checked={pipeline.transcribe}
+          onCheckedChange={setTranscribe}
+        />
         {pipeline.transcribe && (
           <div className="library-pipeline-skills">
             <div className="library-pipeline-skills-label">{t('library.pipeline.summarizeSkills')}</div>
             {skills.length === 0 && <p className="muted">{t('common.empty')}</p>}
             {skills.map((s) => (
-              <label key={s.id} className="library-pipeline-skill row">
-                <input
-                  type="checkbox"
-                  checked={pipeline.skillIds.includes(s.id)}
-                  onChange={(e) => toggleSkill(s.id, e.target.checked)}
-                />
-                <span>{s.name}</span>
-              </label>
+              <AppCheckboxRow
+                key={s.id}
+                id={`library-pipeline-skill-${s.id}`}
+                className="library-pipeline-skill"
+                label={s.name}
+                checked={pipeline.skillIds.includes(s.id)}
+                onCheckedChange={(checked) => toggleSkill(s.id, checked)}
+              />
             ))}
           </div>
         )}

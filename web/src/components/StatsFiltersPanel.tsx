@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { AppStackCard } from './AdminSection'
+import { AppDateField, AppSelectField } from './app/AppFormControls'
 import { DatePresetBar } from './DatePresetBar'
 
 type UserOption = { id: string; email: string }
@@ -41,52 +43,56 @@ export function StatsFiltersPanel({
   const fields = (
     <>
       <div className="stats-filters-fields">
-        <label>
-          {t('stats.from')}
-          <input type="date" value={fromDay} onChange={(e) => onFromChange(e.target.value)} />
-        </label>
-        <label>
-          {t('stats.to')}
-          <input type="date" value={toDay} onChange={(e) => onToChange(e.target.value)} />
-        </label>
+        <AppDateField
+          label={t('stats.from')}
+          htmlFor="stats-filter-from"
+          value={fromDay}
+          onChange={onFromChange}
+        />
+        <AppDateField
+          label={t('stats.to')}
+          htmlFor="stats-filter-to"
+          value={toDay}
+          onChange={onToChange}
+        />
         {showOrgFilter ? (
-          <label>
-            {t('instance.orgs')}
-            <select
-              value={orgId ?? ''}
-              onChange={(e) => {
-                onOrgIdChange(e.target.value)
-                onUserIdChange('')
-              }}
-            >
-              <option value="">{t('common.all')}</option>
-              {orgs.map((o) => (
-                <option key={o.id} value={o.id}>{o.name}</option>
-              ))}
-            </select>
-          </label>
-        ) : null}
-        <label>
-          {t('stats.user')}
-          <select
-            value={userId}
-            disabled={showOrgFilter && !orgId}
-            onChange={(e) => onUserIdChange(e.target.value)}
+          <AppSelectField
+            label={t('instance.orgs')}
+            htmlFor="stats-filter-org"
+            value={orgId ?? ''}
+            onChange={(e) => {
+              onOrgIdChange(e.target.value)
+              onUserIdChange('')
+            }}
           >
             <option value="">{t('common.all')}</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.email}</option>
+            {orgs.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
             ))}
-          </select>
-        </label>
-        <label>
-          {t('stats.kind')}
-          <select value={kind} onChange={(e) => onKindChange(e.target.value)}>
-            <option value="">{t('common.all')}</option>
-            <option value="transcribe">{t('task.type.transcribe')}</option>
-            <option value="summarize">{t('task.type.summarize')}</option>
-          </select>
-        </label>
+          </AppSelectField>
+        ) : null}
+        <AppSelectField
+          label={t('stats.user')}
+          htmlFor="stats-filter-user"
+          value={userId}
+          disabled={showOrgFilter && !orgId}
+          onChange={(e) => onUserIdChange(e.target.value)}
+        >
+          <option value="">{t('common.all')}</option>
+          {users.map((u) => (
+            <option key={u.id} value={u.id}>{u.email}</option>
+          ))}
+        </AppSelectField>
+        <AppSelectField
+          label={t('stats.kind')}
+          htmlFor="stats-filter-kind"
+          value={kind}
+          onChange={(e) => onKindChange(e.target.value)}
+        >
+          <option value="">{t('common.all')}</option>
+          <option value="transcribe">{t('task.type.transcribe')}</option>
+          <option value="summarize">{t('task.type.summarize')}</option>
+        </AppSelectField>
       </div>
       <DatePresetBar
         fromDay={fromDay}
@@ -102,12 +108,5 @@ export function StatsFiltersPanel({
     return <section className="stack stats-filters-embedded">{fields}</section>
   }
 
-  return (
-    <div className="card stack stats-filters">
-      <div className="stats-section-head">
-        <h2>{t('stats.filters')}</h2>
-      </div>
-      {fields}
-    </div>
-  )
+  return <AppStackCard title={t('stats.filters')}>{fields}</AppStackCard>
 }

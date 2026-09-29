@@ -2,12 +2,25 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../../api'
 import { AdminPage, AdminTableCard } from '../../components/AdminSection'
+import {
+  AdminDataTable,
+  AdminTablePager,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  adminTableCellMuted,
+  adminTableCellPrimary,
+} from '../../components/app/AdminDataTable'
 import { AuditFiltersPanel, auditActionLabel } from '../../components/AuditFiltersPanel'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import { StatsPeriodCaption } from '../../components/StatsPeriodCaption'
 import type { AuditLogEntry, Org } from '../../types'
-import { statsRangeForDays } from '../../util/date'
+import { defaultFilterRange } from '../../util/date'
 import { formatInteger, fmtDate, showError } from '../../util'
+import { Button } from '@/components/ui/button'
+import { AppPageSizeField } from '../../components/app/AppFormControls'
 
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
@@ -44,8 +57,8 @@ export function AuditLogTab() {
   const [pageSize, setPageSize] = useState<PageSize>(10)
   const [page, setPage] = useState(0)
   const [orgs, setOrgs] = useState<Org[]>([])
-  const [fromDay, setFromDay] = useState(() => statsRangeForDays(1).from)
-  const [toDay, setToDay] = useState(() => statsRangeForDays(1).to)
+  const [fromDay, setFromDay] = useState(() => defaultFilterRange().from)
+  const [toDay, setToDay] = useState(() => defaultFilterRange().to)
   const [orgId, setOrgId] = useState('')
   const [userId, setUserId] = useState('')
   const [action, setAction] = useState('')
@@ -113,92 +126,124 @@ export function AuditLogTab() {
       <AuditFiltersPanel
         fromDay={fromDay}
         toDay={toDay}
-        onFromChange={(value) => { setFromDay(value); setPage(0) }}
-        onToChange={(value) => { setToDay(value); setPage(0) }}
+        onFromChange={(value) => {
+          setFromDay(value)
+          setPage(0)
+        }}
+        onToChange={(value) => {
+          setToDay(value)
+          setPage(0)
+        }}
         orgId={orgId}
-        onOrgIdChange={(value) => { setOrgId(value); setPage(0) }}
+        onOrgIdChange={(value) => {
+          setOrgId(value)
+          setPage(0)
+        }}
         orgs={orgs}
         userId={userId}
-        onUserIdChange={(value) => { setUserId(value); setPage(0) }}
+        onUserIdChange={(value) => {
+          setUserId(value)
+          setPage(0)
+        }}
         users={users}
         action={action}
-        onActionChange={(value) => { setAction(value); setPage(0) }}
+        onActionChange={(value) => {
+          setAction(value)
+          setPage(0)
+        }}
       />
 
       <StatGrid caption={<StatsPeriodCaption fromDay={fromDay} toDay={toDay} />}>
         <StatCard label={t('audit.eventsTotal')} value={formatInteger(total)} tone="ops" />
       </StatGrid>
 
-      <AdminTableCard>
-        <div className="stats-days-head admin-table-head">
-          <h2>{t('security.audit')}</h2>
-          <div className="row">
-            <label className="inline">
-              {t('task.pageSize')}
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value) as PageSize)
-                  setPage(0)
-                }}
-              >
-                {PAGE_SIZES.map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-            </label>
-            <button type="button" disabled={exporting} onClick={() => void exportCsv()}>
+      <AdminTableCard
+        title={t('security.audit')}
+        empty={t('common.empty')}
+        isEmpty={total === 0}
+        tableLayout
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" size="sm" variant="outline" disabled={exporting} onClick={() => void exportCsv()}>
               {exporting ? t('common.loading') : t('audit.exportCsv')}
-            </button>
+            </Button>
+            <AppPageSizeField
+              label={t('task.pageSize')}
+              htmlFor="audit-page-size"
+              value={String(pageSize)}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value) as PageSize)
+                setPage(0)
+              }}
+            >
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </AppPageSizeField>
           </div>
-        </div>
-
-        {total === 0 ? (
-          <p className="stats-empty">{t('common.empty')}</p>
-        ) : (
-          <div className="stats-table-wrap">
-            <table className="stats-table">
-              <thead>
-                <tr>
-                  <th>{t('audit.time')}</th>
-                  <th>{t('audit.action')}</th>
-                  <th>{t('audit.actor')}</th>
-                  <th>{t('audit.onBehalfOf')}</th>
-                  <th>{t('audit.payload')}</th>
-                </tr>
-              </thead>
-              <tbody>
+        }
+      >
+        {total > 0 ? (
+          <>
+            <AdminDataTable>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('audit.time')}</TableHead>
+                  <TableHead>{t('audit.action')}</TableHead>
+                  <TableHead>{t('audit.actor')}</TableHead>
+                  <TableHead>{t('audit.onBehalfOf')}</TableHead>
+                  <TableHead>{t('audit.payload')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {items.map((entry) => (
-                  <tr key={entry.id}>
-                    <td className="stats-day">{fmtDate(entry.created_at)}</td>
-                    <td>
-                      <span className="badge audit-action-badge" title={entry.action}>
-                        {auditActionLabel(entry.action, t)}
-                      </span>
-                    </td>
-                    <td>{entry.actor_email || '—'}</td>
-                    <td>{entry.on_behalf_of_email || '—'}</td>
-                    <td className="audit-payload" title={payloadTitle(entry.payload)}>
-                      <code>{formatPayload(entry.payload)}</code>
-                    </td>
-                  </tr>
+                  <TableRow key={entry.id}>
+                    <TableCell className={adminTableCellMuted}>{fmtDate(entry.created_at)}</TableCell>
+                    <TableCell className={adminTableCellPrimary} title={entry.action}>
+                      <span className="block max-w-[14rem] truncate">{auditActionLabel(entry.action, t)}</span>
+                    </TableCell>
+                    <TableCell>{entry.actor_email || '—'}</TableCell>
+                    <TableCell>{entry.on_behalf_of_email || '—'}</TableCell>
+                    <TableCell className={adminTableCellMuted} title={payloadTitle(entry.payload)}>
+                      <code className="block max-w-[18rem] truncate text-xs font-normal">
+                        {formatPayload(entry.payload)}
+                      </code>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {total > pageSize && (
-          <div className="row pager">
-            <button type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
-              {t('common.prev')}
-            </button>
-            <span className="muted">{t('task.pageRange', { from, to, total })}</span>
-            <button type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}>
-              {t('common.next')}
-            </button>
-          </div>
-        )}
+              </TableBody>
+            </AdminDataTable>
+            <AdminTablePager className="justify-end">
+              {total > pageSize ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={safePage === 0}
+                    onClick={() => setPage(safePage - 1)}
+                  >
+                    {t('common.prev')}
+                  </Button>
+                  <span className="text-sm text-muted-foreground">{t('task.pageRange', { from, to, total })}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={safePage >= pageCount - 1}
+                    onClick={() => setPage(safePage + 1)}
+                  >
+                    {t('common.next')}
+                  </Button>
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground">{t('task.pageRange', { from, to, total })}</span>
+              )}
+            </AdminTablePager>
+          </>
+        ) : null}
       </AdminTableCard>
     </AdminPage>
   )

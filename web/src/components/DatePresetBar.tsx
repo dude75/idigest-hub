@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { datePreset } from '../util/date'
 import { detectDatePreset, type DatePresetId } from '../util/datePreset'
@@ -22,7 +22,16 @@ const presetDays: Record<DatePresetId, number | 'month' | 'all'> = {
 
 export function DatePresetBar({ fromDay, toDay, presets, onFromChange, onToChange }: Props) {
   const { t } = useTranslation()
-  const active = useMemo(() => detectDatePreset(fromDay, toDay), [fromDay, toDay])
+  const detected = useMemo(() => detectDatePreset(fromDay, toDay), [fromDay, toDay])
+  const [selected, setSelected] = useState<DatePresetId | null>(null)
+
+  useEffect(() => {
+    if (detected && presets.includes(detected)) {
+      setSelected(detected)
+    } else if (!detected) {
+      setSelected(null)
+    }
+  }, [detected, presets])
 
   const labels: Record<DatePresetId, string> = {
     '1': t('stats.today'),
@@ -33,14 +42,17 @@ export function DatePresetBar({ fromDay, toDay, presets, onFromChange, onToChang
   }
 
   const options = presets.map((id) => ({ value: id, label: labels[id] }))
-  const value = active && presets.includes(active) ? active : null
+  const value = selected && presets.includes(selected) ? selected : null
 
   return (
     <Segmented
       variant="pill"
       value={value}
       options={options}
-      onChange={(id) => datePreset(presetDays[id], onFromChange, onToChange)}
+      onChange={(id) => {
+        setSelected(id)
+        datePreset(presetDays[id], onFromChange, onToChange)
+      }}
     />
   )
 }

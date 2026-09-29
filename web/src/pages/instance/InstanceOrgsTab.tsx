@@ -1,19 +1,37 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
 import { useAuth } from '../../auth'
-import { AdminPage } from '../../components/AdminSection'
+import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
+import {
+  AdminDataTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  adminTableCellActions,
+  adminTableCellBadges,
+  adminTableHeadActions,
+} from '../../components/app/AdminDataTable'
+import { AdminFormActions, AppSubmitButton, HubBadge } from '../../components/app/AdminUi'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Modal } from '../../components/Modal'
 import { UserStatusBadges } from '../../components/UserAgreementBadge'
 import { OrgLedgerModal } from '../../components/OrgLedgerModal'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import type { Org, OrgLedger, Tariff, User } from '../../types'
-import { statsRangeForDays } from '../../util/date'
+import { defaultFilterRange } from '../../util/date'
 import { randomPassword } from '../../util/password'
 import { formatInteger, showError, WalletLabel } from '../../util'
 import { canAdminResetMemberMfa } from '../../mfa'
 import { emptyOrg } from './constants'
+import { Button } from '@/components/ui/button'
+import { AuthSelect } from '../../components/auth/AuthSelect'
+import { AppCheckboxRow, AppInputField, AppSelectField } from '../../components/app/AppFormControls'
+import { AppField } from '../../components/app/AppField'
+import { AppUrlCopyRow } from '../../components/app/AppUrlCopyRow'
+import { Input } from '@/components/ui/input'
 
 export function InstanceOrgsTab() {
   const { t } = useTranslation()
@@ -25,8 +43,8 @@ export function InstanceOrgsTab() {
   const [hiddenOrgCount, setHiddenOrgCount] = useState(0)
   const [orgCard, setOrgCard] = useState<Org | null>(null)
   const [orgLedger, setOrgLedger] = useState<OrgLedger | null>(null)
-  const [orgFromDay, setOrgFromDay] = useState(() => statsRangeForDays(7).from)
-  const [orgToDay, setOrgToDay] = useState(() => statsRangeForDays(7).to)
+  const [orgFromDay, setOrgFromDay] = useState(() => defaultFilterRange().from)
+  const [orgToDay, setOrgToDay] = useState(() => defaultFilterRange().to)
   const [orgUserId, setOrgUserId] = useState('')
   const [orgKind, setOrgKind] = useState('')
   const [tempPw, setTempPw] = useState<{ email: string; password: string; kind: 'create' | 'reset' } | null>(null)
@@ -37,8 +55,8 @@ export function InstanceOrgsTab() {
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [orgForm, setOrgForm] = useState(emptyOrg)
   const [createBusy, setCreateBusy] = useState(false)
-  const [copiedPassword, setCopiedPassword] = useState(false)
-  const [copiedModalPassword, setCopiedModalPassword] = useState(false)
+  const [orgFormOpen, setOrgFormOpen] = useState(false)
+  const orgFormRef = useRef<HTMLDivElement>(null)
 
   const activeTariffs = useMemo(
     () => tariffs.filter((tr) => !tr.archived),
@@ -89,7 +107,7 @@ export function InstanceOrgsTab() {
   }, [orgCard, orgLedgerQuery])
 
   function openOrgCard(org: Org) {
-    const range = statsRangeForDays(7)
+    const range = defaultFilterRange()
     setOrgFromDay(range.from)
     setOrgToDay(range.to)
     setOrgUserId('')
@@ -110,27 +128,6 @@ export function InstanceOrgsTab() {
   function ensureOrgPassword(form = orgForm) {
     if (form.admin_password) return form
     return { ...form, admin_password: randomPassword() }
-  }
-
-  async function copyPassword(text: string) {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedPassword(true)
-      window.setTimeout(() => setCopiedPassword(false), 1500)
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-
-  async function copyModalPassword() {
-    if (!tempPw) return
-    try {
-      await navigator.clipboard.writeText(tempPw.password)
-      setCopiedModalPassword(true)
-      window.setTimeout(() => setCopiedModalPassword(false), 1500)
-    } catch {
-      /* clipboard unavailable */
-    }
   }
 
   function openDeleteOrg(org: Org) {
@@ -157,6 +154,26 @@ export function InstanceOrgsTab() {
     }
   }
 
+  const orgCreateReady = useMemo(() => {
+    const email = orgForm.admin_email.trim()
+    return orgForm.name.trim().length > 0 && email.includes('@')
+  }, [orgForm])
+
+  function scrollToOrgForm() {
+    requestAnimationFrame(() => orgFormRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  function openCreateOrg() {
+    setOrgForm(ensureOrgPassword(emptyOrg))
+    setOrgFormOpen(true)
+    scrollToOrgForm()
+  }
+
+  function cancelCreateOrg() {
+    setOrgForm(emptyOrg)
+    setOrgFormOpen(false)
+  }
+
   async function createOrg() {
     const payload = ensureOrgPassword()
     setCreateBusy(true)
@@ -170,6 +187,7 @@ export function InstanceOrgsTab() {
       })
       setTempPw({ email: payload.admin_email, password: payload.admin_password, kind: 'create' })
       setOrgForm(emptyOrg)
+      setOrgFormOpen(false)
       await load()
     } catch (e) {
       showError(e)
@@ -191,166 +209,183 @@ export function InstanceOrgsTab() {
         />
       </StatGrid>
 
-      <details
-        className="fold org-fold org-create-fold card"
-        onToggle={(e) => {
-          if (e.currentTarget.open) setOrgForm((form) => ensureOrgPassword(form))
-        }}
-      >
-        <summary className="org-fold-summary">
-          <span>{t('instance.orgCreate')}</span>
-        </summary>
-        <div className="stack fold-body">
-          <label>
-            {t('common.name')}
-            <input value={orgForm.name} onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })} />
-          </label>
-          <label>
-            {t('org.tariff')}
-            <select
-              value={orgForm.tariff_id || activeTariffs[0]?.id || ''}
-              onChange={(e) => setOrgForm({ ...orgForm, tariff_id: e.target.value })}
-            >
-              {activeTariffs.map((tr) => (
-                <option key={tr.id} value={tr.id}>{tr.name}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t('instance.orgAdminEmail')}
-            <input
-              type="email"
-              value={orgForm.admin_email}
-              onChange={(e) => setOrgForm({ ...orgForm, admin_email: e.target.value })}
-            />
-          </label>
-          <label>
-            {t('instance.orgAdminPassword')}
+      {orgFormOpen ? (
+        <div ref={orgFormRef}>
+          <AdminFormCard title={t('instance.orgCreate')}>
+          <AppInputField
+            label={t('common.name')}
+            htmlFor="instance-org-create-name"
+            value={orgForm.name}
+            onChange={(e) => setOrgForm({ ...orgForm, name: e.target.value })}
+          />
+          <AppSelectField
+            label={t('org.tariff')}
+            htmlFor="instance-org-create-tariff"
+            value={orgForm.tariff_id || activeTariffs[0]?.id || ''}
+            onChange={(e) => setOrgForm({ ...orgForm, tariff_id: e.target.value })}
+          >
+            {activeTariffs.map((tr) => (
+              <option key={tr.id} value={tr.id}>{tr.name}</option>
+            ))}
+          </AppSelectField>
+          <AppInputField
+            label={t('instance.orgAdminEmail')}
+            htmlFor="instance-org-create-email"
+            type="email"
+            value={orgForm.admin_email}
+            onChange={(e) => setOrgForm({ ...orgForm, admin_email: e.target.value })}
+          />
+          <AppField label={t('instance.orgAdminPassword')} htmlFor="instance-org-create-password">
             <div className="public-link-actions-row">
-              <div className="public-link-url-row">
-                <code className="public-link-url" title={orgForm.admin_password}>
-                  {orgForm.admin_password || '—'}
-                </code>
-                <button
-                  type="button"
-                  className="public-link-copy"
-                  disabled={!orgForm.admin_password}
-                  onClick={() => void copyPassword(orgForm.admin_password)}
-                >
-                  {copiedPassword ? t('profile.copied') : t('common.copy')}
-                </button>
-              </div>
-              <button
+              <AppUrlCopyRow
+                value={orgForm.admin_password}
+                id="instance-org-create-password"
+              />
+              <Button
                 type="button"
+                variant="outline"
                 className="public-link-revoke"
                 onClick={() => setOrgForm({ ...orgForm, admin_password: randomPassword() })}
               >
                 {t('instance.orgGeneratePassword')}
-              </button>
+              </Button>
             </div>
-          </label>
-          <button className="primary" type="button" disabled={createBusy} onClick={() => void createOrg()}>
-            {t('common.create')}
-          </button>
+          </AppField>
+          <AdminFormActions>
+            <AppSubmitButton ready={orgCreateReady} busy={createBusy} onClick={() => void createOrg()}>
+              {t('common.create')}
+            </AppSubmitButton>
+            <Button type="button" variant="outline" disabled={createBusy} onClick={cancelCreateOrg}>
+              {t('common.cancel')}
+            </Button>
+          </AdminFormActions>
+          </AdminFormCard>
         </div>
-      </details>
+      ) : null}
 
-      <div className="card admin-toolbar">
-        <label className="row admin-toolbar-check">
-          <input type="checkbox" checked={showHiddenOrgs} onChange={(e) => setShowHiddenOrgs(e.target.checked)} />
-          {t('library.showHidden', { count: hiddenOrgCount })}
-        </label>
-      </div>
-
-      <div className="org-cards">
-        {orgs.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
+      <AdminTableCard
+        title={t('instance.orgsTotal')}
+        empty={t('common.empty')}
+        isEmpty={orgs.length === 0}
+        tableLayout={orgs.length > 0}
+        actions={
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <AppCheckboxRow
+              id="instance-orgs-show-hidden"
+              className="admin-toolbar-check"
+              label={t('library.showHidden', { count: hiddenOrgCount })}
+              checked={showHiddenOrgs}
+              onCheckedChange={setShowHiddenOrgs}
+            />
+            <Button type="button" size="sm" onClick={openCreateOrg}>
+              {t('instance.orgCreate')}
+            </Button>
+          </div>
+        }
+      >
+        {orgs.length > 0 ? (
+          <div className="org-cards org-cards-embedded">
         {orgs.map((o) => (
           <article className="org-card" key={o.id}>
             <section className="org-tile org-tile-info">
               <h3 className="org-card-title">{o.name}</h3>
               <div className="org-card-meta">
-                <span className="badge">{o.tariff.name}</span>
+                <HubBadge tone="muted">{o.tariff.name}</HubBadge>
                 <WalletLabel unlimited={o.unlimited} balance={o.balance} />
-                {o.hidden && <span className="badge">{t('library.hidden')}</span>}
+                {o.hidden ? <HubBadge tone="pending">{t('library.hidden')}</HubBadge> : null}
                 <span className="muted org-member-count">
                   {t('instance.users')} · {formatInteger((o.members || []).length)}
                 </span>
               </div>
               <div className="org-card-foot">
-                <button type="button" className="org-ledger-btn" onClick={() => openOrgCard(o)}>
-                  {t('instance.ledger')} →
-                </button>
-                <button
+                <Button
                   type="button"
-                  className="org-hide-btn"
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0 text-sm text-primary"
+                  onClick={() => openOrgCard(o)}
+                >
+                  {t('instance.ledger')} →
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0 text-sm text-muted-foreground"
                   title={t('instance.orgHideHint')}
                   onClick={() => void toggleOrgHidden(o)}
                 >
                   {o.hidden ? t('common.unhide') : t('common.hide')}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  className="org-delete-btn"
+                  variant="link"
+                  size="sm"
+                  className="h-auto px-0 text-sm text-destructive"
                   title={t('instance.orgDeleteHint')}
                   onClick={() => openDeleteOrg(o)}
                 >
                   {t('instance.orgDelete')}
-                </button>
+                </Button>
               </div>
             </section>
             <section className="org-tile org-tile-ops">
               <div className="org-ops-toolbar">
-                <label className="org-ops-field">
-                  <span>{t('org.tariff')}</span>
-                  <select
+                <div className="org-ops-field">
+                  <AppSelectField
+                    label={t('org.tariff')}
+                    htmlFor={`org-tariff-${o.id}`}
                     value={o.tariff.id}
                     onChange={(e) => void api(`/orgs/${o.id}/tariff`, { method: 'PATCH', body: JSON.stringify({ tariff_id: e.target.value }) }).then(load)}
                   >
                     {tariffs.map((tr) => (
                       <option key={tr.id} value={tr.id}>{tr.name}</option>
                     ))}
-                  </select>
-                </label>
+                  </AppSelectField>
+                </div>
                 <div className="org-ops-field">
-                  <span>{t('instance.walletDelta')}</span>
-                  <div className="org-wallet-inline">
-                    <input
-                      placeholder="+100"
-                      value={deltas[o.id] || ''}
-                      onChange={(e) => setDeltas((d) => ({ ...d, [o.id]: e.target.value }))}
-                    />
-                    <button
-                      type="button"
-                      className="primary"
-                      onClick={() => void api(`/orgs/${o.id}/wallet`, { method: 'POST', body: JSON.stringify({ delta: deltas[o.id] }) }).then(load)}
-                    >
-                      {t('instance.apply')}
-                    </button>
-                  </div>
+                  <AppField label={t('instance.walletDelta')} htmlFor={`org-wallet-${o.id}`}>
+                    <div className="org-wallet-inline">
+                      <Input
+                        id={`org-wallet-${o.id}`}
+                        placeholder="+100"
+                        value={deltas[o.id] || ''}
+                        onChange={(e) => setDeltas((d) => ({ ...d, [o.id]: e.target.value }))}
+                      />
+                      <Button type="button" onClick={() => void api(`/orgs/${o.id}/wallet`, { method: 'POST', body: JSON.stringify({ delta: deltas[o.id] }) }).then(load)}
+                      >
+                        {t('instance.apply')}
+                      </Button>
+                    </div>
+                  </AppField>
                 </div>
               </div>
               {(o.members || []).length > 0 && (
                 <details className="org-users">
                   <summary>{t('instance.users')}</summary>
-                  <div className="stats-table-wrap org-users-table-wrap">
-                    <table className="stats-table org-users-table">
-                      <thead>
-                        <tr>
-                          <th>{t('common.email')}</th>
-                          <th>{t('common.role')}</th>
-                          <th>{t('common.status')}</th>
-                          <th>{t('instance.impersonate')}</th>
-                          <th>{t('org.resetPassword')}</th>
-                          <th>{t('org.resetMfa')}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+                  <div className="org-users-table-wrap">
+                    <AdminDataTable className="org-users-table">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t('common.email')}</TableHead>
+                          <TableHead>{t('common.role')}</TableHead>
+                          <TableHead>{t('common.status')}</TableHead>
+                          <TableHead className={adminTableHeadActions}>{t('instance.impersonate')}</TableHead>
+                          <TableHead className={adminTableHeadActions}>{t('org.resetPassword')}</TableHead>
+                          <TableHead className={adminTableHeadActions}>{t('org.resetMfa')}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
                         {(o.members || []).map((u) => (
-                          <tr key={u.id}>
-                            <td className="org-users-email" title={u.email}>{u.email}</td>
-                            <td>
+                          <TableRow key={u.id}>
+                            <TableCell className="org-users-email max-w-[14rem] truncate" title={u.email}>
+                              {u.email}
+                            </TableCell>
+                            <TableCell>
                               {!u.is_instance_admin ? (
-                                <select
+                                <AuthSelect
+                                  id={`org-user-role-${u.id}`}
+                                  className="h-8 min-w-[8rem]"
                                   value={u.role ?? 'org_member'}
                                   onChange={(e) =>
                                     void api(`/orgs/${o.id}/users/${u.id}`, {
@@ -363,86 +398,75 @@ export function InstanceOrgsTab() {
                                 >
                                   <option value="org_admin">{t('org.roleAdmin')}</option>
                                   <option value="org_member">{t('org.roleMember')}</option>
-                                </select>
+                                </AuthSelect>
                               ) : (
-                                <span className="badge">{u.role}</span>
+                                <HubBadge tone="muted">{u.role}</HubBadge>
                               )}
-                            </td>
-                            <td className="org-users-status">
+                            </TableCell>
+                            <TableCell className={adminTableCellBadges}>
                               <UserStatusBadges user={u} />
-                            </td>
-                            <td className="org-users-action">
+                            </TableCell>
+                            <TableCell className={adminTableCellActions}>
                               {!u.is_instance_admin ? (
-                                <button
-                                  type="button"
-                                  onClick={() =>
+                                <Button type="button" size="sm" variant="outline" onClick={() =>
                                     void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) })
                                       .then(() => refresh())
                                       .catch(showError)
                                   }
                                 >
                                   {t('instance.impersonate')}
-                                </button>
+                                </Button>
                               ) : null}
-                            </td>
-                            <td className="org-users-action">
+                            </TableCell>
+                            <TableCell className={adminTableCellActions}>
                               {u.role === 'org_admin' && !u.is_instance_admin ? (
-                                <button
-                                  type="button"
-                                  onClick={() =>
+                                <Button type="button" size="sm" variant="outline" onClick={() =>
                                     void api<{ password: string }>(`/orgs/${o.id}/users/${u.id}/reset-password`, { method: 'POST' })
                                       .then((r) => setTempPw({ email: u.email, password: r.password, kind: 'reset' }))
                                       .catch(showError)
                                   }
                                 >
                                   {t('org.resetPassword')}
-                                </button>
+                                </Button>
                               ) : null}
-                            </td>
-                            <td className="org-users-action">
+                            </TableCell>
+                            <TableCell className={adminTableCellActions}>
                               {canAdminResetMemberMfa(u) ? (
-                                <button
-                                  type="button"
-                                  onClick={() => setMfaResetTarget({ orgId: o.id, user: u })}
+                                <Button type="button" size="sm" variant="outline" onClick={() => setMfaResetTarget({ orgId: o.id, user: u })}
                                 >
                                   {t('org.resetMfa')}
-                                </button>
+                                </Button>
                               ) : null}
-                            </td>
-                          </tr>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                      </tbody>
-                    </table>
+                      </TableBody>
+                    </AdminDataTable>
                   </div>
                 </details>
               )}
             </section>
           </article>
         ))}
-      </div>
+          </div>
+        ) : null}
+      </AdminTableCard>
 
-      {tempPw && (
-        <Modal onClose={() => setTempPw(null)} panelClassName="stack">
-          <h2>{tempPw.kind === 'reset' ? t('org.resetPassword') : t('instance.orgCreate')}</h2>
-          <p>{t('org.newPassword')} ({tempPw.email})</p>
-          <div className="public-link-actions-row">
-            <div className="public-link-url-row">
-              <code className="public-link-url" title={tempPw.password}>{tempPw.password}</code>
-              <button
-                type="button"
-                className="public-link-copy"
-                onClick={() => void copyModalPassword()}
-              >
-                {copiedModalPassword ? t('profile.copied') : t('common.copy')}
-              </button>
-            </div>
-          </div>
-          <div className="row modal-actions">
-            <button type="button" onClick={() => setTempPw(null)}>{t('common.close')}</button>
-          </div>
+      {tempPw ? (
+        <Modal
+          onClose={() => setTempPw(null)}
+          title={tempPw.kind === 'reset' ? t('org.resetPassword') : t('instance.orgCreate')}
+          description={`${t('org.newPassword')} (${tempPw.email})`}
+          footer={
+            <Button type="button" onClick={() => setTempPw(null)}>
+              {t('common.close')}
+            </Button>
+          }
+        >
+          <AppUrlCopyRow value={tempPw.password} />
         </Modal>
-      )}
-      {deleteTarget && (
+      ) : null}
+      {deleteTarget ? (
         <Modal
           onClose={() => {
             if (deleteBusy) return
@@ -450,43 +474,44 @@ export function InstanceOrgsTab() {
             setDeleteConfirmName('')
           }}
           closeOnBackdrop={!deleteBusy}
-          panelClassName="stack"
+          title={t('instance.orgDeleteTitle')}
+          description={t('instance.orgDeleteHint')}
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={deleteBusy}
+                onClick={() => {
+                  setDeleteTarget(null)
+                  setDeleteConfirmName('')
+                }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                disabled={deleteBusy || deleteConfirmName.trim() !== deleteTarget.name}
+                onClick={() => void confirmDeleteOrg()}
+              >
+                {t('instance.orgDelete')}
+              </Button>
+            </>
+          }
         >
-          <h2>{t('instance.orgDeleteTitle')}</h2>
-          <p className="err">{t('instance.orgDeleteHint')}</p>
-          <p>{t('instance.orgDeleteMembersWarning', { count: (deleteTarget.members || []).length })}</p>
-          <label>
-            {t('instance.orgDeleteConfirmHint', { name: deleteTarget.name })}
-            <input
-              value={deleteConfirmName}
-              autoComplete="off"
-              autoFocus
-              disabled={deleteBusy}
-              onChange={(e) => setDeleteConfirmName(e.target.value)}
-            />
-          </label>
-          <div className="row modal-actions">
-            <button
-              type="button"
-              className="danger"
-              disabled={deleteBusy || deleteConfirmName.trim() !== deleteTarget.name}
-              onClick={() => void confirmDeleteOrg()}
-            >
-              {t('instance.orgDelete')}
-            </button>
-            <button
-              type="button"
-              disabled={deleteBusy}
-              onClick={() => {
-                setDeleteTarget(null)
-                setDeleteConfirmName('')
-              }}
-            >
-              {t('common.cancel')}
-            </button>
-          </div>
+          <p className="text-sm">{t('instance.orgDeleteMembersWarning', { count: (deleteTarget.members || []).length })}</p>
+          <AppInputField
+            label={t('instance.orgDeleteConfirmHint', { name: deleteTarget.name })}
+            htmlFor="instance-org-delete-confirm"
+            value={deleteConfirmName}
+            autoComplete="off"
+            autoFocus
+            disabled={deleteBusy}
+            onChange={(e) => setDeleteConfirmName(e.target.value)}
+          />
         </Modal>
-      )}
+      ) : null}
       {mfaResetTarget && (
         <ConfirmDialog
           message={t('org.resetMfaConfirm', { email: mfaResetTarget.user.email })}

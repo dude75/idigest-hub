@@ -9,6 +9,7 @@ import { Modal } from '../components/Modal'
 import { type LegalDocumentKey } from '../legalDocuments'
 import { resolveAuthBlockPath, resolveAuthContinuationPath } from '../routes'
 import { showError } from '../util'
+import { Button } from '@/components/ui/button'
 
 export function AcceptAgreementPage() {
   const { t } = useTranslation()
@@ -77,18 +78,14 @@ export function AcceptAgreementPage() {
           )}
         </div>
 
-        <div className="row modal-actions agreement-actions">
-          <button type="button" disabled={busy} onClick={() => void logout()}>
+        <div className="flex flex-wrap items-center gap-2 modal-actions agreement-actions">
+          <Button type="button" variant="outline" disabled={busy} onClick={() => void logout()}>
             {t('nav.logout')}
-          </button>
-          <button
-            className="primary"
-            type="button"
-            disabled={!allChecked || busy}
-            onClick={() => void onAccept()}
+          </Button>
+          <Button type="button" disabled={!allChecked || busy} onClick={() => void onAccept()}
           >
             {t('agreement.continue')}
-          </button>
+          </Button>
         </div>
       </Modal>
     </AuthPageShell>

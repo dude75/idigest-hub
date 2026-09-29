@@ -3,9 +3,14 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { AuthCard } from '../components/auth/AuthCard'
+import { AuthField } from '../components/auth/AuthField'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { resolveAuthBlockPath, resolveAuthContinuationPath } from '../routes'
 import { showError } from '../util'
+import { AppSubmitButton } from '@/components/app/AdminUi'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export function ChangePasswordPage() {
   const { t } = useTranslation()
@@ -49,29 +54,44 @@ export function ChangePasswordPage() {
 
   return (
     <AuthPageShell>
-      <form className="card auth-card stack" onSubmit={(e) => void onSubmit(e)}>
-        <h1>{t('auth.changePassword')}</h1>
-        {forced && <p className="admin-lead">{t('auth.mustChange')}</p>}
-        {!forced && (
-          <label>
-            {t('auth.currentPassword')}
-            <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
-          </label>
-        )}
-        <label>
-          {t('auth.newPassword')}
-          <input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
-        </label>
-        <button className="primary" disabled={busy} type="submit">{t('common.save')}</button>
-        <button
-          type="button"
-          onClick={() => {
-            void logout()
-          }}
-        >
-          {t('nav.logout')}
-        </button>
-      </form>
+      <AuthCard title={t('auth.changePassword')} description={forced ? t('auth.mustChange') : undefined}>
+        <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+          {!forced && (
+            <AuthField label={t('auth.currentPassword')} htmlFor="change-current">
+              <Input
+                id="change-current"
+                type="password"
+                required
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+                autoComplete="current-password"
+              />
+            </AuthField>
+          )}
+          <AuthField label={t('auth.newPassword')} htmlFor="change-new">
+            <Input
+              id="change-new"
+              type="password"
+              required
+              minLength={8}
+              value={next}
+              onChange={(e) => setNext(e.target.value)}
+              autoComplete="new-password"
+            />
+          </AuthField>
+          <AppSubmitButton
+            className="w-full"
+            type="submit"
+            ready={current.trim().length > 0 && next.trim().length >= 8}
+            busy={busy}
+          >
+            {t('common.save')}
+          </AppSubmitButton>
+          <Button className="w-full" type="button" variant="outline" onClick={() => void logout()}>
+            {t('nav.logout')}
+          </Button>
+        </form>
+      </AuthCard>
     </AuthPageShell>
   )
 }

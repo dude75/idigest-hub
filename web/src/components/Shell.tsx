@@ -4,6 +4,8 @@ import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { LIBRARY_DEFAULT } from '../routes'
 import { showError, WalletLabel } from '../util'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { AppBrand } from './AppBrand'
 import { GitHubLink } from './GitHubLink'
 import { LanguageSwitcher } from './LanguageSwitcher'
@@ -35,26 +37,61 @@ export function Shell() {
       {me?.impersonating && (
         <div className="banner">
           <span>{t('impersonate.banner', { email: me.user.email })}</span>
-          <button type="button" onClick={() => void stopImpersonate()}>{t('impersonate.stop')}</button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className={cn(
+              'border-white/70 bg-white/15 text-white shadow-none',
+              'hover:border-white/90 hover:bg-white/25 hover:text-white',
+            )}
+            onClick={() => void stopImpersonate()}
+          >
+            {t('impersonate.stop')}
+          </Button>
         </div>
       )}
       <header className="topbar">
         <AppBrand />
         <nav className="nav">
           {member && (
-            <NavLink to={LIBRARY_DEFAULT} className={() => (libraryActive ? 'active' : '')}>
+            <NavLink to={LIBRARY_DEFAULT} className={() => (libraryActive ? 'active' : undefined)} end>
               {t('nav.library')}
             </NavLink>
           )}
-          {member && <NavLink to="/app/skills">{t('nav.skills')}</NavLink>}
-          {member && <NavLink to="/app/org">{t('nav.org')}</NavLink>}
-          {member && <NavLink to="/app/public-links">{t('nav.publicLinks')}</NavLink>}
-          {orgAdmin && <NavLink to="/app/stats">{t('nav.stats')}</NavLink>}
-          <NavLink to="/app/tasks">{t('nav.tasks')}</NavLink>
-          <NavLink to="/app/profile">{t('nav.profile')}</NavLink>
-          {instance && <NavLink to="/app/instance">{t('nav.instance')}</NavLink>}
+          {member && (
+            <NavLink to="/app/skills" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              {t('nav.skills')}
+            </NavLink>
+          )}
+          {member && (
+            <NavLink to="/app/org" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              {t('nav.org')}
+            </NavLink>
+          )}
+          {member && (
+            <NavLink to="/app/public-links" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              {t('nav.publicLinks')}
+            </NavLink>
+          )}
+          {orgAdmin && (
+            <NavLink to="/app/stats" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              {t('nav.stats')}
+            </NavLink>
+          )}
+          <NavLink to="/app/tasks" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            {t('nav.tasks')}
+          </NavLink>
+          <NavLink to="/app/profile" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            {t('nav.profile')}
+          </NavLink>
           {instance && (
-            <NavLink to="/app/security" className={() => (securityActive ? 'active' : '')}>
+            <NavLink to="/app/instance" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+              {t('nav.instance')}
+            </NavLink>
+          )}
+          {instance && (
+            <NavLink to="/app/security" className={() => (securityActive ? 'active' : undefined)}>
               {t('nav.security')}
             </NavLink>
           )}
@@ -63,14 +100,9 @@ export function Shell() {
           <WalletLabel unlimited={me?.org?.unlimited} balance={me?.org?.balance} />
           <GitHubLink />
           <LanguageSwitcher />
-          <button
-            type="button"
-            onClick={() => {
-              void logout()
-            }}
-          >
+          <Button type="button" size="sm" variant="outline" onClick={() => void logout()}>
             {t('nav.logout')}
-          </button>
+          </Button>
         </div>
       </header>
       <main className="page">

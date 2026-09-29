@@ -43,7 +43,7 @@ export function LegalDocumentPage() {
           {doc.text ? <MarkdownBody text={doc.text} /> : t('agreement.empty')}
         </div>
         <div className="legal-document-actions">
-          <BackToLandingLink className="btn legal-document-back" />
+          <BackToLandingLink />
         </div>
       </main>
     </div>

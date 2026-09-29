@@ -32,134 +32,6 @@ _OAUTH_BLOCKED_KEYS: dict[str, str] = {
 
 _OAUTH_BLOCKED_SIMPLE: frozenset[str] = frozenset({"api_disabled", "oauth_org_membership_required"})
 
-_OAUTH_CSS = """
-:root {
-  color-scheme: light;
-  --bg: #f4f5f7;
-  --card: #fff;
-  --ink: #1a1d23;
-  --muted: #5c6570;
-  --line: #d8dee6;
-  --accent: #2563eb;
-  --accent-ink: #fff;
-  --danger: #b42318;
-  --warn-bg: #fff7ed;
-  --warn-ink: #9a3412;
-  --radius: 8px;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 1.45;
-  color: var(--ink);
-  background: var(--bg);
-}
-* { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; }
-a { color: var(--accent); text-decoration: none; }
-a:hover { text-decoration: underline; }
-button, input { font: inherit; }
-h1 { font-size: 1.25rem; margin: 0 0 0.75rem; }
-.auth-layout { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
-.topbar {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.55rem 1rem; border-bottom: 1px solid var(--line);
-  background: var(--card);
-  position: sticky; top: 0; z-index: 5;
-}
-.auth-topbar { z-index: 10; }
-.brand {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  font-weight: 650; color: var(--ink); text-decoration: none;
-}
-.brand:hover { color: var(--ink); text-decoration: none; }
-.badge {
-  display: inline-block; font-size: 0.72rem; padding: 0.05rem 0.4rem;
-  border-radius: 999px; background: #e8eef8; color: #1e3a5f;
-}
-.badge.out { background: #ecfdf3; color: #067647; }
-.right { margin-left: auto; }
-.row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-.lang { display: flex; gap: 0.15rem; }
-.lang a {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: 0.2rem 0.4rem; font-size: 0.75rem;
-  border: 1px solid var(--line); border-radius: 6px;
-  background: #fff; color: var(--ink); text-decoration: none;
-}
-.lang a:hover { background: #eef2f7; text-decoration: none; }
-.lang a.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.github-link {
-  display: inline-flex; align-items: center; gap: 0.45rem;
-  color: var(--muted); text-decoration: none; border-radius: 6px;
-}
-.github-link:hover { color: var(--ink); text-decoration: none; }
-.github-link-icon { padding: 0.3rem 0.45rem; }
-.github-link-icon:hover { background: #eef2f7; }
-.github-icon { width: 1.05rem; height: 1.05rem; flex-shrink: 0; }
-.auth-page { flex: 1; display: grid; place-items: center; padding: 1.5rem; }
-.card {
-  width: min(420px, 100%);
-  background: var(--card); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 1.25rem;
-}
-.stack { display: grid; gap: 0.65rem; }
-.muted { color: var(--muted); margin: 0; }
-.err { color: var(--danger); font-size: 0.9rem; margin: 0; }
-.lead { margin: 0 0 0.5rem; }
-.scope-list { margin: 0.35rem 0 0; padding-left: 1.15rem; color: var(--ink); }
-.scope-list li { margin: 0.25rem 0; }
-.notice, .alert-warn {
-  background: var(--warn-bg); color: var(--warn-ink);
-  border: 1px solid #fed7aa; border-radius: 6px; padding: 0.65rem 0.75rem;
-  font-size: 0.9rem;
-}
-.alert {
-  border-radius: 6px; padding: 0.75rem 0.85rem; font-size: 0.9rem; border: 1px solid;
-}
-.alert-error {
-  background: #fef3f2; color: #912018; border-color: #fecdca;
-}
-.alert-body { margin: 0; }
-.actions {
-  display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;
-  margin-top: 0.85rem;
-}
-label { display: grid; gap: 0.2rem; font-size: 0.85rem; color: var(--muted); }
-input {
-  width: 100%; border: 1px solid var(--line); border-radius: 6px;
-  padding: 0.45rem 0.55rem; background: #fff; color: var(--ink);
-}
-button, .btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid var(--line); background: #fff; border-radius: 6px;
-  padding: 0.35rem 0.7rem; cursor: pointer; color: var(--ink);
-}
-a.btn { text-decoration: none; color: var(--ink); }
-a.btn:hover { background: #eef2f7; text-decoration: none; }
-.card.stack button, .card.stack > a.btn, .card.stack form > a.btn { width: 100%; }
-button.primary, a.btn.primary {
-  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
-}
-button.primary:hover, a.btn.primary:hover { filter: brightness(1.05); background: var(--accent); }
-a.text-link { font-size: 0.9rem; }
-.auth-segment {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem;
-  padding: 0.2rem; border: 1px solid var(--line); border-radius: 8px; background: #f6f7f9;
-}
-.auth-segment a.seg-link {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 100%; border: none; background: transparent; color: var(--muted);
-  font-weight: 500; padding: 0.45rem 0.6rem; border-radius: 6px; text-decoration: none;
-}
-.auth-segment a.seg-link:hover { text-decoration: none; color: var(--ink); }
-.auth-segment a.seg-link.active {
-  background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-.auth-panel-stack { display: grid; }
-.auth-panel-stack > .auth-panel { grid-area: 1 / 1; min-width: 0; }
-.auth-panel-stack > .auth-panel-hidden { visibility: hidden; pointer-events: none; }
-"""
-
-
 _OAUTH_JSON_PATHS = frozenset({"/oauth/token", "/oauth/register"})
 
 
@@ -226,7 +98,7 @@ def _page(
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>{_esc(title)} — {_esc(t(locale, "oauth_app_name"))}</title>
-  <style>{_OAUTH_CSS}</style>
+  <link rel="stylesheet" href="/auth-shell.css"/>
 </head>
 <body>
   <div class="auth-layout">
@@ -381,8 +253,6 @@ def oauth_login_page(
     sso_active = " active" if mode == "sso" else ""
     email_panel_class = "stack auth-panel" if mode == "email" else "stack auth-panel auth-panel-hidden"
     sso_panel_class = "stack auth-panel" if mode == "sso" else "stack auth-panel auth-panel-hidden"
-    email_inert = " inert" if mode != "email" else ""
-    sso_inert = " inert" if mode != "sso" else ""
     err_block = (
         f'<div class="alert alert-error" role="alert"><p class="alert-body">{_esc(error_message)}</p></div>'
         if error_message
@@ -396,7 +266,7 @@ def oauth_login_page(
 </div>
 {err_block}
 <div class="auth-panel-stack">
-  <form method="post" action="/oauth/login" class="{email_panel_class}" target="_top"{email_inert} aria-hidden="{str(mode != "email").lower()}">
+  <form method="post" action="/oauth/login" class="{email_panel_class}" target="_top" aria-hidden="{str(mode != "email").lower()}">
     <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
     <label>{_esc(t(locale, "oauth_email"))}
       <input name="email" type="email" autocomplete="username" required/>
@@ -405,14 +275,16 @@ def oauth_login_page(
       <input name="password" type="password" autocomplete="current-password" required/>
     </label>
     <button type="submit" class="primary">{_esc(t(locale, "oauth_sign_in"))}</button>
+    <div style="min-height:2.75rem" aria-hidden="true"></div>
   </form>
-  <form method="post" action="/oauth/sso" class="{sso_panel_class}" target="_top"{sso_inert} aria-hidden="{str(mode != "sso").lower()}">
+  <form method="post" action="/oauth/sso" class="{sso_panel_class}" target="_top" aria-hidden="{str(mode != "sso").lower()}">
     <input type="hidden" name="oauth_params" value="{_esc(hidden_params)}"/>
     <label>{_esc(t(locale, "oauth_org_id"))}
       <input name="org_id" type="text" required spellcheck="false" autocomplete="off" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value="{_esc(prefill_org_id)}"/>
     </label>
     <p class="muted">{_esc(t(locale, "oauth_org_id_hint"))}</p>
     <button type="submit" class="primary">{_esc(t(locale, "oauth_sso_continue"))}</button>
+    <div style="min-height:2.75rem" aria-hidden="true"></div>
   </form>
 </div>"""
     return _page(request, locale, title=t(locale, "oauth_title_sign_in"), body=body)

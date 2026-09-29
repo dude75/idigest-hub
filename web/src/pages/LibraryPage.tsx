@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiUpload } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
+import { Button } from '@/components/ui/button'
+import { AppCheckboxRow, AppInputField, AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
 import type {
   Audio,
   CapturePlatformsResponse,
@@ -13,9 +15,15 @@ import type {
   Transcript,
   User,
 } from '../types'
+import { AppStackCard } from '../components/AdminSection'
+import { AdminTablePager } from '../components/app/AdminDataTable'
+import { ListSection } from '../components/app/EntityUi'
 import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
 import { ListRow } from '../components/ListRow'
 import { Tabs } from '../components/Tabs'
+import { Card, CardContent } from '@/components/ui/card'
+import { AppSubmitButton } from '@/components/app/AdminUi'
+import { Input } from '@/components/ui/input'
 import { beginPipelineRun, captureRequest, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
 import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
 import { ApiError } from '../api'
@@ -113,6 +121,7 @@ export function LibraryPage() {
   const [importPlatforms, setImportPlatforms] = useState<ImportPlatformsResponse | null>(null)
   const [capturePin, setCapturePin] = useState('')
   const [capturePlatforms, setCapturePlatforms] = useState<CapturePlatformsResponse | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const hasOrg = Boolean(me?.org)
   const showOwnerFilter = isOrgAdmin(me) || isInstanceAdmin(me)
 
@@ -378,9 +387,28 @@ export function LibraryPage() {
       ? t('library.captureSubmit')
       : t('library.importSubmit')
 
+  const listEmpty = listTotal === 0
+
+  const pageSizeSelect = (
+    <AppPageSizeField
+      className="library-list-page-size"
+      label={t('task.pageSize')}
+      htmlFor="library-page-size"
+      value={String(pageSize)}
+      onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
+    >
+      {PAGE_SIZES.map((n) => (
+        <option key={n} value={n}>
+          {n}
+        </option>
+      ))}
+    </AppPageSizeField>
+  )
+
   return (
-    <div>
-      <section className="card library-ingest">
+    <div className="library-page">
+      <Card className="library-ingest mb-4">
+        <CardContent className="flex flex-col gap-3 pt-6">
         {uploadProgress && (
           <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
             <div className="upload-progress-label">
@@ -401,7 +429,7 @@ export function LibraryPage() {
         <div className={`library-ingest-toolbar${ingestEnabled ? '' : ' upload-only'}`}>
           {ingestEnabled ? (
             <>
-              <input
+              <Input
                 className="library-ingest-url"
                 type="url"
                 value={importUrl}
@@ -416,9 +444,9 @@ export function LibraryPage() {
                   }
                 }}
               />
-              {showCapturePin && (
-                <input
-                  className="library-capture-pin"
+              {showCapturePin ? (
+                <Input
+                  className="library-capture-pin max-w-[8rem]"
                   type="password"
                   value={capturePin}
                   placeholder={t('library.capturePinPlaceholder')}
@@ -433,15 +461,10 @@ export function LibraryPage() {
                     }
                   }}
                 />
-              )}
-              <button
-                type="button"
-                className="primary"
-                disabled={ingestSubmitDisabled}
-                onClick={() => void importFromUrl()}
-              >
+              ) : null}
+              <AppSubmitButton ready={!ingestSubmitDisabled} busy={busy} onClick={() => void importFromUrl()}>
                 {ingestSubmitLabel}
-              </button>
+              </AppSubmitButton>
               <span className="library-ingest-or" aria-hidden="true">
                 {t('library.or')}
               </span>
@@ -449,23 +472,29 @@ export function LibraryPage() {
           ) : (
             <span className="library-ingest-upload-label">{t('library.uploadFile')}</span>
           )}
-          <label
-            className="btn library-file-btn"
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={UPLOAD_FILE_ACCEPT}
+            disabled={busy}
+            className="profile-backup-file-input"
+            aria-label={t('library.chooseFile')}
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) void upload(f)
+              e.target.value = ''
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            className="shrink-0 whitespace-nowrap"
             title={t('library.uploadFormatsHint')}
+            disabled={busy}
+            onClick={() => fileInputRef.current?.click()}
           >
             {t('library.chooseFile')}
-            <input
-              type="file"
-              accept={UPLOAD_FILE_ACCEPT}
-              disabled={busy}
-              aria-label={t('library.chooseFile')}
-              onChange={(e) => {
-                const f = e.target.files?.[0]
-                if (f) void upload(f)
-                e.target.value = ''
-              }}
-            />
-          </label>
+          </Button>
         </div>
         {importEnabled && importPlatforms && (proxyBlocked || importPlatforms.platforms.length > 0) && (
           <p className={proxyBlocked ? 'err library-ingest-hint' : 'muted library-ingest-hint'}>
@@ -477,87 +506,92 @@ export function LibraryPage() {
           </p>
         )}
         <IngestPipelinePanel />
-      </section>
+        </CardContent>
+      </Card>
       <Tabs
+        variant="default"
+        className="library-tabs"
+        ariaLabel={t('nav.library')}
         items={LIBRARY_TABS.map((id) => ({
           id,
           label: t(`library.${id}`),
-          to: libraryPath(id),
+          active: tab === id,
+          onClick: () => nav(libraryPath(id)),
         }))}
       />
-      <div className="card stack library-list-controls">
+      <AppStackCard className="library-panel mb-4">
         <div className="library-list-filters">
-          <label className="library-list-search">
-            {t('library.search')}
-            <input
-              type="search"
-              value={query}
-              placeholder={t('library.searchPlaceholder')}
-              aria-label={t('library.search')}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </label>
+          <AppInputField
+            className="library-list-search"
+            label={t('library.search')}
+            htmlFor="library-list-search"
+            type="search"
+            value={query}
+            placeholder={t('library.searchPlaceholder')}
+            aria-label={t('library.search')}
+            onChange={(e) => setQuery(e.target.value)}
+          />
           {showOwnerFilter ? (
-            <label className="library-list-user">
-              {t('task.filterUser')}
-              <select value={userId} onChange={(e) => setUserId(e.target.value)}>
-                <option value="">{t('common.all')}</option>
-                {[...orgUsers]
-                  .sort((a, b) => a.email.localeCompare(b.email))
-                  .map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.email}
-                    </option>
-                  ))}
-              </select>
-            </label>
+            <AppSelectField
+              className="library-list-user"
+              label={t('task.filterUser')}
+              htmlFor="library-list-user"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+            >
+              <option value="">{t('common.all')}</option>
+              {[...orgUsers]
+                .sort((a, b) => a.email.localeCompare(b.email))
+                .map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.email}
+                  </option>
+                ))}
+            </AppSelectField>
           ) : (
             <div className="library-list-user library-list-user-placeholder" aria-hidden="true" />
           )}
           <div className="library-list-toggles">
-            <label
+            <AppCheckboxRow
+              id="library-group-by-source"
               className={`library-list-toggle${tab === 'audio' ? ' library-list-toggle-reserved' : ''}`}
-            >
-              <input
-                type="checkbox"
-                checked={groupListBySource}
-                disabled={tab === 'audio'}
-                tabIndex={tab === 'audio' ? -1 : 0}
-                aria-hidden={tab === 'audio'}
-                onChange={(e) => setGroupListBySource(e.target.checked)}
-              />
-              {t('library.groupBySource')}
-            </label>
-            <label className="library-list-toggle">
-              <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
-              {t('library.showHidden', { count: hiddenCount })}
-            </label>
+              label={t('library.groupBySource')}
+              checked={groupListBySource}
+              disabled={tab === 'audio'}
+              onCheckedChange={setGroupListBySource}
+            />
+            <AppCheckboxRow
+              id="library-show-hidden"
+              className="library-list-toggle"
+              label={t('library.showHidden', { count: hiddenCount })}
+              checked={hidden}
+              onCheckedChange={setHidden}
+            />
           </div>
         </div>
-        <div className="stats-section-head tasks-section-head library-list-footer">
-          <span className="muted library-list-range">
-            {t('task.pageRange', { from: listFrom, to: listTo, total: listTotal })}
-          </span>
-          <label className="inline">
-            {t('task.pageSize')}
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value) as PageSize)}
-            >
-              {PAGE_SIZES.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </div>
-      <div className="card stack library-list-section">
-        <div className="list">
+      </AppStackCard>
+      <ListSection
+        empty={t('common.empty')}
+        isEmpty={listEmpty}
+        actions={pageSizeSelect}
+        footer={
+          listTotal > pageSize ? (
+            <AdminTablePager>
+              <Button type="button" size="sm" variant="outline" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
+                {t('common.prev')}
+              </Button>
+              <span className="text-sm text-muted-foreground">{t('task.pageRange', { from: listFrom, to: listTo, total: listTotal })}</span>
+              <Button type="button" size="sm" variant="outline" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}>
+                {t('common.next')}
+              </Button>
+            </AdminTablePager>
+          ) : null
+        }
+      >
+        {!listEmpty ? (
+        <>
           {tab === 'audio' && (
             <>
-              {pagedAudios.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
               {pagedAudios.map((a) => (
                 <ListRow
                   key={a.id}
@@ -577,7 +611,6 @@ export function LibraryPage() {
           )}
           {tab === 'transcripts' && groupListBySource && (
             <>
-              {pagedTranscriptGroups.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
               {pagedTranscriptGroups.map((g) => (
                 <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
                   <div className="group-title">
@@ -610,7 +643,6 @@ export function LibraryPage() {
           )}
           {tab === 'transcripts' && !groupListBySource && (
             <>
-              {pagedTranscripts.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
               {pagedTranscripts.map((tr) => (
                 <ListRow
                   key={tr.id}
@@ -640,7 +672,6 @@ export function LibraryPage() {
           )}
           {tab === 'summaries' && groupListBySource && (
             <>
-              {pagedSummaryGroups.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
               {pagedSummaryGroups.map((g) => (
                 <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
                   <div className="group-title">
@@ -673,7 +704,6 @@ export function LibraryPage() {
           )}
           {tab === 'summaries' && !groupListBySource && (
             <>
-              {pagedSummaries.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
               {pagedSummaries.map((s) => (
                 <ListRow
                   key={s.id}
@@ -699,23 +729,9 @@ export function LibraryPage() {
               ))}
             </>
           )}
-        </div>
-        {listTotal > pageSize && (
-          <div className="row pager">
-            <button type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
-              {t('common.prev')}
-            </button>
-            <span className="muted">{t('task.pageRange', { from: listFrom, to: listTo, total: listTotal })}</span>
-            <button
-              type="button"
-              disabled={safePage >= pageCount - 1}
-              onClick={() => setPage(safePage + 1)}
-            >
-              {t('common.next')}
-            </button>
-          </div>
-        )}
-      </div>
+        </>
+        ) : null}
+      </ListSection>
     </div>
   )
 }

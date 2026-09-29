@@ -57,7 +57,7 @@ test:frontend:
     paths:
       - web/node_modules/
   script:
-    - cd web && npm ci && npm run build
+    - cd web && npm ci && npm run check:ui && npm test && npm run build
 
 # --- Security (enable templates in GitLab Admin → Security & Compliance) ---
 

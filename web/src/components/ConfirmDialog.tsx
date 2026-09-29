@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
 import { Modal } from './Modal'
 
 type Props = {
@@ -23,21 +24,27 @@ export function ConfirmDialog({ message, confirmLabel, danger, busy, onConfirm, 
   }, [onClose, busy])
 
   return (
-    <Modal onClose={onClose} closeOnBackdrop={!busy}>
-      <p id="confirm-dialog-message">{message}</p>
-      <div className="row modal-actions">
-        <button
-          type="button"
-          className={danger ? 'danger' : 'primary'}
-          disabled={busy}
-          onClick={() => void onConfirm()}
-        >
-          {confirmLabel ?? t('common.confirm')}
-        </button>
-        <button type="button" disabled={busy} autoFocus onClick={onClose}>
-          {t('common.cancel')}
-        </button>
-      </div>
-    </Modal>
+    <Modal
+      onClose={onClose}
+      closeOnBackdrop={!busy}
+      showCloseButton={false}
+      title={t('common.confirm')}
+      description={message}
+      footer={
+        <>
+          <Button type="button" variant="outline" disabled={busy} autoFocus onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            type="button"
+            variant={danger ? 'destructive' : 'default'}
+            disabled={busy}
+            onClick={() => void onConfirm()}
+          >
+            {confirmLabel ?? t('common.confirm')}
+          </Button>
+        </>
+      }
+    />
   )
 }

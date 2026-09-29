@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
@@ -8,6 +7,7 @@ import { GitHubLink } from './GitHubLink'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { resolveAuthContinuationPath } from '../routes'
 import type { Tariff } from '../types'
+import { ButtonLink } from '@/components/ui/button-link'
 
 export function LandingHeader() {
   const { t } = useTranslation()
@@ -34,11 +34,17 @@ export function LandingHeader() {
         <GitHubLink />
         <LanguageSwitcher />
         {me ? (
-          <Link to={enterAppPath!} className="btn primary">{t('landing.enterSystem')}</Link>
+          <ButtonLink to={enterAppPath!} size="sm">
+            {t('landing.enterSystem')}
+          </ButtonLink>
         ) : (
           <>
-            <Link to="/login" className="btn">{t('auth.login')}</Link>
-            <Link to="/signup" className="btn primary">{t('auth.signup')}</Link>
+            <ButtonLink to="/login" variant="outline" size="sm">
+              {t('auth.login')}
+            </ButtonLink>
+            <ButtonLink to="/signup" size="sm">
+              {t('auth.signup')}
+            </ButtonLink>
           </>
         )}
       </div>

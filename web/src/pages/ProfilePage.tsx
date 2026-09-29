@@ -8,6 +8,11 @@ import { Modal } from '../components/Modal'
 import { MfaSetupPanel } from '../components/MfaSetupPanel'
 import { Segmented } from '../components/Segmented'
 import { StatCard, StatGrid } from '../components/StatCard'
+import { Button } from '@/components/ui/button'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AdminFormActions, AppSubmitButton, HubBadge, type HubBadgeTone } from '../components/app/AdminUi'
+import { AppCheckboxRow, AppInputField, AppSelectField } from '../components/app/AppFormControls'
+import { AppUrlCopyRow } from '../components/app/AppUrlCopyRow'
 import {
   allowedDefaultRoutes,
   defaultRouteLabel,
@@ -45,7 +50,6 @@ export function ProfilePage() {
   const [tokens, setTokens] = useState<ApiToken[]>([])
   const [tokenName, setTokenName] = useState('')
   const [secret, setSecret] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const [creating, setCreating] = useState(false)
   const [ok, setOk] = useState(false)
   const [routeOk, setRouteOk] = useState(false)
@@ -164,6 +168,43 @@ export function ProfilePage() {
     const model = resolveEffectiveSummarizeModel(summarizeModel, me.summarize_prefs)
     return isAvailableSummarizeModel(me.summarize_models, model)
   }, [me, summarizeModel])
+
+  const storedDefaultRoute = useMemo((): DefaultRoute => {
+    const stored = normalizeDefaultRoute(me?.user.default_route)
+    const allowed = allowedDefaultRoutes(me)
+    return stored && allowed.includes(stored) ? stored : allowed[0]
+  }, [me])
+
+  const defaultRouteDirty = defaultRoute !== storedDefaultRoute
+
+  const savedDateTimeFormat = useMemo((): 'inherit' | DateTimeFormatId => {
+    if (!me?.user.date_time_format) return 'inherit'
+    return DATE_TIME_FORMATS.includes(me.user.date_time_format as DateTimeFormatId)
+      ? (me.user.date_time_format as DateTimeFormatId)
+      : 'inherit'
+  }, [me])
+
+  const savedTimezone = me?.user.timezone || 'inherit'
+  const dateTimeDirty = dateTimeFormat !== savedDateTimeFormat || timezone !== savedTimezone
+
+  const savedAsrModel = me?.user.asr_model || 'inherit'
+  const savedDiarizationModel =
+    me?.user.diarization_model == null
+      ? 'inherit'
+      : me.user.diarization_model === ''
+        ? 'off'
+        : me.user.diarization_model
+  const transcribeDirty = asrModel !== savedAsrModel || diarizationModel !== savedDiarizationModel
+  const transcribeReady = transcribeDirty && transcribeComboValid
+
+  const savedSummarizeModel = me?.user.summarize_model || 'inherit'
+  const summarizeDirty = summarizeModel !== savedSummarizeModel
+  const summarizeReady = summarizeDirty && summarizeModelValid
+
+  const savedCaptureBotName = me?.user.capture_bot_display_name ?? ''
+  const captureBotDirty = captureBotName.trim() !== savedCaptureBotName.trim()
+
+  const passwordReady = current.trim().length > 0 && next.trim().length >= 8
 
   async function saveDefaultRoute() {
     setRouteOk(false)
@@ -285,7 +326,6 @@ export function ProfilePage() {
       setTokenTotpOpen(true)
       return
     }
-    setCopied(false)
     setCreating(true)
     try {
       const body: { name: string; totp_code?: string } = { name }
@@ -318,17 +358,6 @@ export function ProfilePage() {
       showError(err)
     } finally {
       setMfaBusy(false)
-    }
-  }
-
-  async function copySecret() {
-    if (!secret) return
-    try {
-      await navigator.clipboard.writeText(secret)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
-    } catch {
-      /* clipboard unavailable */
     }
   }
 
@@ -444,16 +473,26 @@ export function ProfilePage() {
         ? t('profile.roleOrgMember')
         : null
 
+  const roleBadgeTone: HubBadgeTone = me?.user.is_instance_admin
+    ? 'primary'
+    : me?.user.role === 'org_admin'
+      ? 'primary'
+      : 'muted'
+
   return (
     <AdminPage>
       {me && (
-        <div className="card profile-identity">
-          <div className="profile-identity-main">
-            <span className="stat-label">{t('common.email')}</span>
-            <span className="profile-identity-email" title={me.user.email}>{me.user.email}</span>
-          </div>
-          {roleBadge && <span className="badge profile-identity-badge">{roleBadge}</span>}
-        </div>
+        <Card className="profile-identity">
+          <CardHeader className="space-y-2">
+            <CardDescription className="stat-label m-0">{t('common.email')}</CardDescription>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <CardTitle className="min-w-0 break-all text-lg font-semibold leading-snug" title={me.user.email}>
+                {me.user.email}
+              </CardTitle>
+              {roleBadge ? <HubBadge tone={roleBadgeTone}>{roleBadge}</HubBadge> : null}
+            </div>
+          </CardHeader>
+        </Card>
       )}
 
       <StatGrid>
@@ -473,76 +512,73 @@ export function ProfilePage() {
 
       <div className="profile-settings-grid">
         <AdminFormCard title={t('profile.defaultRoute')} lead={t('profile.defaultRouteHint')}>
-          <label>
-            {t('profile.defaultRoute')}
-            <select
-              value={defaultRoute}
-              onChange={(e) => {
-                setRouteOk(false)
-                setDefaultRouteLocal(e.target.value as DefaultRoute)
-              }}
-            >
-              {allowedDefaultRoutes(me).map((route) => (
-                <option key={route} value={route}>
-                  {defaultRouteLabel(route, t)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="profile-actions">
-            <button className="primary" type="button" onClick={() => void saveDefaultRoute()}>
+          <AppSelectField
+            label={t('profile.defaultRoute')}
+            htmlFor="profile-default-route"
+            value={defaultRoute}
+            onChange={(e) => {
+              setRouteOk(false)
+              setDefaultRouteLocal(e.target.value as DefaultRoute)
+            }}
+          >
+            {allowedDefaultRoutes(me).map((route) => (
+              <option key={route} value={route}>
+                {defaultRouteLabel(route, t)}
+              </option>
+            ))}
+          </AppSelectField>
+          <AdminFormActions className="profile-actions">
+            <AppSubmitButton ready={defaultRouteDirty} onClick={() => void saveDefaultRoute()}>
               {t('common.save')}
-            </button>
-            {routeOk && <p className="ok">{t('profile.saved')}</p>}
-          </div>
+            </AppSubmitButton>
+            {routeOk ? <p className="ok">{t('profile.saved')}</p> : null}
+          </AdminFormActions>
         </AdminFormCard>
 
         {me && (me.transcribe_models.asr_models.length > 0 || me.transcribe_models.diarization_models.length > 0) && (
           <AdminFormCard title={t('profile.transcribeTitle')} lead={t('profile.transcribeHint')}>
-            <label>
-              {t('instance.asr')}
-              <select
-                value={asrModel}
-                onChange={(e) => {
-                  setTranscribeOk(false)
-                  const nextAsr = e.target.value
-                  setAsrModelLocal(nextAsr)
-                  if (!me) return
-                  const effectiveAsr = resolveEffectiveAsr(nextAsr, me.transcribe_prefs)
-                  const allowedDiar = diarizationOptionsForAsr(me.transcribe_models, effectiveAsr)
-                  if (diarizationModel !== 'inherit' && diarizationModel !== 'off' && !allowedDiar.includes(diarizationModel)) {
-                    setDiarizationModelLocal('inherit')
-                  }
-                }}
-              >
-                <option value="inherit">
-                  {t('profile.dateTimeInherit', { value: me.transcribe_prefs.instance_asr_model })}
-                </option>
-                {me.transcribe_models.asr_models.map((modelId) => (
-                  <option key={modelId} value={modelId}>{modelId}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              {t('instance.diarization')}
-              <select
-                value={diarizationModel}
-                onChange={(e) => {
-                  setTranscribeOk(false)
-                  setDiarizationModelLocal(e.target.value)
-                }}
-              >
-                <option value="inherit">
-                  {t('profile.transcribeDiarizationInherit', {
-                    value: me.transcribe_prefs.instance_diarization_model || t('instance.diarizationOff'),
-                  })}
-                </option>
-                <option value="off">{t('instance.diarizationOff')}</option>
-                {availableDiarizationModels.map((modelId) => (
-                  <option key={modelId} value={modelId}>{modelId}</option>
-                ))}
-              </select>
-            </label>
+            <AppSelectField
+              label={t('instance.asr')}
+              htmlFor="profile-asr"
+              value={asrModel}
+              onChange={(e) => {
+                setTranscribeOk(false)
+                const nextAsr = e.target.value
+                setAsrModelLocal(nextAsr)
+                if (!me) return
+                const effectiveAsr = resolveEffectiveAsr(nextAsr, me.transcribe_prefs)
+                const allowedDiar = diarizationOptionsForAsr(me.transcribe_models, effectiveAsr)
+                if (diarizationModel !== 'inherit' && diarizationModel !== 'off' && !allowedDiar.includes(diarizationModel)) {
+                  setDiarizationModelLocal('inherit')
+                }
+              }}
+            >
+              <option value="inherit">
+                {t('profile.dateTimeInherit', { value: me.transcribe_prefs.instance_asr_model })}
+              </option>
+              {me.transcribe_models.asr_models.map((modelId) => (
+                <option key={modelId} value={modelId}>{modelId}</option>
+              ))}
+            </AppSelectField>
+            <AppSelectField
+              label={t('instance.diarization')}
+              htmlFor="profile-diarization"
+              value={diarizationModel}
+              onChange={(e) => {
+                setTranscribeOk(false)
+                setDiarizationModelLocal(e.target.value)
+              }}
+            >
+              <option value="inherit">
+                {t('profile.transcribeDiarizationInherit', {
+                  value: me.transcribe_prefs.instance_diarization_model || t('instance.diarizationOff'),
+                })}
+              </option>
+              <option value="off">{t('instance.diarizationOff')}</option>
+              {availableDiarizationModels.map((modelId) => (
+                <option key={modelId} value={modelId}>{modelId}</option>
+              ))}
+            </AppSelectField>
             <p className="muted">
               {t('profile.transcribePreview', {
                 asr: resolveEffectiveAsr(asrModel, me.transcribe_prefs),
@@ -552,36 +588,35 @@ export function ProfilePage() {
             {!transcribeComboValid ? (
               <p className="err">{t('profile.transcribeComboInvalid')}</p>
             ) : null}
-            <div className="profile-actions">
-              <button className="primary" type="button" disabled={!transcribeComboValid} onClick={() => void saveTranscribePrefs()}>
+            <AdminFormActions className="profile-actions">
+              <AppSubmitButton ready={transcribeReady} onClick={() => void saveTranscribePrefs()}>
                 {t('common.save')}
-              </button>
-              {transcribeOk && <p className="ok">{t('profile.saved')}</p>}
-            </div>
+              </AppSubmitButton>
+              {transcribeOk ? <p className="ok">{t('profile.saved')}</p> : null}
+            </AdminFormActions>
           </AdminFormCard>
         )}
 
         {me && me.summarize_models.summarize_models.length > 0 && (
           <AdminFormCard title={t('profile.summarizeTitle')} lead={t('profile.summarizeHint')}>
-            <label>
-              {t('instance.summarizeModelLabel')}
-              <select
-                value={summarizeModel}
-                onChange={(e) => {
-                  setSummarizeOk(false)
-                  setSummarizeModelLocal(e.target.value)
-                }}
-              >
-                <option value="inherit">
-                  {t('profile.dateTimeInherit', {
-                    value: me.summarize_prefs.instance_summarize_model || t('instance.summarizeModelUnset'),
-                  })}
-                </option>
-                {me.summarize_models.summarize_models.map((modelId) => (
-                  <option key={modelId} value={modelId}>{modelId}</option>
-                ))}
-              </select>
-            </label>
+            <AppSelectField
+              label={t('instance.summarizeModelLabel')}
+              htmlFor="profile-summarize"
+              value={summarizeModel}
+              onChange={(e) => {
+                setSummarizeOk(false)
+                setSummarizeModelLocal(e.target.value)
+              }}
+            >
+              <option value="inherit">
+                {t('profile.dateTimeInherit', {
+                  value: me.summarize_prefs.instance_summarize_model || t('instance.summarizeModelUnset'),
+                })}
+              </option>
+              {me.summarize_models.summarize_models.map((modelId) => (
+                <option key={modelId} value={modelId}>{modelId}</option>
+              ))}
+            </AppSelectField>
             <p className="muted">
               {t('profile.summarizePreview', {
                 model: resolveEffectiveSummarizeModel(summarizeModel, me.summarize_prefs) || t('instance.summarizeModelUnset'),
@@ -590,128 +625,123 @@ export function ProfilePage() {
             {!summarizeModelValid ? (
               <p className="err">{t('profile.summarizeModelInvalid')}</p>
             ) : null}
-            <div className="profile-actions">
-              <button className="primary" type="button" disabled={!summarizeModelValid} onClick={() => void saveSummarizePrefs()}>
+            <AdminFormActions className="profile-actions">
+              <AppSubmitButton ready={summarizeReady} onClick={() => void saveSummarizePrefs()}>
                 {t('common.save')}
-              </button>
-              {summarizeOk && <p className="ok">{t('profile.saved')}</p>}
-            </div>
+              </AppSubmitButton>
+              {summarizeOk ? <p className="ok">{t('profile.saved')}</p> : null}
+            </AdminFormActions>
           </AdminFormCard>
         )}
 
         {me?.capture_prefs.capture_enabled ? (
           <AdminFormCard title={t('profile.captureBotTitle')} lead={t('profile.captureBotHint')}>
-            <label>
-              {t('org.captureBotDisplayName')}
-              <input
-                type="text"
-                value={captureBotName}
-                maxLength={128}
-                placeholder={t('profile.captureBotInherit', { value: me.capture_prefs.org_bot_display_name })}
-                onChange={(e) => {
-                  setCaptureBotOk(false)
-                  setCaptureBotNameLocal(e.target.value)
-                }}
-              />
-            </label>
+            <AppInputField
+              label={t('org.captureBotDisplayName')}
+              htmlFor="profile-capture-bot"
+              type="text"
+              value={captureBotName}
+              maxLength={128}
+              placeholder={t('profile.captureBotInherit', { value: me.capture_prefs.org_bot_display_name })}
+              onChange={(e) => {
+                setCaptureBotOk(false)
+                setCaptureBotNameLocal(e.target.value)
+              }}
+            />
             <p className="muted">{t('org.captureBotDisplayNameHint')}</p>
             <p className="muted">{t('profile.captureBotPreview', { name: captureBotEffective })}</p>
-            <div className="profile-actions">
-              <button className="primary" type="button" onClick={() => void saveCaptureBotPrefs()}>
+            <AdminFormActions className="profile-actions">
+              <AppSubmitButton ready={captureBotDirty} onClick={() => void saveCaptureBotPrefs()}>
                 {t('common.save')}
-              </button>
-              {captureBotOk && <p className="ok">{t('profile.saved')}</p>}
-            </div>
+              </AppSubmitButton>
+              {captureBotOk ? <p className="ok">{t('profile.saved')}</p> : null}
+            </AdminFormActions>
           </AdminFormCard>
         ) : null}
 
         <AdminFormCard title={t('profile.dateTimeTitle')} lead={t('profile.dateTimeHint')}>
-          <label>
-            {t('profile.dateTimeFormat')}
-            <select
-              value={dateTimeFormat}
-              onChange={(e) => {
-                setDateTimeOk(false)
-                setDateTimeFormatLocal(e.target.value as 'inherit' | DateTimeFormatId)
-              }}
-            >
-              <option value="inherit">
-                {t('profile.dateTimeInherit', {
-                  value: t(`dateTime.format.${me?.date_time_prefs.instance_format ?? 'eu_24h'}`),
-                })}
+          <AppSelectField
+            label={t('profile.dateTimeFormat')}
+            htmlFor="profile-dt-format"
+            value={dateTimeFormat}
+            onChange={(e) => {
+              setDateTimeOk(false)
+              setDateTimeFormatLocal(e.target.value as 'inherit' | DateTimeFormatId)
+            }}
+          >
+            <option value="inherit">
+              {t('profile.dateTimeInherit', {
+                value: t(`dateTime.format.${me?.date_time_prefs.instance_format ?? 'eu_24h'}`),
+              })}
+            </option>
+            {DATE_TIME_FORMATS.map((id) => (
+              <option key={id} value={id}>
+                {t(`dateTime.format.${id}`)}
               </option>
-              {DATE_TIME_FORMATS.map((id) => (
-                <option key={id} value={id}>
-                  {t(`dateTime.format.${id}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t('profile.timezone')}
-            <select
-              value={timezone}
-              onChange={(e) => {
-                setDateTimeOk(false)
-                setTimezoneLocal(e.target.value)
-              }}
-            >
-              <option value="inherit">
-                {t('profile.dateTimeInherit', {
-                  value: me?.date_time_prefs.instance_timezone ?? 'GMT+0',
-                })}
+            ))}
+          </AppSelectField>
+          <AppSelectField
+            label={t('profile.timezone')}
+            htmlFor="profile-timezone"
+            value={timezone}
+            onChange={(e) => {
+              setDateTimeOk(false)
+              setTimezoneLocal(e.target.value)
+            }}
+          >
+            <option value="inherit">
+              {t('profile.dateTimeInherit', {
+                value: me?.date_time_prefs.instance_timezone ?? 'GMT+0',
+              })}
+            </option>
+            {TIMEZONE_OPTIONS.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
               </option>
-              {TIMEZONE_OPTIONS.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-              {timezone !== 'inherit' && !TIMEZONE_OPTIONS.includes(timezone as (typeof TIMEZONE_OPTIONS)[number]) && (
-                <option value={timezone}>{timezone}</option>
-              )}
-            </select>
-          </label>
+            ))}
+            {timezone !== 'inherit' && !TIMEZONE_OPTIONS.includes(timezone as (typeof TIMEZONE_OPTIONS)[number]) && (
+              <option value={timezone}>{timezone}</option>
+            )}
+          </AppSelectField>
           <p className="muted">
             {t('profile.dateTimePreview', { sample: dateTimePreview })}
           </p>
-          <div className="profile-actions">
-            <button className="primary" type="button" onClick={() => void saveDateTimePrefs()}>
+          <AdminFormActions className="profile-actions">
+            <AppSubmitButton ready={dateTimeDirty} onClick={() => void saveDateTimePrefs()}>
               {t('common.save')}
-            </button>
-            {dateTimeOk && <p className="ok">{t('profile.saved')}</p>}
-          </div>
+            </AppSubmitButton>
+            {dateTimeOk ? <p className="ok">{t('profile.saved')}</p> : null}
+          </AdminFormActions>
         </AdminFormCard>
 
         {showLocalAuth && me && (
           <AdminFormCard title={t('mfa.title')} lead={t('mfa.profileLead')}>
             {me.mfa_enabled ? (
-              <form className="stack" onSubmit={(e) => void disableMfa(e)}>
+              <form className="flex flex-col gap-3" onSubmit={(e) => void disableMfa(e)}>
                 <p className="ok">{t('mfa.enabled')}</p>
                 {me.mfa_required && <p className="muted">{t('mfa.requiredByOrg')}</p>}
                 {!me.mfa_required && (
                   <>
-                    <label>
-                      {t('common.password')}
-                      <input
-                        type="password"
-                        required
-                        value={disablePw}
-                        onChange={(e) => setDisablePw(e.target.value)}
-                        autoComplete="current-password"
-                      />
-                    </label>
-                    <label>
-                      {t('mfa.codeOrRecovery')}
-                      <input
-                        type="text"
-                        required
-                        value={disableCode}
-                        onChange={(e) => setDisableCode(e.target.value)}
-                      />
-                    </label>
-                    <button className="danger" disabled={mfaBusy} type="submit">
+                    <AppInputField
+                      label={t('common.password')}
+                      htmlFor="profile-mfa-disable-pw"
+                      type="password"
+                      required
+                      value={disablePw}
+                      onChange={(e) => setDisablePw(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                    <AppInputField
+                      label={t('mfa.codeOrRecovery')}
+                      htmlFor="profile-mfa-disable-code"
+                      type="text"
+                      required
+                      value={disableCode}
+                      onChange={(e) => setDisableCode(e.target.value)}
+                    />
+                    <Button variant="destructive" disabled={mfaBusy} type="submit">
                       {t('mfa.disable')}
-                    </button>
+                    </Button>
                   </>
                 )}
               </form>
@@ -723,19 +753,32 @@ export function ProfilePage() {
 
         {showLocalAuth && (
           <AdminFormCard title={t('auth.changePassword')}>
-            <form className="stack" onSubmit={(e) => void changePw(e)}>
-              <label>
-                {t('auth.currentPassword')}
-                <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} autoComplete="current-password" />
-              </label>
-              <label>
-                {t('auth.newPassword')}
-                <input type="password" required minLength={8} value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
-              </label>
-              <div className="profile-actions">
-                <button className="primary" type="submit">{t('common.save')}</button>
-                {ok && <p className="ok">{t('profile.saved')}</p>}
-              </div>
+            <form className="flex flex-col gap-3" onSubmit={(e) => void changePw(e)}>
+              <AppInputField
+                label={t('auth.currentPassword')}
+                htmlFor="profile-current-pw"
+                type="password"
+                required
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+                autoComplete="current-password"
+              />
+              <AppInputField
+                label={t('auth.newPassword')}
+                htmlFor="profile-new-pw"
+                type="password"
+                required
+                minLength={8}
+                value={next}
+                onChange={(e) => setNext(e.target.value)}
+                autoComplete="new-password"
+              />
+              <AdminFormActions className="profile-actions">
+                <AppSubmitButton type="submit" ready={passwordReady}>
+                  {t('common.save')}
+                </AppSubmitButton>
+                {ok ? <p className="ok">{t('profile.saved')}</p> : null}
+              </AdminFormActions>
             </form>
           </AdminFormCard>
         )}
@@ -746,31 +789,25 @@ export function ProfilePage() {
           <div className="profile-backup-body">
             <div className="profile-backup-group">
               <span className="profile-backup-label">{t('profile.backupInclude')}</span>
-              <div className="profile-backup-checks">
-                <label className="profile-check-row">
-                  <input
-                    type="checkbox"
-                    checked={backupTranscripts}
-                    onChange={(e) => setBackupTranscripts(e.target.checked)}
-                  />
-                  {t('library.transcripts')}
-                </label>
-                <label className="profile-check-row">
-                  <input
-                    type="checkbox"
-                    checked={backupSummaries}
-                    onChange={(e) => setBackupSummaries(e.target.checked)}
-                  />
-                  {t('library.summaries')}
-                </label>
-                <label className="profile-check-row">
-                  <input
-                    type="checkbox"
-                    checked={backupSkills}
-                    onChange={(e) => setBackupSkills(e.target.checked)}
-                  />
-                  {t('nav.skills')}
-                </label>
+              <div className="profile-backup-checks flex flex-col gap-2">
+                <AppCheckboxRow
+                  id="profile-backup-transcripts"
+                  label={t('library.transcripts')}
+                  checked={backupTranscripts}
+                  onCheckedChange={setBackupTranscripts}
+                />
+                <AppCheckboxRow
+                  id="profile-backup-summaries"
+                  label={t('library.summaries')}
+                  checked={backupSummaries}
+                  onCheckedChange={setBackupSummaries}
+                />
+                <AppCheckboxRow
+                  id="profile-backup-skills"
+                  label={t('nav.skills')}
+                  checked={backupSkills}
+                  onCheckedChange={setBackupSkills}
+                />
               </div>
             </div>
             <div className="profile-backup-group">
@@ -789,14 +826,10 @@ export function ProfilePage() {
           </div>
           <p className="profile-backup-restore-hint">{t('profile.restoreBackupHint')}</p>
           <div className="profile-actions profile-backup-actions">
-            <button
-              className="primary"
-              type="button"
-              disabled={backingUp || (!backupTranscripts && !backupSummaries && !backupSkills)}
-              onClick={() => void downloadBackup()}
+            <Button type="button" disabled={backingUp || (!backupTranscripts && !backupSummaries && !backupSkills)} onClick={() => void downloadBackup()}
             >
               {backingUp ? t('common.loading') : t('profile.downloadBackup')}
-            </button>
+            </Button>
             <input
               ref={restoreInputRef}
               type="file"
@@ -807,19 +840,17 @@ export function ProfilePage() {
                 if (file) void restoreBackup(file)
               }}
             />
-            <button
-              type="button"
-              disabled={restoringUp || backingUp}
-              onClick={() => restoreInputRef.current?.click()}
+            <Button type="button" disabled={restoringUp || backingUp} onClick={() => restoreInputRef.current?.click()}
             >
               {restoringUp ? t('common.loading') : t('profile.restoreBackup')}
-            </button>
+            </Button>
             {restoreMessage && <p className="ok">{restoreMessage}</p>}
           </div>
         </AdminFormCard>
       )}
 
       <AdminTableCard title={t('profile.tokens')} lead={t('profile.tokensLead')}>
+        <p className="muted profile-mcp-hint">{t('profile.mcpOAuthHint')}</p>
         {!apiAllowed && (
           <div className="profile-alert" role="status">
             {t('profile.apiDisabled')}
@@ -829,68 +860,57 @@ export function ProfilePage() {
         {secret && (
           <div className="profile-secret-card">
             <p className="profile-secret-title">{t('profile.secretOnce')}</p>
-            <div className="profile-secret-row">
-              <code className="secret profile-secret-value">{secret}</code>
-              <button type="button" onClick={() => void copySecret()}>
-                {copied ? t('profile.copied') : t('profile.copy')}
-              </button>
-            </div>
+            <AppUrlCopyRow value={secret} className="profile-secret-copy-row" />
           </div>
         )}
 
         {tokenTotpOpen && (
-          <div className="profile-secret-card stack">
+          <div className="profile-secret-card flex flex-col gap-3">
             <p className="profile-secret-title">{t('mfa.tokenStepUp')}</p>
-            <label>
-              {t('mfa.code')}
-              <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                value={tokenTotp}
-                onChange={(e) => setTokenTotp(e.target.value)}
-              />
-            </label>
-            <div className="row">
-              <button
-                className="primary"
-                type="button"
-                disabled={creating || !tokenTotp.trim()}
-                onClick={() => void createToken(tokenTotp.trim())}
+            <AppInputField
+              label={t('mfa.code')}
+              htmlFor="profile-token-totp"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={tokenTotp}
+              onChange={(e) => setTokenTotp(e.target.value)}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <Button type="button" disabled={creating || !tokenTotp.trim()} onClick={() => void createToken(tokenTotp.trim())}
               >
                 {creating ? t('common.loading') : t('profile.newToken')}
-              </button>
-              <button type="button" onClick={() => { setTokenTotpOpen(false); setTokenTotp('') }}>
+              </Button>
+              <Button type="button" onClick={() => { setTokenTotpOpen(false); setTokenTotp('') }}>
                 {t('common.cancel')}
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
         <div className="profile-token-create">
-          <label className="grow">
-            {t('profile.tokenName')}
-            <input
-              placeholder={t('profile.tokenNamePlaceholder')}
-              value={tokenName}
-              onChange={(e) => setTokenName(e.target.value)}
-              disabled={!apiAllowed || creating}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  void createToken()
-                }
-              }}
-            />
-          </label>
-          <button
-            className="primary profile-create-btn"
-            type="button"
-            disabled={!apiAllowed || creating || !tokenName.trim()}
+          <AppInputField
+            className="grow"
+            label={t('profile.tokenName')}
+            htmlFor="profile-token-name"
+            placeholder={t('profile.tokenNamePlaceholder')}
+            value={tokenName}
+            onChange={(e) => setTokenName(e.target.value)}
+            disabled={!apiAllowed || creating}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void createToken()
+              }
+            }}
+          />
+          <AppSubmitButton
+            ready={apiAllowed && !creating && Boolean(tokenName.trim())}
+            busy={creating}
             onClick={() => void createToken()}
           >
             {creating ? t('common.loading') : t('profile.newToken')}
-          </button>
+          </AppSubmitButton>
         </div>
 
         {tokens.length === 0 ? (
@@ -906,14 +926,14 @@ export function ProfilePage() {
                     <span className="profile-token-date">{fmtDate(tok.created_at)}</span>
                   </div>
                   <div className="profile-token-badges">
-                    {tok.revoked && <span className="badge">{t('profile.revoked')}</span>}
-                    {tok.blocked_by_tariff && <span className="badge warn">{t('profile.blockedTariff')}</span>}
+                    {tok.revoked ? <HubBadge tone="muted">{t('profile.revoked')}</HubBadge> : null}
+                    {tok.blocked_by_tariff ? <HubBadge tone="pending">{t('profile.blockedTariff')}</HubBadge> : null}
                   </div>
                 </div>
                 {!tok.revoked && (
-                  <button type="button" className="danger" onClick={() => void revoke(tok.id)}>
+                  <Button type="button" variant="destructive" onClick={() => void revoke(tok.id)}>
                     {t('profile.revoke')}
-                  </button>
+                  </Button>
                 )}
               </li>
             ))}
@@ -929,9 +949,9 @@ export function ProfilePage() {
 
       {canDeleteAccount && (
         <AdminFormCard title={t('profile.deleteAccount')} lead={t('profile.deleteAccountLead')}>
-          <button type="button" className="danger" onClick={() => void openDeleteAccount()}>
+          <Button type="button" variant="destructive" onClick={() => void openDeleteAccount()}>
             {t('profile.deleteAccount')}
-          </button>
+          </Button>
         </AdminFormCard>
       )}
 
@@ -952,67 +972,55 @@ export function ProfilePage() {
           {deletePreview.requires_successor && (
             <>
               <p className="muted">{t('profile.deleteAccountSuccessorHint')}</p>
-              <label>
-                {t('profile.deleteAccountSuccessor')}
-                <select
-                  required
-                  value={deleteSuccessor}
-                  disabled={deleteBusy}
-                  onChange={(e) => setDeleteSuccessor(e.target.value)}
-                >
-                  {deletePreview.candidates.length > 1 && (
-                    <option value="">{t('org.target')}</option>
-                  )}
-                  {deletePreview.candidates.map((c) => (
-                    <option key={c.id} value={c.id}>{c.email}</option>
-                  ))}
-                </select>
-              </label>
+              <AppSelectField
+                label={t('profile.deleteAccountSuccessor')}
+                htmlFor="profile-delete-successor"
+                required
+                value={deleteSuccessor}
+                disabled={deleteBusy}
+                onChange={(e) => setDeleteSuccessor(e.target.value)}
+              >
+                {deletePreview.candidates.length > 1 && (
+                  <option value="">{t('org.target')}</option>
+                )}
+                {deletePreview.candidates.map((c) => (
+                  <option key={c.id} value={c.id}>{c.email}</option>
+                ))}
+              </AppSelectField>
             </>
           )}
           {showLocalAuthDelete && (
-            <label>
-              {t('profile.deleteAccountPassword')}
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={deletePassword}
-                disabled={deleteBusy}
-                onChange={(e) => setDeletePassword(e.target.value)}
-              />
-            </label>
+            <AppInputField
+              label={t('profile.deleteAccountPassword')}
+              htmlFor="profile-delete-pw"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={deletePassword}
+              disabled={deleteBusy}
+              onChange={(e) => setDeletePassword(e.target.value)}
+            />
           )}
           {me?.mfa_enabled && (
-            <label>
-              {t('profile.deleteAccountTotp')}
-              <input
-                type="text"
-                required
-                autoComplete="one-time-code"
-                value={deleteTotp}
-                disabled={deleteBusy}
-                onChange={(e) => setDeleteTotp(e.target.value)}
-              />
-            </label>
+            <AppInputField
+              label={t('profile.deleteAccountTotp')}
+              htmlFor="profile-delete-totp"
+              type="text"
+              required
+              autoComplete="one-time-code"
+              value={deleteTotp}
+              disabled={deleteBusy}
+              onChange={(e) => setDeleteTotp(e.target.value)}
+            />
           )}
-          <div className="row modal-actions">
-            <button
-              type="button"
-              className="danger"
-              disabled={
-                deleteBusy
-                || (deletePreview.requires_successor && !deleteSuccessor)
-                || (showLocalAuthDelete && !deletePassword)
-                || (Boolean(me?.mfa_enabled) && !deleteTotp.trim())
-              }
-              onClick={() => void confirmDeleteAccount()}
+          <div className="flex flex-wrap items-center gap-2 modal-actions">
+            <Button type="button" variant="destructive" disabled={ deleteBusy || (deletePreview.requires_successor && !deleteSuccessor) || (showLocalAuthDelete && !deletePassword) || (Boolean(me?.mfa_enabled) && !deleteTotp.trim()) } onClick={() => void confirmDeleteAccount()}
             >
               {deleteBusy ? t('profile.deleteAccountBusy') : t('profile.deleteAccountConfirm')}
-            </button>
-            <button type="button" disabled={deleteBusy} onClick={() => setDeleteOpen(false)}>
+            </Button>
+            <Button type="button" disabled={deleteBusy} onClick={() => setDeleteOpen(false)}>
               {t('common.cancel')}
-            </button>
+            </Button>
           </div>
         </Modal>
       )}

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import type { Task } from '../types'
 import { PipelineProgress } from '../components/PipelineProgress'
 import { isOrgAdmin, useAuth } from '../auth'
+import { EntityBackLink, EntityDetailCard, EntityPage } from '../components/app/EntityUi'
+import { Button } from '@/components/ui/button'
+import { CardHeader, CardTitle } from '@/components/ui/card'
 import {
   endPipelineRun,
   initialTaskFromNav,
@@ -138,53 +141,59 @@ export function TaskPage() {
   const clientsTried = task ? taskYoutubeClientsTried(task) : null
 
   return (
-    <div className="card stack">
-      <Link to="/app/tasks">{t('common.back')}</Link>
-      <PipelineProgress task={task} />
-      <h1>{taskHeading()}</h1>
-      {task && isTaskWaitingOnWorkers(task) && (
-        <p className="muted task-wait-hint">{t('task.workerStage.waitHint')}</p>
-      )}
-      {task && isTaskMissingWorkerForModels(task) && (
-        <p className="err task-wait-hint">
-          {t('task.workerStage.noMatchingWorkerHint', {
-            asr: typeof task.meta?.asr_model === 'string' ? task.meta.asr_model : '—',
-            diarization:
-              typeof task.meta?.diarization_model === 'string'
-                ? task.meta.diarization_model
-                : t('instance.diarizationOff'),
-          })}
-        </p>
-      )}
-      {task?.type === 'import' && typeof task.meta?.platform === 'string' && (
-        <p className="muted">{task.meta.platform}</p>
-      )}
-      {task?.error && (
-        <div className="stack">
-          <p className="err">{message}</p>
-          {clientsTried && (
-            <p className="muted import-error-meta">{t('task.youtubeClientsTried', { clients: clientsTried })}</p>
-          )}
-          {detail && (
-            <details className="import-error-detail">
-              <summary>{t('task.errorDetail')}</summary>
-              <pre>{detail}</pre>
-            </details>
-          )}
+    <EntityPage>
+      <EntityBackLink to="/app/tasks">{t('common.back')}</EntityBackLink>
+      <EntityDetailCard>
+        <CardHeader className="space-y-3 p-0 pb-2">
+          <PipelineProgress task={task} />
+          <CardTitle className="text-lg leading-snug">{taskHeading()}</CardTitle>
+        </CardHeader>
+        {task && isTaskWaitingOnWorkers(task) ? (
+          <p className="muted task-wait-hint">{t('task.workerStage.waitHint')}</p>
+        ) : null}
+        {task && isTaskMissingWorkerForModels(task) ? (
+          <p className="err task-wait-hint">
+            {t('task.workerStage.noMatchingWorkerHint', {
+              asr: typeof task.meta?.asr_model === 'string' ? task.meta.asr_model : '—',
+              diarization:
+                typeof task.meta?.diarization_model === 'string'
+                  ? task.meta.diarization_model
+                  : t('instance.diarizationOff'),
+            })}
+          </p>
+        ) : null}
+        {task?.type === 'import' && typeof task.meta?.platform === 'string' ? (
+          <p className="muted">{task.meta.platform}</p>
+        ) : null}
+        {task?.error ? (
+          <div className="flex flex-col gap-2">
+            <p className="err">{message}</p>
+            {clientsTried ? (
+              <p className="muted import-error-meta">{t('task.youtubeClientsTried', { clients: clientsTried })}</p>
+            ) : null}
+            {detail ? (
+              <details className="import-error-detail">
+                <summary>{t('task.errorDetail')}</summary>
+                <pre>{detail}</pre>
+              </details>
+            ) : null}
+          </div>
+        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {task?.type === 'capture' &&
+          task.status === 'running' &&
+          task.meta?.worker_capture_status !== 'success' &&
+          task.meta?.stage !== 'downloading' ? (
+            <Button type="button" onClick={() => void stopCapture()}>{t('task.captureStop')}</Button>
+          ) : null}
+          {task && (task.status === 'queued' || task.status === 'running') ? (
+            <Button type="button" variant="outline" onClick={() => void cancel()}>{t('task.cancel')}</Button>
+          ) : null}
+          {task && taskIsRetriable(task) && (admin || task.user_id === me?.user.id) ? (
+            <Button type="button" onClick={() => void retry()}>{t('task.retry')}</Button>
+          ) : null}
         </div>
-      )}
-      {task?.type === 'capture' &&
-        task.status === 'running' &&
-        task.meta?.worker_capture_status !== 'success' &&
-        task.meta?.stage !== 'downloading' && (
-        <button type="button" className="primary" onClick={() => void stopCapture()}>{t('task.captureStop')}</button>
-      )}
-      {task && (task.status === 'queued' || task.status === 'running') && (
-        <button type="button" onClick={() => void cancel()}>{t('task.cancel')}</button>
-      )}
-      {task && taskIsRetriable(task) && (admin || task.user_id === me?.user.id) && (
-        <button type="button" onClick={() => void retry()}>{t('task.retry')}</button>
-      )}
-    </div>
+      </EntityDetailCard>
+    </EntityPage>
   )
 }

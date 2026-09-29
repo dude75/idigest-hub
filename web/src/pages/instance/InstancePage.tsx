@@ -3,8 +3,8 @@ import { Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { isInstanceAdmin, useAuth } from '../../auth'
 import { LIBRARY_DEFAULT } from '../../routes'
-import { Tabs } from '../../components/Tabs'
 import { INSTANCE_TABS, resolveInstanceTab, type InstanceTab } from './constants'
+import { Tabs } from '../../components/Tabs'
 
 const InstanceStatsTab = lazy(() =>
   import('./InstanceStatsTab').then((m) => ({ default: m.InstanceStatsTab })),
@@ -53,22 +53,24 @@ export function InstancePage() {
   const [search, setSearch] = useSearchParams()
   const tab = resolveInstanceTab(search.get('tab'))
 
-  function setTab(id: InstanceTab) {
-    setSearch(id === 'stats' ? {} : { tab: id }, { replace: true })
+  function setTab(id: string) {
+    const next = id as InstanceTab
+    if (!INSTANCE_TABS.includes(next)) return
+    setSearch(next === 'stats' ? {} : { tab: next }, { replace: true })
   }
 
   if (!isInstanceAdmin(me)) return <Navigate to={LIBRARY_DEFAULT} replace />
 
+  const tabItems = INSTANCE_TABS.map((id) => ({
+    id,
+    label: t(`instance.${id}`),
+    active: tab === id,
+    onClick: () => setTab(id),
+  }))
+
   return (
-    <div>
-      <Tabs
-        items={INSTANCE_TABS.map((id) => ({
-          id,
-          label: t(`instance.${id}`),
-          active: tab === id,
-          onClick: () => setTab(id),
-        }))}
-      />
+    <div className="instance-admin">
+      <Tabs items={tabItems} ariaLabel={t('instance.title')} />
       <Suspense fallback={<p className="muted">{t('common.loading')}</p>}>
         <InstanceTabContent tab={tab} />
       </Suspense>

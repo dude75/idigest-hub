@@ -1,10 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
-import { AdminPage, AdminTableCard } from '../../components/AdminSection'
+import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
+import {
+  AdminDataTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  adminTableCellMuted,
+  adminTableCellNum,
+  adminTableCellPrimary,
+  adminTableHeadNum,
+} from '../../components/app/AdminDataTable'
+import { AdminFormActions, AdminMetaRow, HubBadge } from '../../components/app/AdminUi'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import type { DataEncryptionKey, EncryptionJob } from '../../types'
 import { formatInteger, fmtAge, fmtDate, showError } from '../../util'
+import { Button } from '@/components/ui/button'
 
 type DekList = {
   active_dek_id: string | null
@@ -135,88 +149,103 @@ export function EncryptionTab() {
         </StatGrid>
       )}
 
-      <div className="card stack admin-form-card">
-        <div className="stats-section-head">
-          <h2>{t('encryption.title')}</h2>
-        </div>
-        <p className="admin-lead">{t('encryption.lead')}</p>
-        {deks && deks.hub_secret_prev_configured && (
-          <p className="hint">{t('encryption.hubSecretPrevHint')}</p>
-        )}
-        {deks && deks.deks_pending_rewrap > 0 && (
-          <p className="error">{t('encryption.rewrapPending', { count: deks.deks_pending_rewrap })}</p>
-        )}
-        <div className="row wrap">
-          <button type="button" disabled={busy || jobRunning} onClick={() => void addDek()}>
+      <AdminFormCard title={t('encryption.title')} lead={t('encryption.lead')}>
+        {deks && deks.hub_secret_prev_configured ? (
+          <p className="text-sm text-muted-foreground">{t('encryption.hubSecretPrevHint')}</p>
+        ) : null}
+        {deks && deks.deks_pending_rewrap > 0 ? (
+          <p className="text-sm text-destructive">{t('encryption.rewrapPending', { count: deks.deks_pending_rewrap })}</p>
+        ) : null}
+        <AdminFormActions>
+          <Button type="button" disabled={busy || jobRunning} onClick={() => void addDek()}>
             {t('encryption.addDek')}
-          </button>
-          <button type="button" disabled={busy || jobRunning || !retiring} onClick={() => void startReencrypt()}>
+          </Button>
+          <Button type="button" variant="outline" disabled={busy || jobRunning || !retiring} onClick={() => void startReencrypt()}>
             {t('encryption.reencrypt')}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </AdminFormActions>
+      </AdminFormCard>
 
-      {job && (
-        <div className="card stack admin-table-card">
-          <div className="stats-section-head">
-            <h2>{t('encryption.jobTitle')}</h2>
-          </div>
-          <p className="muted">
+      {job ? (
+        <AdminFormCard title={t('encryption.jobTitle')}>
+          <p className="text-sm text-muted-foreground">
             {t('encryption.jobStarted')}: {fmtDate(job.started_at ?? job.created_at)}
-            {job.completed_at && (
+            {job.completed_at ? (
               <>
                 {' · '}
                 {t('encryption.jobFinished')}: {fmtDate(job.completed_at)}
               </>
-            )}
+            ) : null}
           </p>
-          <p>
-            <span className={`badge encryption-job-${job.status}`}>{dekStatusBadge(job.status, t)}</span>
-            {' '}
-            {progressLabel(job)}
-          </p>
-          {job.error && <p className="error">{job.error}</p>}
-          {jobRunning && (
-            <button type="button" disabled={busy} onClick={() => void cancelJob()}>
+          <AdminMetaRow>
+            <HubBadge
+              tone={
+                job.status === 'completed'
+                  ? 'success'
+                  : job.status === 'failed' || job.status === 'canceled'
+                    ? 'warning'
+                    : 'pending'
+              }
+            >
+              {dekStatusBadge(job.status, t)}
+            </HubBadge>
+            <span className="text-sm text-muted-foreground">{progressLabel(job)}</span>
+          </AdminMetaRow>
+          {job.error ? <p className="text-sm text-destructive">{job.error}</p> : null}
+          {jobRunning ? (
+            <Button type="button" variant="outline" disabled={busy} onClick={() => void cancelJob()}>
               {t('encryption.cancel')}
-            </button>
-          )}
-        </div>
-      )}
+            </Button>
+          ) : null}
+        </AdminFormCard>
+      ) : null}
 
-      <AdminTableCard title={t('encryption.deksTitle')} empty={t('encryption.noDeks')} isEmpty={!deks?.items.length}>
+      <AdminTableCard
+        title={t('encryption.deksTitle')}
+        empty={t('encryption.noDeks')}
+        isEmpty={!deks?.items.length}
+        tableLayout
+      >
         {deks && deks.items.length > 0 ? (
-          <div className="stats-table-wrap">
-            <table className="stats-table">
-              <thead>
-                <tr>
-                  <th>{t('encryption.dekId')}</th>
-                  <th>{t('encryption.status')}</th>
-                  <th className="num">{t('encryption.usage')}</th>
-                  <th>{t('encryption.created')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {deks.items.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <code>{row.id.slice(0, 8)}…</code>
-                      {deks.active_dek_id === row.id && (
-                        <span className="badge out"> {t('encryption.active')}</span>
-                      )}
-                    </td>
-                    <td>
-                      <span className={`badge encryption-dek-${row.status}`}>
-                        {dekStatusBadge(row.status, t)}
-                      </span>
-                    </td>
-                    <td className="num">{formatInteger(row.usage_count)}</td>
-                    <td className="stats-day">{fmtDate(row.created_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AdminDataTable>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('encryption.dekId')}</TableHead>
+                <TableHead>{t('encryption.status')}</TableHead>
+                <TableHead className={adminTableHeadNum}>{t('encryption.usage')}</TableHead>
+                <TableHead>{t('encryption.created')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {deks.items.map((row) => (
+                <TableRow key={row.id}>
+                  <TableCell className={adminTableCellPrimary}>
+                    <AdminMetaRow>
+                      <code className="text-xs">{row.id.slice(0, 8)}…</code>
+                      {deks.active_dek_id === row.id ? (
+                        <HubBadge tone="success">{t('encryption.active')}</HubBadge>
+                      ) : null}
+                    </AdminMetaRow>
+                  </TableCell>
+                  <TableCell>
+                    <HubBadge
+                      tone={
+                        row.status === 'active'
+                          ? 'success'
+                          : row.status === 'retiring'
+                            ? 'pending'
+                            : 'muted'
+                      }
+                    >
+                      {dekStatusBadge(row.status, t)}
+                    </HubBadge>
+                  </TableCell>
+                  <TableCell className={adminTableCellNum}>{formatInteger(row.usage_count)}</TableCell>
+                  <TableCell className={adminTableCellMuted}>{fmtDate(row.created_at)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </AdminDataTable>
         ) : null}
       </AdminTableCard>
     </AdminPage>

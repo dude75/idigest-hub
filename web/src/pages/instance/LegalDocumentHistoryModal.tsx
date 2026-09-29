@@ -13,6 +13,19 @@ import {
 import type { LegalDocumentVersionDetail, LegalDocumentVersionSummary } from '../../types'
 import { formatDateTime } from '../../util/datetimeFormat'
 import { showError } from '../../util'
+import { Button } from '@/components/ui/button'
+import {
+  AdminDataTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  adminTableCellActions,
+  adminTableCellMuted,
+  adminTableHeadActions,
+} from '../../components/app/AdminDataTable'
+import { AdminMetaRow, AdminRowActions, HubBadge } from '../../components/app/AdminUi'
 
 type Props = {
   documentKey: LegalDocumentKey
@@ -66,86 +79,92 @@ export function LegalDocumentHistoryModal({ documentKey, onClose }: Props) {
     return detail.text_en || detail.text_ru || detail.text_es || ''
   }, [detail, viewLang])
 
-  const title = t('instance.legalDocumentHistoryTitle', {
+  const listTitle = t('instance.legalDocumentHistoryTitle', {
     document: t(`legalDocuments.tabs.${LEGAL_DOCUMENT_I18N[documentKey]}`),
   })
 
   if (detail) {
     return (
-      <Modal wide onClose={() => setDetail(null)} panelClassName="stack">
-        <h3>{t('instance.legalDocumentHistoryView', { version: detail.version })}</h3>
-        <div className="stack">
-          <p className="muted legal-doc-history-meta">
+      <Modal
+        wide
+        onClose={() => setDetail(null)}
+        title={t('instance.legalDocumentHistoryView', { version: detail.version })}
+        description={
+          <>
             {formatDateTime(detail.created_at, undefined, i18n.language)}
             {detail.created_by_email ? ` · ${detail.created_by_email}` : ''}
             {!detail.published ? ` · ${t('instance.legalDocumentHidden')}` : ''}
-          </p>
-          <Segmented
-            variant="outline"
-            ariaLabel={t('instance.legalDocumentLanguage')}
-            value={viewLang}
-            onChange={setViewLang}
-            options={LEGAL_DOC_LOCALES.map((value) => ({
-              value,
-              label: t(`lang.${value}`),
-            }))}
-          />
-          <div className="agreement-text agreement-preview legal-doc-history-body">
-            {detailText.trim() ? (
-              <MarkdownBody text={detailText} />
-            ) : (
-              <p className="muted">{t('agreement.empty')}</p>
-            )}
-          </div>
-          <div className="row">
-            <button type="button" onClick={() => setDetail(null)}>
-              {t('instance.legalDocumentHistoryBack')}
-            </button>
-          </div>
+          </>
+        }
+        footer={
+          <Button type="button" variant="outline" onClick={() => setDetail(null)}>
+            {t('instance.legalDocumentHistoryBack')}
+          </Button>
+        }
+      >
+        <Segmented
+          variant="outline"
+          ariaLabel={t('instance.legalDocumentLanguage')}
+          value={viewLang}
+          onChange={setViewLang}
+          options={LEGAL_DOC_LOCALES.map((value) => ({
+            value,
+            label: t(`lang.${value}`),
+          }))}
+        />
+        <div className="agreement-text agreement-preview legal-doc-history-body max-h-[50vh] overflow-y-auto rounded-md border p-4">
+          {detailText.trim() ? (
+            <MarkdownBody text={detailText} />
+          ) : (
+            <p className="text-sm text-muted-foreground">{t('agreement.empty')}</p>
+          )}
         </div>
       </Modal>
     )
   }
 
   return (
-    <Modal wide onClose={onClose} panelClassName="stack">
-      <h3>{title}</h3>
+    <Modal wide onClose={onClose} title={listTitle}>
       {loading ? (
-        <p className="muted">{t('common.loading')}</p>
+        <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
       ) : items.length === 0 ? (
-        <p className="muted">{t('instance.legalDocumentHistoryEmpty')}</p>
+        <p className="text-sm text-muted-foreground">{t('instance.legalDocumentHistoryEmpty')}</p>
       ) : (
-        <div className="stats-table-wrap">
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>{t('instance.legalDocumentVersionCol')}</th>
-                <th>{t('common.date')}</th>
-                <th>{t('instance.legalDocumentHistoryAuthor')}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((row) => (
-                <tr key={row.version}>
-                  <td>
-                    <span className="badge">{row.version}</span>
+        <AdminDataTable>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('instance.legalDocumentVersionCol')}</TableHead>
+              <TableHead>{t('common.date')}</TableHead>
+              <TableHead>{t('instance.legalDocumentHistoryAuthor')}</TableHead>
+              <TableHead className={adminTableHeadActions} />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {items.map((row) => (
+              <TableRow key={row.version}>
+                <TableCell>
+                  <AdminMetaRow>
+                    <HubBadge tone="muted">{row.version}</HubBadge>
                     {!row.published ? (
-                      <span className="badge">{t('instance.legalDocumentHidden')}</span>
+                      <HubBadge tone="pending">{t('instance.legalDocumentHidden')}</HubBadge>
                     ) : null}
-                  </td>
-                  <td>{formatDateTime(row.created_at, undefined, i18n.language)}</td>
-                  <td>{row.created_by_email || '—'}</td>
-                  <td>
-                    <button type="button" disabled={detailBusy} onClick={() => void openVersion(row.version)}>
+                  </AdminMetaRow>
+                </TableCell>
+                <TableCell className={adminTableCellMuted}>
+                  {formatDateTime(row.created_at, undefined, i18n.language)}
+                </TableCell>
+                <TableCell>{row.created_by_email || '—'}</TableCell>
+                <TableCell className={adminTableCellActions}>
+                  <AdminRowActions>
+                    <Button type="button" size="sm" variant="outline" disabled={detailBusy} onClick={() => void openVersion(row.version)}>
                       {t('common.view')}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </Button>
+                  </AdminRowActions>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </AdminDataTable>
       )}
     </Modal>
   )

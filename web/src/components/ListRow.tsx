@@ -23,8 +23,8 @@ export function ListRow({ to, title, meta, belowMeta, trailing, compact }: Props
   }
 
   return (
-    <div className="item row">
-      <div className="grow">
+    <div className="item row gap-3">
+      <div className="min-w-0 grow">
         {to ? (
           <Link className="title" to={to}>{title}</Link>
         ) : (

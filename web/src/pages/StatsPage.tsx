@@ -8,14 +8,15 @@ import { StatsDaysView } from '../components/StatsDaysView'
 import { StatsFiltersPanel } from '../components/StatsFiltersPanel'
 import { AdminPage } from '../components/AdminSection'
 import { StatsSummaryGrid } from '../components/StatsSummaryGrid'
+import { defaultFilterRange } from '../util/date'
 import { showError } from '../util'
 
 export function StatsPage() {
   const { me } = useAuth()
   const [stats, setStats] = useState<OrgStats | null>(null)
   const [users, setUsers] = useState<User[]>([])
-  const [fromDay, setFromDay] = useState('')
-  const [toDay, setToDay] = useState('')
+  const [fromDay, setFromDay] = useState(() => defaultFilterRange().from)
+  const [toDay, setToDay] = useState(() => defaultFilterRange().to)
   const [userId, setUserId] = useState('')
   const [kind, setKind] = useState('')
   const admin = isOrgAdmin(me)

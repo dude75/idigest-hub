@@ -3,8 +3,12 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { AuthCard } from '../components/auth/AuthCard'
+import { AuthField } from '../components/auth/AuthField'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { showError } from '../util'
+import { AppSubmitButton } from '@/components/app/AdminUi'
+import { Input } from '@/components/ui/input'
 
 export function ResetPage() {
   const { t } = useTranslation()
@@ -35,23 +39,37 @@ export function ResetPage() {
 
   return (
     <AuthPageShell>
-      <form className="card auth-card stack" onSubmit={(e) => void onSubmit(e)}>
-        <h1>{t('auth.reset')}</h1>
+      <AuthCard title={t('auth.reset')}>
         {ok ? (
-          <>
-            <p className="ok">{t('auth.resetDone')}</p>
-            <Link to="/login">{t('auth.login')}</Link>
-          </>
+          <div className="space-y-4">
+            <p className="ok text-sm">{t('auth.resetDone')}</p>
+            <Link to="/login" className="text-sm">
+              {t('auth.login')}
+            </Link>
+          </div>
         ) : (
-          <>
-            <label>
-              {t('auth.newPassword')}
-              <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
-            </label>
-            <button className="primary" disabled={busy || !token} type="submit">{t('common.save')}</button>
-          </>
+          <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+            <AuthField label={t('auth.newPassword')} htmlFor="reset-password">
+              <Input
+                id="reset-password"
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </AuthField>
+            <AppSubmitButton
+              className="w-full"
+              type="submit"
+              ready={Boolean(token && password.length >= 8)}
+              busy={busy}
+            >
+              {t('common.save')}
+            </AppSubmitButton>
+          </form>
         )}
-      </form>
+      </AuthCard>
     </AuthPageShell>
   )
 }

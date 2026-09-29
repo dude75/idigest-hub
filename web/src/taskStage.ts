@@ -96,11 +96,13 @@ export function taskStatusBadgeLabel(task: Task, t: TaskTranslate): string {
   return t(`task.status.${task.status}`, { defaultValue: task.status })
 }
 
-export function taskStatusBadgeClass(task: Task): string {
-  if (task.status === 'success') return 'badge out'
-  if (task.status === 'error') return 'badge err'
-  if (taskWorkStage(task) === 'no_matching_worker') return 'badge err'
-  if (isTaskWaitingOnWorkers(task)) return 'badge wait'
-  if (task.status === 'running') return 'badge warn'
-  return 'badge'
+export type TaskStatusBadgeTone = 'success' | 'warning' | 'pending' | 'muted'
+
+export function taskStatusBadgeTone(task: Task): TaskStatusBadgeTone {
+  if (task.status === 'success') return 'success'
+  if (task.status === 'error') return 'warning'
+  if (taskWorkStage(task) === 'no_matching_worker') return 'warning'
+  if (isTaskWaitingOnWorkers(task)) return 'pending'
+  if (task.status === 'running') return 'pending'
+  return 'muted'
 }

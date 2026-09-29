@@ -1,9 +1,11 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth'
+import { AuthCard } from '../components/auth/AuthCard'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { MfaSetupPanel } from '../components/MfaSetupPanel'
 import { resolveAuthBlockPath, resolveAuthContinuationPath } from '../routes'
+import { Button } from '@/components/ui/button'
 
 export function Enroll2faPage() {
   const { t } = useTranslation()
@@ -25,19 +27,19 @@ export function Enroll2faPage() {
 
   return (
     <AuthPageShell>
-      <div className="card auth-card stack">
-        <h1>{t('mfa.enrollTitle')}</h1>
-        <p className="admin-lead">{t('mfa.enrollRequired')}</p>
-        <MfaSetupPanel
-          onComplete={async () => {
-            const next = await refresh()
-            nav(resolveAuthContinuationPath(next), { replace: true })
-          }}
-        />
-        <button type="button" onClick={() => void logout()}>
-          {t('nav.logout')}
-        </button>
-      </div>
+      <AuthCard className="max-w-lg" title={t('mfa.enrollTitle')} description={t('mfa.enrollRequired')}>
+        <div className="space-y-4">
+          <MfaSetupPanel
+            onComplete={async () => {
+              const next = await refresh()
+              nav(resolveAuthContinuationPath(next), { replace: true })
+            }}
+          />
+          <Button className="w-full" type="button" variant="outline" onClick={() => void logout()}>
+            {t('nav.logout')}
+          </Button>
+        </div>
+      </AuthCard>
     </AuthPageShell>
   )
 }

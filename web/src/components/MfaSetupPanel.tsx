@@ -3,6 +3,11 @@ import { useTranslation } from 'react-i18next'
 import QRCodeImport from 'react-qr-code'
 import { api } from '../api'
 import { showError } from '../util'
+import { AuthField } from './auth/AuthField'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { AppSubmitButton } from './app/AdminUi'
+import { AppUrlCopyRow } from './app/AppUrlCopyRow'
 
 type QRCodeProps = SVGProps<SVGSVGElement> & {
   value: string
@@ -35,8 +40,6 @@ export function MfaSetupPanel({ onComplete }: Props) {
   const [code, setCode] = useState('')
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null)
   const [busy, setBusy] = useState(false)
-  const [secretCopied, setSecretCopied] = useState(false)
-
   async function startSetup() {
     setBusy(true)
     try {
@@ -71,17 +74,6 @@ export function MfaSetupPanel({ onComplete }: Props) {
     URL.revokeObjectURL(url)
   }
 
-  async function copySecret() {
-    if (!secret) return
-    try {
-      await navigator.clipboard.writeText(secret)
-      setSecretCopied(true)
-      window.setTimeout(() => setSecretCopied(false), 1500)
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-
   async function confirmSetup(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -100,7 +92,7 @@ export function MfaSetupPanel({ onComplete }: Props) {
 
   if (recoveryCodes) {
     return (
-      <div className="stack">
+      <div className="flex flex-col gap-3">
         <p className="muted">{t('mfa.recoverySave')}</p>
         <ul className="mfa-recovery-list">
           {recoveryCodes.map((item) => (
@@ -109,17 +101,14 @@ export function MfaSetupPanel({ onComplete }: Props) {
             </li>
           ))}
         </ul>
-        <div className="row mfa-recovery-actions">
-          <button type="button" onClick={() => downloadRecoveryCodes(recoveryCodes)}>
+        <div className="flex flex-wrap items-center gap-2 mfa-recovery-actions">
+          <Button type="button" onClick={() => downloadRecoveryCodes(recoveryCodes)}>
             {t('common.downloadTxt')}
-          </button>
-          <button
-            className="primary"
-            type="button"
-            onClick={() => void onComplete()}
+          </Button>
+          <Button type="button" onClick={() => void onComplete()}
           >
             {t('common.confirm')}
-          </button>
+          </Button>
         </div>
       </div>
     )
@@ -127,7 +116,7 @@ export function MfaSetupPanel({ onComplete }: Props) {
 
   if (secret) {
     return (
-      <form className="stack" onSubmit={(e) => void confirmSetup(e)}>
+      <form className="flex flex-col gap-3" onSubmit={(e) => void confirmSetup(e)}>
         <p className="muted">{t('mfa.setupHint')}</p>
         {otpauthUri && (
           <div className="mfa-qr-block">
@@ -142,16 +131,11 @@ export function MfaSetupPanel({ onComplete }: Props) {
         )}
         <details className="mfa-secret-block">
           <summary className="muted">{t('mfa.manualEntry')}</summary>
-          <div className="public-link-url-row">
-            <code className="public-link-url" title={secret}>{secret}</code>
-            <button type="button" className="public-link-copy" onClick={() => void copySecret()}>
-              {secretCopied ? t('profile.copied') : t('common.copy')}
-            </button>
-          </div>
+          <AppUrlCopyRow value={secret} />
         </details>
-        <label>
-          {t('mfa.code')}
-          <input
+        <AuthField label={t('mfa.code')} htmlFor="mfa-setup-code">
+          <Input
+            id="mfa-setup-code"
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -161,17 +145,17 @@ export function MfaSetupPanel({ onComplete }: Props) {
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
-        </label>
-        <button className="primary" disabled={busy} type="submit">
+        </AuthField>
+        <AppSubmitButton type="submit" ready={code.replace(/\s/g, '').length >= 6} busy={busy}>
           {t('common.confirm')}
-        </button>
+        </AppSubmitButton>
       </form>
     )
   }
 
   return (
-    <button className="primary" type="button" disabled={busy} onClick={() => void startSetup()}>
+    <Button type="button" disabled={busy} onClick={() => void startSetup()}>
       {t('mfa.enable')}
-    </button>
+    </Button>
   )
 }

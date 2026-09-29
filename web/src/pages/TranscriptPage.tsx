@@ -14,6 +14,16 @@ import { libraryPath } from '../routes'
 import type { Skill, Summary, Task, Transcript } from '../types'
 import { ShareBadges, fmtDate, showError } from '../util'
 import { utteranceDisplayText, utteranceStart, utteranceTimeLabel } from '../util/utteranceMedia'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AppCheckboxRow } from '../components/app/AppFormControls'
+import { HubBadge } from '../components/app/AdminUi'
+import {
+  EntityBackLink,
+  EntityBodyCard,
+  EntityDetailCard,
+  EntityPage,
+} from '../components/app/EntityUi'
 
 function skillNamesForSummary(summary: Summary, skills: Skill[]): string {
   const byId = new Map(skills.map((s) => [s.id, s.name]))
@@ -186,9 +196,39 @@ export function TranscriptPage() {
 
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
+  const utteranceActions = (
+    <>
+      {!openText ? (
+        <span className="text-sm text-muted-foreground">{t('transcript.collapsed', { n: (item?.utterances || []).length })}</span>
+      ) : null}
+      {openText && item?.source_audio_id ? (
+        <AppCheckboxRow
+          id="transcript-seek-on-click"
+          className="inline"
+          label={t('transcript.playFromLine')}
+          checked={seekOnClick}
+          onCheckedChange={setSeekOnClick}
+        />
+      ) : null}
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={() => {
+          setOpenText((v) => {
+            if (v) setSeekOnClick(false)
+            return !v
+          })
+        }}
+      >
+        {openText ? t('transcript.collapse') : t('transcript.expand')}
+      </Button>
+    </>
+  )
+
   return (
-    <div>
-      <Link to={libraryPath('transcripts')}>{t('common.back')}</Link>
+    <EntityPage>
+      <EntityBackLink to={libraryPath('transcripts')}>{t('common.back')}</EntityBackLink>
       {item ? (
         <InlineRename
           value={item.display_title || item.title || item.id.slice(0, 8)}
@@ -201,84 +241,44 @@ export function TranscriptPage() {
       )}
       {item && (
         <>
-          <div className="entity-actions">
-            <div className="audio-media">
-              <div className="row">
+          <EntityDetailCard>
+              <div className="flex flex-wrap items-center gap-2">
                 <ShareBadges item={item} />
                 <span className="muted">{fmtDate(item.created_at)}</span>
-                {item.source_audio_id && (
+                {item.source_audio_id ? (
                   <Link to={`/app/audio/${item.source_audio_id}`}>
                     {item.source_filename || t('transcript.sourceAudio', { id: item.source_audio_id.slice(0, 8) })}
                   </Link>
-                )}
+                ) : null}
               </div>
-              {item.source_audio_id && <AudioPlayer ref={playerRef} audioId={item.source_audio_id} />}
+              {item.source_audio_id ? <AudioPlayer ref={playerRef} audioId={item.source_audio_id} /> : null}
               <EntityToolbar>
-                <button
-                  type="button"
-                  onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=txt`).catch(showError)}
+                <Button type="button" variant="outline" onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=txt`).catch(showError)}
                 >
                   {t('common.downloadTxt')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=json`).catch(showError)}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => void apiDownload(`/transcripts/${item.id}/export?format=json`).catch(showError)}
                 >
                   {t('common.downloadJson')}
-                </button>
-                {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
-                <button
-                  type="button"
-                  title={t('library.hideHint')}
-                  onClick={() => void toggleHidden()}
+                </Button>
+                {mine && <Button type="button" variant="outline" onClick={() => setShare(true)}>{t('common.share')}</Button>}
+                <Button type="button" variant="outline" title={t('library.hideHint')} onClick={() => void toggleHidden()}
                 >
                   {item.hidden ? t('common.unhide') : t('common.hide')}
-                </button>
+                </Button>
                 {admin && (
-                  <button
-                    type="button"
-                    className="danger"
-                    title={t('library.wipeHint')}
-                    onClick={() => setConfirmWipe(true)}
+                  <Button type="button" variant="destructive" title={t('library.wipeHint')} onClick={() => setConfirmWipe(true)}
                   >
                     {t('common.wipe')}
-                  </button>
+                  </Button>
                 )}
               </EntityToolbar>
-            </div>
-            {!admin && <EntityHint>{t('library.cannotDeleteHint')}</EntityHint>}
-          </div>
-          <section className="item fold">
-            <div className="row fold-head">
-              <h2 className="grow">{t('transcript.utterances')}</h2>
-              {!openText && (
-                <span className="muted">{t('transcript.collapsed', { n: (item.utterances || []).length })}</span>
-              )}
-              {openText && item.source_audio_id && (
-                <label className="inline">
-                  <input
-                    type="checkbox"
-                    checked={seekOnClick}
-                    onChange={(e) => setSeekOnClick(e.target.checked)}
-                  />
-                  <span>{t('transcript.playFromLine')}</span>
-                </label>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setOpenText((v) => {
-                    if (v) setSeekOnClick(false)
-                    return !v
-                  })
-                }}
-              >
-                {openText ? t('transcript.collapse') : t('transcript.expand')}
-              </button>
-            </div>
-            {openText && (
-              <div className="summary-body fold-body">
-                {(item.utterances || []).length === 0 && <p className="muted">{t('common.empty')}</p>}
+            {!admin ? <EntityHint>{t('library.cannotDeleteHint')}</EntityHint> : null}
+          </EntityDetailCard>
+          <EntityBodyCard title={t('transcript.utterances')} actions={utteranceActions}>
+            {openText ? (
+              <div className="summary-body">
+                {(item.utterances || []).length === 0 ? <p className="muted">{t('common.empty')}</p> : null}
                 {(item.utterances || []).map((u, i) => {
                   const start = utteranceStart(u)
                   const seekable = Boolean(seekOnClick && item.source_audio_id && start != null)
@@ -297,10 +297,13 @@ export function TranscriptPage() {
                   )
                 })}
               </div>
-            )}
-          </section>
-          <section className="card transcript-summaries">
-            <h2 className="transcript-summaries-title">{t('transcript.summaries')}</h2>
+            ) : null}
+          </EntityBodyCard>
+          <Card className="transcript-summaries">
+            <CardHeader className="pb-3">
+              <CardTitle className="transcript-summaries-title text-base">{t('transcript.summaries')}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
             <details className="fold library-pipeline transcript-summaries-skills">
               <summary>
                 {t('transcript.skills')}
@@ -317,25 +320,29 @@ export function TranscriptPage() {
               <div className="fold-body library-pipeline-body">
                 {skills.length === 0 && <p className="muted">{t('common.empty')}</p>}
                 {skills.map((s) => (
-                  <label key={s.id} className="library-pipeline-skill row">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(picked[s.id])}
-                      onChange={(e) => toggleSkill(s.id, e.target.checked)}
-                    />
-                    <span>{s.name} <span className="badge">{s.catalog || s.scope}</span></span>
-                  </label>
+                  <AppCheckboxRow
+                    key={s.id}
+                    id={`transcript-skill-${s.id}`}
+                    className="library-pipeline-skill"
+                    label={
+                      <>
+                        {s.name}{' '}
+                        <HubBadge tone="muted" className="align-middle">
+                          {s.catalog || s.scope}
+                        </HubBadge>
+                      </>
+                    }
+                    checked={Boolean(picked[s.id])}
+                    onCheckedChange={(checked) => toggleSkill(s.id, checked)}
+                  />
                 ))}
               </div>
             </details>
             <div className="transcript-summaries-actions">
-              <button
-                className="primary"
-                disabled={busy || selectedSkillIds.length === 0}
-                onClick={() => void summarize()}
+              <Button disabled={busy || selectedSkillIds.length === 0} onClick={() => void summarize()}
               >
                 {t('transcript.summarize')}
-              </button>
+              </Button>
               {pendingTaskId && (
                 <p className="muted transcript-summaries-pending">
                   {t('transcript.summarizePending')}{' '}
@@ -343,22 +350,26 @@ export function TranscriptPage() {
                 </p>
               )}
             </div>
-            <div className="transcript-summaries-results">
-              <h3>{t('transcript.summariesCount', { count: (item.summaries || []).length })}</h3>
-              <div className="list">
-                {(item.summaries || []).length === 0 && <p className="muted">{t('common.empty')}</p>}
-                {(item.summaries || []).map((s) => (
-                  <ListRow
-                    key={s.id}
-                    to={`/app/summary/${s.id}`}
-                    title={skillNamesForSummary(s, skills)}
-                    meta={<span>{fmtDate(s.created_at)}</span>}
-                    trailing={<ShareBadges item={s} />}
-                  />
-                ))}
-              </div>
+            <div className="transcript-summaries-results border-t pt-3">
+              <h3 className="mb-2 text-sm font-medium">{t('transcript.summariesCount', { count: (item.summaries || []).length })}</h3>
+              {(item.summaries || []).length === 0 ? (
+                <p className="stats-empty py-4">{t('common.empty')}</p>
+              ) : (
+                <div className="list task-list-embedded transcript-summaries-list -mx-4 sm:mx-0">
+                  {(item.summaries || []).map((s) => (
+                    <ListRow
+                      key={s.id}
+                      to={`/app/summary/${s.id}`}
+                      title={skillNamesForSummary(s, skills)}
+                      meta={<span>{fmtDate(s.created_at)}</span>}
+                      trailing={<ShareBadges item={s} />}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
-          </section>
+            </CardContent>
+          </Card>
         </>
       )}
       {share && id && <ShareDialog objectType="transcript" objectId={id} onClose={() => { setShare(false); void load() }} />}
@@ -372,6 +383,6 @@ export function TranscriptPage() {
           onClose={() => setConfirmWipe(false)}
         />
       )}
-    </div>
+    </EntityPage>
   )
 }

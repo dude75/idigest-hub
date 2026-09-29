@@ -3,9 +3,20 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import type { Org, Task, User } from '../types'
+import { AdminPage, AppStackCard } from '../components/AdminSection'
+import { ListSection } from '../components/app/EntityUi'
+import { AdminRowActions, HubBadge } from '../components/app/AdminUi'
+import { AdminTablePager } from '../components/app/AdminDataTable'
 import { ListRow } from '../components/ListRow'
-import { isTaskMissingWorkerForModels, isTaskWaitingOnWorkers, taskStatusBadgeClass, taskStatusBadgeLabel } from '../taskStage'
+import {
+  isTaskMissingWorkerForModels,
+  isTaskWaitingOnWorkers,
+  taskStatusBadgeLabel,
+  taskStatusBadgeTone,
+} from '../taskStage'
 import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage, taskIsRetriable } from '../util'
+import { Button } from '@/components/ui/button'
+import { AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
 
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
@@ -196,114 +207,128 @@ export function TasksPage() {
           ) : undefined
         }
         trailing={
-          <>
-            <span className={taskStatusBadgeClass(task)}>
-              {taskStatusBadgeLabel(task, t)}
-            </span>
-            {canCancel && (
-              <button type="button" onClick={() => void cancel(task.task_id)}>{t('task.cancel')}</button>
-            )}
-            {canRetry && (
-              <button type="button" onClick={() => void retry(task.task_id)}>{t('task.retry')}</button>
-            )}
-          </>
+          <AdminRowActions>
+            <HubBadge tone={taskStatusBadgeTone(task)}>{taskStatusBadgeLabel(task, t)}</HubBadge>
+            {canCancel ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => void cancel(task.task_id)}>
+                {t('task.cancel')}
+              </Button>
+            ) : null}
+            {canRetry ? (
+              <Button type="button" size="sm" variant="outline" onClick={() => void retry(task.task_id)}>
+                {t('task.retry')}
+              </Button>
+            ) : null}
+          </AdminRowActions>
         }
       />
     )
   }
 
+  const pageSizeSelect = (
+    <AppPageSizeField
+      label={t('task.pageSize')}
+      htmlFor="tasks-page-size"
+      value={String(pageSize)}
+      onChange={(e) => {
+        setPageSize(Number(e.target.value) as PageSize)
+        setPage(0)
+      }}
+    >
+      {PAGE_SIZES.map((n) => (
+        <option key={n} value={n}>
+          {n}
+        </option>
+      ))}
+    </AppPageSizeField>
+  )
+
   return (
-    <div className="tasks-page">
-      {showFilters && (
-        <div className="card stack stats-filters-embedded">
-          <div className="stats-section-head">
-            <h2>{t('task.filters')}</h2>
-          </div>
+    <AdminPage>
+      {showFilters ? (
+        <AppStackCard title={t('task.filters')}>
           <div className="stats-filters-fields">
-            {instance && (
-              <label>
-                {t('task.filterOrg')}
-                <select
-                  value={orgId}
-                  onChange={(e) => {
-                    const next = e.target.value
-                    const allowed = new Set(uniqueUsers(orgs, next).map((u) => u.id))
-                    setOrgId(next)
-                    if (userId && !allowed.has(userId)) setUserId('')
-                    setPage(0)
-                  }}
-                >
-                  <option value="">{t('common.all')}</option>
-                  {[...orgs].sort((a, b) => a.name.localeCompare(b.name)).map((org) => (
-                    <option key={org.id} value={org.id}>{org.name}</option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <label>
-              {t('task.filterUser')}
-              <select
-                value={userId}
+            {instance ? (
+              <AppSelectField
+                label={t('task.filterOrg')}
+                htmlFor="tasks-filter-org"
+                value={orgId}
                 onChange={(e) => {
-                  setUserId(e.target.value)
+                  const next = e.target.value
+                  const allowed = new Set(uniqueUsers(orgs, next).map((u) => u.id))
+                  setOrgId(next)
+                  if (userId && !allowed.has(userId)) setUserId('')
                   setPage(0)
                 }}
               >
                 <option value="">{t('common.all')}</option>
-                {userOptions.map((user) => (
-                  <option key={user.id} value={user.id}>{user.email}</option>
+                {[...orgs].sort((a, b) => a.name.localeCompare(b.name)).map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
                 ))}
-              </select>
-            </label>
-          </div>
-        </div>
-      )}
-      <div className="card stack tasks-section">
-        <div className="stats-section-head tasks-section-head">
-          <h2>{t('task.active')}</h2>
-          {active.length > 0 && (
-            <span className="badge">{t('task.activeCount', { count: active.length })}</span>
-          )}
-        </div>
-        <div className="list">
-          {active.length === 0 && <p className="stats-empty">{t('common.empty')}</p>}
-          {active.map(row)}
-        </div>
-      </div>
-      <div className="card stack tasks-section">
-        <div className="stats-section-head tasks-section-head">
-          <h2>{t('task.done')}</h2>
-          <label className="inline">
-            {t('task.pageSize')}
-            <select
-              value={pageSize}
+              </AppSelectField>
+            ) : null}
+            <AppSelectField
+              label={t('task.filterUser')}
+              htmlFor="tasks-filter-user"
+              value={userId}
               onChange={(e) => {
-                setPageSize(Number(e.target.value) as PageSize)
+                setUserId(e.target.value)
                 setPage(0)
               }}
             >
-              {PAGE_SIZES.map((n) => (
-                <option key={n} value={n}>{n}</option>
+              <option value="">{t('common.all')}</option>
+              {userOptions.map((user) => (
+                <option key={user.id} value={user.id}>
+                  {user.email}
+                </option>
               ))}
-            </select>
-          </label>
-        </div>
-        <div className="list">
-          {doneTotal === 0 && <p className="stats-empty">{t('common.empty')}</p>}
-          {done.map(row)}
-        </div>
-        {doneTotal > pageSize && (
-          <div className="row pager">
-            <button type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
-              {t('common.prev')}
-            </button>
-            <span className="muted">{t('task.pageRange', { from, to, total: doneTotal })}</span>
-            <button type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}>
-              {t('common.next')}
-            </button>
+            </AppSelectField>
           </div>
-        )}
-      </div>
-    </div>
+        </AppStackCard>
+      ) : null}
+
+      <ListSection
+        title={t('task.active')}
+        empty={t('common.empty')}
+        isEmpty={active.length === 0}
+        actions={
+          active.length > 0 ? (
+            <HubBadge tone="primary">{t('task.activeCount', { count: active.length })}</HubBadge>
+          ) : undefined
+        }
+      >
+        {active.map(row)}
+      </ListSection>
+
+      <ListSection
+        title={t('task.done')}
+        empty={t('common.empty')}
+        isEmpty={doneTotal === 0}
+        actions={pageSizeSelect}
+        footer={
+          doneTotal > pageSize ? (
+            <AdminTablePager>
+              <Button type="button" size="sm" variant="outline" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
+                {t('common.prev')}
+              </Button>
+              <span className="text-sm text-muted-foreground">{t('task.pageRange', { from, to, total: doneTotal })}</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={safePage >= pageCount - 1}
+                onClick={() => setPage(safePage + 1)}
+              >
+                {t('common.next')}
+              </Button>
+            </AdminTablePager>
+          ) : null
+        }
+      >
+        {done.map(row)}
+      </ListSection>
+    </AdminPage>
   )
 }

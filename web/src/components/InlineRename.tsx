@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Button } from '@/components/ui/button'
+import { AdminFormActions, AppSubmitButton } from './app/AdminUi'
 
 type Props = {
   value: string
@@ -21,6 +23,11 @@ export function InlineRename({ value, canEdit, busy, onSave }: Props) {
   useEffect(() => {
     if (editing) inputRef.current?.focus()
   }, [editing])
+
+  const renameReady = useMemo(() => {
+    const next = draft.trim()
+    return next.length > 0 && next !== value
+  }, [draft, value])
 
   async function save() {
     const next = draft.trim()
@@ -50,19 +57,22 @@ export function InlineRename({ value, canEdit, busy, onSave }: Props) {
             }
           }}
         />
-        <button className="primary" type="button" disabled={busy} onClick={() => void save()}>
-          {t('common.save')}
-        </button>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => {
-            setDraft(value)
-            setEditing(false)
-          }}
-        >
-          {t('common.cancel')}
-        </button>
+        <AdminFormActions>
+          <AppSubmitButton ready={renameReady} busy={busy} onClick={() => void save()}>
+            {t('common.save')}
+          </AppSubmitButton>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              setDraft(value)
+              setEditing(false)
+            }}
+          >
+            {t('common.cancel')}
+          </Button>
+        </AdminFormActions>
       </div>
     )
   }
@@ -71,9 +81,9 @@ export function InlineRename({ value, canEdit, busy, onSave }: Props) {
     <div className="row inline-rename">
       <h1 className="grow">{value}</h1>
       {canEdit && (
-        <button type="button" className="inline-rename-btn" disabled={busy} onClick={() => setEditing(true)}>
+        <Button type="button" className="inline-rename-btn" disabled={busy} onClick={() => setEditing(true)}>
           {t('common.rename')}
-        </button>
+        </Button>
       )}
     </div>
   )

@@ -14,6 +14,17 @@ import {
 } from 'recharts'
 import type { OrgStatsDay } from '../types'
 import { formatDecimal, formatInteger, fmtMediaTime } from '../util'
+import { AppStackCard } from './AdminSection'
+import {
+  AdminDataTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  adminTableCellNum,
+  adminTableHeadNum,
+} from './app/AdminDataTable'
 import { Segmented } from './Segmented'
 import { STATS_CHART_COLORS, type StatsChartMetric } from './statsTheme'
 
@@ -151,49 +162,60 @@ export function StatsDaysView({
   )
 
   return (
-    <div className="card stack stats-days-panel">
-      <div className="stats-days-head">
-        <h2>{t('stats.calendar')}</h2>
-        <Segmented
-          variant="pill"
-          value={view}
-          options={viewOptions}
-          onChange={setView}
-          ariaLabel={t('stats.viewMode')}
-        />
-      </div>
+    <AppStackCard
+      title={
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span>{t('stats.calendar')}</span>
+          <Segmented
+            variant="pill"
+            value={view}
+            options={viewOptions}
+            onChange={setView}
+            ariaLabel={t('stats.viewMode')}
+          />
+        </div>
+      }
+    >
       {days.length === 0 ? (
         <p className="stats-empty">{t('common.empty')}</p>
       ) : view === 'table' ? (
-        <div className="stats-table-wrap">
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>{t('stats.day')}</th>
-                <th className="num" title={t('stats.transcribeDone')}>{t('stats.statTranscribe')}</th>
-                <th className="num" title={t('stats.summarizeDone')}>{t('stats.statSummarize')}</th>
-                <th className="num" title={t('stats.transcribedAudio')}>{t('stats.statAudio')}</th>
-                <th className="num" title={t('stats.summaryChars')}>{t('stats.statChars')}</th>
-                <th className="num" title={t(amountTooltipKey)}>{t(amountLabelKey)}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {days.map((day) => (
-                <tr key={day.date}>
-                  <td className="stats-day">{day.date}</td>
-                  <td className="num">{formatInteger(day.tasks_transcribe_success)}</td>
-                  <td className="num">{formatInteger(day.tasks_summarize_success)}</td>
-                  <td className="num">{fmtMediaTime(day.audio_transcribed_sec)}</td>
-                  <td className="num">{formatInteger(day.summary_chars)}</td>
-                  <td className="num">{formatDecimal(day.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <AdminDataTable>
+          <TableHeader>
+            <TableRow>
+              <TableHead>{t('stats.day')}</TableHead>
+              <TableHead className={adminTableHeadNum} title={t('stats.transcribeDone')}>
+                {t('stats.statTranscribe')}
+              </TableHead>
+              <TableHead className={adminTableHeadNum} title={t('stats.summarizeDone')}>
+                {t('stats.statSummarize')}
+              </TableHead>
+              <TableHead className={adminTableHeadNum} title={t('stats.transcribedAudio')}>
+                {t('stats.statAudio')}
+              </TableHead>
+              <TableHead className={adminTableHeadNum} title={t('stats.summaryChars')}>
+                {t('stats.statChars')}
+              </TableHead>
+              <TableHead className={adminTableHeadNum} title={t(amountTooltipKey)}>
+                {t(amountLabelKey)}
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {days.map((day) => (
+              <TableRow key={day.date}>
+                <TableCell className="tabular-nums">{day.date}</TableCell>
+                <TableCell className={adminTableCellNum}>{formatInteger(day.tasks_transcribe_success)}</TableCell>
+                <TableCell className={adminTableCellNum}>{formatInteger(day.tasks_summarize_success)}</TableCell>
+                <TableCell className={adminTableCellNum}>{fmtMediaTime(day.audio_transcribed_sec)}</TableCell>
+                <TableCell className={adminTableCellNum}>{formatInteger(day.summary_chars)}</TableCell>
+                <TableCell className={adminTableCellNum}>{formatDecimal(day.amount)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </AdminDataTable>
       ) : (
         <StatsDaysCharts days={chartDays} amountLabelKey={amountLabelKey} />
       )}
-    </div>
+    </AppStackCard>
   )
 }

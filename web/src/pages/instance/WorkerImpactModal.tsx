@@ -12,6 +12,9 @@ import type {
   WorkerRemediationPayload,
 } from '../../types'
 import { formatInteger, showError, truncateLabel } from '../../util'
+import { Button } from '@/components/ui/button'
+import { AppCheckboxRow, AppSelectField } from '../../components/app/AppFormControls'
+import { AdminMetaRow, HubBadge } from '../../components/app/AdminUi'
 
 type Props = {
   mode: 'delete' | 'change'
@@ -518,17 +521,38 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
         onClose()
       }}
       closeOnBackdrop={!busy && !loading}
-      panelClassName="worker-impact-modal"
+      wide
+      title={title}
+      description={
+        <AdminMetaRow className="pt-1">
+          <HubBadge tone="muted">{t(`task.type.${workerType}`, { defaultValue: workerType })}</HubBadge>
+          <span className="text-sm text-muted-foreground">{worker.base_url}</span>
+        </AdminMetaRow>
+      }
+      panelClassName="worker-impact-modal max-h-[min(92vh,880px)] overflow-y-auto sm:max-w-3xl"
+      footer={
+        <>
+          <Button type="button" variant="outline" disabled={busy || loading} autoFocus onClick={onClose}>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            type="button"
+            variant={mode === 'delete' ? 'destructive' : 'default'}
+            disabled={loading || busy}
+            onClick={() => void confirm()}
+          >
+            {busy
+              ? mode === 'delete'
+                ? t('instance.workerImpactDeleting')
+                : t('instance.workerImpactBusy')
+              : mode === 'delete'
+                ? t('instance.workerDeleteConfirm')
+                : t('common.save')}
+          </Button>
+        </>
+      }
     >
-      <header className="worker-impact-head">
-        <h2>{title}</h2>
-        <p className="worker-impact-subhead">
-          <span className="badge">{t(`task.type.${workerType}`, { defaultValue: workerType })}</span>
-          <span className="muted">{worker.base_url}</span>
-        </p>
-      </header>
-
-      <div className="modal-body stack">
+      <div className="flex flex-col gap-4">
       {loading ? (
         <div className="worker-impact-banner loading" aria-busy="true">
           <p>{t('instance.workerImpactLoading')}</p>
@@ -577,34 +601,33 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
                 <h3>{t('instance.workerImpactRemediationTitle')}</h3>
                 <p className="muted worker-impact-section-hint">{t('instance.workerImpactRemediationHint')}</p>
               </div>
-              <label className="worker-impact-remediation-apply">
-                <input
-                  type="checkbox"
-                  checked={applyRemediation}
-                  onChange={(e) => setApplyRemediation(e.target.checked)}
-                  disabled={busy}
-                />
-                <span>{t('instance.workerImpactRemediationApply')}</span>
-              </label>
-              <label className="stack worker-impact-remediation-pair">
-                <span>{t('instance.workerImpactRemediationPairLabel')}</span>
-                <select
-                  value={selectedPairKey}
-                  onChange={(e) => setSelectedPairKey(e.target.value)}
-                  disabled={busy || !applyRemediation}
-                >
-                  {(impact.available_pairs ?? []).map((pair) => {
-                    const key = pairKey(pair)
-                    const suggested = key === suggestedKey
-                    return (
-                      <option key={key} value={key}>
-                        {formatPairLabel(pair, t)}
-                        {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
-                      </option>
-                    )
-                  })}
-                </select>
-              </label>
+              <AppCheckboxRow
+                id="worker-impact-remediation-apply-transcribe"
+                className="worker-impact-remediation-apply"
+                label={t('instance.workerImpactRemediationApply')}
+                checked={applyRemediation}
+                disabled={busy}
+                onCheckedChange={setApplyRemediation}
+              />
+              <AppSelectField
+                className="worker-impact-remediation-pair"
+                label={t('instance.workerImpactRemediationPairLabel')}
+                htmlFor="worker-impact-remediation-pair"
+                value={selectedPairKey}
+                disabled={busy || !applyRemediation}
+                onChange={(e) => setSelectedPairKey(e.target.value)}
+              >
+                {(impact.available_pairs ?? []).map((pair) => {
+                  const key = pairKey(pair)
+                  const suggested = key === suggestedKey
+                  return (
+                    <option key={key} value={key}>
+                      {formatPairLabel(pair, t)}
+                      {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
+                    </option>
+                  )
+                })}
+              </AppSelectField>
             </section>
           ) : null}
 
@@ -614,33 +637,32 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
                 <h3>{t('instance.workerImpactSummarizeRemediationTitle')}</h3>
                 <p className="muted worker-impact-section-hint">{t('instance.workerImpactSummarizeRemediationHint')}</p>
               </div>
-              <label className="worker-impact-remediation-apply">
-                <input
-                  type="checkbox"
-                  checked={applyRemediation}
-                  onChange={(e) => setApplyRemediation(e.target.checked)}
-                  disabled={busy}
-                />
-                <span>{t('instance.workerImpactSummarizeRemediationApply')}</span>
-              </label>
-              <label className="stack worker-impact-remediation-pair">
-                <span>{t('instance.workerImpactSummarizeRemediationModelLabel')}</span>
-                <select
-                  value={selectedSummarizeModel}
-                  onChange={(e) => setSelectedSummarizeModel(e.target.value)}
-                  disabled={busy || !applyRemediation}
-                >
-                  {(impact.available_summarize_models ?? []).map((item: SummarizeModelChoice) => {
-                    const suggested = item.summarize_model === suggestedSummarizeModel
-                    return (
-                      <option key={item.summarize_model} value={item.summarize_model}>
-                        {item.summarize_model}
-                        {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
-                      </option>
-                    )
-                  })}
-                </select>
-              </label>
+              <AppCheckboxRow
+                id="worker-impact-remediation-apply-summarize"
+                className="worker-impact-remediation-apply"
+                label={t('instance.workerImpactSummarizeRemediationApply')}
+                checked={applyRemediation}
+                disabled={busy}
+                onCheckedChange={setApplyRemediation}
+              />
+              <AppSelectField
+                className="worker-impact-remediation-pair"
+                label={t('instance.workerImpactSummarizeRemediationModelLabel')}
+                htmlFor="worker-impact-summarize-model"
+                value={selectedSummarizeModel}
+                disabled={busy || !applyRemediation}
+                onChange={(e) => setSelectedSummarizeModel(e.target.value)}
+              >
+                {(impact.available_summarize_models ?? []).map((item: SummarizeModelChoice) => {
+                  const suggested = item.summarize_model === suggestedSummarizeModel
+                  return (
+                    <option key={item.summarize_model} value={item.summarize_model}>
+                      {item.summarize_model}
+                      {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
+                    </option>
+                  )
+                })}
+              </AppSelectField>
             </section>
           ) : null}
 
@@ -650,56 +672,37 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
                 <h3>{t('instance.workerImpactCaptureRemediationTitle')}</h3>
                 <p className="muted worker-impact-section-hint">{t('instance.workerImpactCaptureRemediationHint')}</p>
               </div>
-              <label className="worker-impact-remediation-apply">
-                <input
-                  type="checkbox"
-                  checked={applyRemediation}
-                  onChange={(e) => setApplyRemediation(e.target.checked)}
-                  disabled={busy}
-                />
-                <span>{t('instance.workerImpactCaptureRemediationApply')}</span>
-              </label>
-              <label className="stack worker-impact-remediation-pair">
-                <span>{t('instance.workerImpactCaptureRemediationWorkerLabel')}</span>
-                <select
-                  value={selectedCaptureWorker.id}
-                  onChange={(e) => setSelectedCaptureWorkerId(e.target.value)}
-                  disabled={busy || !applyRemediation}
-                >
-                  {(impact.available_capture_workers ?? []).map((item) => {
-                    const suggested = item.id === suggestedCaptureWorkerId
-                    return (
-                      <option key={item.id} value={item.id}>
-                        {formatCaptureWorkerLabel(item)}
-                        {item.base_url && item.name.trim() ? ` — ${item.base_url}` : ''}
-                        {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
-                      </option>
-                    )
-                  })}
-                </select>
-              </label>
+              <AppCheckboxRow
+                id="worker-impact-remediation-apply-capture"
+                className="worker-impact-remediation-apply"
+                label={t('instance.workerImpactCaptureRemediationApply')}
+                checked={applyRemediation}
+                disabled={busy}
+                onCheckedChange={setApplyRemediation}
+              />
+              <AppSelectField
+                className="worker-impact-remediation-pair"
+                label={t('instance.workerImpactCaptureRemediationWorkerLabel')}
+                htmlFor="worker-impact-capture-worker"
+                value={selectedCaptureWorker.id}
+                disabled={busy || !applyRemediation}
+                onChange={(e) => setSelectedCaptureWorkerId(e.target.value)}
+              >
+                {(impact.available_capture_workers ?? []).map((item) => {
+                  const suggested = item.id === suggestedCaptureWorkerId
+                  return (
+                    <option key={item.id} value={item.id}>
+                      {formatCaptureWorkerLabel(item)}
+                      {item.base_url && item.name.trim() ? ` — ${item.base_url}` : ''}
+                      {suggested ? ` — ${t('instance.workerImpactRemediationSuggested')}` : ''}
+                    </option>
+                  )
+                })}
+              </AppSelectField>
             </section>
           ) : null}
         </>
       ) : null}
-      </div>
-
-      <div className="row modal-actions worker-impact-actions">
-        <button type="button" disabled={busy || loading} autoFocus onClick={onClose}>
-          {t('common.cancel')}
-        </button>
-        <button
-          type="button"
-          className={mode === 'delete' ? 'danger' : 'primary'}
-          disabled={loading || busy}
-          onClick={() => void confirm()}
-        >
-          {busy
-            ? (mode === 'delete' ? t('instance.workerImpactDeleting') : t('instance.workerImpactBusy'))
-            : mode === 'delete'
-              ? t('instance.workerDeleteConfirm')
-              : t('common.save')}
-        </button>
       </div>
     </Modal>
   )

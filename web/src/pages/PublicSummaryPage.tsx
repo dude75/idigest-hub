@@ -6,6 +6,9 @@ import { useAuth } from '../auth'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { MarkdownBody } from '../markdown'
 import { showError } from '../util'
+import { AppSubmitButton } from '@/components/app/AdminUi'
+import { Card, CardContent } from '@/components/ui/card'
+import { AppInputField } from '../components/app/AppFormControls'
 
 type PublicSummary = {
   pin_required: boolean
@@ -79,28 +82,28 @@ export function PublicSummaryPage() {
 
   return (
     <AuthPageShell>
-      <article className="card public-summary-card stack">
+      <Card className="public-summary-card w-full max-w-3xl">
+        <CardContent className="flex flex-col gap-4 pt-6">
         {failed && !data && <p className="err">{t('publicSummary.notFound')}</p>}
         {data?.pin_required && (
-          <form className="stack" onSubmit={(e) => void unlock(e)}>
+          <form className="flex flex-col gap-3" onSubmit={(e) => void unlock(e)}>
             <h1>{t('publicSummary.pinTitle')}</h1>
             <p className="muted">{t('publicSummary.pinHint')}</p>
-            <label>
-              PIN
-              <input
-                ref={pinRef}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                autoComplete="off"
-                autoFocus
-                required
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-              />
-            </label>
-            <button className="primary" type="submit" disabled={busy || !pin.trim()}>
+            <AppInputField
+              label="PIN"
+              htmlFor="public-summary-pin"
+              ref={pinRef}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              autoFocus
+              required
+              value={pin}
+              onChange={(e) => setPin(e.target.value)}
+            />
+            <AppSubmitButton type="submit" ready={Boolean(pin.trim())} busy={busy}>
               {t('publicSummary.unlock')}
-            </button>
+            </AppSubmitButton>
           </form>
         )}
         {data && !data.pin_required && (
@@ -111,7 +114,8 @@ export function PublicSummaryPage() {
             </div>
           </>
         )}
-      </article>
+        </CardContent>
+      </Card>
     </AuthPageShell>
   )
 }

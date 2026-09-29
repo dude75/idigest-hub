@@ -2,6 +2,13 @@ export function utcDay(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 
+/** Default period for stats, audit, and ledger filters. */
+export const DEFAULT_FILTER_DAYS = 7
+
+export function defaultFilterRange(): { from: string; to: string } {
+  return statsRangeForDays(DEFAULT_FILTER_DAYS)
+}
+
 export function statsRangeForDays(days: number): { from: string; to: string } {
   const to = new Date()
   const from = new Date(to.getTime() - (days - 1) * 86400000)

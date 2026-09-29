@@ -3,10 +3,16 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { AuthCard } from '../components/auth/AuthCard'
+import { AuthField } from '../components/auth/AuthField'
+import { AuthSelect } from '../components/auth/AuthSelect'
+import { AuthPageShell } from '../components/AuthPageShell'
 import { LanguageSwitcher } from '../components/LanguageSwitcher'
 import { LOCALES } from '../i18n'
 import type { Locale } from '../types'
 import { showError } from '../util'
+import { AppSubmitButton } from '@/components/app/AdminUi'
+import { Input } from '@/components/ui/input'
 
 export function SetupPage() {
   const { t, i18n } = useTranslation()
@@ -42,34 +48,61 @@ export function SetupPage() {
   }
 
   return (
-    <div className="auth-page">
-      <form className="card auth-card stack" onSubmit={(e) => void onSubmit(e)}>
-        <div className="row">
-          <h1 className="grow">{t('auth.setup')}</h1>
-          <LanguageSwitcher />
-        </div>
-        <label>
-          {t('common.email')}
-          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </label>
-        <label>
-          {t('common.password')}
-          <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} />
-        </label>
-        <label>
-          {t('auth.bootstrapToken')}
-          <input required value={token} onChange={(e) => setToken(e.target.value)} />
-        </label>
-        <label>
-          Locale
-          <select value={i18n.language} onChange={(e) => void i18n.changeLanguage(e.target.value as Locale)}>
-            {LOCALES.map((l) => (
-              <option key={l} value={l}>{t(`lang.${l}`)}</option>
-            ))}
-          </select>
-        </label>
-        <button className="primary" disabled={busy} type="submit">{t('common.save')}</button>
-      </form>
-    </div>
+    <AuthPageShell>
+      <AuthCard
+        title={
+          <span className="flex w-full items-center justify-between gap-2">
+            <span>{t('auth.setup')}</span>
+            <LanguageSwitcher />
+          </span>
+        }
+      >
+        <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+          <AuthField label={t('common.email')} htmlFor="setup-email">
+            <Input
+              id="setup-email"
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </AuthField>
+          <AuthField label={t('common.password')} htmlFor="setup-password">
+            <Input
+              id="setup-password"
+              type="password"
+              required
+              minLength={8}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </AuthField>
+          <AuthField label={t('auth.bootstrapToken')} htmlFor="setup-token">
+            <Input id="setup-token" required value={token} onChange={(e) => setToken(e.target.value)} />
+          </AuthField>
+          <AuthField label="Locale" htmlFor="setup-locale">
+            <AuthSelect
+              id="setup-locale"
+              value={i18n.language}
+              onChange={(e) => void i18n.changeLanguage(e.target.value as Locale)}
+            >
+              {LOCALES.map((l) => (
+                <option key={l} value={l}>
+                  {t(`lang.${l}`)}
+                </option>
+              ))}
+            </AuthSelect>
+          </AuthField>
+          <AppSubmitButton
+            className="w-full"
+            type="submit"
+            ready={Boolean(email.trim() && password.length >= 8 && token.trim())}
+            busy={busy}
+          >
+            {t('common.save')}
+          </AppSubmitButton>
+        </form>
+      </AuthCard>
+    </AuthPageShell>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Tariff } from '../types'
+import { Button } from '@/components/ui/button'
 import {
   LandingTariffCard,
   landingTariffSubtitleKey,
@@ -43,7 +44,7 @@ export function LandingTariffGrid({ tariffs, popularTariffId }: Props) {
       </div>
       {paged && (
         <div className="landing-pricing-controls">
-          <button
+          <Button
             type="button"
             className="landing-pricing-arrow"
             disabled={page === 0}
@@ -51,11 +52,11 @@ export function LandingTariffGrid({ tariffs, popularTariffId }: Props) {
             onClick={() => setPage((p) => p - 1)}
           >
             ‹
-          </button>
+          </Button>
           <span className="landing-pricing-page muted" aria-live="polite">
             {t('landing.tariffPage', { current: page + 1, total: pageCount })}
           </span>
-          <button
+          <Button
             type="button"
             className="landing-pricing-arrow"
             disabled={page >= pageCount - 1}
@@ -63,7 +64,7 @@ export function LandingTariffGrid({ tariffs, popularTariffId }: Props) {
             onClick={() => setPage((p) => p + 1)}
           >
             ›
-          </button>
+          </Button>
         </div>
       )}
     </div>

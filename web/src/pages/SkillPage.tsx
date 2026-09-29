@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isInstanceAdmin, useAuth } from '../auth'
@@ -9,6 +9,16 @@ import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
 import type { Skill } from '../types'
 import { fmtDate, showError } from '../util'
+import { Button } from '@/components/ui/button'
+import { AppInputField } from '../components/app/AppFormControls'
+import { AppField } from '../components/app/AppField'
+import { AdminFormActions, AppSubmitButton, HubBadge } from '../components/app/AdminUi'
+import {
+  EntityBackLink,
+  EntityBodyCard,
+  EntityDetailCard,
+  EntityPage,
+} from '../components/app/EntityUi'
 
 function skillPath(skill: Skill): string {
   if (skill.scope === 'base') return `/skills/base/${skill.id}`
@@ -34,6 +44,13 @@ export function SkillPage() {
   const canEdit = Boolean(item && (item.scope === 'base' ? instance : !item.readonly))
   const canCopy = hasOrg
   const mine = item?.scope === 'self' && item.owner_user_id === me?.user.id
+
+  const skillEditReady = useMemo(() => {
+    if (!item) return false
+    const nextName = name.trim()
+    if (!nextName) return false
+    return nextName !== item.name || draft !== (item.body || '')
+  }, [item, name, draft])
 
   async function load() {
     if (!id) return
@@ -111,8 +128,8 @@ export function SkillPage() {
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
-    <div>
-      <Link to={backTo}>{t('common.back')}</Link>
+    <EntityPage>
+      <EntityBackLink to={backTo}>{t('common.back')}</EntityBackLink>
       {item ? (
         <InlineRename
           value={item.name}
@@ -123,61 +140,53 @@ export function SkillPage() {
       ) : null}
       {item && (
         <>
-          <div className="row">
-            <span className="badge">{item.catalog || item.scope}</span>
+          <EntityDetailCard>
+          <div className="flex flex-wrap items-center gap-2">
+            <HubBadge tone="muted">{item.catalog || item.scope}</HubBadge>
             <span className="muted">{fmtDate(item.created_at)}</span>
           </div>
           <EntityToolbar>
-            <button
-              type="button"
-              onClick={() => void apiDownload(`/skills/${item.id}/export`, `${item.name}.md`).catch(showError)}
+            <Button type="button" onClick={() => void apiDownload(`/skills/${item.id}/export`, `${item.name}.md`).catch(showError)}
             >
               {t('common.downloadMd')}
-            </button>
-            {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
+            </Button>
+            {mine && <Button type="button" onClick={() => setShare(true)}>{t('common.share')}</Button>}
             {canEdit && !editing && (
-              <button type="button" onClick={() => { setName(item.name); setDraft(item.body || ''); setEditing(true) }}>
+              <Button type="button" onClick={() => { setName(item.name); setDraft(item.body || ''); setEditing(true) }}>
                 {t('common.edit')}
-              </button>
+              </Button>
             )}
             {canEdit && (
-              <button type="button" className="danger" onClick={() => void remove()}>{t('common.delete')}</button>
+              <Button type="button" variant="destructive" onClick={() => void remove()}>{t('common.delete')}</Button>
             )}
-            {canCopy && <button type="button" onClick={() => void copy()}>{t('common.copy')}</button>}
+            {canCopy ? <Button type="button" onClick={() => void copy()}>{t('common.copy')}</Button> : null}
           </EntityToolbar>
-          <h2>{t('skills.body')}</h2>
+          </EntityDetailCard>
+          <EntityBodyCard title={t('skills.body')}>
           {editing ? (
-            <div className="stack">
-              <label>
-                {t('common.name')}
-                <input value={name} onChange={(e) => setName(e.target.value)} />
-              </label>
-              <textarea
-                className="skill-editor"
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-              />
-              <div className="row">
-                <button className="primary" type="button" disabled={busy} onClick={() => void save()}>
+            <div className="flex flex-col gap-3">
+              <AppInputField label={t('common.name')} htmlFor="skill-edit-name" value={name} onChange={(e) => setName(e.target.value)} />
+              <AppField label={t('skills.body')} htmlFor="skill-edit-body">
+                <textarea id="skill-edit-body" className="skill-editor min-h-[12rem] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm" value={draft} onChange={(e) => setDraft(e.target.value)} />
+              </AppField>
+              <AdminFormActions>
+                <AppSubmitButton ready={skillEditReady} busy={busy} onClick={() => void save()}>
                   {t('common.save')}
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => { setName(item.name); setDraft(item.body || ''); setEditing(false) }}
-                >
+                </AppSubmitButton>
+                <Button type="button" variant="outline" disabled={busy} onClick={() => { setName(item.name); setDraft(item.body || ''); setEditing(false) }}>
                   {t('common.cancel')}
-                </button>
-              </div>
+                </Button>
+              </AdminFormActions>
             </div>
           ) : (
             <div className="summary-body">
               <MarkdownBody text={item.body || ''} />
             </div>
           )}
+          </EntityBodyCard>
         </>
       )}
       {share && id && <ShareDialog objectType="skill" objectId={id} onClose={() => { setShare(false); void load() }} />}
-    </div>
+    </EntityPage>
   )
 }

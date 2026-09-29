@@ -3,10 +3,15 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
+import { AuthCard } from '../components/auth/AuthCard'
+import { AuthField } from '../components/auth/AuthField'
 import { AuthPageShell } from '../components/AuthPageShell'
 import { clearMfaChallengeId, readMfaChallengeId } from '../mfa'
 import { resolveAuthContinuationPath } from '../routes'
 import { showError } from '../util'
+import { AppSubmitButton } from '@/components/app/AdminUi'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 export function Verify2faPage() {
   const { t } = useTranslation()
@@ -51,46 +56,54 @@ export function Verify2faPage() {
 
   return (
     <AuthPageShell>
-      <form className="card auth-card stack" onSubmit={(e) => void onSubmit(e)}>
-        <h1>{t('mfa.verifyTitle')}</h1>
-        <p className="muted">{useRecovery ? t('mfa.recoveryHint') : t('mfa.verifyHint')}</p>
-        {!useRecovery ? (
-          <label>
-            {t('mfa.code')}
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9 ]*"
-              maxLength={8}
-              required
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-          </label>
-        ) : (
-          <label>
-            {t('mfa.recoveryCode')}
-            <input
-              type="text"
-              autoComplete="off"
-              spellCheck={false}
-              required
-              value={recovery}
-              onChange={(e) => setRecovery(e.target.value)}
-            />
-          </label>
-        )}
-        <button className="primary" disabled={busy} type="submit">
-          {t('auth.login')}
-        </button>
-        <button type="button" onClick={() => setUseRecovery((v) => !v)}>
-          {useRecovery ? t('mfa.useAuthenticator') : t('mfa.useRecovery')}
-        </button>
-        <Link to="/login" onClick={clearMfaChallengeId}>
-          {t('common.back')}
-        </Link>
-      </form>
+      <AuthCard
+        title={t('mfa.verifyTitle')}
+        description={useRecovery ? t('mfa.recoveryHint') : t('mfa.verifyHint')}
+      >
+        <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
+          {!useRecovery ? (
+            <AuthField label={t('mfa.code')} htmlFor="mfa-code">
+              <Input
+                id="mfa-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9 ]*"
+                maxLength={8}
+                required
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+              />
+            </AuthField>
+          ) : (
+            <AuthField label={t('mfa.recoveryCode')} htmlFor="mfa-recovery">
+              <Input
+                id="mfa-recovery"
+                type="text"
+                autoComplete="off"
+                spellCheck={false}
+                required
+                value={recovery}
+                onChange={(e) => setRecovery(e.target.value)}
+              />
+            </AuthField>
+          )}
+          <AppSubmitButton
+            className="w-full"
+            type="submit"
+            ready={useRecovery ? recovery.trim().length > 0 : code.replace(/\s/g, '').length >= 6}
+            busy={busy}
+          >
+            {t('auth.login')}
+          </AppSubmitButton>
+          <Button className="w-full" type="button" variant="outline" onClick={() => setUseRecovery((v) => !v)}>
+            {useRecovery ? t('mfa.useAuthenticator') : t('mfa.useRecovery')}
+          </Button>
+          <Link to="/login" className="text-sm" onClick={clearMfaChallengeId}>
+            {t('common.back')}
+          </Link>
+        </form>
+      </AuthCard>
     </AuthPageShell>
   )
 }

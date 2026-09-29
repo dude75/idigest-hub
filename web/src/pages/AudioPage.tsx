@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
@@ -8,10 +8,17 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { EntityHint, EntityToolbar } from '../components/EntityToolbar'
 import { ListRow } from '../components/ListRow'
 import { ShareDialog } from '../components/ShareDialog'
+import {
+  EntityBackLink,
+  EntityDetailCard,
+  EntityPage,
+  ListSection,
+} from '../components/app/EntityUi'
 import { pipelineNavState } from '../pipeline'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Audio, Task } from '../types'
 import { ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
+import { Button } from '@/components/ui/button'
 
 function httpSourceUrl(value: string | null | undefined): string | null {
   if (!value) return null
@@ -37,6 +44,7 @@ export function AudioPage() {
   const admin = isOrgAdmin(me)
   const mine = item?.owner_user_id === me?.user.id
   const sourceUrl = httpSourceUrl(item?.source_url)
+  const transcripts = item?.transcripts || []
 
   async function load() {
     if (!id) return
@@ -97,68 +105,52 @@ export function AudioPage() {
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
-    <div>
-      <Link to={LIBRARY_DEFAULT}>{t('common.back')}</Link>
-      <h1>{item?.filename || t('audio.title')}</h1>
+    <EntityPage>
+      <EntityBackLink to={LIBRARY_DEFAULT}>{t('common.back')}</EntityBackLink>
+      <h1 className="entity-title">{item?.filename || t('audio.title')}</h1>
       {item && (
         <>
-          {sourceUrl && (
-            <p className="muted audio-source-url">
-              {t('audio.sourceUrl')}:{' '}
-              <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
-                {sourceUrl}
-              </a>
-            </p>
-          )}
-          <div className="entity-actions">
-            <div className="audio-media">
-              <div className="row">
-                <ShareBadges item={item} />
-                <span className="muted">{fmtDate(item.created_at)}</span>
-              </div>
-              <AudioPlayer audioId={item.id} />
-              <EntityToolbar>
+          <EntityDetailCard>
+            {sourceUrl && (
+              <p className="muted audio-source-url">
+                {t('audio.sourceUrl')}:{' '}
+                <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                  {sourceUrl}
+                </a>
+              </p>
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <ShareBadges item={item} />
+              <span className="muted">{fmtDate(item.created_at)}</span>
+            </div>
+            <AudioPlayer audioId={item.id} />
+            <EntityToolbar>
               {item.can_transcribe && (
-                <button
-                  type="button"
-                  onClick={() => void apiDownload(`/audios/${item.id}/file?download=1`, item.filename).catch(showError)}
-                >
+                <Button type="button" variant="outline" onClick={() => void apiDownload(`/audios/${item.id}/file?download=1`, item.filename).catch(showError)}>
                   {t('common.download')}
-                </button>
+                </Button>
               )}
               {item.can_transcribe ? (
-                <button className="primary" disabled={busy} onClick={() => void transcribe()}>
-                  {item.transcripts && item.transcripts.length > 0 ? t('audio.transcribeAgain') : t('audio.transcribe')}
-                </button>
+                <Button type="button" disabled={busy} onClick={() => void transcribe()}>
+                  {transcripts.length > 0 ? t('audio.transcribeAgain') : t('audio.transcribe')}
+                </Button>
               ) : (
                 <span className="muted">{t('audio.noFile')}</span>
               )}
-              {mine && <button type="button" onClick={() => setShare(true)}>{t('common.share')}</button>}
-              <button
-                type="button"
-                title={t('library.hideHint')}
-                onClick={() => void toggleHidden()}
-              >
+              {mine ? <Button type="button" variant="outline" onClick={() => setShare(true)}>{t('common.share')}</Button> : null}
+              <Button type="button" variant="outline" title={t('library.hideHint')} onClick={() => void toggleHidden()}>
                 {item.hidden ? t('common.unhide') : t('common.hide')}
-              </button>
-              {admin && (
-                <button
-                  type="button"
-                  className="danger"
-                  title={t('library.wipeHint')}
-                  onClick={() => setConfirmWipe(true)}
-                >
+              </Button>
+              {admin ? (
+                <Button type="button" variant="destructive" title={t('library.wipeHint')} onClick={() => setConfirmWipe(true)}>
                   {t('common.wipe')}
-                </button>
-              )}
-              </EntityToolbar>
-            </div>
-            {!admin && <EntityHint>{t('library.cannotDeleteHint')}</EntityHint>}
-          </div>
-          <h2>{t('audio.transcripts')}</h2>
-          <div className="list">
-            {(item.transcripts || []).length === 0 && <p className="muted">{t('common.empty')}</p>}
-            {(item.transcripts || []).map((tr) => (
+                </Button>
+              ) : null}
+            </EntityToolbar>
+            {!admin ? <EntityHint>{t('library.cannotDeleteHint')}</EntityHint> : null}
+          </EntityDetailCard>
+          <ListSection title={t('audio.transcripts')} empty={t('common.empty')} isEmpty={transcripts.length === 0}>
+            {transcripts.map((tr) => (
               <ListRow
                 key={tr.id}
                 to={`/app/transcript/${tr.id}`}
@@ -167,17 +159,17 @@ export function AudioPage() {
                   <>
                     <span>{fmtDate(tr.created_at)}</span>
                     <TranscriptDerivedBadges transcript={tr} />
-                    {tr.owner_email && <span>· {tr.owner_email}</span>}
+                    {tr.owner_email ? <span>· {tr.owner_email}</span> : null}
                   </>
                 }
                 trailing={<ShareBadges item={tr} />}
               />
             ))}
-          </div>
+          </ListSection>
         </>
       )}
-      {share && id && <ShareDialog objectType="audio" objectId={id} onClose={() => { setShare(false); void load() }} />}
-      {confirmWipe && item && (
+      {share && id ? <ShareDialog objectType="audio" objectId={id} onClose={() => { setShare(false); void load() }} /> : null}
+      {confirmWipe && item ? (
         <ConfirmDialog
           message={t('library.wipeConfirm', { title: item.filename || item.id.slice(0, 8) })}
           confirmLabel={t('common.wipe')}
@@ -186,7 +178,7 @@ export function AudioPage() {
           onConfirm={() => void doWipe()}
           onClose={() => setConfirmWipe(false)}
         />
-      )}
-    </div>
+      ) : null}
+    </EntityPage>
   )
 }

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
 import type { InstanceSnapshot, InstanceStats, Org } from '../../types'
 import { StatsDaysView } from '../../components/StatsDaysView'
-import { statsRangeForDays } from '../../util/date'
+import { defaultFilterRange } from '../../util/date'
 import { AdminPage } from '../../components/AdminSection'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import { StatsFiltersPanel } from '../../components/StatsFiltersPanel'
@@ -15,8 +15,8 @@ export function InstanceStatsTab() {
   const [snapshot, setSnapshot] = useState<InstanceSnapshot | null>(null)
   const [stats, setStats] = useState<InstanceStats | null>(null)
   const [statsOrgs, setStatsOrgs] = useState<Org[]>([])
-  const [fromDay, setFromDay] = useState(() => statsRangeForDays(7).from)
-  const [toDay, setToDay] = useState(() => statsRangeForDays(7).to)
+  const [fromDay, setFromDay] = useState(() => defaultFilterRange().from)
+  const [toDay, setToDay] = useState(() => defaultFilterRange().to)
   const [statsOrgId, setStatsOrgId] = useState('')
   const [statsUserId, setStatsUserId] = useState('')
   const [statsKind, setStatsKind] = useState('')
@@ -75,7 +75,7 @@ export function InstanceStatsTab() {
   return (
     <AdminPage>
       {snapshot && (
-        <StatGrid caption={t('instance.snapshotLive')}>
+        <StatGrid>
           <StatCard label={t('instance.orgs')} value={formatInteger(snapshot.orgs)} tone="ops" />
           <StatCard label={t('instance.users')} value={formatInteger(snapshot.users)} tone="ops" />
           <StatCard label={t('instance.queued')} value={formatInteger(snapshot.tasks_queued)} tone="ops" />

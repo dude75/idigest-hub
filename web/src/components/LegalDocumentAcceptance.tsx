@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { LEGAL_DOCUMENT_I18N, type LegalDocumentKey } from '../legalDocuments'
 import { MarkdownBody } from '../markdown'
 import { Modal } from './Modal'
+import { Button } from '@/components/ui/button'
+import { AppCheckboxRow } from './app/AppFormControls'
 
 export type LegalDocumentAcceptItem = {
   key: LegalDocumentKey
@@ -25,30 +27,28 @@ export function LegalDocumentAcceptance({ documents, checked, onCheckedChange, d
 
   return (
     <>
-      <div className="legal-accept-list stack">
+      <div className="legal-accept-list flex flex-col gap-3">
         {documents.map((doc) => (
-          <label key={doc.key} className="row agreement-accept">
-            <input
-              type="checkbox"
-              checked={checked[doc.key] ?? false}
-              disabled={disabled}
-              onChange={(e) => onCheckedChange(doc.key, e.target.checked)}
-            />
-            <span>
-              {t('legalDocuments.acceptPrefix')}{' '}
-              <button
-                type="button"
-                className="legal-doc-link"
-                disabled={disabled}
-                onClick={(e) => {
-                  e.preventDefault()
-                  setViewKey(doc.key)
-                }}
-              >
-                {t(`legalDocuments.tabs.${LEGAL_DOCUMENT_I18N[doc.key]}`)}
-              </button>
-            </span>
-          </label>
+          <AppCheckboxRow
+            key={doc.key}
+            id={`legal-accept-${doc.key}`}
+            className="agreement-accept"
+            checked={checked[doc.key] ?? false}
+            disabled={disabled}
+            onCheckedChange={(value) => onCheckedChange(doc.key, value)}
+            label={
+              <span>
+                {t('legalDocuments.acceptPrefix')}{' '}
+                <Button type="button" className="legal-doc-link" disabled={disabled} onClick={(e) => {
+                    e.preventDefault()
+                    setViewKey(doc.key)
+                  }}
+                >
+                  {t(`legalDocuments.tabs.${LEGAL_DOCUMENT_I18N[doc.key]}`)}
+                </Button>
+              </span>
+            }
+          />
         ))}
       </div>
 
@@ -63,9 +63,9 @@ export function LegalDocumentAcceptance({ documents, checked, onCheckedChange, d
             </div>
           </div>
           <div className="row modal-actions agreement-actions">
-            <button type="button" className="primary" onClick={() => setViewKey(null)}>
+            <Button type="button" onClick={() => setViewKey(null)}>
               {t('common.close')}
-            </button>
+            </Button>
           </div>
         </Modal>
       )}

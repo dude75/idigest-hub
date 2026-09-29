@@ -1,48 +1,72 @@
-import { NavLink } from 'react-router-dom'
+import type { ReactNode } from 'react'
+import {
+  Tabs as ShadcnTabs,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
+import { cn } from '@/lib/utils'
 
-export type TabLinkItem = { id: string; label: string; to: string; end?: boolean }
+export { TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 export type TabButtonItem = { id: string; label: string; active: boolean; onClick: () => void }
 
-type TabItem = TabLinkItem | TabButtonItem
-
 type Props = {
-  items: TabItem[]
+  items: TabButtonItem[]
   ariaLabel?: string
+  className?: string
+  variant?: 'default' | 'line'
 }
 
-function isLink(item: TabItem): item is TabLinkItem {
-  return 'to' in item
-}
-
-export function Tabs({ items, ariaLabel }: Props) {
+/** Controlled tabs with custom triggers (e.g. legal document type picker). */
+export function AppTabs({
+  value,
+  onValueChange,
+  ariaLabel,
+  className,
+  listClassName,
+  children,
+}: {
+  value: string
+  onValueChange: (value: string) => void
+  ariaLabel?: string
+  className?: string
+  listClassName?: string
+  children: ReactNode
+}) {
   return (
-    <div className="tabs" role="tablist" aria-label={ariaLabel}>
-      {items.map((item) => {
-        if (isLink(item)) {
-          return (
-            <NavLink
-              key={item.id}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) => (isActive ? 'active' : '')}
-            >
-              {item.label}
-            </NavLink>
-          )
-        }
-        return (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={item.active}
-            className={item.active ? 'active' : ''}
-            onClick={item.onClick}
-          >
+    <ShadcnTabs
+      value={value}
+      onValueChange={onValueChange}
+      className={cn('mb-4 w-full gap-2', className)}
+    >
+      <TabsList aria-label={ariaLabel} className={listClassName}>
+        {children}
+      </TabsList>
+    </ShadcnTabs>
+  )
+}
+
+/** App tab bar — thin wrapper over `@/components/ui/tabs` (same as instance/security). */
+export function Tabs({ items, ariaLabel, className, variant = 'default' }: Props) {
+  if (items.length === 0) return null
+
+  const activeId = items.find((item) => item.active)?.id ?? items[0]!.id
+
+  return (
+    <ShadcnTabs
+      value={activeId}
+      onValueChange={(value) => {
+        items.find((item) => item.id === value)?.onClick()
+      }}
+      className={cn(variant === 'line' ? 'w-full gap-0' : 'mb-4 w-full gap-2', className)}
+    >
+      <TabsList variant={variant} aria-label={ariaLabel}>
+        {items.map((item) => (
+          <TabsTrigger key={item.id} value={item.id}>
             {item.label}
-          </button>
-        )
-      })}
-    </div>
+          </TabsTrigger>
+        ))}
+      </TabsList>
+    </ShadcnTabs>
   )
 }

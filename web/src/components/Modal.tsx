@@ -1,45 +1,64 @@
-import { useEffect, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { cn } from '@/lib/utils'
 
 type Props = {
   onClose: () => void
-  children: ReactNode
+  children?: ReactNode
+  title?: ReactNode
+  description?: ReactNode
+  footer?: ReactNode
   wide?: boolean
   closeOnBackdrop?: boolean
-  backdropClassName?: string
   panelClassName?: string
+  showCloseButton?: boolean
 }
 
 export function Modal({
   onClose,
   children,
+  title,
+  description,
+  footer,
   wide,
   closeOnBackdrop = true,
-  backdropClassName,
   panelClassName,
+  showCloseButton,
 }: Props) {
-  useEffect(() => {
-    const prev = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = prev
-    }
-  }, [])
-
-  const panelClass = ['card', 'modal', wide && 'modal-wide', panelClassName].filter(Boolean).join(' ')
+  const showClose = showCloseButton ?? Boolean(title)
 
   return (
-    <div
-      className={['modal-back', backdropClassName].filter(Boolean).join(' ')}
-      onClick={closeOnBackdrop ? onClose : undefined}
+    <Dialog
+      open
+      disablePointerDismissal={!closeOnBackdrop}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
     >
-      <div
-        className={panelClass}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
+      <DialogContent
+        showCloseButton={showClose}
+        className={cn(
+          'gap-4 p-6 sm:max-w-lg',
+          wide && 'sm:max-w-[960px]',
+          panelClassName,
+        )}
       >
+        {title || description ? (
+          <DialogHeader className="text-left">
+            {title ? <DialogTitle>{title}</DialogTitle> : null}
+            {description ? <DialogDescription>{description}</DialogDescription> : null}
+          </DialogHeader>
+        ) : null}
         {children}
-      </div>
-    </div>
+        {footer ? <DialogFooter className="border-t-0 bg-transparent p-0 sm:justify-end">{footer}</DialogFooter> : null}
+      </DialogContent>
+    </Dialog>
   )
 }

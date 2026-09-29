@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { HubBadge } from './app/AdminUi'
 import { useAppVersion } from '../useAppVersion'
 
 export function AppBrand() {
@@ -9,7 +10,11 @@ export function AppBrand() {
   return (
     <Link to="/" className="brand">
       {t('app')}
-      {version && <span className="badge out">{version}</span>}
+      {version ? (
+        <HubBadge tone="success" className="ml-1.5 align-middle font-normal">
+          {version}
+        </HubBadge>
+      ) : null}
     </Link>
   )
 }

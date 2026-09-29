@@ -29,7 +29,7 @@ export function SecurityPage() {
   if (!isInstanceAdmin(me)) return <Navigate to={LIBRARY_DEFAULT} replace />
 
   return (
-    <div>
+    <div className="instance-admin security-admin">
       <Tabs
         items={SECURITY_TABS.map((id) => ({
           id,

@@ -2,8 +2,8 @@ import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from './api'
 import i18n from './i18n'
-import { Link } from 'react-router-dom'
 import { libraryPath } from './routes'
+import { HubBadge, HubBadgeLink } from './components/app/AdminUi'
 import { formatAge, formatDateTime } from './util/datetimeFormat'
 import type { Audio, ShareBadge, Task, Transcript } from './types'
 
@@ -172,14 +172,14 @@ export function AudioDerivedBadges({ audio }: { audio: Audio }) {
   return (
     <>
       {audio.has_transcript && (
-        <Link className="badge out badge-link" to={libraryPath('transcripts', audio.id)}>
+        <HubBadgeLink to={libraryPath('transcripts', audio.id)} tone="success">
           {t('library.transcripts')}
-        </Link>
+        </HubBadgeLink>
       )}
       {audio.has_summary && audio.summary_transcript_id && (
-        <Link className="badge out badge-link" to={libraryPath('summaries', audio.summary_transcript_id)}>
+        <HubBadgeLink to={libraryPath('summaries', audio.summary_transcript_id)} tone="success">
           {t('library.summaries')}
-        </Link>
+        </HubBadgeLink>
       )}
     </>
   )
@@ -189,9 +189,9 @@ export function TranscriptDerivedBadges({ transcript }: { transcript: Transcript
   const { t } = useTranslation()
   if (!transcript.has_summary) return null
   return (
-    <Link className="badge out badge-link" to={libraryPath('summaries', transcript.id)}>
+    <HubBadgeLink to={libraryPath('summaries', transcript.id)} tone="success">
       {t('library.summaries')}
-    </Link>
+    </HubBadgeLink>
   )
 }
 
@@ -203,16 +203,16 @@ export function ShareBadges({ item, showHidden = true }: { item: ShareBadge; sho
   return (
     <span className="row">
       {item.share_kind === 'incoming' && item.shared_by && (
-        <span className="badge warn">{t('library.sharedBy', { who: item.shared_by })}</span>
+        <HubBadge tone="warning">{t('library.sharedBy', { who: item.shared_by })}</HubBadge>
       )}
       {item.share_kind === 'outgoing' && sharedWith && (
-        <span className="badge out">{t('library.sharedWith', { who: sharedWith })}</span>
+        <HubBadge tone="success">{t('library.sharedWith', { who: sharedWith })}</HubBadge>
       )}
       {item.share_kind === 'outgoing' && !sharedWith && (
-        <span className="badge out">{t('library.youShared')}</span>
+        <HubBadge tone="success">{t('library.youShared')}</HubBadge>
       )}
-      {showHidden && item.hidden && <span className="badge">{t('library.hidden')}</span>}
-      {item.edited && <span className="badge">{t('summary.edited')}</span>}
+      {showHidden && item.hidden && <HubBadge tone="muted">{t('library.hidden')}</HubBadge>}
+      {item.edited && <HubBadge tone="muted">{t('summary.edited')}</HubBadge>}
     </span>
   )
 }

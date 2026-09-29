@@ -5,11 +5,18 @@ import { api } from '../../api'
 import { useAuth } from '../../auth'
 import type { InstanceSettings } from '../../types'
 import { AdminPage } from '../../components/AdminSection'
+import { McpOAuthInfo } from '../../components/instance/McpOAuthInfo'
 import { isAvailableSummarizeModel } from '../../summarizeModels'
 import { diarizationOptionsForAsr, isDispatchableCombo } from '../../transcribeModels'
 import { showError } from '../../util'
 import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../../util/timezones'
+import { Button } from '@/components/ui/button'
+import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
+import { jsonDirty } from '../../util/formDirty'
+import { Card, CardContent } from '@/components/ui/card'
+import { AppCheckboxRow, AppInputField, AppSelectField } from '../../components/app/AppFormControls'
+import { SettingsFoldSummary } from '../../components/app/SettingsFoldSummary'
 import {
   DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
   DEFAULT_IMPORT_MAX_CONCURRENT,
@@ -20,6 +27,7 @@ export function InstanceSettingsTab() {
   const { t } = useTranslation()
   const { me, refresh } = useAuth()
   const [settings, setSettings] = useState<InstanceSettings | null>(null)
+  const [savedSettings, setSavedSettings] = useState<InstanceSettings | null>(null)
   const [smtpPassword, setSmtpPassword] = useState('')
   const [proxyPassword, setProxyPassword] = useState('')
   const [smtpTestEmail, setSmtpTestEmail] = useState('')
@@ -47,6 +55,7 @@ export function InstanceSettingsTab() {
       const data = await api<InstanceSettings>('/instance/settings')
       const normalized = normalizeSettings(data)
       setSettings(normalized)
+      setSavedSettings(normalized)
     } catch (e) {
       showError(e)
     }
@@ -67,6 +76,14 @@ export function InstanceSettingsTab() {
     const summarizeOk = isAvailableSummarizeModel(settings, settings.summarize_model)
     return transcribeOk && summarizeOk
   }, [settings])
+
+  const settingsDirty = useMemo(() => {
+    if (!settings || !savedSettings) return false
+    if (smtpPassword.trim() || proxyPassword.trim()) return true
+    return jsonDirty(settings, savedSettings)
+  }, [settings, savedSettings, smtpPassword, proxyPassword])
+
+  const settingsReady = settingsDirty && serviceModelsValid && !saveBusy
 
   function smtpTestPayload() {
     if (!settings) return null
@@ -184,6 +201,7 @@ export function InstanceSettingsTab() {
       })
       const normalized = normalizeSettings(data)
       setSettings(normalized)
+      setSavedSettings(normalized)
       setSmtpPassword('')
       setProxyPassword('')
       toast.success(t('profile.saved'))
@@ -200,81 +218,85 @@ export function InstanceSettingsTab() {
   return (
     <AdminPage>
       <div className="org-settings-stack">
-      <details className="fold org-fold card">
+      <Card className="org-settings-folds gap-0 overflow-hidden py-0">
+      <details className="fold org-fold-section">
         <summary className="org-fold-summary">
-          <span>{t('instance.baseTitle')}</span>
+          <SettingsFoldSummary title={t('instance.baseTitle')} />
         </summary>
-        <div className="stack fold-body">
-          <label className="row">
-            <input type="checkbox" checked={settings.allow_new_orgs} onChange={(e) => setSettings({ ...settings, allow_new_orgs: e.target.checked })} />
-            {t('instance.allowNewOrgs')}
-          </label>
-          <label>{t('instance.publicBaseUrl')}<input value={settings.public_base_url || ''} onChange={(e) => setSettings({ ...settings, public_base_url: e.target.value })} /></label>
-          <label>
-            {t('instance.sessionTtlHours')}
-            <input
-              type="number"
-              min={1}
-              max={336}
-              value={settings.session_ttl_hours}
-              onChange={(e) => setSettings({ ...settings, session_ttl_hours: Number(e.target.value) || 1 })}
-            />
-          </label>
-          <p className="muted">{t('instance.sessionTtlHint')}</p>
+        <div className="flex flex-col gap-3 fold-body">
+          <AppCheckboxRow
+            id="instance-allow-new-orgs"
+            label={t('instance.allowNewOrgs')}
+            checked={settings.allow_new_orgs}
+            onCheckedChange={(checked) => setSettings({ ...settings, allow_new_orgs: checked })}
+          />
+          <AppInputField
+            label={t('instance.publicBaseUrl')}
+            htmlFor="instance-public-base-url"
+            value={settings.public_base_url || ''}
+            onChange={(e) => setSettings({ ...settings, public_base_url: e.target.value })}
+          />
+          <AppInputField
+            label={t('instance.sessionTtlHours')}
+            htmlFor="instance-session-ttl"
+            type="number"
+            min={1}
+            max={336}
+            value={settings.session_ttl_hours}
+            onChange={(e) => setSettings({ ...settings, session_ttl_hours: Number(e.target.value) || 1 })}
+            description={t('instance.sessionTtlHint')}
+          />
         </div>
       </details>
-
-      <details className="fold org-fold card">
+      <details className="fold org-fold-section">
         <summary className="org-fold-summary">
-          <span>{t('instance.serviceModelsTitle')}</span>
+          <SettingsFoldSummary title={t('instance.serviceModelsTitle')} />
         </summary>
-        <div className="stack fold-body">
+        <div className="flex flex-col gap-3 fold-body">
           <p className="muted">{t('instance.serviceModelsHint')}</p>
-          <label>
-            {t('instance.asr')}
-            <select
-              value={settings.asr_model}
-              onChange={(e) => {
-                const nextAsr = e.target.value
-                const allowedDiar = diarizationOptionsForAsr(settings, nextAsr)
-                const nextDiar =
-                  settings.diarization_model && allowedDiar.includes(settings.diarization_model)
-                    ? settings.diarization_model
-                    : null
-                setSettings({ ...settings, asr_model: nextAsr, diarization_model: nextDiar })
-              }}
-              disabled={settings.asr_models.length === 0}
-            >
-              {settings.asr_models.length === 0 ? (
-                <option value={settings.asr_model}>{settings.asr_model}</option>
-              ) : (
-                settings.asr_models.map((modelId) => (
-                  <option key={modelId} value={modelId}>{modelId}</option>
-                ))
-              )}
-            </select>
-          </label>
-          <label>
-            {t('instance.diarization')}
-            <select
-              value={settings.diarization_model || ''}
-              onChange={(e) => setSettings({ ...settings, diarization_model: e.target.value || null })}
-              disabled={settings.diarization_models.length === 0}
-            >
-              <option value="">{t('instance.diarizationOff')}</option>
-              {availableDiarizationModels.map((modelId) => (
+          <AppSelectField
+            label={t('instance.asr')}
+            htmlFor="instance-asr"
+            value={settings.asr_model}
+            onChange={(e) => {
+              const nextAsr = e.target.value
+              const allowedDiar = diarizationOptionsForAsr(settings, nextAsr)
+              const nextDiar =
+                settings.diarization_model && allowedDiar.includes(settings.diarization_model)
+                  ? settings.diarization_model
+                  : null
+              setSettings({ ...settings, asr_model: nextAsr, diarization_model: nextDiar })
+            }}
+            disabled={settings.asr_models.length === 0}
+          >
+            {settings.asr_models.length === 0 ? (
+              <option value={settings.asr_model}>{settings.asr_model}</option>
+            ) : (
+              settings.asr_models.map((modelId) => (
                 <option key={modelId} value={modelId}>{modelId}</option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {t('instance.summarizeModelLabel')}
-            <select
-              value={settings.summarize_model || ''}
-              onChange={(e) => setSettings({ ...settings, summarize_model: e.target.value || null })}
-              disabled={settings.summarize_models.length === 0}
-            >
-              <option value="">{t('instance.summarizeModelUnset')}</option>
+              ))
+            )}
+          </AppSelectField>
+          <AppSelectField
+            label={t('instance.diarization')}
+            htmlFor="instance-diarization"
+            value={settings.diarization_model || ''}
+            onChange={(e) => setSettings({ ...settings, diarization_model: e.target.value || null })}
+            disabled={settings.diarization_models.length === 0}
+          >
+            <option value="">{t('instance.diarizationOff')}</option>
+            {availableDiarizationModels.map((modelId) => (
+              <option key={modelId} value={modelId}>{modelId}</option>
+            ))}
+          </AppSelectField>
+          <AppSelectField
+            label={t('instance.summarizeModelLabel')}
+            htmlFor="instance-summarize"
+            value={settings.summarize_model || ''}
+            onChange={(e) => setSettings({ ...settings, summarize_model: e.target.value || null })}
+            disabled={settings.summarize_models.length === 0}
+          >
+            <option value="">{t('instance.summarizeModelUnset')}</option>
               {settings.summarize_models.length === 0 ? (
                 settings.summarize_model ? (
                   <option value={settings.summarize_model}>{settings.summarize_model}</option>
@@ -284,183 +306,192 @@ export function InstanceSettingsTab() {
                   <option key={modelId} value={modelId}>{modelId}</option>
                 ))
               )}
-            </select>
-          </label>
+          </AppSelectField>
           {!serviceModelsValid ? <p className="err">{t('instance.serviceModelsInvalid')}</p> : null}
         </div>
       </details>
-
-      <details className="fold org-fold card">
+      <details className="fold org-fold-section">
         <summary className="org-fold-summary">
-          <span>{t('instance.smtpTitle')}</span>
+          <SettingsFoldSummary title={t('instance.smtpTitle')} />
         </summary>
-        <div className="stack fold-body">
-          <label>{t('instance.smtpHost')}<input value={settings.smtp_host || ''} onChange={(e) => setSettings({ ...settings, smtp_host: e.target.value })} /></label>
-          <label>{t('instance.smtpPort')}<input type="number" value={settings.smtp_port ?? ''} onChange={(e) => setSettings({ ...settings, smtp_port: e.target.value ? Number(e.target.value) : null })} /></label>
-          <label>{t('instance.smtpUser')}<input value={settings.smtp_user || ''} onChange={(e) => setSettings({ ...settings, smtp_user: e.target.value })} /></label>
-          <label>
-            {t('instance.smtpPassword')}
-            <input
-              type="password"
-              value={smtpPassword}
-              placeholder={settings.smtp_password_configured ? t('instance.smtpPasswordSaved') : ''}
-              onChange={(e) => setSmtpPassword(e.target.value)}
-            />
-          </label>
-          <p className="muted">
-            {settings.smtp_password_configured && !smtpPassword
-              ? t('instance.smtpPasswordSavedHint')
-              : t('instance.smtpPasswordHint')}
-          </p>
-          <label>{t('instance.smtpFrom')}<input value={settings.smtp_from || ''} onChange={(e) => setSettings({ ...settings, smtp_from: e.target.value })} /></label>
-          <label className="row">
-            <input type="checkbox" checked={settings.smtp_tls} onChange={(e) => setSettings({ ...settings, smtp_tls: e.target.checked })} />
-            {t('instance.smtpTls')}
-          </label>
-          <label>
-            {t('instance.smtpTestEmail')}
-            <input
-              type="email"
-              value={smtpTestEmail}
-              placeholder={me?.user.email || ''}
-              onChange={(e) => setSmtpTestEmail(e.target.value)}
-            />
-          </label>
-          <p className="muted">{t('instance.smtpTestEmailHint')}</p>
-          <button
-            type="button"
-            disabled={smtpTestingConnection || !(settings.smtp_host || '').trim() || !(settings.smtp_from || '').trim()}
-            onClick={() => void testSmtpConnection()}
+        <div className="flex flex-col gap-3 fold-body">
+          <AppInputField
+            label={t('instance.smtpHost')}
+            htmlFor="instance-smtp-host"
+            value={settings.smtp_host || ''}
+            onChange={(e) => setSettings({ ...settings, smtp_host: e.target.value })}
+          />
+          <AppInputField
+            label={t('instance.smtpPort')}
+            htmlFor="instance-smtp-port"
+            type="number"
+            value={settings.smtp_port ?? ''}
+            onChange={(e) => setSettings({ ...settings, smtp_port: e.target.value ? Number(e.target.value) : null })}
+          />
+          <AppInputField
+            label={t('instance.smtpUser')}
+            htmlFor="instance-smtp-user"
+            value={settings.smtp_user || ''}
+            onChange={(e) => setSettings({ ...settings, smtp_user: e.target.value })}
+          />
+          <AppInputField
+            label={t('instance.smtpPassword')}
+            htmlFor="instance-smtp-password"
+            type="password"
+            value={smtpPassword}
+            placeholder={settings.smtp_password_configured ? t('instance.smtpPasswordSaved') : ''}
+            onChange={(e) => setSmtpPassword(e.target.value)}
+            description={
+              settings.smtp_password_configured && !smtpPassword
+                ? t('instance.smtpPasswordSavedHint')
+                : t('instance.smtpPasswordHint')
+            }
+          />
+          <AppInputField
+            label={t('instance.smtpFrom')}
+            htmlFor="instance-smtp-from"
+            value={settings.smtp_from || ''}
+            onChange={(e) => setSettings({ ...settings, smtp_from: e.target.value })}
+          />
+          <AppCheckboxRow
+            id="instance-smtp-tls"
+            label={t('instance.smtpTls')}
+            checked={settings.smtp_tls}
+            onCheckedChange={(checked) => setSettings({ ...settings, smtp_tls: checked })}
+          />
+          <AppInputField
+            label={t('instance.smtpTestEmail')}
+            htmlFor="instance-smtp-test-email"
+            type="email"
+            value={smtpTestEmail}
+            placeholder={me?.user.email || ''}
+            onChange={(e) => setSmtpTestEmail(e.target.value)}
+            description={t('instance.smtpTestEmailHint')}
+          />
+          <Button type="button" disabled={smtpTestingConnection || !(settings.smtp_host || '').trim() || !(settings.smtp_from || '').trim()} onClick={() => void testSmtpConnection()}
           >
             {smtpTestingConnection ? t('instance.smtpTestingConnection') : t('instance.smtpTestConnection')}
-          </button>
+          </Button>
         </div>
       </details>
-
-      <details className="fold org-fold card">
+      <details className="fold org-fold-section">
         <summary className="org-fold-summary">
-          <span>{t('instance.importTitle')}</span>
+          <SettingsFoldSummary title={t('instance.importTitle')} />
         </summary>
-        <div className="stack fold-body">
-          <label className="row">
-            <input
-              type="checkbox"
-              checked={settings.import_enabled}
-              onChange={(e) => setSettings({ ...settings, import_enabled: e.target.checked })}
-            />
-            {t('instance.importEnabled')}
-          </label>
-          <label>
-            {t('instance.downloadProxyUrl')}
-            <input
-              value={settings.download_proxy_url || ''}
-              onChange={(e) => {
-                const url = e.target.value || null
-                setSettings({
-                  ...settings,
-                  download_proxy_url: url,
-                  download_proxy_enabled: url ? settings.download_proxy_enabled : false,
-                })
-              }}
-              placeholder="socks5://host:1080 or http://host:8080"
-            />
-          </label>
-          <p className="muted">{t('instance.downloadProxyHint')}</p>
-          <label className="row">
-            <input
-              type="checkbox"
-              checked={settings.download_proxy_enabled}
-              disabled={
-                !settings.import_enabled ||
-                !(settings.download_proxy_configured || (settings.download_proxy_url || '').trim())
-              }
-              onChange={(e) => setSettings({ ...settings, download_proxy_enabled: e.target.checked })}
-            />
-            {t('instance.downloadProxyEnabled')}
-          </label>
+        <div className="flex flex-col gap-3 fold-body">
+          <AppCheckboxRow
+            id="instance-import-enabled"
+            label={t('instance.importEnabled')}
+            checked={settings.import_enabled}
+            onCheckedChange={(checked) => setSettings({ ...settings, import_enabled: checked })}
+          />
+          <AppInputField
+            label={t('instance.downloadProxyUrl')}
+            htmlFor="instance-download-proxy-url"
+            value={settings.download_proxy_url || ''}
+            onChange={(e) => {
+              const url = e.target.value || null
+              setSettings({
+                ...settings,
+                download_proxy_url: url,
+                download_proxy_enabled: url ? settings.download_proxy_enabled : false,
+              })
+            }}
+            placeholder="socks5://host:1080 or http://host:8080"
+            description={t('instance.downloadProxyHint')}
+          />
+          <AppCheckboxRow
+            id="instance-download-proxy-enabled"
+            label={t('instance.downloadProxyEnabled')}
+            checked={settings.download_proxy_enabled}
+            disabled={
+              !settings.import_enabled ||
+              !(settings.download_proxy_configured || (settings.download_proxy_url || '').trim())
+            }
+            onCheckedChange={(checked) => setSettings({ ...settings, download_proxy_enabled: checked })}
+          />
           <p className="muted">{t('instance.downloadProxyEnabledHint')}</p>
-          <label>
-            {t('instance.downloadProxyPassword')}
-            <input type="password" value={proxyPassword} onChange={(e) => setProxyPassword(e.target.value)} />
-          </label>
-          <label>
-            {t('instance.downloadCookiesPath')}
-            <input
-              value={settings.download_cookies_path || ''}
-              onChange={(e) => setSettings({ ...settings, download_cookies_path: e.target.value || null })}
-              placeholder="/data/youtube-cookies.txt"
-            />
-          </label>
-          <p className="muted">{t('instance.downloadCookiesHint')}</p>
-          <label>
-            {t('instance.importAudioBitrate')}
-            <input
-              type="number"
-              min={0}
-              max={320}
-              placeholder={String(DEFAULT_IMPORT_AUDIO_BITRATE_KBPS)}
-              value={settings.import_audio_bitrate_kbps ?? ''}
-              disabled={!settings.import_enabled}
-              onChange={(e) => {
-                const raw = e.target.value
-                setSettings({
-                  ...settings,
-                  import_audio_bitrate_kbps:
-                    raw === '' ? (undefined as unknown as number) : Math.max(0, Number(raw) || 0),
-                })
-              }}
-            />
-          </label>
-          <p className="muted">{t('instance.importAudioBitrateHint')}</p>
-          <label>
-            {t('instance.importMaxConcurrent')}
-            <input
-              type="number"
-              min={1}
-              max={IMPORT_MAX_CONCURRENT_MAX}
-              value={settings.import_max_concurrent ?? DEFAULT_IMPORT_MAX_CONCURRENT}
-              disabled={!settings.import_enabled}
-              onChange={(e) =>
-                setSettings({
-                  ...settings,
-                  import_max_concurrent: Math.min(
-                    IMPORT_MAX_CONCURRENT_MAX,
-                    Math.max(1, Number(e.target.value) || DEFAULT_IMPORT_MAX_CONCURRENT),
-                  ),
-                })
-              }
-            />
-          </label>
-          <p className="muted">{t('instance.importMaxConcurrentHint')}</p>
+          <AppInputField
+            label={t('instance.downloadProxyPassword')}
+            htmlFor="instance-download-proxy-password"
+            type="password"
+            value={proxyPassword}
+            onChange={(e) => setProxyPassword(e.target.value)}
+          />
+          <AppInputField
+            label={t('instance.downloadCookiesPath')}
+            htmlFor="instance-download-cookies-path"
+            value={settings.download_cookies_path || ''}
+            onChange={(e) => setSettings({ ...settings, download_cookies_path: e.target.value || null })}
+            placeholder="/data/youtube-cookies.txt"
+            description={t('instance.downloadCookiesHint')}
+          />
+          <AppInputField
+            label={t('instance.importAudioBitrate')}
+            htmlFor="instance-import-audio-bitrate"
+            type="number"
+            min={0}
+            max={320}
+            placeholder={String(DEFAULT_IMPORT_AUDIO_BITRATE_KBPS)}
+            value={settings.import_audio_bitrate_kbps ?? ''}
+            disabled={!settings.import_enabled}
+            onChange={(e) => {
+              const raw = e.target.value
+              setSettings({
+                ...settings,
+                import_audio_bitrate_kbps:
+                  raw === '' ? (undefined as unknown as number) : Math.max(0, Number(raw) || 0),
+              })
+            }}
+            description={t('instance.importAudioBitrateHint')}
+          />
+          <AppInputField
+            label={t('instance.importMaxConcurrent')}
+            htmlFor="instance-import-max-concurrent"
+            type="number"
+            min={1}
+            max={IMPORT_MAX_CONCURRENT_MAX}
+            value={settings.import_max_concurrent ?? DEFAULT_IMPORT_MAX_CONCURRENT}
+            disabled={!settings.import_enabled}
+            onChange={(e) =>
+              setSettings({
+                ...settings,
+                import_max_concurrent: Math.min(
+                  IMPORT_MAX_CONCURRENT_MAX,
+                  Math.max(1, Number(e.target.value) || DEFAULT_IMPORT_MAX_CONCURRENT),
+                ),
+              })
+            }
+            description={t('instance.importMaxConcurrentHint')}
+          />
           <p className="muted">{t('instance.importPlatformsHint')}</p>
-          <div className="stack">
+          <div className="flex flex-col gap-3">
             {settings.import_platforms.map((platform) => (
-              <label className="row" key={platform.id}>
-                <input
-                  type="checkbox"
-                  checked={platform.enabled}
-                  disabled={!settings.import_enabled}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      import_platforms: settings.import_platforms.map((item) =>
-                        item.id === platform.id ? { ...item, enabled: e.target.checked } : item,
-                      ),
-                    })
-                  }
-                />
-                <span className="grow">
-                  <strong>{platform.label}</strong>
-                  <span className="muted"> — {platform.domains.join(', ')}</span>
-                </span>
-              </label>
+              <AppCheckboxRow
+                key={platform.id}
+                id={`instance-import-platform-${platform.id}`}
+                className="items-start"
+                label={
+                  <span className="grow">
+                    <strong>{platform.label}</strong>
+                    <span className="muted"> — {platform.domains.join(', ')}</span>
+                  </span>
+                }
+                checked={platform.enabled}
+                disabled={!settings.import_enabled}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    import_platforms: settings.import_platforms.map((item) =>
+                      item.id === platform.id ? { ...item, enabled: checked } : item,
+                    ),
+                  })
+                }
+              />
             ))}
           </div>
-          <div className="row">
-            <button
-              type="button"
-              disabled={!settings.import_enabled}
-              onClick={() =>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" disabled={!settings.import_enabled} onClick={() =>
                 setSettings({
                   ...settings,
                   import_platforms: settings.import_platforms.map((item) => ({ ...item, enabled: true })),
@@ -468,11 +499,8 @@ export function InstanceSettingsTab() {
               }
             >
               {t('instance.importSelectAll')}
-            </button>
-            <button
-              type="button"
-              disabled={!settings.import_enabled}
-              onClick={() =>
+            </Button>
+            <Button type="button" disabled={!settings.import_enabled} onClick={() =>
                 setSettings({
                   ...settings,
                   import_platforms: settings.import_platforms.map((item) => ({
@@ -483,158 +511,156 @@ export function InstanceSettingsTab() {
               }
             >
               {t('instance.importResetDefaults')}
-            </button>
+            </Button>
           </div>
         </div>
       </details>
-
-      <details className="fold org-fold card">
+      <details className="fold org-fold-section">
         <summary className="org-fold-summary">
-          <span>{t('instance.captureTitle')}</span>
+          <SettingsFoldSummary title={t('instance.captureTitle')} />
         </summary>
-        <div className="stack fold-body">
-          <label className="row">
-            <input
-              type="checkbox"
-              checked={settings.capture_enabled}
-              onChange={(e) => setSettings({ ...settings, capture_enabled: e.target.checked })}
-            />
-            {t('instance.captureEnabled')}
-          </label>
+        <div className="flex flex-col gap-3 fold-body">
+          <AppCheckboxRow
+            id="instance-capture-enabled"
+            label={t('instance.captureEnabled')}
+            checked={settings.capture_enabled}
+            onCheckedChange={(checked) => setSettings({ ...settings, capture_enabled: checked })}
+          />
           <p className="muted">{t('instance.captureConnectorsHint')}</p>
-          <div className="stack">
+          <div className="flex flex-col gap-3">
             {settings.capture_connectors.length === 0 ? (
               <p className="muted">{t('instance.captureConnectorsEmpty')}</p>
             ) : null}
             {settings.capture_connectors.map((connector) => (
-              <label className="row" key={connector.id}>
-                <input
-                  type="checkbox"
-                  checked={connector.enabled}
-                  disabled={!settings.capture_enabled || connector.status === 'unavailable'}
-                  onChange={(e) =>
-                    setSettings({
-                      ...settings,
-                      capture_connectors: settings.capture_connectors.map((item) =>
-                        item.id === connector.id ? { ...item, enabled: e.target.checked } : item,
-                      ),
-                    })
-                  }
-                />
-                <span className="grow">
-                  <strong>{connector.label}</strong>
-                  {connector.status && connector.status !== 'loaded' ? (
-                    <span className="muted"> — {connector.status}</span>
-                  ) : null}
-                </span>
-              </label>
+              <AppCheckboxRow
+                key={connector.id}
+                id={`instance-capture-connector-${connector.id}`}
+                className="items-start"
+                label={
+                  <span className="grow">
+                    <strong>{connector.label}</strong>
+                    {connector.status && connector.status !== 'loaded' ? (
+                      <span className="muted"> — {connector.status}</span>
+                    ) : null}
+                  </span>
+                }
+                checked={connector.enabled}
+                disabled={!settings.capture_enabled || connector.status === 'unavailable'}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    capture_connectors: settings.capture_connectors.map((item) =>
+                      item.id === connector.id ? { ...item, enabled: checked } : item,
+                    ),
+                  })
+                }
+              />
             ))}
           </div>
         </div>
       </details>
-
-      <details className="fold org-fold card">
+      <details className="fold org-fold-section">
         <summary className="org-fold-summary">
-          <span>{t('instance.dateTimeTitle')}</span>
+          <SettingsFoldSummary title={t('instance.dateTimeTitle')} />
         </summary>
-        <div className="stack fold-body">
-          <label>
-            {t('instance.dateTimeFormat')}
-            <select
-              value={settings.date_time_format || 'eu_24h'}
-              onChange={(e) => setSettings({ ...settings, date_time_format: e.target.value })}
-            >
-              {DATE_TIME_FORMATS.map((id) => (
-                <option key={id} value={id}>
-                  {t(`dateTime.format.${id}`)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="muted">{t('instance.dateTimeFormatHint')}</p>
-          <label>
-            {t('instance.timezone')}
-            <select
-              value={settings.timezone || 'GMT+0'}
-              onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
-            >
-              {TIMEZONE_OPTIONS.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
-          </label>
-          <p className="muted">{t('instance.timezoneHint')}</p>
+        <div className="flex flex-col gap-3 fold-body">
+          <AppSelectField
+            label={t('instance.dateTimeFormat')}
+            htmlFor="instance-date-time-format"
+            value={settings.date_time_format || 'eu_24h'}
+            onChange={(e) => setSettings({ ...settings, date_time_format: e.target.value })}
+            description={t('instance.dateTimeFormatHint')}
+          >
+            {DATE_TIME_FORMATS.map((id) => (
+              <option key={id} value={id}>
+                {t(`dateTime.format.${id}`)}
+              </option>
+            ))}
+          </AppSelectField>
+          <AppSelectField
+            label={t('instance.timezone')}
+            htmlFor="instance-timezone"
+            value={settings.timezone || 'GMT+0'}
+            onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
+            description={t('instance.timezoneHint')}
+          >
+            {TIMEZONE_OPTIONS.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
+              </option>
+            ))}
+          </AppSelectField>
         </div>
       </details>
-
-      <details className="fold org-fold card">
+      <details className="fold org-fold-section">
         <summary className="org-fold-summary">
-          <span>{t('instance.rateLimitTitle')}</span>
+          <SettingsFoldSummary title={t('instance.rateLimitTitle')} />
         </summary>
-        <div className="stack fold-body">
+        <div className="flex flex-col gap-3 fold-body">
           <p className="muted">{t('instance.rateLimitHint')}</p>
-          <label className="row">
-            <input type="checkbox" checked={settings.rate_limit_enabled} onChange={(e) => setSettings({ ...settings, rate_limit_enabled: e.target.checked })} />
-            {t('instance.rateLimitEnabled')}
-          </label>
-          <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+          <AppCheckboxRow
+            id="instance-rate-limit-enabled"
+            label={t('instance.rateLimitEnabled')}
+            checked={settings.rate_limit_enabled}
+            onCheckedChange={(checked) => setSettings({ ...settings, rate_limit_enabled: checked })}
+          />
+          <fieldset className="flex flex-col gap-3" disabled={!settings.rate_limit_enabled}>
             <legend>{t('instance.rateLimitLogin')}</legend>
-            <label>{t('instance.rateLimitPerEmailMin')}<input type="number" min={0} value={settings.rate_limit_login_email} onChange={(e) => setSettings({ ...settings, rate_limit_login_email: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitPerIpMin')}<input type="number" min={0} value={settings.rate_limit_login_ip} onChange={(e) => setSettings({ ...settings, rate_limit_login_ip: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitGlobalMin')}<input type="number" min={0} value={settings.rate_limit_login_global} onChange={(e) => setSettings({ ...settings, rate_limit_login_global: Number(e.target.value) })} /></label>
+            <AppInputField label={t('instance.rateLimitPerEmailMin')} htmlFor="instance-rate_limit_login_email" type="number" min={0} value={settings.rate_limit_login_email} onChange={(e) => setSettings({ ...settings, rate_limit_login_email: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitPerIpMin')} htmlFor="instance-rate_limit_login_ip" type="number" min={0} value={settings.rate_limit_login_ip} onChange={(e) => setSettings({ ...settings, rate_limit_login_ip: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitGlobalMin')} htmlFor="instance-rate_limit_login_global" type="number" min={0} value={settings.rate_limit_login_global} onChange={(e) => setSettings({ ...settings, rate_limit_login_global: Number(e.target.value) })} />
           </fieldset>
-          <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+          <fieldset className="flex flex-col gap-3" disabled={!settings.rate_limit_enabled}>
             <legend>{t('instance.rateLimitSignup')}</legend>
-            <label>{t('instance.rateLimitPerEmailMin')}<input type="number" min={0} value={settings.rate_limit_signup_email} onChange={(e) => setSettings({ ...settings, rate_limit_signup_email: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitPerIpMin')}<input type="number" min={0} value={settings.rate_limit_signup_ip} onChange={(e) => setSettings({ ...settings, rate_limit_signup_ip: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitGlobalMin')}<input type="number" min={0} value={settings.rate_limit_signup_global} onChange={(e) => setSettings({ ...settings, rate_limit_signup_global: Number(e.target.value) })} /></label>
+            <AppInputField label={t('instance.rateLimitPerEmailMin')} htmlFor="instance-rate_limit_signup_email" type="number" min={0} value={settings.rate_limit_signup_email} onChange={(e) => setSettings({ ...settings, rate_limit_signup_email: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitPerIpMin')} htmlFor="instance-rate_limit_signup_ip" type="number" min={0} value={settings.rate_limit_signup_ip} onChange={(e) => setSettings({ ...settings, rate_limit_signup_ip: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitGlobalMin')} htmlFor="instance-rate_limit_signup_global" type="number" min={0} value={settings.rate_limit_signup_global} onChange={(e) => setSettings({ ...settings, rate_limit_signup_global: Number(e.target.value) })} />
           </fieldset>
-          <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+          <fieldset className="flex flex-col gap-3" disabled={!settings.rate_limit_enabled}>
             <legend>{t('instance.rateLimitReset')}</legend>
-            <label>{t('instance.rateLimitPerEmailHour')}<input type="number" min={0} value={settings.rate_limit_reset_email} onChange={(e) => setSettings({ ...settings, rate_limit_reset_email: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitPerIpHour')}<input type="number" min={0} value={settings.rate_limit_reset_ip} onChange={(e) => setSettings({ ...settings, rate_limit_reset_ip: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitGlobalHour')}<input type="number" min={0} value={settings.rate_limit_reset_global} onChange={(e) => setSettings({ ...settings, rate_limit_reset_global: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitConfirmPerIpHour')}<input type="number" min={0} value={settings.rate_limit_reset_confirm_ip} onChange={(e) => setSettings({ ...settings, rate_limit_reset_confirm_ip: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitConfirmGlobalHour')}<input type="number" min={0} value={settings.rate_limit_reset_confirm_global} onChange={(e) => setSettings({ ...settings, rate_limit_reset_confirm_global: Number(e.target.value) })} /></label>
+            <AppInputField label={t('instance.rateLimitPerEmailHour')} htmlFor="instance-rate_limit_reset_email" type="number" min={0} value={settings.rate_limit_reset_email} onChange={(e) => setSettings({ ...settings, rate_limit_reset_email: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitPerIpHour')} htmlFor="instance-rate_limit_reset_ip" type="number" min={0} value={settings.rate_limit_reset_ip} onChange={(e) => setSettings({ ...settings, rate_limit_reset_ip: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitGlobalHour')} htmlFor="instance-rate_limit_reset_global" type="number" min={0} value={settings.rate_limit_reset_global} onChange={(e) => setSettings({ ...settings, rate_limit_reset_global: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitConfirmPerIpHour')} htmlFor="instance-rate_limit_reset_confirm_ip" type="number" min={0} value={settings.rate_limit_reset_confirm_ip} onChange={(e) => setSettings({ ...settings, rate_limit_reset_confirm_ip: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitConfirmGlobalHour')} htmlFor="instance-rate_limit_reset_confirm_global" type="number" min={0} value={settings.rate_limit_reset_confirm_global} onChange={(e) => setSettings({ ...settings, rate_limit_reset_confirm_global: Number(e.target.value) })} />
           </fieldset>
-          <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+          <fieldset className="flex flex-col gap-3" disabled={!settings.rate_limit_enabled}>
             <legend>{t('instance.rateLimitSetup')}</legend>
-            <label>{t('instance.rateLimitPerIpHour')}<input type="number" min={0} value={settings.rate_limit_setup_ip} onChange={(e) => setSettings({ ...settings, rate_limit_setup_ip: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitGlobalHour')}<input type="number" min={0} value={settings.rate_limit_setup_global} onChange={(e) => setSettings({ ...settings, rate_limit_setup_global: Number(e.target.value) })} /></label>
+            <AppInputField label={t('instance.rateLimitPerIpHour')} htmlFor="instance-rate_limit_setup_ip" type="number" min={0} value={settings.rate_limit_setup_ip} onChange={(e) => setSettings({ ...settings, rate_limit_setup_ip: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitGlobalHour')} htmlFor="instance-rate_limit_setup_global" type="number" min={0} value={settings.rate_limit_setup_global} onChange={(e) => setSettings({ ...settings, rate_limit_setup_global: Number(e.target.value) })} />
           </fieldset>
-          <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+          <fieldset className="flex flex-col gap-3" disabled={!settings.rate_limit_enabled}>
             <legend>{t('instance.rateLimitApi')}</legend>
-            <label>{t('instance.rateLimitPerUserMin')}<input type="number" min={0} value={settings.rate_limit_api_user} onChange={(e) => setSettings({ ...settings, rate_limit_api_user: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitPerIpMin')}<input type="number" min={0} value={settings.rate_limit_api_ip} onChange={(e) => setSettings({ ...settings, rate_limit_api_ip: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitGlobalMin')}<input type="number" min={0} value={settings.rate_limit_api_global} onChange={(e) => setSettings({ ...settings, rate_limit_api_global: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitTasksPerUserMin')}<input type="number" min={0} value={settings.rate_limit_api_tasks_user} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_user: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitTasksPerIpMin')}<input type="number" min={0} value={settings.rate_limit_api_tasks_ip} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_ip: Number(e.target.value) })} /></label>
+            <AppInputField label={t('instance.rateLimitPerUserMin')} htmlFor="instance-rate_limit_api_user" type="number" min={0} value={settings.rate_limit_api_user} onChange={(e) => setSettings({ ...settings, rate_limit_api_user: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitPerIpMin')} htmlFor="instance-rate_limit_api_ip" type="number" min={0} value={settings.rate_limit_api_ip} onChange={(e) => setSettings({ ...settings, rate_limit_api_ip: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitGlobalMin')} htmlFor="instance-rate_limit_api_global" type="number" min={0} value={settings.rate_limit_api_global} onChange={(e) => setSettings({ ...settings, rate_limit_api_global: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitTasksPerUserMin')} htmlFor="instance-rate_limit_api_tasks_user" type="number" min={0} value={settings.rate_limit_api_tasks_user} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_user: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitTasksPerIpMin')} htmlFor="instance-rate_limit_api_tasks_ip" type="number" min={0} value={settings.rate_limit_api_tasks_ip} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_ip: Number(e.target.value) })} />
+            <McpOAuthInfo publicBaseUrl={settings.public_base_url} />
             <p className="muted">{t('instance.rateLimitMcpHint')}</p>
-            <label>{t('instance.rateLimitMcpPollPerUserMin')}<input type="number" min={0} value={settings.rate_limit_mcp_poll_user} onChange={(e) => setSettings({ ...settings, rate_limit_mcp_poll_user: Number(e.target.value) })} /></label>
+            <AppInputField label={t('instance.rateLimitMcpPollPerUserMin')} htmlFor="instance-rate_limit_mcp_poll_user" type="number" min={0} value={settings.rate_limit_mcp_poll_user} onChange={(e) => setSettings({ ...settings, rate_limit_mcp_poll_user: Number(e.target.value) })} />
           </fieldset>
-          <fieldset className="stack" disabled={!settings.rate_limit_enabled}>
+          <fieldset className="flex flex-col gap-3" disabled={!settings.rate_limit_enabled}>
             <legend>{t('instance.rateLimitOAuth')}</legend>
-            <label>{t('instance.rateLimitOAuthRegisterPerIpHour')}<input type="number" min={0} value={settings.rate_limit_oauth_register_ip} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_register_ip: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitOAuthRegisterGlobalHour')}<input type="number" min={0} value={settings.rate_limit_oauth_register_global} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_register_global: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitOAuthTokenPerIpMin')}<input type="number" min={0} value={settings.rate_limit_oauth_token_ip} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_token_ip: Number(e.target.value) })} /></label>
-            <label>{t('instance.rateLimitOAuthTokenGlobalMin')}<input type="number" min={0} value={settings.rate_limit_oauth_token_global} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_token_global: Number(e.target.value) })} /></label>
+            <AppInputField label={t('instance.rateLimitOAuthRegisterPerIpHour')} htmlFor="instance-rate_limit_oauth_register_ip" type="number" min={0} value={settings.rate_limit_oauth_register_ip} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_register_ip: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitOAuthRegisterGlobalHour')} htmlFor="instance-rate_limit_oauth_register_global" type="number" min={0} value={settings.rate_limit_oauth_register_global} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_register_global: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitOAuthTokenPerIpMin')} htmlFor="instance-rate_limit_oauth_token_ip" type="number" min={0} value={settings.rate_limit_oauth_token_ip} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_token_ip: Number(e.target.value) })} />
+            <AppInputField label={t('instance.rateLimitOAuthTokenGlobalMin')} htmlFor="instance-rate_limit_oauth_token_global" type="number" min={0} value={settings.rate_limit_oauth_token_global} onChange={(e) => setSettings({ ...settings, rate_limit_oauth_token_global: Number(e.target.value) })} />
           </fieldset>
         </div>
       </details>
+      </Card>
       </div>
 
-      <div className="card">
-        <button
-          className="primary"
-          type="button"
-          disabled={!serviceModelsValid || saveBusy}
-          onClick={() => void saveSettings()}
-        >
-          {t('common.save')}
-        </button>
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <AdminFormActions>
+            <AppSubmitButton ready={settingsReady} busy={saveBusy} onClick={() => void saveSettings()}>
+              {t('common.save')}
+            </AppSubmitButton>
+          </AdminFormActions>
+        </CardContent>
+      </Card>
     </AdminPage>
   )
 }

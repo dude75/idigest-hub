@@ -3,7 +3,7 @@ import type { Task } from './types'
 import {
   isTaskWaitingOnWorkers,
   taskStageLabelKey,
-  taskStatusBadgeClass,
+  taskStatusBadgeTone,
 } from './taskStage'
 
 function task(partial: Partial<Task> & Pick<Task, 'type' | 'status'>): Task {
@@ -18,7 +18,7 @@ describe('taskStage', () => {
     const queued = task({ type: 'transcribe', status: 'queued', meta: { stage: 'queued' } })
     expect(isTaskWaitingOnWorkers(queued)).toBe(true)
     expect(taskStageLabelKey(queued)).toBe('task.workerStage.queued')
-    expect(taskStatusBadgeClass(queued)).toBe('badge wait')
+    expect(taskStatusBadgeTone(queued)).toBe('pending')
   })
 
   it('detects engine and queue_full waits', () => {
@@ -36,13 +36,13 @@ describe('taskStage', () => {
     const running = task({ type: 'transcribe', status: 'running', meta: { stage: 'running' } })
     expect(isTaskWaitingOnWorkers(running)).toBe(false)
     expect(taskStageLabelKey(running)).toBe('task.pipeline.transcribing')
-    expect(taskStatusBadgeClass(running)).toBe('badge warn')
+    expect(taskStatusBadgeTone(running)).toBe('pending')
   })
 
   it('marks missing worker for model pair as config error', () => {
     const stuck = task({ type: 'transcribe', status: 'queued', meta: { stage: 'no_matching_worker' } })
     expect(isTaskWaitingOnWorkers(stuck)).toBe(false)
     expect(taskStageLabelKey(stuck)).toBe('task.workerStage.no_matching_worker')
-    expect(taskStatusBadgeClass(stuck)).toBe('badge err')
+    expect(taskStatusBadgeTone(stuck)).toBe('warning')
   })
 })

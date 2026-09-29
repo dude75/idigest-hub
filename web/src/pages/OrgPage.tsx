@@ -15,31 +15,27 @@ import { normalizeJitsiHostInput } from '../util/captureHost'
 import { formatDecimal, formatInteger, showError, WalletLabel } from '../util'
 import { canAdminResetMemberMfa } from '../mfa'
 import { randomPassword } from '../util/password'
-
-function SsoUrlRow({ label, value }: { label: string; value: string }) {
-  const { t } = useTranslation()
-  const [copied, setCopied] = useState(false)
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-
-  return (
-    <div className="sso-url-row">
-      <span className="sso-url-label">{label}</span>
-      <code className="sso-url-value" title={value}>{value}</code>
-      <button type="button" className="sso-url-copy" onClick={() => void copy()}>
-        {copied ? t('profile.copied') : t('common.copy')}
-      </button>
-    </div>
-  )
-}
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import {
+  AdminDataTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  adminTableCellActions,
+  adminTableCellBadges,
+  adminTableCellPrimary,
+  adminTableHeadActions,
+} from '../components/app/AdminDataTable'
+import { AdminRowActions, HubBadge } from '../components/app/AdminUi'
+import { AuthSelect } from '../components/auth/AuthSelect'
+import { AppCheckboxRow, AppInputField, AppSelectField } from '../components/app/AppFormControls'
+import { AppField } from '../components/app/AppField'
+import { AdminFormActions, AppSubmitButton } from '../components/app/AdminUi'
+import { SettingsFoldSummary } from '../components/app/SettingsFoldSummary'
+import { AppUrlCopyRow } from '../components/app/AppUrlCopyRow'
 
 function tariffSelectable(tariffs: Tariff[], current: Tariff): boolean {
   return tariffs.some((tr) => tr.id === current.id)
@@ -64,7 +60,6 @@ export function OrgPage() {
   const [action, setAction] = useState<'transfer' | 'wipe'>('wipe')
   const [target, setTarget] = useState('')
   const [tempPw, setTempPw] = useState<{ email: string; password: string } | null>(null)
-  const [copiedResetPassword, setCopiedResetPassword] = useState(false)
   const [mfaResetOk, setMfaResetOk] = useState<string | null>(null)
   const [mfaResetUser, setMfaResetUser] = useState<User | null>(null)
   const [mfaResetBusy, setMfaResetBusy] = useState(false)
@@ -73,9 +68,9 @@ export function OrgPage() {
   const [ssoClientId, setSsoClientId] = useState('')
   const [ssoClientSecret, setSsoClientSecret] = useState('')
   const [ssoEnabled, setSsoEnabled] = useState(false)
-  const [copiedAddUserPassword, setCopiedAddUserPassword] = useState(false)
   const [captureAllowed, setCaptureAllowed] = useState(false)
   const [captureBotDisplayName, setCaptureBotDisplayName] = useState('')
+  const [savedCaptureBotName, setSavedCaptureBotName] = useState('')
   const [captureHosts, setCaptureHosts] = useState<OrgCaptureJitsiHost[]>([])
   const [captureWorkers, setCaptureWorkers] = useState<OrgCaptureWorkerChoice[]>([])
   const [captureEditingId, setCaptureEditingId] = useState<string | null>(null)
@@ -140,7 +135,9 @@ export function OrgPage() {
     }
     if (captureConfig) {
       setCaptureAllowed(captureConfig.allowed)
-      setCaptureBotDisplayName(captureConfig.bot_display_name ?? '')
+      const botName = captureConfig.bot_display_name ?? ''
+      setCaptureBotDisplayName(botName)
+      setSavedCaptureBotName(botName)
       setCaptureHosts(captureConfig.items)
       setCaptureWorkers(captureConfig.workers ?? [])
     }
@@ -163,7 +160,9 @@ export function OrgPage() {
       method: 'PUT',
       body: JSON.stringify({ items, bot_display_name: captureBotDisplayName }),
     })
-    setCaptureBotDisplayName(result.bot_display_name ?? '')
+    const botName = result.bot_display_name ?? ''
+    setCaptureBotDisplayName(botName)
+    setSavedCaptureBotName(botName)
     setCaptureHosts(result.items)
     setCaptureWorkers(result.workers ?? [])
   }
@@ -180,7 +179,9 @@ export function OrgPage() {
         bot_display_name: captureBotDisplayName,
       }),
     })
-    setCaptureBotDisplayName(result.bot_display_name ?? '')
+    const botName = result.bot_display_name ?? ''
+    setCaptureBotDisplayName(botName)
+    setSavedCaptureBotName(botName)
     setCaptureHosts(result.items)
     setCaptureWorkers(result.workers ?? [])
   }
@@ -257,6 +258,33 @@ export function OrgPage() {
       || allowPublicLinks !== org.allow_public_links
     ),
   )
+  const captureBotDirty = captureBotDisplayName.trim() !== savedCaptureBotName.trim()
+  const captureDraftReady = useMemo(() => {
+    if (captureWorkers.length === 0) return false
+    const host = normalizeJitsiHostInput(captureDraft.host)
+    if (!host) return false
+    if (!captureEditingId) return true
+    const row = captureHosts.find((r) => r.id === captureEditingId)
+    if (!row) return false
+    if (host !== row.host) return true
+    if ((captureDraft.jwt_app_id.trim() || '') !== (row.jwt_app_id || '').trim()) return true
+    if (captureDraft.jwt_secret.trim().length > 0) return true
+    if (captureDraft.clear_jwt_secret) return true
+    return false
+  }, [captureDraft, captureEditingId, captureHosts, captureWorkers.length])
+  const ssoDirty = useMemo(() => {
+    if (!sso) return false
+    return (
+      ssoIssuer.trim() !== (sso.issuer || '').trim()
+      || ssoClientId.trim() !== (sso.client_id || '').trim()
+      || ssoEnabled !== sso.enabled
+      || ssoClientSecret.trim().length > 0
+    )
+  }, [sso, ssoIssuer, ssoClientId, ssoEnabled, ssoClientSecret])
+  const canAddUser = useMemo(() => {
+    const trimmed = email.trim()
+    return trimmed.length > 0 && trimmed.includes('@')
+  }, [email])
   const ssoBlocksMfa = Boolean(sso?.enabled)
 
   async function saveProfile() {
@@ -307,17 +335,6 @@ export function OrgPage() {
     return randomPassword()
   }
 
-  async function copyAddUserPassword() {
-    if (!password) return
-    try {
-      await navigator.clipboard.writeText(password)
-      setCopiedAddUserPassword(true)
-      window.setTimeout(() => setCopiedAddUserPassword(false), 1500)
-    } catch {
-      /* clipboard unavailable */
-    }
-  }
-
   async function addUser() {
     const pw = ensureUserPassword()
     if (!password) setPassword(pw)
@@ -339,17 +356,6 @@ export function OrgPage() {
   async function toggleDisabled(user: User) {
     await api(`/org/users/${user.id}/${user.disabled ? 'enable' : 'disable'}`, { method: 'POST' })
     await load()
-  }
-
-  async function copyResetPassword() {
-    if (!tempPw) return
-    try {
-      await navigator.clipboard.writeText(tempPw.password)
-      setCopiedResetPassword(true)
-      window.setTimeout(() => setCopiedResetPassword(false), 1500)
-    } catch {
-      /* clipboard unavailable */
-    }
   }
 
   async function resetPw(user: User) {
@@ -410,37 +416,41 @@ export function OrgPage() {
           </StatGrid>
           <div className="org-settings-stack">
           <AdminFormCard title={t('org.profile')}>
-            <label>
-              {t('common.name')}
-              <input value={name} disabled={!admin} onChange={(e) => setName(e.target.value)} />
-            </label>
-            <label>
-              {t('org.ttl')}
-              <input type="number" min={0} value={ttl} disabled={!admin} onChange={(e) => setTtl(Number(e.target.value))} />
-            </label>
+            <AppInputField
+              label={t('common.name')}
+              htmlFor="org-profile-name"
+              value={name}
+              disabled={!admin}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <AppInputField
+              label={t('org.ttl')}
+              htmlFor="org-profile-ttl"
+              type="number"
+              min={0}
+              value={ttl}
+              disabled={!admin}
+              onChange={(e) => setTtl(Number(e.target.value))}
+            />
             {admin && (
-              <label className="profile-check-row">
-                <input
-                  type="checkbox"
-                  checked={mfaRequired}
-                  disabled={ssoBlocksMfa}
-                  onChange={(e) => setMfaRequired(e.target.checked)}
-                />
-                {t('org.mfaRequired')}
-              </label>
+              <AppCheckboxRow
+                id="org-mfa-required"
+                label={t('org.mfaRequired')}
+                checked={mfaRequired}
+                disabled={ssoBlocksMfa}
+                onCheckedChange={setMfaRequired}
+              />
             )}
             {admin && ssoBlocksMfa && (
               <p className="muted">{t('org.mfaRequiredSsoHint')}</p>
             )}
             {admin && (
-              <label className="profile-check-row">
-                <input
-                  type="checkbox"
-                  checked={allowPublicLinks}
-                  onChange={(e) => setAllowPublicLinks(e.target.checked)}
-                />
-                {t('org.allowPublicLinks')}
-              </label>
+              <AppCheckboxRow
+                id="org-allow-public-links"
+                label={t('org.allowPublicLinks')}
+                checked={allowPublicLinks}
+                onCheckedChange={setAllowPublicLinks}
+              />
             )}
             {admin && !allowPublicLinks && (
               <p className="muted">{t('org.allowPublicLinksHint')}</p>
@@ -450,221 +460,221 @@ export function OrgPage() {
                 <Link to="/app/public-links">{t('publicLinks.manage')}</Link>
               </p>
             )}
-            {admin && (
-              <button
-                className="primary"
-                type="button"
-                disabled={!profileDirty}
-                onClick={() => void saveProfile().catch(showError)}
-              >
-                {t('common.save')}
-              </button>
-            )}
+            {admin ? (
+              <AdminFormActions>
+                <AppSubmitButton ready={profileDirty} onClick={() => void saveProfile().catch(showError)}>
+                  {t('common.save')}
+                </AppSubmitButton>
+              </AdminFormActions>
+            ) : null}
           </AdminFormCard>
-          <details className="fold org-fold org-tariff-fold card">
+          <Card className="org-settings-folds gap-0 overflow-hidden py-0">
+          <details className="fold org-fold-section org-tariff-fold">
             <summary className="org-fold-summary">
-              <span>{t('org.tariff')}</span>
-              {currentTariff && (
-                <span className="row">
-                  <span className="badge">{currentTariff.name}</span>
-                  {org.unlimited ? (
-                    <span className="badge out">{t('wallet.unlimited')}</span>
-                  ) : (
-                    <span className="org-balance">{org.balance}</span>
-                  )}
-                  {currentTariff.archived && <span className="badge warn">{t('instance.archived')}</span>}
-                </span>
-              )}
+              <SettingsFoldSummary
+                title={t('org.tariff')}
+                meta={
+                  currentTariff ? (
+                    <>
+                      <HubBadge tone="muted">{currentTariff.name}</HubBadge>
+                      {org.unlimited ? (
+                        <HubBadge tone="success">{t('wallet.unlimited')}</HubBadge>
+                      ) : (
+                        <span className="org-balance">{org.balance}</span>
+                      )}
+                      {currentTariff.archived ? <HubBadge tone="pending">{t('instance.archived')}</HubBadge> : null}
+                    </>
+                  ) : undefined
+                }
+              />
             </summary>
-            <div className="stack fold-body">
+            <div className="flex flex-col gap-3 fold-body">
               <WalletLabel unlimited={org.unlimited} balance={org.balance} />
               {!admin && currentTariff && (
                 <>
-                  <div className="row">
+                  <div className="flex flex-wrap items-center gap-2">
                     <strong className="grow">{t('org.tariffCurrent')}: {currentTariff.name}</strong>
-                    {currentTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
-                    {currentTariff.archived && <span className="badge warn">{t('instance.archived')}</span>}
+                    {currentTariff.unlimited ? <HubBadge tone="success">{t('wallet.unlimited')}</HubBadge> : null}
+                    {currentTariff.archived ? <HubBadge tone="pending">{t('instance.archived')}</HubBadge> : null}
                   </div>
                   <TariffDetails tariff={currentTariff} />
                 </>
               )}
               {admin && currentTariff && !currentSelectable && (
                 <>
-                  <div className="row">
+                  <div className="flex flex-wrap items-center gap-2">
                     <strong className="grow">{t('org.tariffCurrent')}: {currentTariff.name}</strong>
-                    {currentTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
-                    {currentTariff.archived && <span className="badge warn">{t('instance.archived')}</span>}
+                    {currentTariff.unlimited ? <HubBadge tone="success">{t('wallet.unlimited')}</HubBadge> : null}
+                    {currentTariff.archived ? <HubBadge tone="pending">{t('instance.archived')}</HubBadge> : null}
                   </div>
                   <TariffDetails tariff={currentTariff} />
                   <p className="muted">{t('org.tariffLegacy')}</p>
                 </>
               )}
               {admin && tariffs.length > 0 && (
-                <label>
-                  {currentSelectable ? t('org.tariff') : t('org.tariffSwitch')}
-                  <select value={tariffId} onChange={(e) => setTariffId(e.target.value)}>
-                    {!currentSelectable && <option value="">—</option>}
-                    {tariffs.map((tr) => (
-                      <option key={tr.id} value={tr.id}>
-                        {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <AppSelectField
+                  label={currentSelectable ? t('org.tariff') : t('org.tariffSwitch')}
+                  htmlFor="org-tariff-select"
+                  value={tariffId}
+                  onChange={(e) => setTariffId(e.target.value)}
+                >
+                  {!currentSelectable && <option value="">—</option>}
+                  {tariffs.map((tr) => (
+                    <option key={tr.id} value={tr.id}>
+                      {tr.name}{tr.unlimited ? ` (${t('wallet.unlimited')})` : ''}
+                    </option>
+                  ))}
+                </AppSelectField>
               )}
               {admin && selectedTariff && currentSelectable && (
                 <TariffDetails tariff={selectedTariff} />
               )}
               {admin && selectedTariff && currentTariff && !currentSelectable && selectedTariff.id !== currentTariff.id && (
                 <>
-                  <div className="row">
+                  <div className="flex flex-wrap items-center gap-2">
                     <strong className="grow">{t('org.tariffSwitch')}: {selectedTariff.name}</strong>
-                    {selectedTariff.unlimited && <span className="badge">{t('wallet.unlimited')}</span>}
+                    {selectedTariff.unlimited ? <HubBadge tone="success">{t('wallet.unlimited')}</HubBadge> : null}
                   </div>
                   <TariffDetails tariff={selectedTariff} />
                 </>
               )}
-              {admin && (
-                <button className="primary" type="button" disabled={!canSaveTariff} onClick={() => void saveTariff()}>
-                  {t('common.save')}
-                </button>
-              )}
+              {admin ? (
+                <AdminFormActions>
+                  <AppSubmitButton ready={canSaveTariff} onClick={() => void saveTariff()}>
+                    {t('common.save')}
+                  </AppSubmitButton>
+                </AdminFormActions>
+              ) : null}
             </div>
           </details>
           {admin && hasOrg && (
-            <details className="fold org-fold card">
+            <details className="fold org-fold-section">
               <summary className="org-fold-summary">
-                <span>{t('org.captureJitsiTitle')}</span>
-                {captureAllowed && <span className="badge out">{t('org.captureEnabled')}</span>}
+                <SettingsFoldSummary
+                  title={t('org.captureJitsiTitle')}
+                  meta={
+                    captureAllowed ? <HubBadge tone="success">{t('org.captureEnabled')}</HubBadge> : undefined
+                  }
+                />
               </summary>
-              <div className="stack fold-body">
+              <div className="flex flex-col gap-3 fold-body">
                 {!captureAllowed ? (
                   <p className="muted">{t('org.captureDisabledHint')}</p>
                 ) : (
                   <>
                     <p className="muted">{t('org.captureJitsiHint')}</p>
-                    <div className="stack">
-                      <label>
-                        {t('org.captureBotDisplayName')}
-                        <input
-                          value={captureBotDisplayName}
-                          maxLength={128}
-                          placeholder={t('org.captureBotDisplayNameDefault')}
-                          onChange={(e) => setCaptureBotDisplayName(e.target.value)}
-                        />
-                      </label>
-                      <p className="muted">{t('org.captureBotDisplayNameHint')}</p>
-                      <button type="button" className="primary" onClick={() => void saveCaptureBotDisplayName().catch(showError)}>
-                        {t('common.save')}
-                      </button>
+                    <div className="flex flex-col gap-3">
+                      <AppInputField
+                        label={t('org.captureBotDisplayName')}
+                        htmlFor="org-capture-bot-name"
+                        value={captureBotDisplayName}
+                        maxLength={128}
+                        placeholder={t('org.captureBotDisplayNameDefault')}
+                        onChange={(e) => setCaptureBotDisplayName(e.target.value)}
+                        description={t('org.captureBotDisplayNameHint')}
+                      />
+                      <AdminFormActions>
+                        <AppSubmitButton
+                          ready={captureBotDirty}
+                          onClick={() => void saveCaptureBotDisplayName().catch(showError)}
+                        >
+                          {t('common.save')}
+                        </AppSubmitButton>
+                      </AdminFormActions>
                     </div>
                     {captureWorkers.length === 0 ? (
                       <p className="err">{t('org.captureNoWorkers')}</p>
                     ) : null}
                     {captureHosts.length > 0 ? (
-                      <div className="stats-table-wrap">
-                        <table className="stats-table">
-                          <thead>
-                            <tr>
-                              <th>{t('org.captureHost')}</th>
-                              <th>{t('org.captureJwtAppId')}</th>
-                              <th>{t('org.captureJwtSecret')}</th>
-                              <th />
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {captureHosts.map((row) => (
-                              <tr key={row.id}>
-                                <td>{row.host}</td>
-                                <td>{row.jwt_app_id ?? 'chat'}</td>
-                                <td>{row.jwt_secret_configured ? t('org.captureJwtSaved') : '—'}</td>
-                                <td className="table-actions">
-                                  <button
-                                    type="button"
-                                    disabled={captureEditingId === row.id}
-                                    onClick={() => startEditCaptureHost(row)}
-                                  >
+                      <AdminDataTable>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>{t('org.captureHost')}</TableHead>
+                            <TableHead>{t('org.captureJwtAppId')}</TableHead>
+                            <TableHead>{t('org.captureJwtSecret')}</TableHead>
+                            <TableHead className={adminTableHeadActions} />
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {captureHosts.map((row) => (
+                            <TableRow key={row.id}>
+                              <TableCell className={adminTableCellPrimary}>{row.host}</TableCell>
+                              <TableCell>{row.jwt_app_id ?? 'chat'}</TableCell>
+                              <TableCell>{row.jwt_secret_configured ? t('org.captureJwtSaved') : '—'}</TableCell>
+                              <TableCell className={adminTableCellActions}>
+                                <AdminRowActions>
+                                  <Button type="button" size="sm" variant="outline" disabled={captureEditingId === row.id} onClick={() => startEditCaptureHost(row)}>
                                     {t('common.edit')}
-                                  </button>
-                                  <button type="button" className="danger" onClick={() => void removeCaptureHost(row).catch(showError)}>
+                                  </Button>
+                                  <Button type="button" size="sm" variant="destructive" onClick={() => void removeCaptureHost(row).catch(showError)}>
                                     {t('common.delete')}
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                                  </Button>
+                                </AdminRowActions>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </AdminDataTable>
                     ) : (
                       <p className="muted">{t('common.empty')}</p>
                     )}
-                    <div className="stack">
+                    <div className="flex flex-col gap-3">
                       {captureEditingId ? (
                         <p className="muted">{t('org.captureEditHost')}</p>
                       ) : null}
-                      <label>
-                        {t('org.captureHost')}
-                        <input
-                          value={captureDraft.host}
-                          placeholder="https://meet..."
-                          onChange={(e) => setCaptureDraft({ ...captureDraft, host: e.target.value })}
-                        />
-                      </label>
-                      <p className="muted">{t('org.captureHostHint')}</p>
-                      <label>
-                        {t('org.captureJwtAppId')}
-                        <input
-                          value={captureDraft.jwt_app_id}
-                          placeholder="chat"
-                          onChange={(e) => setCaptureDraft({ ...captureDraft, jwt_app_id: e.target.value })}
-                        />
-                      </label>
-                      <label>
-                        {t('org.captureJwtSecret')}
-                        <input
-                          type="password"
-                          value={captureDraft.jwt_secret}
-                          autoComplete="off"
-                          placeholder={
-                            captureEditingId &&
-                            captureHosts.find((row) => row.id === captureEditingId)?.jwt_secret_configured
-                              ? t('org.captureJwtSecretKeepHint')
-                              : undefined
-                          }
-                          onChange={(e) => setCaptureDraft({ ...captureDraft, jwt_secret: e.target.value })}
-                        />
-                      </label>
+                      <AppInputField
+                        label={t('org.captureHost')}
+                        htmlFor="org-capture-host"
+                        value={captureDraft.host}
+                        placeholder="https://meet..."
+                        onChange={(e) => setCaptureDraft({ ...captureDraft, host: e.target.value })}
+                        description={t('org.captureHostHint')}
+                      />
+                      <AppInputField
+                        label={t('org.captureJwtAppId')}
+                        htmlFor="org-capture-jwt-app-id"
+                        value={captureDraft.jwt_app_id}
+                        placeholder="chat"
+                        onChange={(e) => setCaptureDraft({ ...captureDraft, jwt_app_id: e.target.value })}
+                      />
+                      <AppInputField
+                        label={t('org.captureJwtSecret')}
+                        htmlFor="org-capture-jwt-secret"
+                        type="password"
+                        value={captureDraft.jwt_secret}
+                        autoComplete="off"
+                        placeholder={
+                          captureEditingId &&
+                          captureHosts.find((row) => row.id === captureEditingId)?.jwt_secret_configured
+                            ? t('org.captureJwtSecretKeepHint')
+                            : undefined
+                        }
+                        onChange={(e) => setCaptureDraft({ ...captureDraft, jwt_secret: e.target.value })}
+                      />
                       {captureEditingId &&
                       captureHosts.find((row) => row.id === captureEditingId)?.jwt_secret_configured ? (
-                        <label className="row">
-                          <input
-                            type="checkbox"
-                            checked={captureDraft.clear_jwt_secret}
-                            onChange={(e) =>
-                              setCaptureDraft({ ...captureDraft, clear_jwt_secret: e.target.checked })
-                            }
-                          />
-                          {t('org.captureClearJwtSecret')}
-                        </label>
-                      ) : null}
-                      <div className="row">
-                        <button
-                          type="button"
-                          className="primary"
-                          disabled={
-                            !normalizeJitsiHostInput(captureDraft.host) ||
-                            captureWorkers.length === 0
+                        <AppCheckboxRow
+                          id="org-capture-clear-jwt"
+                          label={t('org.captureClearJwtSecret')}
+                          checked={captureDraft.clear_jwt_secret}
+                          onCheckedChange={(checked) =>
+                            setCaptureDraft({ ...captureDraft, clear_jwt_secret: checked })
                           }
+                        />
+                      ) : null}
+                      <AdminFormActions>
+                        <AppSubmitButton
+                          ready={captureDraftReady}
                           onClick={() => void submitCaptureDraft().catch(showError)}
                         >
                           {captureEditingId ? t('common.save') : t('org.captureAddHost')}
-                        </button>
+                        </AppSubmitButton>
                         {captureEditingId ? (
-                          <button type="button" onClick={resetCaptureDraft}>
+                          <Button type="button" variant="outline" onClick={resetCaptureDraft}>
                             {t('common.cancel')}
-                          </button>
+                          </Button>
                         ) : null}
-                      </div>
+                      </AdminFormActions>
                     </div>
                   </>
                 )}
@@ -672,28 +682,34 @@ export function OrgPage() {
             </details>
           )}
           {canConfigureSso && (
-            <details className="fold org-fold org-sso-fold card">
+            <details className="fold org-fold-section org-sso-fold">
               <summary className="org-fold-summary">
-                <span>{t('sso.settingsTitle')}</span>
-                {sso && (
-                  <span className="row">
-                    {sso.enabled && <span className="badge out">{t('sso.enabled')}</span>}
-                    {!sso.enabled && sso.configured && <span className="badge">{t('sso.configured')}</span>}
-                  </span>
-                )}
+                <SettingsFoldSummary
+                  title={t('sso.settingsTitle')}
+                  meta={
+                    sso ? (
+                      <>
+                        {sso.enabled ? <HubBadge tone="success">{t('sso.enabled')}</HubBadge> : null}
+                        {!sso.enabled && sso.configured ? (
+                          <HubBadge tone="muted">{t('sso.configured')}</HubBadge>
+                        ) : null}
+                      </>
+                    ) : undefined
+                  }
+                />
               </summary>
-              <div className="sso-card stack fold-body">
+              <div className="sso-card flex flex-col gap-3 fold-body">
                 <p className="muted sso-lead">{t('sso.settingsLead')}</p>
                 {sso && (
                   <>
                     <div className="sso-ref">
-                      <SsoUrlRow label={t('sso.orgId')} value={sso.org_id} />
+                      <AppUrlCopyRow label={t('sso.orgId')} value={sso.org_id} />
                     </div>
                     <p className="muted sso-lead">{t('sso.orgIdHint')}</p>
                     {sso.public_base_url_set && sso.login_url && sso.callback_url ? (
                       <div className="sso-ref">
-                        <SsoUrlRow label={t('sso.callbackUrl')} value={sso.callback_url} />
-                        <SsoUrlRow label={t('sso.loginUrl')} value={sso.login_url} />
+                        <AppUrlCopyRow label={t('sso.callbackUrl')} value={sso.callback_url} />
+                        <AppUrlCopyRow label={t('sso.loginUrl')} value={sso.login_url} />
                       </div>
                     ) : (
                       <p className="err sso-lead">{t('sso.publicBaseUrlMissing')}</p>
@@ -701,139 +717,148 @@ export function OrgPage() {
                   </>
                 )}
                 <div className="sso-fields">
-                  <label>
-                    {t('sso.issuer')}
-                    <input value={ssoIssuer} onChange={(e) => setSsoIssuer(e.target.value)} placeholder="https://keycloak.example/realms/myrealm" />
-                  </label>
+                  <AppInputField
+                    label={t('sso.issuer')}
+                    htmlFor="org-sso-issuer"
+                    value={ssoIssuer}
+                    onChange={(e) => setSsoIssuer(e.target.value)}
+                    placeholder="https://keycloak.example/realms/myrealm"
+                  />
                   <div className="sso-field-row">
-                    <label>
-                      {t('sso.clientId')}
-                      <input value={ssoClientId} onChange={(e) => setSsoClientId(e.target.value)} />
-                    </label>
-                    <label>
-                      {t('sso.clientSecret')}
-                      <input
-                        type="password"
-                        value={ssoClientSecret}
-                        onChange={(e) => setSsoClientSecret(e.target.value)}
-                        placeholder={sso?.has_client_secret ? t('sso.secretSaved') : ''}
-                      />
-                    </label>
+                    <AppInputField
+                      label={t('sso.clientId')}
+                      htmlFor="org-sso-client-id"
+                      value={ssoClientId}
+                      onChange={(e) => setSsoClientId(e.target.value)}
+                    />
+                    <AppInputField
+                      label={t('sso.clientSecret')}
+                      htmlFor="org-sso-client-secret"
+                      type="password"
+                      value={ssoClientSecret}
+                      onChange={(e) => setSsoClientSecret(e.target.value)}
+                      placeholder={sso?.has_client_secret ? t('sso.secretSaved') : ''}
+                    />
                   </div>
                 </div>
-                <div className="sso-actions">
-                  <label className="inline">
-                    <input type="checkbox" checked={ssoEnabled} onChange={(e) => setSsoEnabled(e.target.checked)} />
-                    <span>{t('sso.enabled')}</span>
-                  </label>
-                  <button className="primary" type="button" onClick={() => void saveSso().catch(showError)}>
+                <AppCheckboxRow
+                  id="org-sso-enabled"
+                  label={t('sso.enabled')}
+                  checked={ssoEnabled}
+                  onCheckedChange={setSsoEnabled}
+                />
+                <AdminFormActions>
+                  <AppSubmitButton ready={ssoDirty} onClick={() => void saveSso().catch(showError)}>
                     {t('common.save')}
-                  </button>
-                </div>
+                  </AppSubmitButton>
+                </AdminFormActions>
               </div>
             </details>
           )}
+          {admin && (
+        <details
+          className="fold org-fold-section org-add-user-fold"
+          onToggle={(e) => {
+            if (e.currentTarget.open && !password) setPassword(randomPassword())
+          }}
+        >
+          <summary className="org-fold-summary">
+            <SettingsFoldSummary title={t('org.addUser')} />
+          </summary>
+          <div className="flex flex-col gap-3 fold-body">
+            <AppInputField
+              label={t('common.email')}
+              htmlFor="org-add-user-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <AppField label={t('common.password')} htmlFor="org-add-user-password">
+              <div className="public-link-actions-row">
+                <AppUrlCopyRow value={password} id="org-add-user-password" />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="public-link-revoke"
+                  onClick={() => setPassword(randomPassword())}
+                >
+                  {t('instance.orgGeneratePassword')}
+                </Button>
+              </div>
+            </AppField>
+            <AppSelectField
+              label={t('common.role')}
+              htmlFor="org-add-user-role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as 'org_admin' | 'org_member')}
+            >
+              <option value="org_member">{t('org.roleMember')}</option>
+              <option value="org_admin">{t('org.roleAdmin')}</option>
+            </AppSelectField>
+            <AdminFormActions>
+              <AppSubmitButton ready={canAddUser} onClick={() => void addUser()}>
+                {t('common.create')}
+              </AppSubmitButton>
+            </AdminFormActions>
+          </div>
+        </details>
+          )}
+          </Card>
           </div>
         </>
       )}
       {mfaResetOk && (
         <p className="ok admin-notice">{t('org.resetMfaDone')} ({mfaResetOk})</p>
       )}
-      {admin && (
-        <details
-          className="fold org-fold org-add-user-fold card"
-          onToggle={(e) => {
-            if (e.currentTarget.open && !password) setPassword(randomPassword())
-          }}
-        >
-          <summary className="org-fold-summary">
-            <span>{t('org.addUser')}</span>
-          </summary>
-          <div className="stack fold-body">
-            <label>
-              {t('common.email')}
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            </label>
-            <label>
-              {t('common.password')}
-              <div className="public-link-actions-row">
-                <div className="public-link-url-row">
-                  <code className="public-link-url" title={password}>
-                    {password || '—'}
-                  </code>
-                  <button
-                    type="button"
-                    className="public-link-copy"
-                    disabled={!password}
-                    onClick={() => void copyAddUserPassword()}
-                  >
-                    {copiedAddUserPassword ? t('profile.copied') : t('common.copy')}
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  className="public-link-revoke"
-                  onClick={() => setPassword(randomPassword())}
-                >
-                  {t('instance.orgGeneratePassword')}
-                </button>
-              </div>
-            </label>
-            <label>
-              {t('common.role')}
-              <select value={role} onChange={(e) => setRole(e.target.value as 'org_admin' | 'org_member')}>
-                <option value="org_member">{t('org.roleMember')}</option>
-                <option value="org_admin">{t('org.roleAdmin')}</option>
-              </select>
-            </label>
-            <button className="primary" type="button" onClick={() => void addUser()}>{t('common.create')}</button>
-          </div>
-        </details>
-      )}
-      <AdminTableCard title={t('org.people')} empty={t('common.empty')} isEmpty={users.length === 0}>
-        <div className="stats-table-wrap">
-          <table className="stats-table">
-            <thead>
-              <tr>
-                <th>{t('common.email')}</th>
-                <th>{t('common.role')}</th>
-                <th>{t('common.status')}</th>
-                {admin && <th>{t('common.actions')}</th>}
-              </tr>
-            </thead>
-            <tbody>
+      <AdminTableCard
+        title={t('org.people')}
+        empty={t('common.empty')}
+        isEmpty={users.length === 0}
+        tableLayout={users.length > 0}
+      >
+        {users.length > 0 ? (
+          <AdminDataTable>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('common.email')}</TableHead>
+                <TableHead>{t('common.role')}</TableHead>
+                <TableHead>{t('common.status')}</TableHead>
+                {admin ? <TableHead className={adminTableHeadActions}>{t('common.actions')}</TableHead> : null}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {users.map((u) => (
-                <tr key={u.id}>
-                  <td>{u.email}</td>
-                  <td>
+                <TableRow key={u.id}>
+                  <TableCell className={adminTableCellPrimary}>{u.email}</TableCell>
+                  <TableCell>
                     {admin ? (
-                      <select value={u.role || 'org_member'} onChange={(e) => void changeRole(u, e.target.value)}>
+                      <AuthSelect
+                        className="h-8 min-w-[8rem]"
+                        value={u.role || 'org_member'}
+                        onChange={(e) => void changeRole(u, e.target.value)}
+                      >
                         <option value="org_member">{t('org.roleMember')}</option>
                         <option value="org_admin">{t('org.roleAdmin')}</option>
-                      </select>
+                      </AuthSelect>
                     ) : (
-                      <span className="badge">
+                      <HubBadge tone="muted">
                         {u.role === 'org_admin' ? t('org.roleAdmin') : t('org.roleMember')}
-                      </span>
+                      </HubBadge>
                     )}
-                  </td>
-                  <td>
-                    <div className="row wrap">
-                      {!u.disabled &&
-                      u.user_agreement_status !== 'pending' &&
-                      u.user_agreement_status !== 'accepted' ? (
-                        <span className="badge out">{t('org.statusActive')}</span>
-                      ) : null}
-                      <UserStatusBadges user={u} />
-                    </div>
-                  </td>
-                  {admin && (
-                    <td>
-                      <div className="row">
-                        {u.id !== me?.user.id && !u.disabled && (
-                          <button
-                            type="button"
-                            onClick={() =>
+                  </TableCell>
+                  <TableCell className={adminTableCellBadges}>
+                    {!u.disabled &&
+                    u.user_agreement_status !== 'pending' &&
+                    u.user_agreement_status !== 'accepted' ? (
+                      <HubBadge tone="success">{t('org.statusActive')}</HubBadge>
+                    ) : null}
+                    <UserStatusBadges user={u} />
+                  </TableCell>
+                  {admin ? (
+                    <TableCell className={adminTableCellActions}>
+                      <AdminRowActions>
+                        {u.id !== me?.user.id && !u.disabled ? (
+                          <Button type="button" size="sm" variant="outline" onClick={() =>
                               void api('/impersonate', {
                                 method: 'POST',
                                 body: JSON.stringify({ user_id: u.id }),
@@ -844,46 +869,45 @@ export function OrgPage() {
                             }
                           >
                             {t('org.impersonate')}
-                          </button>
-                        )}
-                        <button type="button" onClick={() => void toggleDisabled(u)}>
-                          {u.disabled ? t('common.enable') : t('common.disable')}
-                        </button>
-                        <button type="button" onClick={() => void resetPw(u)}>{t('org.resetPassword')}</button>
-                        {canAdminResetMemberMfa(u, { ssoBlocksMfa, allowInstanceAdmin: true }) ? (
-                          <button type="button" onClick={() => setMfaResetUser(u)}>{t('org.resetMfa')}</button>
+                          </Button>
                         ) : null}
-                        <button type="button" className="danger" onClick={() => setOffUser(u)}>{t('org.offboard')}</button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
+                        <Button type="button" size="sm" variant="outline" onClick={() => void toggleDisabled(u)}>
+                          {u.disabled ? t('common.enable') : t('common.disable')}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => void resetPw(u)}>
+                          {t('org.resetPassword')}
+                        </Button>
+                        {canAdminResetMemberMfa(u, { ssoBlocksMfa, allowInstanceAdmin: true }) ? (
+                          <Button type="button" size="sm" variant="outline" onClick={() => setMfaResetUser(u)}>
+                            {t('org.resetMfa')}
+                          </Button>
+                        ) : null}
+                        <Button type="button" size="sm" variant="destructive" onClick={() => setOffUser(u)}>
+                          {t('org.offboard')}
+                        </Button>
+                      </AdminRowActions>
+                    </TableCell>
+                  ) : null}
+                </TableRow>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </AdminDataTable>
+        ) : null}
       </AdminTableCard>
-      {tempPw && (
-        <Modal onClose={() => setTempPw(null)} panelClassName="stack">
-          <h2>{t('org.resetPassword')}</h2>
-          <p>{t('org.newPassword')} ({tempPw.email})</p>
-          <div className="public-link-actions-row">
-            <div className="public-link-url-row">
-              <code className="public-link-url" title={tempPw.password}>{tempPw.password}</code>
-              <button
-                type="button"
-                className="public-link-copy"
-                onClick={() => void copyResetPassword()}
-              >
-                {copiedResetPassword ? t('profile.copied') : t('common.copy')}
-              </button>
-            </div>
-          </div>
-          <div className="row modal-actions">
-            <button type="button" onClick={() => setTempPw(null)}>{t('common.close')}</button>
-          </div>
+      {tempPw ? (
+        <Modal
+          onClose={() => setTempPw(null)}
+          title={t('org.resetPassword')}
+          description={`${t('org.newPassword')} (${tempPw.email})`}
+          footer={
+            <Button type="button" onClick={() => setTempPw(null)}>
+              {t('common.close')}
+            </Button>
+          }
+        >
+          <AppUrlCopyRow value={tempPw.password} />
         </Modal>
-      )}
+      ) : null}
       {mfaResetUser && (
         <ConfirmDialog
           message={t('org.resetMfaConfirm', { email: mfaResetUser.email })}
@@ -897,26 +921,31 @@ export function OrgPage() {
       {offUser && (
         <Modal onClose={() => setOffUser(null)} panelClassName="stack">
           <h2>{t('org.offboard')}: {offUser.email}</h2>
-          <label>
-            <select value={action} onChange={(e) => setAction(e.target.value as 'transfer' | 'wipe')}>
-              <option value="wipe">{t('org.wipe')}</option>
-              <option value="transfer">{t('org.transfer')}</option>
-            </select>
-          </label>
+          <AppSelectField
+            label={t('org.offboard')}
+            htmlFor="org-offboard-action"
+            value={action}
+            onChange={(e) => setAction(e.target.value as 'transfer' | 'wipe')}
+          >
+            <option value="wipe">{t('org.wipe')}</option>
+            <option value="transfer">{t('org.transfer')}</option>
+          </AppSelectField>
           {action === 'transfer' && (
-            <label>
-              {t('org.target')}
-              <select value={target} onChange={(e) => setTarget(e.target.value)}>
-                <option value="">—</option>
-                {users.filter((u) => u.id !== offUser.id && !u.disabled).map((u) => (
-                  <option key={u.id} value={u.id}>{u.email}</option>
-                ))}
-              </select>
-            </label>
+            <AppSelectField
+              label={t('org.target')}
+              htmlFor="org-offboard-target"
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+            >
+              <option value="">—</option>
+              {users.filter((u) => u.id !== offUser.id && !u.disabled).map((u) => (
+                <option key={u.id} value={u.id}>{u.email}</option>
+              ))}
+            </AppSelectField>
           )}
-          <div className="row modal-actions">
-            <button className="danger" type="button" onClick={() => void offboard()}>{t('common.confirm')}</button>
-            <button type="button" onClick={() => setOffUser(null)}>{t('common.cancel')}</button>
+          <div className="flex flex-wrap items-center gap-2 modal-actions">
+            <Button variant="destructive" type="button" onClick={() => void offboard()}>{t('common.confirm')}</Button>
+            <Button type="button" onClick={() => setOffUser(null)}>{t('common.cancel')}</Button>
           </div>
         </Modal>
       )}

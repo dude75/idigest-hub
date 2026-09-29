@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { User } from '../types'
 import { mfaMemberState } from '../mfa'
+import { HubBadge } from './app/AdminUi'
 
 type Props = {
   user: Pick<
@@ -30,19 +31,19 @@ export function UserStatusBadges({ user }: Props) {
 
   return (
     <>
-      {user.disabled ? <span className="badge err">{t('org.statusDisabled')}</span> : null}
+      {user.disabled ? <HubBadge tone="warning">{t('org.statusDisabled')}</HubBadge> : null}
       {user.must_change_password ? (
-        <span className="badge warn">{t('auth.badgeMustChangePassword')}</span>
+        <HubBadge tone="pending">{t('auth.badgeMustChangePassword')}</HubBadge>
       ) : null}
       {agreementStatus === 'accepted' ? (
-        <span className="badge out">
+        <HubBadge tone="success">
           {versionLabel
             ? t('agreement.badgeAcceptedVersion', { version: versionLabel })
             : t('agreement.badgeAccepted')}
-        </span>
+        </HubBadge>
       ) : null}
       {agreementStatus === 'pending' ? (
-        <span className="badge err">{t('agreement.badgeBlocked')}</span>
+        <HubBadge tone="warning">{t('agreement.badgeBlocked')}</HubBadge>
       ) : null}
       <MfaMemberBadge user={user} />
     </>
@@ -57,10 +58,10 @@ function MfaMemberBadge({
   const { t } = useTranslation()
   const state = mfaMemberState(user)
   if (state === 'on') {
-    return <span className="badge out">{t('org.mfaBadgeOn')}</span>
+    return <HubBadge tone="success">{t('org.mfaBadgeOn')}</HubBadge>
   }
   if (state === 'pending') {
-    return <span className="badge warn">{t('org.mfaBadgePending')}</span>
+    return <HubBadge tone="pending">{t('org.mfaBadgePending')}</HubBadge>
   }
   return null
 }

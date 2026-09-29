@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { Worker } from '../types'
+import { HubBadge, type HubBadgeTone } from './app/AdminUi'
 
 export function workerHealthTone(w: Worker): 'ok' | 'warn' | 'na' {
   const health = w.last_health
@@ -11,6 +12,12 @@ export function workerHealthTone(w: Worker): 'ok' | 'warn' | 'na' {
   return 'na'
 }
 
+const healthHubTone: Record<'ok' | 'warn' | 'na', HubBadgeTone> = {
+  ok: 'success',
+  warn: 'pending',
+  na: 'muted',
+}
+
 export function WorkerHealthBadge({ worker }: { worker: Worker }) {
   const { t } = useTranslation()
   const tone = workerHealthTone(worker)
@@ -20,7 +27,7 @@ export function WorkerHealthBadge({ worker }: { worker: Worker }) {
   const version = worker.last_seen_version
 
   if (tone === 'na') {
-    return <span className="badge worker-health-na">{t('instance.workerHealthUnknown')}</span>
+    return <HubBadge tone="muted">{t('instance.workerHealthUnknown')}</HubBadge>
   }
 
   const parts: string[] = []
@@ -28,11 +35,13 @@ export function WorkerHealthBadge({ worker }: { worker: Worker }) {
   if (http != null) parts.push(`HTTP ${String(http)}`)
   if (ready != null) parts.push(`${t('instance.workerReady')} ${String(ready)}`)
 
+  const label = tone === 'ok' ? t('instance.workerHealthOk') : t('instance.workerHealthWarn')
+
   return (
     <span className="worker-health-cell">
-      <span className={`badge worker-health-${tone}`} title={parts.join(' · ')}>
-        {tone === 'ok' ? t('instance.workerHealthOk') : t('instance.workerHealthWarn')}
-      </span>
+      <HubBadge tone={healthHubTone[tone]} title={parts.join(' · ')}>
+        {label}
+      </HubBadge>
     </span>
   )
 }

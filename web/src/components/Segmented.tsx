@@ -1,3 +1,6 @@
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
 type SegmentedVariant = 'segment' | 'pill' | 'outline'
 
 type Option<T extends string> = {
@@ -13,9 +16,8 @@ type Props<T extends string> = {
   ariaLabel?: string
 }
 
-const variantClass: Record<SegmentedVariant, string> = {
+const variantClass: Record<Exclude<SegmentedVariant, 'pill'>, string> = {
   segment: 'auth-segment',
-  pill: 'preset-bar',
   outline: 'profile-backup-formats',
 }
 
@@ -26,7 +28,26 @@ export function Segmented<T extends string>({
   variant = 'segment',
   ariaLabel,
 }: Props<T>) {
-  const role = variant === 'segment' ? 'tablist' : variant === 'outline' ? 'radiogroup' : undefined
+  if (variant === 'pill') {
+    return (
+      <div className="flex flex-wrap gap-1.5" role="group" aria-label={ariaLabel}>
+        {options.map((opt) => (
+          <Button
+            key={opt.value}
+            type="button"
+            size="sm"
+            variant={value === opt.value ? 'default' : 'outline'}
+            aria-pressed={value === opt.value}
+            onClick={() => onChange(opt.value)}
+          >
+            {opt.label}
+          </Button>
+        ))}
+      </div>
+    )
+  }
+
+  const role = variant === 'segment' ? 'tablist' : 'radiogroup'
 
   return (
     <div className={variantClass[variant]} role={role} aria-label={ariaLabel}>
@@ -34,10 +55,10 @@ export function Segmented<T extends string>({
         <button
           key={opt.value}
           type="button"
-          role={variant === 'segment' ? 'tab' : variant === 'outline' ? 'radio' : undefined}
+          role={variant === 'segment' ? 'tab' : 'radio'}
           aria-selected={variant === 'segment' ? value === opt.value : undefined}
           aria-checked={variant === 'outline' ? value === opt.value : undefined}
-          className={value === opt.value ? 'active' : undefined}
+          className={cn(value === opt.value && 'active')}
           onClick={() => onChange(opt.value)}
         >
           {opt.label}

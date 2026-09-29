@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
@@ -9,6 +9,7 @@ import { resolveAuthContinuationPath } from '../routes'
 import { arrangeTariffsForLanding } from '../landingTariffLayout'
 import { LandingTariffGrid } from '../components/LandingTariffGrid'
 import type { Tariff } from '../types'
+import { ButtonLink } from '@/components/ui/button-link'
 
 const FEATURE_KEYS = ['transcription', 'summaries', 'library', 'orgs', 'billing', 'sso'] as const
 const AUDIENCE_KEYS = ['it', 'managers', 'research', 'content'] as const
@@ -46,11 +47,17 @@ export function LandingPage() {
             <p className="landing-lead">{t('landing.lead')}</p>
             <div className="landing-cta">
               {me ? (
-                <Link to={enterAppPath!} className="btn primary landing-btn-lg">{t('landing.enterSystem')}</Link>
+                <ButtonLink to={enterAppPath!} size="lg" className="px-[1.1rem] py-[0.55rem] text-[0.95rem]">
+                  {t('landing.enterSystem')}
+                </ButtonLink>
               ) : (
                 <>
-                  <Link to="/signup" className="btn primary landing-btn-lg">{t('auth.toSignup')}</Link>
-                  <Link to="/login" className="btn landing-btn-lg">{t('auth.login')}</Link>
+                  <ButtonLink to="/signup" size="lg" className="px-[1.1rem] py-[0.55rem] text-[0.95rem]">
+                    {t('auth.toSignup')}
+                  </ButtonLink>
+                  <ButtonLink to="/login" variant="outline" size="lg" className="px-[1.1rem] py-[0.55rem] text-[0.95rem]">
+                    {t('auth.login')}
+                  </ButtonLink>
                 </>
               )}
             </div>

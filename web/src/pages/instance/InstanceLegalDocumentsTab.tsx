@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '../../api'
@@ -9,6 +8,12 @@ import { AdminFormCard, AdminPage } from '../../components/AdminSection'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Segmented } from '../../components/Segmented'
 import { MarkdownBody } from '../../markdown'
+import { Button } from '@/components/ui/button'
+import { AppTabs, TabsTrigger } from '../../components/Tabs'
+import { ButtonLink } from '@/components/ui/button-link'
+import { AppCheckboxRow } from '../../components/app/AppFormControls'
+import { AppField } from '../../components/app/AppField'
+import { AdminFormActions, AppSubmitButton, HubBadge } from '../../components/app/AdminUi'
 import {
   FOOTER_TEXT_FIELDS,
   LEGAL_DOC_FIELDS,
@@ -69,17 +74,19 @@ function AgreementEditorPair({
 
   return (
     <div className="agreement-editor-row">
-      <label className="agreement-editor-field">
-        <span>{label}</span>
+      <div className="agreement-editor-field">
+      <AppField label={label} htmlFor="agreement-editor-textarea">
         <textarea
           ref={textareaRef}
+          id="agreement-editor-textarea"
           className="agreement-editor-input"
           rows={14}
           style={paneStyle}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
-      </label>
+      </AppField>
+      </div>
       <div className="agreement-editor-field">
         <span className="muted">{t('instance.userAgreementPreview')}</span>
         <div className="agreement-text agreement-preview" style={paneStyle}>
@@ -272,75 +279,74 @@ export function InstanceLegalDocumentsTab() {
   return (
     <AdminPage>
       <AdminFormCard title={t('instance.legalDocumentsTitle')} lead={t('instance.legalDocumentsHint')}>
-        <div className="legal-doc-tabs auth-segment" role="tablist" aria-label={t('instance.legalDocumentsTitle')}>
+        <AppTabs
+          value={legalDocTab}
+          onValueChange={(value) => setLegalDocTab(value as LegalDocumentKey)}
+          ariaLabel={t('instance.legalDocumentsTitle')}
+          listClassName="legal-doc-tabs grid h-auto w-full gap-1 bg-muted p-1"
+        >
           {LEGAL_DOCUMENT_KEYS.map((key) => {
             const snapshot = savedLegalDocsFromSettings(settings)[key]
             const hasContent = legalDocHasContent(snapshot)
             const published = legalDocPublished(settings, key)
             const changed = legalDocAdminDirty(savedLegalSnapshot, settings, key)
             return (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={legalDocTab === key}
-                className={legalDocTab === key ? 'active' : undefined}
-                onClick={() => setLegalDocTab(key)}
-              >
+              <TabsTrigger key={key} value={key} className="legal-doc-tab-trigger">
                 <span className="legal-doc-tab-label">
                   {t(`legalDocuments.tabs.${LEGAL_DOCUMENT_I18N[key]}`)}
                 </span>
                 <span className="legal-doc-tab-badges">
-                  {!hasContent ? <span className="badge warn">{t('instance.legalDocumentEmpty')}</span> : null}
-                  {!published ? <span className="badge">{t('instance.legalDocumentHidden')}</span> : null}
-                  {changed ? <span className="badge wait">{t('instance.legalDocumentChanged')}</span> : null}
+                  {!hasContent ? <HubBadge tone="pending">{t('instance.legalDocumentEmpty')}</HubBadge> : null}
+                  {!published ? <HubBadge tone="muted">{t('instance.legalDocumentHidden')}</HubBadge> : null}
+                  {changed ? <HubBadge tone="pending">{t('instance.legalDocumentChanged')}</HubBadge> : null}
                 </span>
-              </button>
+              </TabsTrigger>
             )
           })}
-        </div>
+        </AppTabs>
 
         <div className="legal-doc-toolbar">
           <div className="legal-doc-toolbar-meta">
-            <span className="badge">
+            <HubBadge tone="muted">
               {t('instance.legalDocumentVersion', {
                 version: settings[docFields.version] ?? 0,
               })}
-            </span>
+            </HubBadge>
             {currentDocDirty ? (
-              <span className="badge wait">{t('instance.legalDocumentUnsaved')}</span>
+              <HubBadge tone="pending">{t('instance.legalDocumentUnsaved')}</HubBadge>
             ) : null}
             {currentDocWillReaccept && currentDocDirty ? (
-              <span className="badge warn">{t('instance.legalDocumentReaccept')}</span>
+              <HubBadge tone="pending">{t('instance.legalDocumentReaccept')}</HubBadge>
             ) : null}
           </div>
           <div className="legal-doc-toolbar-actions">
-            <label className="profile-check-row legal-doc-publish">
-              <input
-                type="checkbox"
-                checked={docPublished}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    [docFields.published]: e.target.checked,
-                  })
-                }
-              />
-              {t('instance.legalDocumentPublish')}
-            </label>
+            <AppCheckboxRow
+              id="legal-doc-publish"
+              className="legal-doc-publish"
+              label={t('instance.legalDocumentPublish')}
+              checked={docPublished}
+              onCheckedChange={(checked) =>
+                setSettings({
+                  ...settings,
+                  [docFields.published]: checked,
+                })
+              }
+            />
             {showPreviewLink ? (
-              <Link
-                className="btn legal-doc-preview-link"
+              <ButtonLink
+                variant="outline"
+                size="sm"
+                className="legal-doc-preview-link"
                 to={legalDocPath(legalDocTab)}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 {t('instance.legalDocumentPreviewLink')}
-              </Link>
+              </ButtonLink>
             ) : null}
-            <button type="button" className="btn" onClick={() => setHistoryOpen(true)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => setHistoryOpen(true)}>
               {t('instance.legalDocumentHistory')}
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -366,38 +372,32 @@ export function InstanceLegalDocumentsTab() {
           }
         />
 
-        <div className="row legal-doc-actions">
-          <button
-            className="primary"
-            type="button"
-            disabled={legalSaveBusy || !legalDirty}
-            onClick={() => onLegalSaveClick()}
-          >
+        <AdminFormActions className="legal-doc-actions">
+          <AppSubmitButton ready={legalDirty} busy={legalSaveBusy} onClick={() => onLegalSaveClick()}>
             {t('instance.legalDocumentsSave')}
-          </button>
+          </AppSubmitButton>
           {legalDirty ? (
-            <button type="button" disabled={legalSaveBusy} onClick={() => resetLegalEdits()}>
+            <Button type="button" variant="outline" disabled={legalSaveBusy} onClick={() => resetLegalEdits()}>
               {t('common.cancel')}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </AdminFormActions>
       </AdminFormCard>
 
       <AdminFormCard title={t('instance.landingExtraTitle')} lead={t('instance.landingExtraHint')}>
         <div className="legal-doc-toolbar">
           <div className="legal-doc-toolbar-meta">
-            {footerDirty ? <span className="badge wait">{t('instance.legalDocumentUnsaved')}</span> : null}
+            {footerDirty ? <HubBadge tone="pending">{t('instance.legalDocumentUnsaved')}</HubBadge> : null}
           </div>
-          <label className="profile-check-row legal-doc-publish">
-            <input
-              type="checkbox"
-              checked={settings.landing_footer_published ?? true}
-              onChange={(e) =>
-                setSettings({ ...settings, landing_footer_published: e.target.checked })
-              }
-            />
-            {t('instance.legalDocumentPublish')}
-          </label>
+          <AppCheckboxRow
+            id="landing-footer-publish"
+            className="legal-doc-publish"
+            label={t('instance.legalDocumentPublish')}
+            checked={settings.landing_footer_published ?? true}
+            onCheckedChange={(checked) =>
+              setSettings({ ...settings, landing_footer_published: checked })
+            }
+          />
         </div>
 
         <Segmented
@@ -422,21 +422,16 @@ export function InstanceLegalDocumentsTab() {
           }
         />
 
-        <div className="row legal-doc-actions">
-          <button
-            className="primary"
-            type="button"
-            disabled={footerSaveBusy || !footerDirty}
-            onClick={() => void saveLandingFooter()}
-          >
+        <AdminFormActions className="legal-doc-actions">
+          <AppSubmitButton ready={footerDirty} busy={footerSaveBusy} onClick={() => void saveLandingFooter()}>
             {t('instance.landingExtraSave')}
-          </button>
+          </AppSubmitButton>
           {footerDirty ? (
-            <button type="button" disabled={footerSaveBusy} onClick={() => resetFooterEdits()}>
+            <Button type="button" variant="outline" disabled={footerSaveBusy} onClick={() => resetFooterEdits()}>
               {t('common.cancel')}
-            </button>
+            </Button>
           ) : null}
-        </div>
+        </AdminFormActions>
       </AdminFormCard>
 
       {historyOpen ? (

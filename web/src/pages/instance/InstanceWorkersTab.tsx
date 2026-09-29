@@ -1,7 +1,23 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
-import { AdminPage, AdminTableCard } from '../../components/AdminSection'
+import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
+import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
+import { jsonDirty } from '../../util/formDirty'
+import {
+  AdminDataTable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  adminTableCellActions,
+  adminTableCellMuted,
+  adminTableCellNum,
+  adminTableCellPrimary,
+  adminTableHeadActions,
+  adminTableHeadNum,
+} from '../../components/app/AdminDataTable'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import { WorkerHealthBadge, isWorkerHealthy, isWorkerUnhealthy } from '../../components/WorkerHealthBadge'
 import type { Worker, WorkerEngineOption, WorkerProbeResult, WorkersListSummary } from '../../types'
@@ -9,6 +25,9 @@ import { formatInteger, showError } from '../../util'
 import { emptyWorker } from './constants'
 import { normalizeCaptureCapacitySummary, typeHubWorkerCapacity, workerCapacityCell } from './workerCapacity'
 import { WorkerImpactModal } from './WorkerImpactModal'
+import { Button } from '@/components/ui/button'
+import { AdminRowActions } from '../../components/app/AdminUi'
+import { AppCheckboxRow, AppInputField, AppSelectField } from '../../components/app/AppFormControls'
 
 const LOADED_CONNECTOR_STATUS = 'loaded'
 
@@ -30,6 +49,7 @@ export function InstanceWorkersTab() {
   const [probing, setProbing] = useState(false)
   const [probe, setProbe] = useState<WorkerProbeResult | null>(null)
   const [probeOk, setProbeOk] = useState(false)
+  const formRef = useRef<HTMLDivElement>(null)
   const [impactModal, setImpactModal] = useState<{
     mode: 'delete' | 'change'
     worker: Worker
@@ -224,9 +244,23 @@ export function InstanceWorkersTab() {
     void saveWorkerDirect(body, null).catch(showError)
   }
 
+  function scrollToForm() {
+    requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  function openCreate() {
+    setEditW(null)
+    setWform(emptyWorker)
+    setProbe(null)
+    setProbeOk(false)
+    setFormOpen(true)
+    scrollToForm()
+  }
+
   function startEdit(w: Worker) {
     setEditW(w.id)
     setFormOpen(true)
+    scrollToForm()
     setProbe(null)
     setProbeOk(false)
     setWform({
@@ -253,9 +287,30 @@ export function InstanceWorkersTab() {
     setProbeOk(false)
   }
 
+  const workerBaseline = useMemo(() => {
+    if (!editW) return emptyWorker
+    const w = workers.find((x) => x.id === editW)
+    if (!w) return emptyWorker
+    return {
+      type: w.type,
+      name: w.name,
+      base_url: w.base_url,
+      api_token: '',
+      weight: w.weight,
+      enabled: w.enabled,
+      asr_models: w.asr_models || [],
+      diarization_models: w.diarization_models || [],
+      capture_connectors: w.capture_connectors || [],
+    }
+  }, [editW, workers])
+
+  const workerDirty = jsonDirty(wform, workerBaseline)
+
   const canSaveWorker =
     (wform.type !== 'transcribe' || (probeOk && wform.asr_models.length > 0 && probe !== null)) &&
     (wform.type !== 'capture' || (probeOk && wform.capture_connectors.length > 0 && probe !== null))
+
+  const workerReady = canSaveWorker && workerDirty
   const canProbe = Boolean(wform.base_url.trim() && (wform.api_token.trim() || editW))
   const allProbeConnectors = useMemo(() => probe?.connectors ?? [], [probe])
 
@@ -300,73 +355,71 @@ export function InstanceWorkersTab() {
         ) : null}
       </StatGrid>
 
-      <details
-        className="fold org-fold org-create-fold card"
-        open={formOpen}
-        onToggle={(e) => setFormOpen(e.currentTarget.open)}
-      >
-        <summary className="org-fold-summary">
-          <span>{editW ? t('instance.workerEdit') : t('instance.workerCreate')}</span>
-        </summary>
-        <div className="stack fold-body">
-        <label>{t('instance.type')}
-          <select
-            value={wform.type}
-            onChange={(e) => {
-              setWform({ ...wform, type: e.target.value })
-              setProbe(null)
-              setProbeOk(false)
-            }}
-          >
-            <option value="transcribe">{t('instance.transcribe')}</option>
-            <option value="summarize">{t('instance.summarize')}</option>
-            <option value="capture">{t('instance.capture')}</option>
-          </select>
-        </label>
-        <label>{t('common.name')}<input value={wform.name} onChange={(e) => setWform({ ...wform, name: e.target.value })} /></label>
-        <label>{t('instance.baseUrl')}<input value={wform.base_url} onChange={(e) => { setWform({ ...wform, base_url: e.target.value }); setProbeOk(false) }} /></label>
-        <label>{t('instance.apiToken')}<input value={wform.api_token} onChange={(e) => { setWform({ ...wform, api_token: e.target.value }); setProbeOk(false) }} placeholder={editW ? t('instance.apiTokenKeep') : ''} /></label>
+      {formOpen ? (
+        <div ref={formRef}>
+          <AdminFormCard title={editW ? t('instance.workerEdit') : t('instance.workerCreate')}>
+        <AppSelectField
+          label={t('instance.type')}
+          htmlFor="worker-type"
+          value={wform.type}
+          onChange={(e) => {
+            setWform({ ...wform, type: e.target.value })
+            setProbe(null)
+            setProbeOk(false)
+          }}
+        >
+          <option value="transcribe">{t('instance.transcribe')}</option>
+          <option value="summarize">{t('instance.summarize')}</option>
+          <option value="capture">{t('instance.capture')}</option>
+        </AppSelectField>
+        <AppInputField label={t('common.name')} htmlFor="worker-name" value={wform.name} onChange={(e) => setWform({ ...wform, name: e.target.value })} />
+        <AppInputField label={t('instance.baseUrl')} htmlFor="worker-base-url" value={wform.base_url} onChange={(e) => { setWform({ ...wform, base_url: e.target.value }); setProbeOk(false) }} />
+        <AppInputField label={t('instance.apiToken')} htmlFor="worker-api-token" value={wform.api_token} onChange={(e) => { setWform({ ...wform, api_token: e.target.value }); setProbeOk(false) }} placeholder={editW ? t('instance.apiTokenKeep') : ''} />
         {wform.type === 'transcribe' ? (
           <>
-            <button type="button" disabled={!canProbe || probing} onClick={() => void probeWorker()}>
+            <Button type="button" disabled={!canProbe || probing} onClick={() => void probeWorker()}>
               {probing ? t('instance.workerProbing') : t('instance.workerProbe')}
-            </button>
+            </Button>
             {probeOk ? <p className="ok">{t('instance.workerProbeOk')}</p> : null}
             {probe && wform.type === 'transcribe' ? (
-              <div className="stack">
+              <div className="flex flex-col gap-3">
                 <p className="muted">{t('instance.workerModelsHint')}</p>
-                <fieldset className="stack">
+                <fieldset className="flex flex-col gap-3">
                   <legend>{t('instance.asr')}</legend>
                   {probeAsr.length === 0 ? <p className="muted">{t('instance.workerModelsEmpty')}</p> : null}
                   {probeAsr.map((item) => (
-                    <label className="row" key={item.id}>
-                      <input
-                        type="checkbox"
-                        checked={wform.asr_models.includes(item.id)}
-                        onChange={() => toggleModel('asr_models', item.id)}
-                      />
-                      <span className="grow">
-                        <strong>{item.id}</strong>
-                        <span className="muted"> — {item.status}</span>
-                      </span>
-                    </label>
+                    <AppCheckboxRow
+                      key={item.id}
+                      id={`worker-asr-${item.id}`}
+                      className="items-start"
+                      label={
+                        <span className="grow">
+                          <strong>{item.id}</strong>
+                          <span className="muted"> — {item.status}</span>
+                        </span>
+                      }
+                      checked={wform.asr_models.includes(item.id)}
+                      onCheckedChange={() => toggleModel('asr_models', item.id)}
+                    />
                   ))}
                 </fieldset>
-                <fieldset className="stack">
+                <fieldset className="flex flex-col gap-3">
                   <legend>{t('instance.diarization')}</legend>
                   {probeDiar.length === 0 ? <p className="muted">{t('instance.workerModelsEmpty')}</p> : null}
                   {probeDiar.map((item) => (
-                    <label className="row" key={item.id}>
-                      <input
-                        type="checkbox"
-                        checked={wform.diarization_models.includes(item.id)}
-                        onChange={() => toggleModel('diarization_models', item.id)}
-                      />
-                      <span className="grow">
-                        <strong>{item.id}</strong>
-                        <span className="muted"> — {item.status}</span>
-                      </span>
-                    </label>
+                    <AppCheckboxRow
+                      key={item.id}
+                      id={`worker-diar-${item.id}`}
+                      className="items-start"
+                      label={
+                        <span className="grow">
+                          <strong>{item.id}</strong>
+                          <span className="muted"> — {item.status}</span>
+                        </span>
+                      }
+                      checked={wform.diarization_models.includes(item.id)}
+                      onCheckedChange={() => toggleModel('diarization_models', item.id)}
+                    />
                   ))}
                 </fieldset>
               </div>
@@ -375,9 +428,9 @@ export function InstanceWorkersTab() {
         ) : null}
         {wform.type === 'summarize' ? (
           <>
-            <button type="button" disabled={!canProbe || probing} onClick={() => void probeWorker()}>
+            <Button type="button" disabled={!canProbe || probing} onClick={() => void probeWorker()}>
               {probing ? t('instance.workerProbing') : t('instance.workerProbe')}
-            </button>
+            </Button>
             {probeOk ? <p className="ok">{t('instance.workerProbeOk')}</p> : null}
             {probe?.summarize_model ? (
               <p className="muted">
@@ -388,31 +441,33 @@ export function InstanceWorkersTab() {
         ) : null}
         {wform.type === 'capture' ? (
           <>
-            <button type="button" disabled={!canProbe || probing} onClick={() => void probeWorker()}>
+            <Button type="button" disabled={!canProbe || probing} onClick={() => void probeWorker()}>
               {probing ? t('instance.workerProbing') : t('instance.workerProbe')}
-            </button>
+            </Button>
             {probeOk ? <p className="ok">{t('instance.workerProbeOk')}</p> : null}
             {probe && wform.type === 'capture' ? (
-              <div className="stack">
+              <div className="flex flex-col gap-3">
                 <p className="muted">{t('instance.captureConnectorsHint')}</p>
-                <fieldset className="stack">
+                <fieldset className="flex flex-col gap-3">
                   <legend>{t('instance.captureConnectors')}</legend>
                   {allProbeConnectors.length === 0 ? <p className="muted">{t('instance.workerModelsEmpty')}</p> : null}
                   {allProbeConnectors.map((item) => {
                     const selectable = item.status === LOADED_CONNECTOR_STATUS
                     return (
-                      <label className="row" key={item.id}>
-                        <input
-                          type="checkbox"
-                          checked={wform.capture_connectors.includes(item.id)}
-                          disabled={!selectable}
-                          onChange={() => toggleCaptureConnector(item.id)}
-                        />
-                        <span className="grow">
-                          <strong>{item.label?.trim() || item.id}</strong>
-                          <span className="muted"> — {item.status}</span>
-                        </span>
-                      </label>
+                      <AppCheckboxRow
+                        key={item.id}
+                        id={`worker-capture-${item.id}`}
+                        className="items-start"
+                        label={
+                          <span className="grow">
+                            <strong>{item.label?.trim() || item.id}</strong>
+                            <span className="muted"> — {item.status}</span>
+                          </span>
+                        }
+                        checked={wform.capture_connectors.includes(item.id)}
+                        disabled={!selectable}
+                        onCheckedChange={() => toggleCaptureConnector(item.id)}
+                      />
                     )
                   })}
                 </fieldset>
@@ -420,72 +475,95 @@ export function InstanceWorkersTab() {
             ) : null}
           </>
         ) : null}
-        <label>{t('instance.weight')}<input type="number" min={1} value={wform.weight} onChange={(e) => setWform({ ...wform, weight: Number(e.target.value) })} /></label>
-        <label className="row">
-          <input type="checkbox" checked={wform.enabled} onChange={(e) => setWform({ ...wform, enabled: e.target.checked })} />
-          {t('instance.enabled')}
-        </label>
-        <div className="row">
-          <button className="primary" type="button" disabled={!canSaveWorker} onClick={() => requestSaveWorker()}>{editW ? t('common.save') : t('common.create')}</button>
-          {editW ? <button type="button" onClick={cancelEdit}>{t('common.cancel')}</button> : null}
+        <AppInputField label={t('instance.weight')} htmlFor="worker-weight" type="number" min={1} value={wform.weight} onChange={(e) => setWform({ ...wform, weight: Number(e.target.value) })} />
+        <AppCheckboxRow id="worker-enabled" label={t('instance.enabled')} checked={wform.enabled} onCheckedChange={(checked) => setWform({ ...wform, enabled: checked })} />
+        <AdminFormActions>
+          <AppSubmitButton ready={workerReady} onClick={() => requestSaveWorker()}>
+            {editW ? t('common.save') : t('common.create')}
+          </AppSubmitButton>
+          <Button type="button" variant="outline" onClick={cancelEdit}>
+            {t('common.cancel')}
+          </Button>
+        </AdminFormActions>
+          </AdminFormCard>
         </div>
-        </div>
-      </details>
+      ) : null}
 
-      <AdminTableCard title={t('instance.workersList')} empty={t('common.empty')} isEmpty={workers.length === 0}>
+      <AdminTableCard
+        title={t('instance.workersList')}
+        empty={t('common.empty')}
+        isEmpty={workers.length === 0}
+        tableLayout
+        actions={
+          <Button type="button" size="sm" onClick={openCreate}>
+            {t('instance.workerCreate')}
+          </Button>
+        }
+      >
         {workers.length > 0 ? (
-          <div className="stats-table-wrap">
-            <table className="stats-table">
-              <thead>
-                <tr>
-                  <th>{t('common.name')}</th>
-                  <th>{t('instance.type')}</th>
-                  <th>{t('instance.workerModels')}</th>
-                  <th>{t('instance.weight')}</th>
-                  <th>{t('instance.enabled')}</th>
-                  <th>{t('instance.health')}</th>
-                  <th title={t('instance.workerCapacityColumnHint')}>{t('instance.workerCapacityColumn')}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {workers.map((w) => (
-                  <tr key={w.id}>
-                    <td>{w.name || w.base_url}</td>
-                    <td>{t(`task.type.${w.type}`, { defaultValue: w.type })}</td>
-                    <td>
-                      {w.type === 'transcribe'
-                        ? [
-                            ...(w.asr_models || []).map((id) => `ASR:${id}`),
-                            ...(w.diarization_models || []).map((id) => `D:${id}`),
-                          ].join(', ') || '—'
-                        : w.type === 'capture'
-                          ? (w.capture_connectors || []).join(', ') || '—'
-                          : w.type === 'summarize'
-                            ? w.summarize_model?.trim() || '—'
-                            : '—'}
-                    </td>
-                    <td className="num">{formatInteger(w.weight)}</td>
-                    <td>{w.enabled ? t('common.yes') : t('common.no')}</td>
-                    <td><WorkerHealthBadge worker={w} /></td>
-                    <td className="num">
-                      {(() => {
-                        const cell = workerCapacityCell(w, workers)
-                        if (!cell) return '—'
-                        return `${formatInteger(cell.available)} / ${formatInteger(cell.max)}`
-                      })()}
-                    </td>
-                    <td className="table-actions">
-                      <div className="row">
-                        <button type="button" onClick={() => startEdit(w)}>{t('common.edit')}</button>
-                        <button type="button" className="danger" onClick={() => setImpactModal({ mode: 'delete', worker: w })}>{t('common.delete')}</button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AdminDataTable>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('common.name')}</TableHead>
+                <TableHead>{t('instance.type')}</TableHead>
+                <TableHead>{t('instance.workerModels')}</TableHead>
+                <TableHead className={adminTableHeadNum}>{t('instance.weight')}</TableHead>
+                <TableHead>{t('instance.enabled')}</TableHead>
+                <TableHead>{t('instance.health')}</TableHead>
+                <TableHead className={adminTableHeadNum} title={t('instance.workerCapacityColumnHint')}>
+                  {t('instance.workerCapacityColumn')}
+                </TableHead>
+                <TableHead className={adminTableHeadActions} />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {workers.map((w) => (
+                <TableRow key={w.id}>
+                  <TableCell className={adminTableCellPrimary}>{w.name || w.base_url}</TableCell>
+                  <TableCell>{t(`task.type.${w.type}`, { defaultValue: w.type })}</TableCell>
+                  <TableCell className={adminTableCellMuted}>
+                    {w.type === 'transcribe'
+                      ? [
+                          ...(w.asr_models || []).map((id) => `ASR:${id}`),
+                          ...(w.diarization_models || []).map((id) => `D:${id}`),
+                        ].join(', ') || '—'
+                      : w.type === 'capture'
+                        ? (w.capture_connectors || []).join(', ') || '—'
+                        : w.type === 'summarize'
+                          ? w.summarize_model?.trim() || '—'
+                          : '—'}
+                  </TableCell>
+                  <TableCell className={adminTableCellNum}>{formatInteger(w.weight)}</TableCell>
+                  <TableCell>{w.enabled ? t('common.yes') : t('common.no')}</TableCell>
+                  <TableCell>
+                    <WorkerHealthBadge worker={w} />
+                  </TableCell>
+                  <TableCell className={adminTableCellNum}>
+                    {(() => {
+                      const cell = workerCapacityCell(w, workers)
+                      if (!cell) return '—'
+                      return `${formatInteger(cell.available)} / ${formatInteger(cell.max)}`
+                    })()}
+                  </TableCell>
+                  <TableCell className={adminTableCellActions}>
+                    <AdminRowActions>
+                      <Button type="button" size="sm" variant="outline" onClick={() => startEdit(w)}>
+                        {t('common.edit')}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setImpactModal({ mode: 'delete', worker: w })}
+                      >
+                        {t('common.delete')}
+                      </Button>
+                    </AdminRowActions>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </AdminDataTable>
         ) : null}
       </AdminTableCard>
 
