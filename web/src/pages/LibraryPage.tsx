@@ -443,7 +443,7 @@ export function LibraryPage() {
 
   return (
     <div className="library-page">
-      <Card className="library-ingest mb-4">
+      <Card className="library-ingest mb-4 bg-sky-50 ring-sky-200/70 dark:bg-sky-950/30 dark:ring-sky-800/45">
         <CardContent className="flex flex-col gap-3 pt-6">
         {uploadProgress && (
           <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
