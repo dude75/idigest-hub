@@ -35,7 +35,7 @@ Bootstrap: откройте `http://127.0.0.1:8080/setup` или POST `/api/v1/s
 
 ## Frontend (Vite dev server)
 
-Держите API на 8080. Vite проксирует `/api` на hub:
+Держите API запущенным (порт по умолчанию `8080`). Из `web/` Vite проксирует `/api` на `http://127.0.0.1:<port>`, где `<port>` — `HUB_PORT`, затем `PORT`, затем `8080` (см. `web/vite.config.ts`). Env читается из каталога `web/`; если хаб слушает другой порт из `.env` в корне репо, задайте `HUB_PORT` в `web/.env.local` или в shell при запуске Vite.
 
 ```bash
 cd web
@@ -44,6 +44,14 @@ npm run dev
 ```
 
 Откройте URL Vite (обычно `http://127.0.0.1:5173`). Hot reload для React.
+
+Перед push UI-изменений — те же проверки, что в CI:
+
+```bash
+cd web && npm run lint && npm run check:ui && npm test && npm run build
+```
+
+См. [web/README.md](../../../web/README.md) и [frontend.md](frontend.md) про конвенции shadcn / App\*.
 
 Production build:
 
@@ -72,7 +80,7 @@ Output: `web/dist/` — отдаётся FastAPI, если каталог сущ
 
 ## OpenAPI
 
-При запущенном сервере: `http://127.0.0.1:8080/openapi.json`
+По умолчанию выключено (`OPENAPI_ENABLED=false`). Поставьте `OPENAPI_ENABLED=true` в `.env` и перезапустите; схема — `http://127.0.0.1:8080/openapi.json`, Swagger UI — `/docs`. См. [обзор API](../api/README.md).
 
 ## Связанные страницы
 

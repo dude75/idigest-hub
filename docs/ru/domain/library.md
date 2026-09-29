@@ -35,7 +35,7 @@ Query `include_hidden=true` в списке включает скрытые об
 
 ### Доступность transcribe
 
-`can_transcribe` в деталях audio равен `true`, когда файл ещё существует на диске.
+`can_transcribe` в деталях audio равен `true`, пока blob существует в storage (`STORAGE_BACKEND=local` или `s3`).
 
 ## Transcripts
 

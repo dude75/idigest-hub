@@ -53,7 +53,7 @@ npm install
 npm run dev
 ```
 
-Дальше откройте URL Vite (обычно `http://127.0.0.1:5173`).
+Дальше откройте URL Vite (обычно `http://127.0.0.1:5173`). Vite проксирует `/api` на `127.0.0.1:${HUB_PORT:-8080}` (env из каталога `web/`; при нестандартном `PORT` хаба задайте `HUB_PORT`).
 
 Проверка:
 
@@ -179,6 +179,8 @@ Login с 2FA: пароль → `/verify-2fa` (TOTP или recovery code). При
 | `OAUTH_MCP_RESOURCE_URL`       | Опциональный override resource URI MCP. По умолчанию `{Публичный URL}/mcp`.                                                                                   |
 | `OAUTH_ACCESS_TOKEN_TTL_SEC`   | TTL access token в секундах. По умолчанию `3600`.                                                                                                            |
 | `OAUTH_SIGNING_KEY_PEM`        | Опциональный RSA PEM для JWT. Если пусто, хаб генерирует `{DATA_DIR}/oauth_signing_key.pem`.                                                                 |
+| `OPENAPI_ENABLED`              | Swagger UI (`/docs`), ReDoc (`/redoc`) и `/openapi.json`. По умолчанию `false`. `true` — для локального изучения API. См. [обзор API](docs/ru/api/README.md). |
+| `FINALIZING_STUCK_SEC`         | Макс. секунд, сколько capture-задача может быть в worker `finalizing`, прежде чем hub пометит её failed. По умолчанию `1200`.                                  |
 
 Всё, что должно пережить рестарт, лежит в `./data` (SQLite `hub.db` или `./data/pg` для PostgreSQL в Compose, логи). При **`STORAGE_BACKEND=local`** (по умолчанию) загрузки audio — в `{DATA_DIR}/uploads/{audio_id}/`; монтируйте `./data` в Docker. При **`STORAGE_BACKEND=s3`** audio в object storage (SSE at rest); hub-поду volume для uploads не нужен — только БД и логи. Контейнер Compose пишет `./data` от uid/gid **1001** (см. [Docker Compose](#docker-compose)).
 

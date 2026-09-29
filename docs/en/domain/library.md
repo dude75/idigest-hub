@@ -35,7 +35,7 @@ Query `include_hidden=true` on list includes owner's hidden items.
 
 ### Transcribe eligibility
 
-`can_transcribe` on audio detail is true when the file still exists on disk.
+`can_transcribe` on audio detail is true when the blob still exists in storage (`STORAGE_BACKEND=local` or `s3`).
 
 ## Transcripts
 

@@ -35,7 +35,7 @@ Bootstrap: open `http://127.0.0.1:8080/setup` or POST `/api/v1/setup`.
 
 ## Frontend (Vite dev server)
 
-Keep API on 8080. Vite proxies `/api` to the hub:
+Keep the API running (default port `8080`). From `web/`, Vite proxies `/api` to `http://127.0.0.1:<port>`, where `<port>` is `HUB_PORT`, then `PORT`, then `8080` (see `web/vite.config.ts`). Env files are loaded from `web/`; if the hub uses another port from the repo-root `.env`, set `HUB_PORT` in `web/.env.local` or in the shell when starting Vite.
 
 ```bash
 cd web
@@ -44,6 +44,14 @@ npm run dev
 ```
 
 Open Vite URL (typically `http://127.0.0.1:5173`). Hot reload for React.
+
+Before pushing UI changes, run the same checks as CI:
+
+```bash
+cd web && npm run lint && npm run check:ui && npm test && npm run build
+```
+
+See [web/README.md](../../../web/README.md) and [frontend.md](frontend.md) for the shadcn / App\* conventions.
 
 Production build:
 
@@ -72,7 +80,7 @@ After model changes:
 
 ## OpenAPI
 
-With server running: `http://127.0.0.1:8080/openapi.json`
+Disabled by default (`OPENAPI_ENABLED=false`). Set `OPENAPI_ENABLED=true` in `.env` and restart; then schema at `http://127.0.0.1:8080/openapi.json`, Swagger UI at `/docs`. See [API overview](../api/README.md).
 
 ## Related pages
 

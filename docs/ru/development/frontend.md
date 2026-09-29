@@ -1,6 +1,22 @@
 # Структура frontend
 
-React 19 + TypeScript + Vite. Source: `web/src/`
+React 19 + TypeScript + Vite. Source: `web/src/`. README пакета: [web/README.md](../../../web/README.md).
+
+## UI stack
+
+| Слой | Где / пакет |
+| ---- | ----------- |
+| shadcn (стиль `base-nova`) | `web/components.json`, CLI `shadcn` |
+| Примитивы | `web/src/components/ui/` (Base UI + Tailwind) |
+| App-обёртки | `web/src/components/app/` — формы, admin-таблицы, общие контролы |
+| Иконки | `lucide-react` (`iconLibrary: lucide` в `components.json`) |
+| Шрифт | Geist через `@fontsource-variable/geist` в `index.css` |
+| Стили | Tailwind CSS v4 (`@tailwindcss/vite`) |
+| Уведомления | `sonner` (`showError` / toast в `util.tsx`) |
+
+Новые экраны собирайте из **shadcn-примитивов** и **App\***, без legacy global CSS (`.btn`, `.card`, произвольный `.stack`). Primary save/create — общий паттерн submit-кнопки; CI проверяет через `npm run check:ui` (`web/scripts/check-ui-migration.mjs`, в GitLab CI вместе с `npm test` и `npm run build`).
+
+## Дерево исходников (обзор)
 
 ```
 web/src/
@@ -12,36 +28,40 @@ web/src/
 ├── types.ts          # Me, Task, entities
 ├── i18n.ts           # i18next setup
 ├── locales/          # en.json, ru.json, es.json
-├── pages/            # Route components
-│   ├── LandingPage, LoginPage, SignupPage, SetupPage
-│   ├── Verify2faPage, Enroll2faPage   # Login challenge + принудительный enrollment
-│   ├── LibraryPage, AudioPage, TranscriptPage, SummaryPage
-│   ├── TasksPage, TaskPage
-│   ├── SkillsPage, SkillPage
-│   ├── OrgPage, StatsPage
-│   ├── InstancePage
-│   ├── SsoLoginPage
-│   └── ProfilePage, ChangePasswordPage, ...
-├── mfa.ts              # sessionStorage helpers для login challenge_id
+├── pages/
+│   ├── LandingPage, LoginPage, SignupPage, SetupPage, SsoLoginPage
+│   ├── Verify2faPage, Enroll2faPage, ChangePasswordPage, ForgotPage, ResetPage
+│   ├── AcceptAgreementPage, LegalDocumentPage
+│   ├── LibraryPage, AudioPage, TranscriptPage, SummaryPage, PublicLinksPage
+│   ├── TasksPage, TaskPage, SkillsPage, SkillPage
+│   ├── OrgPage, StatsPage, ProfilePage, PublicSummaryPage (guest)
+│   ├── instance/     # InstancePage + вкладки (workers, tariffs, orgs, …)
+│   └── security/     # SecurityPage (encryption, audit log)
+├── mfa.ts            # sessionStorage helpers для login challenge_id
 └── components/
-    ├── Shell.tsx         # Nav layout
-    ├── AppBrand.tsx
-    ├── LanguageSwitcher.tsx
-    ├── MfaSetupPanel.tsx # QR setup, confirm, recovery codes
-    ├── ShareDialog.tsx   # Список получателей + отзыв
-    ├── InlineRename.tsx  # Заголовки transcript/summary/skill
-    └── OrgLedgerModal.tsx # Ledger кошелька в instance admin
+    ├── ui/           # shadcn primitives
+    ├── app/          # AppField, AppFormActions, AdminDataTable, …
+    ├── auth/         # Auth card/field chrome
+    ├── Shell.tsx     # Nav layout
+    ├── AdminSection.tsx
+    ├── MicrophoneRecordModal.tsx   # Запись с микрофона → POST /audios
+    ├── ShareDialog.tsx, MfaSetupPanel.tsx, …
+    └── …
 ```
+
+`InstancePage` и тяжёлые admin-вкладки подгружаются lazy, чтобы не раздувать основной бандл.
 
 ## Routing
 
-Browser routes под `/app/*` (protected). Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`, `/verify-2fa`, `/enroll-2fa`, `/sso/:orgId`.
+Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`, `/verify-2fa`, `/enroll-2fa`, `/change-password`, `/accept-agreement`, `/sso/:orgId`, `/public/summary/:token`, `/legal/:slug`.
+
+Приложение: `/app/*` (library с `:tab`, детали audio/transcript/summary, skills, org, stats, profile, tasks, instance, security, public-links).
 
 `resolveHomePath(me)` в `routes.ts` выбирает landing page из user `default_route` и role.
 
 ## API client
 
-`api.ts` использует `fetch` с `credentials: 'include'` для cookie auth. Same origin в production; Vite proxy в dev.
+`api.ts` использует `fetch` с `credentials: 'include'` для cookie auth. Same origin в production; Vite proxy в dev (см. [setup](setup.md) про `HUB_PORT`).
 
 Errors ожидают `{ status: "error", error: { code, message } }`. Ошибки API показываются toast-уведомлениями справа сверху (`sonner` через `util.tsx` `showError`).
 
@@ -62,12 +82,15 @@ Profile → Security: опциональное включение/отключе
 
 Три UI locale: `en`, `ru`, `es`. Language switcher записывает preference через PATCH `/me` + i18next change.
 
-## Build
+## Сборка и проверки
 
 ```bash
 cd web
-npm run build    # tsc + vite → dist/
-npm run lint     # oxlint
+npm run dev        # HMR; proxy /api
+npm run build      # tsc + vite → dist/
+npm run lint       # oxlint
+npm run test       # vitest (например auth route helpers)
+npm run check:ui   # guard скрипт миграции UI
 ```
 
 Assets попадают в `web/dist/assets/` — монтируются на `/assets` через FastAPI.

@@ -26,7 +26,9 @@ app/
 │   ├── instance.py
 │   ├── crypto.py     # API управления DEK (instance_admin)
 │   ├── oauth.py      # OAuth 2.1 authorize / token / DCR / well-known
-│   └── skills.py
+│   ├── public.py     # Гостевые public summary links (без сессии)
+│   ├── skills.py
+│   └── tags.py       # Каталог personal tags + object-tags
 └── services/
     ├── dispatcher.py   # Task queue loop
     ├── workers.py      # httpx2 client to workers

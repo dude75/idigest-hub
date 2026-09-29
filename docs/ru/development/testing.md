@@ -64,7 +64,8 @@ Tests патчат `app.services.workers` или dispatcher health, чтобы �
 
 ```bash
 cd web
-npm test    # vitest — включает web/src/mfa.test.ts (auth block paths)
+npm run check:ui   # guard миграции shadcn
+npm test           # vitest — включает web/src/mfa.test.ts (auth block paths)
 ```
 
 ## Заметки для CI

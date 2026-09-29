@@ -10,7 +10,7 @@ Detailed service documentation. Quick install: [README](../README.md) (EN) · [R
 docs/
 ├── en/          English
 ├── ru/          Русский (mirror paths)
-└── assets/      Shared diagrams (language-neutral)
+└── assets/      Optional shared diagrams (language-neutral; add PNG/SVG here when needed)
 ```
 
 Switch language by replacing `/en/` ↔ `/ru/` in any path.

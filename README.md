@@ -53,7 +53,7 @@ npm install
 npm run dev
 ```
 
-Then open the Vite URL (typically `http://127.0.0.1:5173`).
+Then open the Vite URL (typically `http://127.0.0.1:5173`). Vite proxies `/api` to `127.0.0.1:${HUB_PORT:-8080}` (env read from `web/`; override with `HUB_PORT` if the hub uses a non-default `PORT`).
 
 Check:
 
@@ -179,6 +179,8 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `OAUTH_MCP_RESOURCE_URL`       | Optional override of the MCP resource URI. Default `{Public URL}/mcp`.                                                                                       |
 | `OAUTH_ACCESS_TOKEN_TTL_SEC`   | Access token lifetime in seconds. Default `3600`.                                                                                                            |
 | `OAUTH_SIGNING_KEY_PEM`        | Optional RSA private key PEM for JWT. If empty, the hub generates `{DATA_DIR}/oauth_signing_key.pem`.                                                        |
+| `OPENAPI_ENABLED`              | Swagger UI (`/docs`), ReDoc (`/redoc`), and `/openapi.json`. Default `false`. Set `true` for local API exploration. See [API overview](docs/en/api/README.md). |
+| `FINALIZING_STUCK_SEC`         | Max seconds a capture task may stay in worker `finalizing` before the hub fails it. Default `1200`.                                                          |
 
 Everything that must survive a restart lives under `./data` (SQLite `hub.db` or `./data/pg` for Compose PostgreSQL, and logs). With the default **`STORAGE_BACKEND=local`**, audio uploads also live under `{DATA_DIR}/uploads/{audio_id}/` — mount `./data` in Docker. With **`STORAGE_BACKEND=s3`**, audio is in object storage (SSE at rest); the hub pod needs DB + logs only, not a volume for uploads. The Compose container writes `./data` as uid/gid **1001** (see [Docker Compose](#docker-compose)).
 
