@@ -108,7 +108,7 @@ Audit: `summary.public_link.create`, `summary.public_link.revoke`, `summary.publ
 
 ## Profile backup
 
-`GET /me/backup` — ZIP or TGZ of owned transcripts, summaries, and/or personal skills (Profile page in UI).
+`GET /me/backup` — ZIP or TGZ of owned transcripts, summaries, and/or personal skills (Profile page in UI). `POST /me/backup/restore` uploads the same archive format back.
 
 ## List visibility algorithm
 

@@ -2408,6 +2408,14 @@ button.org-delete-btn:hover { text-decoration: underline; }
 .profile-backup-formats button:not(.active):hover {
   background: #eef2f7;
 }
+.profile-backup-restore-hint {
+  margin: 0.75rem 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.profile-backup-file-input {
+  display: none;
+}
 .profile-backup-actions {
   padding-top: 0.15rem;
   border-top: 1px solid var(--line);

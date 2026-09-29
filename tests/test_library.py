@@ -787,6 +787,95 @@ def test_backup_zip_and_tgz(client):
     assert err_code(empty) == "validation_error"
 
 
+def test_backup_restore_same_account(client):
+    import io
+
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "restore@example.com", "restorepass1", tariff_id).status_code == 200
+    audio = upload_audio(client)
+    transcript_id, summary_id = _insert_transcript_and_summary(
+        me(client)["org"]["id"], me(client)["user"]["id"], audio.json()["id"]
+    )
+    zip_resp = client.get("/api/v1/me/backup?transcripts=true&summaries=true&format=zip")
+    assert zip_resp.status_code == 200, zip_resp.text
+
+    assert client.delete(f"/api/v1/transcripts/{transcript_id}").status_code == 200
+    assert client.delete(f"/api/v1/summaries/{summary_id}").status_code == 200
+    after_delete = client.get("/api/v1/transcripts")
+    assert not any(item["id"] == transcript_id for item in after_delete.json()["items"])
+
+    restored = client.post(
+        "/api/v1/me/backup/restore",
+        files={"file": ("backup.zip", io.BytesIO(zip_resp.content), "application/zip")},
+    )
+    assert restored.status_code == 200, restored.text
+    body = restored.json()
+    assert body["mode"] == "restore"
+    assert body["transcripts"]["created"] == 1
+    assert body["summaries"]["created"] == 1
+
+    transcripts = client.get("/api/v1/transcripts")
+    assert any(item["id"] == transcript_id for item in transcripts.json()["items"])
+    summaries = client.get("/api/v1/summaries")
+    assert any(item["id"] == summary_id for item in summaries.json()["items"])
+
+
+def test_backup_restore_import_other_account(client):
+    import io
+
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "owner@example.com", "ownerpass1234", tariff_id).status_code == 200
+    audio = upload_audio(client)
+    transcript_id, _ = _insert_transcript_and_summary(
+        me(client)["org"]["id"], me(client)["user"]["id"], audio.json()["id"]
+    )
+    zip_resp = client.get("/api/v1/me/backup?transcripts=true&format=zip")
+    assert zip_resp.status_code == 200, zip_resp.text
+
+    assert signup(client, "other@example.com", "otherpass1234", tariff_id).status_code == 200
+    before = client.get("/api/v1/transcripts").json()["items"]
+
+    imported = client.post(
+        "/api/v1/me/backup/restore",
+        files={"file": ("backup.zip", io.BytesIO(zip_resp.content), "application/zip")},
+    )
+    assert imported.status_code == 200, imported.text
+    body = imported.json()
+    assert body["mode"] == "import"
+    assert body["transcripts"]["created"] == 1
+
+    after = client.get("/api/v1/transcripts").json()["items"]
+    assert len(after) == len(before) + 1
+    new_ids = {item["id"] for item in after} - {item["id"] for item in before}
+    assert len(new_ids) == 1
+    assert transcript_id not in new_ids
+
+
+def test_backup_restore_import_twice(client):
+    import io
+
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "twice@example.com", "twicepass1234", tariff_id).status_code == 200
+    audio = upload_audio(client)
+    _insert_transcript_and_summary(me(client)["org"]["id"], me(client)["user"]["id"], audio.json()["id"])
+    zip_resp = client.get("/api/v1/me/backup?transcripts=true&summaries=true&skills=true&format=zip")
+    assert zip_resp.status_code == 200, zip_resp.text
+    archive = io.BytesIO(zip_resp.content)
+
+    assert signup(client, "dest@example.com", "destpass1234", tariff_id).status_code == 200
+    for _ in range(2):
+        archive.seek(0)
+        resp = client.post(
+            "/api/v1/me/backup/restore",
+            files={"file": ("backup.zip", archive, "application/zip")},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["mode"] == "import"
+
+
 def test_export_skill(client):
     setup_admin(client)
     skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "# Prompt\nDo it"})

@@ -108,7 +108,7 @@ Audit: `summary.public_link.create`, `summary.public_link.revoke`, `summary.publ
 
 ## Резервная копия профиля
 
-`GET /me/backup` — ZIP или TGZ своих transcripts, summaries и/или personal skills (страница Profile в UI).
+`GET /me/backup` — ZIP или TGZ своих transcripts, summaries и/или personal skills (страница Profile в UI). `POST /me/backup/restore` — загрузка того же формата обратно.
 
 ## Алгоритм видимости списка
 

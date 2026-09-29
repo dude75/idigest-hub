@@ -298,6 +298,14 @@ Query (хотя бы один флаг `true`):
 
 Ответ: `Content-Disposition: attachment` с manifest и выбранными файлами.
 
+### POST `/me/backup/restore`
+
+Требуется auth. Multipart-поле `file`: ZIP или TGZ из `GET /me/backup`.
+
+Если `manifest.user_id` и `manifest.org_id` совпадают с текущей сессией — записи восстанавливаются с теми же id (создание отсутствующих, перезапись своих). Иначе — импорт с новыми id, добавление к библиотеке.
+
+JSON-ответ: `{ "mode": "restore"|"import", "transcripts": { "created", "updated", "skipped" }, ... }`.
+
 ## API-токены
 
 Требуют auth + тариф org с `api_enabled` + без блокировки пароля.

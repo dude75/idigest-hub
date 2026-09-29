@@ -6,7 +6,7 @@ from datetime import timedelta
 from decimal import Decimal
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response, UploadFile
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import delete, func, select
@@ -68,6 +68,7 @@ from app.services.sso import (
     verify_oauth_state,
 )
 from app.services.backup import build_backup
+from app.services.restore import restore_backup
 from app.services.export import content_disposition_attachment
 from app.services.mail import send_mail, smtp_configured
 from app.rate_limit import (
@@ -932,6 +933,18 @@ def download_backup(
         media_type=media_type,
         headers={"Content-Disposition": content_disposition_attachment(filename)},
     )
+
+
+@router.post("/me/backup/restore")
+async def upload_backup_restore(
+    file: UploadFile,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    ctx.require_org()
+    raw = await file.read()
+    report = restore_backup(ctx, db, raw, filename=file.filename)
+    return report.as_dict()
 
 
 @router.patch("/me")

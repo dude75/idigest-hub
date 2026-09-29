@@ -296,6 +296,14 @@ Query (at least one flag must be `true`):
 
 Response: `Content-Disposition: attachment` with manifest + selected files.
 
+### POST `/me/backup/restore`
+
+Auth required. Multipart field `file`: ZIP or TGZ from `GET /me/backup`.
+
+If `manifest.user_id` and `manifest.org_id` match the current session, records are restored with the same ids (create missing, overwrite owned rows). Otherwise items are imported with new ids and appended to the library.
+
+Response JSON: `{ "mode": "restore"|"import", "transcripts": { "created", "updated", "skipped" }, ... }`.
+
 ## API tokens
 
 Require auth + org tariff `api_enabled` + no password lock.

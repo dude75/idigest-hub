@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { api, apiDownload } from '../api'
+import { api, apiDownload, apiUpload } from '../api'
 import { useAuth } from '../auth'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../components/AdminSection'
 import { Modal } from '../components/Modal'
@@ -74,6 +74,9 @@ export function ProfilePage() {
   const [backupSkills, setBackupSkills] = useState(true)
   const [backupFormat, setBackupFormat] = useState<'zip' | 'tgz'>('zip')
   const [backingUp, setBackingUp] = useState(false)
+  const [restoringUp, setRestoringUp] = useState(false)
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null)
+  const restoreInputRef = useRef<HTMLInputElement>(null)
   const [disablePw, setDisablePw] = useState('')
   const [disableCode, setDisableCode] = useState('')
   const [mfaBusy, setMfaBusy] = useState(false)
@@ -372,6 +375,42 @@ export function ProfilePage() {
       showError(e)
     } finally {
       setDeleteBusy(false)
+    }
+  }
+
+  async function restoreBackup(file: File) {
+    const lower = file.name.toLowerCase()
+    if (!lower.endsWith('.zip') && !lower.endsWith('.tar.gz') && !lower.endsWith('.tgz')) {
+      showError(new Error(t('profile.restoreBackupInvalidFile')))
+      return
+    }
+    setRestoreMessage(null)
+    setRestoringUp(true)
+    try {
+      const body = new FormData()
+      body.append('file', file)
+      const result = await apiUpload<{
+        mode: string
+        transcripts: { created: number; updated: number }
+        summaries: { created: number; updated: number }
+        skills: { created: number; updated: number }
+      }>('/me/backup/restore', body)
+      setRestoreMessage(
+        t('profile.restoreBackupDone', {
+          mode: result.mode,
+          tCreated: result.transcripts.created,
+          tUpdated: result.transcripts.updated,
+          sCreated: result.summaries.created,
+          sUpdated: result.summaries.updated,
+          kCreated: result.skills.created,
+          kUpdated: result.skills.updated,
+        }),
+      )
+    } catch (e) {
+      showError(e)
+    } finally {
+      setRestoringUp(false)
+      if (restoreInputRef.current) restoreInputRef.current.value = ''
     }
   }
 
@@ -748,6 +787,7 @@ export function ProfilePage() {
               />
             </div>
           </div>
+          <p className="profile-backup-restore-hint">{t('profile.restoreBackupHint')}</p>
           <div className="profile-actions profile-backup-actions">
             <button
               className="primary"
@@ -757,6 +797,24 @@ export function ProfilePage() {
             >
               {backingUp ? t('common.loading') : t('profile.downloadBackup')}
             </button>
+            <input
+              ref={restoreInputRef}
+              type="file"
+              accept=".zip,.tgz,.tar.gz,application/zip,application/gzip"
+              className="profile-backup-file-input"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void restoreBackup(file)
+              }}
+            />
+            <button
+              type="button"
+              disabled={restoringUp || backingUp}
+              onClick={() => restoreInputRef.current?.click()}
+            >
+              {restoringUp ? t('common.loading') : t('profile.restoreBackup')}
+            </button>
+            {restoreMessage && <p className="ok">{restoreMessage}</p>}
           </div>
         </AdminFormCard>
       )}
