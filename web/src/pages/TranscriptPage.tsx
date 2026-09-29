@@ -199,14 +199,13 @@ export function TranscriptPage() {
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   const utteranceActions = (
-    <>
+    <div className="flex flex-wrap items-center justify-end gap-2">
       {!openText ? (
         <span className="text-sm text-muted-foreground">{t('transcript.collapsed', { n: (item?.utterances || []).length })}</span>
       ) : null}
       {openText && item?.source_audio_id ? (
         <AppCheckboxRow
           id="transcript-seek-on-click"
-          className="inline"
           label={t('transcript.playFromLine')}
           checked={seekOnClick}
           onCheckedChange={setSeekOnClick}
@@ -225,7 +224,7 @@ export function TranscriptPage() {
       >
         {openText ? t('transcript.collapse') : t('transcript.expand')}
       </Button>
-    </>
+    </div>
   )
 
   return (
