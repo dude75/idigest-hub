@@ -13,6 +13,7 @@ import { libraryPath } from '../routes'
 import type { Summary } from '../types'
 import { ShareBadges, fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
+import { AppHoverHint } from '../components/app/AppHoverHint'
 import { AdminFormActions, AppSubmitButton } from '../components/app/AdminUi'
 import {
   EntityBackLink,
@@ -150,20 +151,22 @@ export function SummaryPage() {
                   {t('common.downloadMd')}
                 </Button>
                 {mine && <Button type="button" variant="outline" onClick={() => setShare(true)}>{t('common.share')}</Button>}
-                <Button type="button" variant="outline" title={t('library.hideHint')} onClick={() => void toggleHidden()}
-                >
-                  {item.hidden ? t('common.unhide') : t('common.hide')}
-                </Button>
+                <AppHoverHint content={t('library.hideHint')}>
+                  <Button type="button" variant="outline" onClick={() => void toggleHidden()}>
+                    {item.hidden ? t('common.unhide') : t('common.hide')}
+                  </Button>
+                </AppHoverHint>
                 {canEdit && !editing && (
                   <Button type="button" variant="outline" onClick={() => { setDraft(item.body || ''); setEditing(true) }}>
                     {t('common.edit')}
                   </Button>
                 )}
                 {canDelete && (
-                  <Button type="button" variant="destructive" title={admin && !mine ? t('library.deleteAdminHint') : t('library.deleteOwnerHint')} onClick={() => setConfirmDelete(true)}
-                  >
-                    {t('common.delete')}
-                  </Button>
+                  <AppHoverHint content={admin && !mine ? t('library.deleteAdminHint') : t('library.deleteOwnerHint')}>
+                    <Button type="button" variant="destructive" onClick={() => setConfirmDelete(true)}>
+                      {t('common.delete')}
+                    </Button>
+                  </AppHoverHint>
                 )}
               </EntityToolbar>
           </EntityDetailCard>

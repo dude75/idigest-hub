@@ -14,6 +14,7 @@ import {
   EntityPage,
   ListSection,
 } from '../components/app/EntityUi'
+import { AppHoverHint } from '../components/app/AppHoverHint'
 import { pipelineNavState } from '../pipeline'
 import { LIBRARY_DEFAULT } from '../routes'
 import type { Audio, Task } from '../types'
@@ -138,13 +139,17 @@ export function AudioPage() {
                 <span className="muted">{t('audio.noFile')}</span>
               )}
               {mine ? <Button type="button" variant="outline" onClick={() => setShare(true)}>{t('common.share')}</Button> : null}
-              <Button type="button" variant="outline" title={t('library.hideHint')} onClick={() => void toggleHidden()}>
-                {item.hidden ? t('common.unhide') : t('common.hide')}
-              </Button>
-              {admin ? (
-                <Button type="button" variant="destructive" title={t('library.wipeHint')} onClick={() => setConfirmWipe(true)}>
-                  {t('common.wipe')}
+              <AppHoverHint content={t('library.hideHint')}>
+                <Button type="button" variant="outline" onClick={() => void toggleHidden()}>
+                  {item.hidden ? t('common.unhide') : t('common.hide')}
                 </Button>
+              </AppHoverHint>
+              {admin ? (
+                <AppHoverHint content={t('library.wipeHint')}>
+                  <Button type="button" variant="destructive" onClick={() => setConfirmWipe(true)}>
+                    {t('common.wipe')}
+                  </Button>
+                </AppHoverHint>
               ) : null}
             </EntityToolbar>
             {!admin ? <EntityHint>{t('library.cannotDeleteHint')}</EntityHint> : null}

@@ -17,6 +17,7 @@ import { formatDecimal, formatInteger, fmtMediaTime } from '../util'
 import { AppStackCard } from './AdminSection'
 import {
   AdminDataTable,
+  AdminTableHeadHint,
   TableBody,
   TableCell,
   TableHead,
@@ -183,21 +184,21 @@ export function StatsDaysView({
           <TableHeader>
             <TableRow>
               <TableHead>{t('stats.day')}</TableHead>
-              <TableHead className={adminTableHeadNum} title={t('stats.transcribeDone')}>
+              <AdminTableHeadHint className={adminTableHeadNum} hint={t('stats.transcribeDone')}>
                 {t('stats.statTranscribe')}
-              </TableHead>
-              <TableHead className={adminTableHeadNum} title={t('stats.summarizeDone')}>
+              </AdminTableHeadHint>
+              <AdminTableHeadHint className={adminTableHeadNum} hint={t('stats.summarizeDone')}>
                 {t('stats.statSummarize')}
-              </TableHead>
-              <TableHead className={adminTableHeadNum} title={t('stats.transcribedAudio')}>
+              </AdminTableHeadHint>
+              <AdminTableHeadHint className={adminTableHeadNum} hint={t('stats.transcribedAudio')}>
                 {t('stats.statAudio')}
-              </TableHead>
-              <TableHead className={adminTableHeadNum} title={t('stats.summaryChars')}>
+              </AdminTableHeadHint>
+              <AdminTableHeadHint className={adminTableHeadNum} hint={t('stats.summaryChars')}>
                 {t('stats.statChars')}
-              </TableHead>
-              <TableHead className={adminTableHeadNum} title={t(amountTooltipKey)}>
+              </AdminTableHeadHint>
+              <AdminTableHeadHint className={adminTableHeadNum} hint={t(amountTooltipKey)}>
                 {t(amountLabelKey)}
-              </TableHead>
+              </AdminTableHeadHint>
             </TableRow>
           </TableHeader>
           <TableBody>

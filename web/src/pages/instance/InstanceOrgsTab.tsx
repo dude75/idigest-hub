@@ -15,6 +15,7 @@ import {
   adminTableHeadActions,
 } from '../../components/app/AdminDataTable'
 import { AdminFormActions, AppSubmitButton, HubBadge } from '../../components/app/AdminUi'
+import { AppHoverHint } from '../../components/app/AppHoverHint'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Modal } from '../../components/Modal'
 import { UserStatusBadges } from '../../components/UserAgreementBadge'
@@ -307,26 +308,28 @@ export function InstanceOrgsTab() {
                 >
                   {t('instance.ledger')} →
                 </Button>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-auto px-0 text-sm text-muted-foreground"
-                  title={t('instance.orgHideHint')}
-                  onClick={() => void toggleOrgHidden(o)}
-                >
-                  {o.hidden ? t('common.unhide') : t('common.hide')}
-                </Button>
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-auto px-0 text-sm text-destructive"
-                  title={t('instance.orgDeleteHint')}
-                  onClick={() => openDeleteOrg(o)}
-                >
-                  {t('instance.orgDelete')}
-                </Button>
+                <AppHoverHint content={t('instance.orgHideHint')}>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto px-0 text-sm text-muted-foreground"
+                    onClick={() => void toggleOrgHidden(o)}
+                  >
+                    {o.hidden ? t('common.unhide') : t('common.hide')}
+                  </Button>
+                </AppHoverHint>
+                <AppHoverHint content={t('instance.orgDeleteHint')}>
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto px-0 text-sm text-destructive"
+                    onClick={() => openDeleteOrg(o)}
+                  >
+                    {t('instance.orgDelete')}
+                  </Button>
+                </AppHoverHint>
               </div>
             </section>
             <section className="org-tile org-tile-ops">

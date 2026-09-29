@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { Worker } from '../types'
+import { AppHoverHint } from './app/AppHoverHint'
 import { HubBadge, type HubBadgeTone } from './app/AdminUi'
 
 export function workerHealthTone(w: Worker): 'ok' | 'warn' | 'na' {
@@ -37,11 +38,13 @@ export function WorkerHealthBadge({ worker }: { worker: Worker }) {
 
   const label = tone === 'ok' ? t('instance.workerHealthOk') : t('instance.workerHealthWarn')
 
+  const detail = parts.join(' · ')
+
   return (
     <span className="worker-health-cell">
-      <HubBadge tone={healthHubTone[tone]} title={parts.join(' · ')}>
-        {label}
-      </HubBadge>
+      <AppHoverHint content={detail}>
+        <HubBadge tone={healthHubTone[tone]}>{label}</HubBadge>
+      </AppHoverHint>
     </span>
   )
 }

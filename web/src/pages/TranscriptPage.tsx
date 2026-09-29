@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppCheckboxRow } from '../components/app/AppFormControls'
 import { HubBadge } from '../components/app/AdminUi'
+import { AppHoverHint } from '../components/app/AppHoverHint'
 import {
   EntityBackLink,
   EntityBodyCard,
@@ -262,15 +263,17 @@ export function TranscriptPage() {
                   {t('common.downloadJson')}
                 </Button>
                 {mine && <Button type="button" variant="outline" onClick={() => setShare(true)}>{t('common.share')}</Button>}
-                <Button type="button" variant="outline" title={t('library.hideHint')} onClick={() => void toggleHidden()}
-                >
-                  {item.hidden ? t('common.unhide') : t('common.hide')}
-                </Button>
-                {admin && (
-                  <Button type="button" variant="destructive" title={t('library.wipeHint')} onClick={() => setConfirmWipe(true)}
-                  >
-                    {t('common.wipe')}
+                <AppHoverHint content={t('library.hideHint')}>
+                  <Button type="button" variant="outline" onClick={() => void toggleHidden()}>
+                    {item.hidden ? t('common.unhide') : t('common.hide')}
                   </Button>
+                </AppHoverHint>
+                {admin && (
+                  <AppHoverHint content={t('library.wipeHint')}>
+                    <Button type="button" variant="destructive" onClick={() => setConfirmWipe(true)}>
+                      {t('common.wipe')}
+                    </Button>
+                  </AppHoverHint>
                 )}
               </EntityToolbar>
             {!admin ? <EntityHint>{t('library.cannotDeleteHint')}</EntityHint> : null}

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { AppHoverHint } from '@/components/app/AppHoverHint'
 import {
   Table,
   TableBody,
@@ -43,6 +44,29 @@ export const adminTableCellMuted = 'text-muted-foreground whitespace-normal'
 export const adminTableCellNum = 'text-right tabular-nums'
 export const adminTableCellActions = 'w-[1%] text-right whitespace-nowrap'
 export const adminTableCellBadges = cn('whitespace-normal min-w-[9rem] max-w-[16rem]')
+
+export function AdminTableHeadHint({
+  hint,
+  className,
+  children,
+}: {
+  hint?: string
+  className?: string
+  children: ReactNode
+}) {
+  if (!hint) {
+    return <TableHead className={className}>{children}</TableHead>
+  }
+  return (
+    <TableHead className={className}>
+      <AppHoverHint content={hint}>
+        <span className="cursor-help underline decoration-dotted decoration-muted-foreground/60 underline-offset-2">
+          {children}
+        </span>
+      </AppHoverHint>
+    </TableHead>
+  )
+}
 
 /** Pager row under flush tables (audit, tasks, …). */
 export function AdminTablePager({

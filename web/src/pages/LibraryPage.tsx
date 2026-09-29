@@ -17,6 +17,7 @@ import type {
 } from '../types'
 import { AppStackCard } from '../components/AdminSection'
 import { AdminTablePager } from '../components/app/AdminDataTable'
+import { AppHoverHint } from '../components/app/AppHoverHint'
 import { ListSection } from '../components/app/EntityUi'
 import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
 import { ListRow } from '../components/ListRow'
@@ -485,16 +486,17 @@ export function LibraryPage() {
               e.target.value = ''
             }}
           />
-          <Button
-            type="button"
-            variant="outline"
-            className="shrink-0 whitespace-nowrap"
-            title={t('library.uploadFormatsHint')}
-            disabled={busy}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {t('library.chooseFile')}
-          </Button>
+          <AppHoverHint content={t('library.uploadFormatsHint')}>
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0 whitespace-nowrap"
+              disabled={busy}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {t('library.chooseFile')}
+            </Button>
+          </AppHoverHint>
         </div>
         {importEnabled && importPlatforms && (proxyBlocked || importPlatforms.platforms.length > 0) && (
           <p className={proxyBlocked ? 'err library-ingest-hint' : 'muted library-ingest-hint'}>

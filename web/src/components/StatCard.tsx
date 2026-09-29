@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { AppHoverHint } from '@/components/app/AppHoverHint'
 import { Card, CardContent, CardDescription } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
@@ -28,8 +29,8 @@ export function StatCard({ label, value, unit, title, tone = 'default', valueCla
     .filter(Boolean)
     .join(' ')
 
-  return (
-    <Card className={cn('stat stat-card min-h-[5.25rem] py-4 shadow-none', `stat-${tone}`)} title={title}>
+  const card = (
+    <Card className={cn('stat stat-card min-h-[5.25rem] py-4 shadow-none', `stat-${tone}`, title && 'cursor-help')}>
       <CardContent className="flex h-full flex-col px-4 py-0">
         <CardDescription className="stat-label m-0">{label}</CardDescription>
         <div className="stat-body">
@@ -38,6 +39,16 @@ export function StatCard({ label, value, unit, title, tone = 'default', valueCla
         </div>
       </CardContent>
     </Card>
+  )
+
+  if (!title) {
+    return card
+  }
+
+  return (
+    <AppHoverHint content={title} className="block h-full w-full min-w-0">
+      {card}
+    </AppHoverHint>
   )
 }
 
