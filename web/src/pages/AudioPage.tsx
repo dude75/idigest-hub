@@ -16,7 +16,7 @@ import {
 } from '../components/app/EntityUi'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import { pipelineNavState } from '../pipeline'
-import { LIBRARY_DEFAULT } from '../routes'
+import { libraryPath } from '../routes'
 import type { Audio, Task } from '../types'
 import { UserTagsEditor } from '../components/UserTagsEditor'
 import { ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
@@ -97,7 +97,7 @@ export function AudioPage() {
     try {
       await api(`/audios/${id}`, { method: 'DELETE' })
       await refresh()
-      nav(LIBRARY_DEFAULT)
+      nav(libraryPath('audio'))
     } catch (e) {
       showError(e)
       setBusy(false)
@@ -108,7 +108,7 @@ export function AudioPage() {
 
   return (
     <EntityPage>
-      <EntityBackLink to={LIBRARY_DEFAULT}>{t('common.back')}</EntityBackLink>
+      <EntityBackLink to={libraryPath('audio')}>{t('common.back')}</EntityBackLink>
       <h1 className="entity-title">{item?.filename || t('audio.title')}</h1>
       {item && (
         <>
