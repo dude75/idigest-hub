@@ -12,6 +12,7 @@ import jwt
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.constants import ALLOWED_AUDIO_SUFFIXES
 from app.crypto import decrypt_str, encrypt_str
 from app.models import InstanceSettings, OrgCaptureJitsiHost, Organization, User, WorkerNode
 from app.services.capture_platforms import allowed_connectors, catalog_entry
@@ -199,7 +200,7 @@ def find_org_jitsi_host(db: Session, org_id: str, meeting_host: str) -> OrgCaptu
 def capture_storage_filename(meta: dict[str, Any] | None, suffix: str) -> str:
     """Library filename from conference room name (Jitsi path segment), not worker artifact name."""
     normalized = suffix.lower() if suffix.startswith(".") else f".{suffix.lower()}"
-    if normalized not in {".mp3", ".m4a", ".wav"}:
+    if normalized not in ALLOWED_AUDIO_SUFFIXES:
         normalized = ".mp3"
     return f"{capture_storage_stem(meta)}{normalized}"
 

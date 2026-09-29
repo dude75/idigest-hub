@@ -136,7 +136,15 @@ async def post_transcribe(
     url = node.base_url.rstrip("/") + "/transcribe"
     headers = _auth_header(db, node)
     suffix = path.suffix.lower()
-    mime = {".wav": "audio/wav", ".mp3": "audio/mpeg", ".m4a": "audio/mp4"}.get(suffix, "application/octet-stream")
+    mime = {
+        ".wav": "audio/wav",
+        ".mp3": "audio/mpeg",
+        ".m4a": "audio/mp4",
+        ".webm": "audio/webm",
+        ".ogg": "audio/ogg",
+        ".opus": "audio/opus",
+        ".flac": "audio/flac",
+    }.get(suffix, "application/octet-stream")
     data = {"asr_model": asr_model, "diarization_model": diarization_model or ""}
     _release(db)
     try:

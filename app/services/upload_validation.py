@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 _HEADER_LEN = 12
-_ALLOWED_SUFFIXES = (".mp3", ".m4a", ".wav")
+_ALLOWED_SUFFIXES = (".mp3", ".m4a", ".wav", ".webm", ".flac", ".ogg", ".opus")
 
 
 class InvalidAudioContent(Exception):
@@ -26,6 +26,18 @@ def validate_audio_header(suffix: str, header: bytes) -> None:
         raise InvalidAudioContent()
     if normalized == ".m4a":
         if len(header) < 8 or header[4:8] != b"ftyp":
+            raise InvalidAudioContent()
+        return
+    if normalized == ".webm":
+        if len(header) < 4 or header[:4] != b"\x1a\x45\xdf\xa3":
+            raise InvalidAudioContent()
+        return
+    if normalized == ".flac":
+        if len(header) < 4 or header[:4] != b"fLaC":
+            raise InvalidAudioContent()
+        return
+    if normalized in {".ogg", ".opus"}:
+        if len(header) < 4 or header[:4] != b"OggS":
             raise InvalidAudioContent()
         return
     raise InvalidAudioContent()
@@ -55,6 +67,11 @@ def _suffix_from_content_type(content_type: str) -> str | None:
         "audio/wav": ".wav",
         "audio/wave": ".wav",
         "audio/x-wav": ".wav",
+        "audio/webm": ".webm",
+        "audio/ogg": ".ogg",
+        "audio/opus": ".opus",
+        "audio/flac": ".flac",
+        "application/ogg": ".ogg",
     }
     return mapping.get(ct)
 

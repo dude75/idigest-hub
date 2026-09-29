@@ -10,5 +10,8 @@ describe('isVideoUploadFilename', () => {
   it('returns false for audio', () => {
     expect(isVideoUploadFilename('clip.wav')).toBe(false)
     expect(isVideoUploadFilename('clip.mp3')).toBe(false)
+    expect(isVideoUploadFilename('clip.flac')).toBe(false)
+    expect(isVideoUploadFilename('clip.ogg')).toBe(false)
+    expect(isVideoUploadFilename('clip.opus')).toBe(false)
   })
 })

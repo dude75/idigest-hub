@@ -233,7 +233,7 @@ def get_mcp_server() -> MCPServer[dict[str, Any]]:
     @server.tool(
         name="create_audio_upload",
         description=(
-            "Upload an audio file (base64). Allowed: .wav, .mp3, .m4a. Response id is audio_id for create_transcribe. "
+            "Upload an audio file (base64). Allowed: .wav, .mp3, .m4a, .webm, .ogg, .flac, .opus. Response id is audio_id for create_transcribe. "
             "Requires audio:write."
         ),
     )

@@ -800,6 +800,59 @@ a.brand:hover,
   100% { transform: translateX(350%); }
 }
 
+.mic-record-panel {
+  border-color: color-mix(in oklab, var(--line) 70%, transparent);
+  transition: border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.mic-record-panel--recording {
+  animation: mic-record-breathe-recording 2.4s ease-in-out infinite;
+}
+
+.mic-record-panel--paused {
+  animation: mic-record-breathe-paused 2.8s ease-in-out infinite;
+}
+
+.mic-record-panel--starting {
+  animation: mic-record-breathe-starting 2.6s ease-in-out infinite;
+}
+
+@keyframes mic-record-breathe-recording {
+  0%,
+  100% {
+    border-color: rgb(239 68 68 / 0.35);
+    box-shadow: 0 0 0 0 rgb(239 68 68 / 0.08);
+  }
+  50% {
+    border-color: rgb(239 68 68 / 0.9);
+    box-shadow: 0 0 0 1px rgb(239 68 68 / 0.35), inset 0 0 14px rgb(239 68 68 / 0.12);
+  }
+}
+
+@keyframes mic-record-breathe-paused {
+  0%,
+  100% {
+    border-color: rgb(245 158 11 / 0.35);
+    box-shadow: 0 0 0 0 rgb(245 158 11 / 0.06);
+  }
+  50% {
+    border-color: rgb(245 158 11 / 0.88);
+    box-shadow: 0 0 0 1px rgb(245 158 11 / 0.35), inset 0 0 12px rgb(245 158 11 / 0.1);
+  }
+}
+
+@keyframes mic-record-breathe-starting {
+  0%,
+  100% {
+    border-color: color-mix(in oklab, var(--line) 55%, transparent);
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    border-color: color-mix(in oklab, var(--primary) 45%, var(--line));
+    box-shadow: 0 0 12px 0 color-mix(in oklab, var(--primary) 18%, transparent);
+  }
+}
+
 .tabs { display: flex; gap: 0.25rem; border-bottom: 1px solid var(--line); margin-bottom: 0.85rem; }
 .tabs button,
 .tabs a {

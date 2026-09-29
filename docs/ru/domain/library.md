@@ -10,11 +10,15 @@
 
 | Правило | Значение |
 | ------- | -------- |
-| Разрешённые расширения | `.wav`, `.mp3`, `.m4a` |
+| Разрешённые расширения | `.wav`, `.mp3`, `.m4a`, `.webm`, `.ogg`, `.flac`, `.opus` |
 | Макс. размер | `min(tariff.max_upload_bytes, 1 GiB)` |
 | Хранение | `STORAGE_BACKEND=local`: `{DATA_DIR}/uploads/{audio_id}/original{suffix}`. `STORAGE_BACKEND=s3`: `s3://{bucket}/uploads/{audio_id}/original{suffix}` (SSE при upload). |
 
 Неверное расширение → `invalid_file`. Превышение лимита → `payload_too_large`.
+
+#### Web UI: запись с микрофона
+
+На странице библиотеки доступна запись в браузере (`MediaRecorder`): **WebM** в Chromium/Firefox, **M4A**, если Safari отдаёт `audio/mp4`. Blob загружается тем же `POST /audios`, что и выбранный файл. После upload UI проставляет пользовательский тег **`mic`** через `PUT /object-tags`. Смена устройства ввода в сессии перезапускает запись (аудио до смены в этой сессии отбрасывается).
 
 ### Endpoints
 

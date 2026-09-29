@@ -10,11 +10,15 @@ The **library** is the org-scoped store of user artifacts. Pipeline: **Audio →
 
 | Rule | Value |
 | ---- | ----- |
-| Allowed extensions | `.wav`, `.mp3`, `.m4a` |
+| Allowed extensions | `.wav`, `.mp3`, `.m4a`, `.webm`, `.ogg`, `.flac`, `.opus` |
 | Max size | `min(tariff.max_upload_bytes, 1 GiB)` |
 | Storage | `STORAGE_BACKEND=local`: `{DATA_DIR}/uploads/{audio_id}/original{suffix}`. `STORAGE_BACKEND=s3`: `s3://{bucket}/uploads/{audio_id}/original{suffix}` (SSE on upload). |
 
 Invalid extension → `invalid_file`. Over limit → `payload_too_large`.
+
+#### Web UI: record from microphone
+
+On the library page, users can record in the browser (`MediaRecorder`): **WebM** in Chromium/Firefox, **M4A** when Safari exposes `audio/mp4`. The blob is uploaded via the same `POST /audios` path as a file pick. After upload, the UI applies user tag **`mic`** through `PUT /object-tags`. Switching the input device mid-session restarts capture (prior audio in that session is discarded).
 
 ### Endpoints
 

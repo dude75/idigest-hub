@@ -1,5 +1,5 @@
 /** Keep in sync with app.constants ALLOWED_*_SUFFIXES. */
-export const UPLOAD_AUDIO_SUFFIXES = ['.wav', '.mp3', '.m4a'] as const
+export const UPLOAD_AUDIO_SUFFIXES = ['.wav', '.mp3', '.m4a', '.webm', '.ogg', '.flac', '.opus'] as const
 
 export const UPLOAD_VIDEO_SUFFIXES = [
   '.mp4',
@@ -24,6 +24,10 @@ export const UPLOAD_FILE_ACCEPT = [
   'audio/wav',
   'audio/mpeg',
   'audio/mp4',
+  'audio/webm',
+  'audio/ogg',
+  'audio/opus',
+  'audio/flac',
   ...UPLOAD_VIDEO_SUFFIXES,
   'video/mp4',
   'video/quicktime',

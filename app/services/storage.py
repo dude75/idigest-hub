@@ -30,6 +30,7 @@ _AUDIO_MIME = {
     ".mp3": "audio/mpeg",
     ".m4a": "audio/mp4",
     ".ogg": "audio/ogg",
+    ".opus": "audio/opus",
     ".flac": "audio/flac",
     ".webm": "audio/webm",
 }

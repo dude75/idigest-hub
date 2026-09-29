@@ -132,7 +132,7 @@ Private labels (same rules as REST [Library API](library.md#personal-tags-no-acl
 
 - **List tools** (audio / transcripts / summaries) cap at **100** items and set `"truncated": true` when the library has more. `list_skills` is uncapped (same as `GET /skills`).
 - Visibility matches REST: owner + shares; org admin sees all org rows; `include_hidden` includes the caller’s hidden items.
-- **`create_audio_upload`**: `.wav`, `.mp3`, `.m4a` only (extension + magic bytes, same as REST); max size follows org tariff (capped at 1 GiB).
+- **`create_audio_upload`**: `.wav`, `.mp3`, `.m4a`, `.webm`, `.ogg`, `.flac`, `.opus` (extension + magic bytes, same as REST); max size follows org tariff (capped at 1 GiB).
 - **`list_capture_platforms`**: call before meeting capture to see `enabled`, allowed `connectors`, and org `jitsi_hosts` (same as `GET /capture/platforms`).
 - **`create_audio_import`**: same rules as `POST /tasks/import` (may enqueue import or capture). One call per meeting — do not re-import the same URL to stop or transcribe. Returns task JSON until audio exists. Optional `transcribe` + `skill_ids` start the pipeline after import; optional `bot_display_name` overrides user/org bot name for that capture job.
 - **`create_transcribe`**: same as `POST /tasks/transcribe` after capture/import success — use `audio_id` from `get_task` or `list_audios`, not another import of the meeting URL.

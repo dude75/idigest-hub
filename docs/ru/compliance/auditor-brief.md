@@ -119,7 +119,7 @@
 | Контроль | Реализация | Доказательство |
 | -------- | ---------- | -------------- |
 | Валидация входа | Pydantic models на всех API endpoints | `app/routers/*`, handler в `app/main.py` |
-| Ограничения upload | Suffixes (`.wav`, `.mp3`, `.m4a`), tariff + global size cap | `app/routers/library.py` |
+| Ограничения upload | Suffixes (`.wav`, `.mp3`, `.m4a`, `.webm`, `.ogg`, `.flac`, `.opus`), tariff + global size cap | `app/routers/library.py` |
 | SQL injection | SQLAlchemy ORM | `app/models.py` |
 | Path traversal (SPA) | `resolve_spa_path` блокирует `..` | `app/main.py`, tests: `tests/test_spa.py` |
 | Same-origin architecture | Без CORS; SPA + API same origin | [Обзор архитектуры](../architecture/overview.md) |

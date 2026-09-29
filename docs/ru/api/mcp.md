@@ -132,7 +132,7 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 
 - **Списки** audio / transcripts / summaries — не более **100** элементов, при большем объёме `"truncated": true`. `list_skills` без лимита (как `GET /skills`).
 - Видимость как в REST: владелец + shares; org admin видит все строки org; `include_hidden` включает скрытые элементы вызывающего.
-- **`create_audio_upload`**: только `.wav`, `.mp3`, `.m4a` (расширение + magic bytes); лимит размера по тарифу org (потолок 1 GiB).
+- **`create_audio_upload`**: `.wav`, `.mp3`, `.m4a`, `.webm`, `.ogg`, `.flac`, `.opus` (расширение + magic bytes); лимит размера по тарифу org (потолок 1 GiB).
 - **`list_capture_platforms`**: перед capture встречи — `enabled`, разрешённые `connectors`, org `jitsi_hosts` (как `GET /capture/platforms`).
 - **`create_audio_import`**: как `POST /tasks/import` (import или capture). Один вызов на встречу — не повторять тот же URL для stop/transcribe. Пока нет файла — JSON задачи. Опционально `transcribe` + `skill_ids` после импорта; `bot_display_name` переопределяет имя бота user/org для этой capture job.
 - **`create_transcribe`**: как `POST /tasks/transcribe` после успешного capture/import — `audio_id` из `get_task` или `list_audios`, не повторный import URL встречи.

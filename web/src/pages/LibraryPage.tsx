@@ -31,8 +31,11 @@ import { beginPipelineRun, captureRequest, endPipelineRun, importRequest, pipeli
 import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
 import { ApiError } from '../api'
 import { TagManageDialog } from '../components/TagManageDialog'
+import { MicrophoneRecordModal } from '../components/MicrophoneRecordModal'
+import { MicIcon } from 'lucide-react'
 import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, UserTagBadges, fmtDate, showError } from '../util'
 import { captureMeetingNeedsPin, shouldRouteImportUrlToCapture } from '../util/captureHost'
+import { MIC_RECORDING_TAG } from '../constants/userTags'
 
 type SourceGroup<T> = {
   key: string
@@ -128,6 +131,7 @@ export function LibraryPage() {
   const [capturePlatforms, setCapturePlatforms] = useState<CapturePlatformsResponse | null>(null)
   const [userTags, setUserTags] = useState<UserTag[]>([])
   const [manageTagsOpen, setManageTagsOpen] = useState(false)
+  const [recordOpen, setRecordOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const hasOrg = Boolean(me?.org)
   const showOwnerFilter = isOrgAdmin(me) || isInstanceAdmin(me)
@@ -358,7 +362,19 @@ export function LibraryPage() {
     }
   }
 
-  async function upload(file: File) {
+  async function tagMicrophoneRecording(audioId: string): Promise<UserTag[]> {
+    const r = await api<{ tags: UserTag[] }>('/object-tags', {
+      method: 'PUT',
+      body: JSON.stringify({
+        object_type: 'audio',
+        object_id: audioId,
+        tags: [MIC_RECORDING_TAG],
+      }),
+    })
+    return r.tags
+  }
+
+  async function upload(file: File, opts?: { fromMicrophone?: boolean }) {
     const pipeline = beginPipelineRun()
     setBusy(true)
     const video = isVideoUploadFilename(file.name)
@@ -375,6 +391,13 @@ export function LibraryPage() {
           video,
         })
       })
+      if (opts?.fromMicrophone) {
+        try {
+          item.user_tags = await tagMicrophoneRecording(item.id)
+        } catch (e) {
+          showError(e)
+        }
+      }
       if (pipelineShouldTranscribe(pipeline)) {
         const task = await api<Task>('/tasks/transcribe', {
           method: 'POST',
@@ -530,6 +553,19 @@ export function LibraryPage() {
               onClick={() => fileInputRef.current?.click()}
             >
               {t('library.chooseFile')}
+            </Button>
+          </AppHoverHint>
+          <AppHoverHint content={t('library.recordMic')}>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="shrink-0"
+              disabled={busy}
+              aria-label={t('library.recordMic')}
+              onClick={() => setRecordOpen(true)}
+            >
+              <MicIcon className="size-4" aria-hidden="true" />
             </Button>
           </AppHoverHint>
         </div>
@@ -816,6 +852,16 @@ export function LibraryPage() {
           onUpdated={() => {
             void loadUserTags()
             void load()
+          }}
+        />
+      ) : null}
+      {recordOpen ? (
+        <MicrophoneRecordModal
+          busy={busy}
+          onClose={() => setRecordOpen(false)}
+          onSave={(file) => {
+            setRecordOpen(false)
+            void upload(file, { fromMicrophone: true })
           }}
         />
       ) : null}

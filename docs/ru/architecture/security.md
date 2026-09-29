@@ -180,7 +180,7 @@ Instance admin: `POST /impersonate` с `user_id` устанавливает `ses
 
 ## Валидация загрузки аудио
 
-Upload принимает `.wav`, `.mp3`, `.m4a` по расширению **и** проверяет **magic bytes** (RIFF/WAVE, ID3 или MP3 sync word, MP4 `ftyp`) перед сохранением. Несовпадение → `invalid_file`.
+Upload принимает `.wav`, `.mp3`, `.m4a`, `.webm`, `.ogg`, `.flac`, `.opus` по расширению **и** проверяет **magic bytes** (RIFF/WAVE, MP3, MP4 `ftyp`, EBML, OggS, `fLaC`) перед сохранением. Несовпадение → `invalid_file`.
 
 ## Rate limiting
 

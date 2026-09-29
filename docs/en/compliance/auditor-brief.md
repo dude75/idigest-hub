@@ -119,7 +119,7 @@ Full matrix: [§ Shared responsibility](#shared-responsibility-matrix).
 | Control | Implementation | Evidence |
 | ------- | -------------- | -------- |
 | Input validation | Pydantic models on all API endpoints | `app/routers/*`, global handler in `app/main.py` |
-| Upload restrictions | Allowed suffixes (`.wav`, `.mp3`, `.m4a`), tariff + global size cap | `app/routers/library.py` |
+| Upload restrictions | Allowed suffixes (`.wav`, `.mp3`, `.m4a`, `.webm`, `.ogg`, `.flac`, `.opus`), tariff + global size cap | `app/routers/library.py` |
 | SQL injection | SQLAlchemy ORM, parameterized queries | `app/models.py` |
 | Path traversal (SPA) | `resolve_spa_path` blocks `..` | `app/main.py`, tests: `tests/test_spa.py` |
 | Same-origin architecture | No CORS middleware; SPA + API same origin | [Architecture overview](../architecture/overview.md) |

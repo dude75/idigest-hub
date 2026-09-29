@@ -176,7 +176,7 @@ Stop: `DELETE /impersonate`.
 
 ## Audio upload validation
 
-Uploads accept `.wav`, `.mp3`, and `.m4a` by extension **and** verify file **magic bytes** (RIFF/WAVE, ID3 or MP3 sync word, MP4 `ftyp`) before persisting. Mismatched content returns `invalid_file`.
+Uploads accept `.wav`, `.mp3`, `.m4a`, `.webm`, `.ogg`, `.flac`, and `.opus` by extension **and** verify file **magic bytes** (RIFF/WAVE, MP3, MP4 `ftyp`, EBML, OggS, `fLaC`) before persisting. Mismatched content returns `invalid_file`.
 
 ## Rate limiting
 

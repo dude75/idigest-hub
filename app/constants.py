@@ -16,7 +16,7 @@ MFA_RECOVERY_CODE_COUNT = 8
 MFA_TOTP_ISSUER = "iDigest Hub"
 MAX_UPLOAD_BYTES_CAP = 1073741824  # 1 GiB
 MAX_SUMMARIZE_PAYLOAD_BYTES = 10 * 1024 * 1024
-ALLOWED_AUDIO_SUFFIXES = {".wav", ".mp3", ".m4a"}
+ALLOWED_AUDIO_SUFFIXES = {".wav", ".mp3", ".m4a", ".webm", ".ogg", ".flac", ".opus"}
 # Video uploads: extract audio to MP3 on ingest (v1 hint list + v2 extra containers).
 ALLOWED_VIDEO_SUFFIXES = {
     ".mp4",

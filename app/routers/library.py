@@ -300,6 +300,17 @@ def _list_filter(
     return visible
 
 
+def _upload_as_video(suffix: str, file: UploadFile) -> bool:
+    """Video containers go through ffmpeg extract; audio/webm stays as stored audio."""
+    if suffix not in ALLOWED_VIDEO_SUFFIXES:
+        return False
+    if suffix == ".webm":
+        ct = (file.content_type or "").split(";", 1)[0].strip().lower()
+        if ct.startswith("audio/"):
+            return False
+    return True
+
+
 @router.post("/audios")
 async def upload_audio(
     request: Request,
@@ -310,7 +321,7 @@ async def upload_audio(
     org, _ = ctx.require_org()
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     suffix = Path(file.filename or "").suffix.lower()
-    is_video = suffix in ALLOWED_VIDEO_SUFFIXES
+    is_video = _upload_as_video(suffix, file)
     if suffix not in ALLOWED_AUDIO_SUFFIXES and not is_video:
         ctx.raise_error(ErrorCode.invalid_file)
     limit = min(upload_limit(org.tariff), MAX_UPLOAD_BYTES_CAP)
