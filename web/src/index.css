@@ -397,12 +397,15 @@ a.brand:hover,
   padding-bottom: 0.35rem;
 }
 .user-tags-editor {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
   margin: 0.5rem 0;
   max-width: 100%;
+}
+.user-tags-row {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
 }
 .user-tags-label {
   flex: 0 0 auto;
@@ -410,21 +413,34 @@ a.brand:hover,
 }
 .user-tags-controls {
   display: flex;
-  flex-wrap: wrap;
+  flex-flow: row nowrap;
   align-items: center;
   gap: 0.35rem;
-  flex: 0 1 auto;
+  flex: 0 0 auto;
+}
+.user-tags-chips {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1 1 100%;
   min-width: 0;
+  max-width: 100%;
 }
 .user-tags-pick {
   width: 8.25rem;
-  flex: 0 1 8.25rem;
+  flex: 0 0 8.25rem;
+  max-width: 8.25rem;
 }
 .user-tags-pick [data-slot='select-trigger'] {
   width: 8.25rem;
-  max-width: 100%;
+  max-width: 8.25rem;
   height: 2rem;
   box-shadow: none;
+  background: var(--background);
+}
+.dark .user-tags-pick [data-slot='select-trigger'] {
+  background: var(--card);
 }
 .user-tags-pick [data-slot='select-trigger']:focus-visible {
   border-color: var(--input);
@@ -433,10 +449,14 @@ a.brand:hover,
 }
 .user-tags-input {
   width: 7.5rem !important;
-  max-width: 100%;
-  flex: 0 1 7.5rem;
+  max-width: 7.5rem;
+  flex: 0 0 7.5rem;
   height: 2rem;
   box-shadow: none;
+  background: var(--background) !important;
+}
+.dark .user-tags-input {
+  background: var(--card) !important;
 }
 .user-tags-input:focus-visible {
   border-color: var(--input);
@@ -553,6 +573,12 @@ a.brand:hover,
 .library-ingest {
   margin-bottom: 0.85rem;
   padding: 0.85rem 1rem;
+}
+.library-ingest [data-slot='input'] {
+  background: var(--background);
+}
+.dark .library-ingest [data-slot='input'] {
+  background: var(--card);
 }
 .library-ingest-progress {
   margin: 0 0 0.75rem;

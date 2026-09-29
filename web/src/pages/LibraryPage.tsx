@@ -466,7 +466,7 @@ export function LibraryPage() {
           {ingestEnabled ? (
             <>
               <Input
-                className="library-ingest-url"
+                className="library-ingest-url bg-white dark:bg-card"
                 type="url"
                 value={importUrl}
                 placeholder={ingestUrlPlaceholder}
@@ -482,7 +482,7 @@ export function LibraryPage() {
               />
               {showCapturePin ? (
                 <Input
-                  className="library-capture-pin max-w-[8rem]"
+                  className="library-capture-pin max-w-[8rem] bg-white dark:bg-card"
                   type="password"
                   value={capturePin}
                   placeholder={t('library.capturePinPlaceholder')}
