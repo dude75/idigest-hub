@@ -23,6 +23,8 @@
   "signup_disabled": "Public signup is disabled.",
   "recovery_disabled": "Password recovery is not configured.",
   "email_taken": "This email is already registered.",
+  "invalid_email": "Enter a valid email address.",
+  "password_too_short": "Password must be at least {min} characters.",
   "invalid_credentials": "Invalid email or password.",
   "tariff_not_available": "This tariff is not available.",
   "api_disabled": "API access is not included in this plan.",

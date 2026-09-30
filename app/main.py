@@ -161,20 +161,22 @@ def _register_middleware(application: FastAPI) -> None:
         return JSONResponse(status_code=exc.status_code, content=error_payload(code, t(locale, code.value)))
 
     @application.exception_handler(RequestValidationError)
-    async def validation_handler(request: Request, _exc: RequestValidationError) -> Response:
+    async def validation_handler(request: Request, exc: RequestValidationError) -> Response:
         from app.services.oauth_pages import oauth_message_page, oauth_wants_html
+        from app.services.request_validation import validation_error_message
 
         locale = _locale(request)
+        message = validation_error_message(locale, exc)
         if oauth_wants_html(request):
             return oauth_message_page(
                 request,
                 title_key="oauth_title_error",
-                message=t(locale, "oauth_invalid_request"),
+                message=message,
                 status_code=400,
             )
         return JSONResponse(
             status_code=400,
-            content=error_payload(ErrorCode.validation_error, t(locale, ErrorCode.validation_error.value)),
+            content=error_payload(ErrorCode.validation_error, message),
         )
 
     @application.exception_handler(Exception)

@@ -23,6 +23,8 @@
   "signup_disabled": "El registro público está desactivado.",
   "recovery_disabled": "La recuperación de contraseña no está configurada.",
   "email_taken": "Este correo ya está registrado.",
+  "invalid_email": "Introduzca una dirección de correo válida.",
+  "password_too_short": "La contraseña debe tener al menos {min} caracteres.",
   "invalid_credentials": "Correo o contraseña no válidos.",
   "tariff_not_available": "Esta tarifa no está disponible.",
   "api_disabled": "El acceso API no está incluido en este plan.",

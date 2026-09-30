@@ -23,6 +23,8 @@
   "signup_disabled": "Публичная регистрация выключена.",
   "recovery_disabled": "Восстановление пароля не настроено.",
   "email_taken": "Этот email уже занят.",
+  "invalid_email": "Укажите корректный адрес email.",
+  "password_too_short": "Пароль должен быть не короче {min} символов.",
   "invalid_credentials": "Неверный email или пароль.",
   "tariff_not_available": "Этот тариф недоступен.",
   "api_disabled": "API недоступен на этом тарифе.",

@@ -172,6 +172,22 @@ def test_org_admin_can_impersonate_member_and_stop(client):
     assert back["user"]["id"] == lead["user"]["id"]
 
 
+def test_create_org_user_invalid_email_returns_localized_message(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "lead-invalid@example.com", "leadpass1", tariff_id).status_code == 200
+    response = client.post(
+        "/api/v1/org/users",
+        json={"email": "werwerw@1212.11", "password": "longpass1", "role": "org_member"},
+        headers={"Accept-Language": "ru"},
+    )
+    assert response.status_code == 400, response.text
+    body = response.json()
+    assert body["error"]["code"] == "validation_error"
+    assert body["error"]["message"] == "Укажите корректный адрес email."
+
+
 def test_org_member_cannot_impersonate(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)
