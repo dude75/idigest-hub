@@ -6,7 +6,6 @@ import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
 import { Button } from '@/components/ui/button'
 import { AppCheckboxRow, AppInputField, AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
-import { AppField } from '../components/app/AppField'
 import { allOption, pageSizeOptions } from '../components/app/selectOptions'
 import type {
   Audio,
@@ -598,7 +597,7 @@ export function LibraryPage() {
           onClick: () => nav(libraryNavPath(id)),
         }))}
       />
-      <AppStackCard className="library-panel mb-4">
+      <AppStackCard className="library-panel mb-4" contentClassName="pt-0">
         <div className="library-list-filters">
           <AppInputField
             className="library-list-search"
@@ -644,39 +643,34 @@ export function LibraryPage() {
             ]}
           />
           <div className="library-list-tag-manage">
-            <AppField label={'\u00a0'} htmlFor="library-manage-tags">
-              <Button
-                id="library-manage-tags"
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 shrink-0"
-                onClick={() => setManageTagsOpen(true)}
-              >
-                {t('library.manageTags')}
-              </Button>
-            </AppField>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 shrink-0"
+              onClick={() => setManageTagsOpen(true)}
+            >
+              {t('library.manageTags')}
+            </Button>
           </div>
           <div className="library-list-toggles">
-            <AppField label={'\u00a0'} htmlFor="library-group-by-source">
-              <div className="library-list-toggles-row">
-                <AppCheckboxRow
-                  id="library-group-by-source"
-                  className={`library-list-toggle${tab === 'audio' ? ' library-list-toggle-reserved' : ''}`}
-                  label={t('library.groupBySource')}
-                  checked={groupListBySource}
-                  disabled={tab === 'audio'}
-                  onCheckedChange={setGroupListBySource}
-                />
-                <AppCheckboxRow
-                  id="library-show-hidden"
-                  className="library-list-toggle"
-                  label={t('library.showHidden', { count: hiddenCount })}
-                  checked={hidden}
-                  onCheckedChange={setHidden}
-                />
-              </div>
-            </AppField>
+            <div className="library-list-toggles-row">
+              <AppCheckboxRow
+                id="library-group-by-source"
+                className={`library-list-toggle${tab === 'audio' ? ' library-list-toggle-reserved' : ''}`}
+                label={t('library.groupBySource')}
+                checked={groupListBySource}
+                disabled={tab === 'audio'}
+                onCheckedChange={setGroupListBySource}
+              />
+              <AppCheckboxRow
+                id="library-show-hidden"
+                className="library-list-toggle"
+                label={t('library.showHidden', { count: hiddenCount })}
+                checked={hidden}
+                onCheckedChange={setHidden}
+              />
+            </div>
           </div>
         </div>
       </AppStackCard>

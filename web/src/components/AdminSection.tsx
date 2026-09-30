@@ -12,11 +12,13 @@ export function AppStackCard({
   title,
   lead,
   className,
+  contentClassName,
   children,
 }: {
   title?: ReactNode
   lead?: ReactNode
   className?: string
+  contentClassName?: string
   children: ReactNode
 }) {
   return (
@@ -27,7 +29,9 @@ export function AppStackCard({
           {lead ? <CardDescription>{lead}</CardDescription> : null}
         </CardHeader>
       ) : null}
-      <CardContent className={cn('flex flex-col gap-3', !title && 'pt-6')}>{children}</CardContent>
+      <CardContent className={cn('flex flex-col gap-3', !title && 'pt-6', contentClassName)}>
+        {children}
+      </CardContent>
     </Card>
   )
 }

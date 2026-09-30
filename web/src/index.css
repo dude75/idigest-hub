@@ -399,10 +399,6 @@ a.brand:hover,
 .library-list-tag-manage {
   min-width: max-content;
 }
-.library-list-tag-manage [data-slot='field-label'] {
-  color: transparent;
-  user-select: none;
-}
 .user-tags-editor {
   margin: 0.5rem 0;
   max-width: 100%;
@@ -543,10 +539,6 @@ a.brand:hover,
   min-width: max-content;
   max-width: 100%;
 }
-.library-list-toggles [data-slot='field-label'] {
-  color: transparent;
-  user-select: none;
-}
 .library-list-toggles-row {
   display: flex;
   flex-wrap: nowrap;
@@ -583,6 +575,11 @@ a.brand:hover,
 }
 .library-panel-tabs {
   padding-bottom: 0;
+}
+.library-list-tag-manage,
+.library-list-toggles {
+  display: flex;
+  align-items: flex-end;
 }
 .library-list-embedded .task-list-embedded .item {
   padding: 0.85rem 1rem;
