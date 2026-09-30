@@ -19,6 +19,7 @@ import { AdminFormActions, AdminMetaRow, HubBadge } from '../../components/app/A
 import { StatCard, StatGrid } from '../../components/StatCard'
 import type { DataEncryptionKey, EncryptionJob } from '../../types'
 import { formatInteger, fmtAge, fmtDate, showError } from '../../util'
+import { canStartCryptoReencrypt, isCryptoReencryptJobRunning } from '../../security/cryptoReencrypt'
 import { Button } from '@/components/ui/button'
 
 type DekList = {
@@ -68,15 +69,8 @@ export function EncryptionTab() {
     return () => window.clearInterval(timer)
   }, [job, load])
 
-  const jobRunning =
-    Boolean(deks?.running_job_id) || job?.status === 'queued' || job?.status === 'running'
-
-  /** Single active DEK → nothing to migrate; server sets reencrypt_available when retiring DEKs exist. */
-  const canReencrypt = Boolean(
-    deks &&
-      deks.items.length > 1 &&
-      (deks.reencrypt_available ?? deks.items.some((d) => d.status === 'retiring')),
-  )
+  const jobRunning = isCryptoReencryptJobRunning(deks, job?.status)
+  const canReencrypt = canStartCryptoReencrypt(deks)
 
   const activeDek = useMemo(() => {
     if (!deks?.active_dek_id) return null

@@ -12,12 +12,9 @@ from tests.conftest import (
     err_code,
     login,
     logout,
-    me,
     open_db,
     setup_admin,
-    signup,
     task_list_ids,
-    upload_audio,
     wait_task,
 )
 from tests.test_tasks import _org_user_with_audio
@@ -75,6 +72,12 @@ def test_instance_admin_purge_keeps_artifacts_and_usage(client, fake_workers):
     purged = client.post(f"/api/v1/tasks/purge?org_id={org_id}&user_id={user_id}")
     assert purged.status_code == 200, purged.text
     assert purged.json()["deleted"] >= 1
+
+    audit = client.get("/api/v1/instance/audit", params={"action": "tasks.purge"})
+    assert audit.status_code == 200, audit.text
+    purge_events = [row for row in audit.json()["items"] if row.get("action") == "tasks.purge"]
+    assert purge_events
+    assert purge_events[0]["payload"].get("deleted", 0) >= 1
 
     after = client.get("/api/v1/tasks")
     assert task_id not in task_list_ids(after.json())

@@ -206,6 +206,22 @@ try {
   issues.push('missing web/public/auth-shell.js — OAuth popup select enhancement')
 }
 
+const GRADIENT_SURFACE_RE = /(?:library-ingest|profile-identity|mic-record-modal|stat-card)\b/
+for (const file of files) {
+  const text = await readFile(file, 'utf8')
+  if (text.includes('ring-sky-')) {
+    issues.push(`${rel(file)}: legacy ring-sky-* — use neutral dashboard gradient (from-primary/5)`)
+  }
+  if (text.includes('bg-[#fafcfe]')) {
+    issues.push(`${rel(file)}: hard-coded ingest tint — use bg-gradient-to-t from-primary/5 to-card`)
+  }
+  if (GRADIENT_SURFACE_RE.test(text) && (!text.includes('bg-gradient-to-t') || !text.includes('from-primary/5'))) {
+    issues.push(
+      `${rel(file)}: dashboard gradient surfaces need bg-gradient-to-t and from-primary/5 (see StatCard / library ingest)`,
+    )
+  }
+}
+
 if (issues.length) {
   console.error('UI migration check failed:\n')
   for (const msg of issues) console.error(`  • ${msg}`)

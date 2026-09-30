@@ -35,7 +35,7 @@ import { MicrophoneRecordModal } from '../components/MicrophoneRecordModal'
 import { MicIcon } from 'lucide-react'
 import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, UserTagBadges, fmtDate, showError } from '../util'
 import { captureMeetingNeedsPin, shouldRouteImportUrlToCapture } from '../util/captureHost'
-import { MIC_RECORDING_TAG } from '../constants/userTags'
+import { uploadMicrophoneRecording } from '../util/microphoneUpload'
 
 type SourceGroup<T> = {
   key: string
@@ -362,47 +362,23 @@ export function LibraryPage() {
     }
   }
 
-  async function tagMicrophoneRecording(audioId: string): Promise<UserTag[]> {
-    const r = await api<{ tags: UserTag[] }>('/object-tags', {
-      method: 'PUT',
-      body: JSON.stringify({
-        object_type: 'audio',
-        object_id: audioId,
-        tags: [MIC_RECORDING_TAG],
-      }),
-    })
-    return r.tags
-  }
-
-  async function upload(file: File, opts?: { fromMicrophone?: boolean }) {
+  async function upload(file: File) {
     const pipeline = beginPipelineRun()
     setBusy(true)
     const video = isVideoUploadFilename(file.name)
-    const fromMicrophone = Boolean(opts?.fromMicrophone)
-    const serverExtract = video || fromMicrophone
-    setUploadProgress({ name: file.name, percent: 0, phase: 'uploading', video: serverExtract })
+    setUploadProgress({ name: file.name, percent: 0, phase: 'uploading', video })
     try {
       const body = new FormData()
       body.append('file', file)
-      if (fromMicrophone) {
-        body.append('from_microphone', 'true')
-      }
       const item = await apiUpload<Audio>('/audios', body, (loaded, total) => {
         const percent = total ? Math.round((loaded / total) * 100) : 0
         setUploadProgress({
           name: file.name,
           percent,
           phase: percent >= 100 ? 'processing' : 'uploading',
-          video: serverExtract,
+          video,
         })
       })
-      if (opts?.fromMicrophone) {
-        try {
-          item.user_tags = await tagMicrophoneRecording(item.id)
-        } catch (e) {
-          showError(e)
-        }
-      }
       if (pipelineShouldTranscribe(pipeline)) {
         const task = await api<Task>('/tasks/transcribe', {
           method: 'POST',
@@ -876,7 +852,20 @@ export function LibraryPage() {
           onClose={() => setRecordOpen(false)}
           onSave={(file) => {
             setRecordOpen(false)
-            void upload(file, { fromMicrophone: true })
+            setBusy(true)
+            setUploadProgress({ name: file.name, percent: 0, phase: 'uploading', video: true })
+            void uploadMicrophoneRecording(file, nav, {
+              onProgress: (p) => setUploadProgress({ ...p, video: true }),
+              afterUpload: async (item) => {
+                setAudios((prev) => [item, ...prev.filter((a) => a.id !== item.id)])
+                await load('audio')
+              },
+            })
+              .catch(showError)
+              .finally(() => {
+                setBusy(false)
+                setUploadProgress(null)
+              })
           }}
         />
       ) : null}

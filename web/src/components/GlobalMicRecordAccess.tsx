@@ -2,34 +2,12 @@ import { useLayoutEffect, useState } from 'react'
 import { MicIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
-import { api, apiUpload } from '../api'
 import { useAuth } from '../auth'
-import { MIC_RECORDING_TAG } from '../constants/userTags'
 import { MicrophoneRecordModal } from './MicrophoneRecordModal'
 import { AppHoverHint } from './app/AppHoverHint'
-import {
-  beginPipelineRun,
-  endPipelineRun,
-  pipelineNavState,
-  pipelineShouldTranscribe,
-  transcribeRequest,
-} from '../pipeline'
-import { libraryPath } from '../routes'
-import type { Audio, Task, UserTag } from '../types'
+import { uploadMicrophoneRecording } from '../util/microphoneUpload'
 import { showError } from '../util'
 import { Button } from '@/components/ui/button'
-
-async function tagMicrophoneRecording(audioId: string): Promise<UserTag[]> {
-  const r = await api<{ tags: UserTag[] }>('/object-tags', {
-    method: 'PUT',
-    body: JSON.stringify({
-      object_type: 'audio',
-      object_id: audioId,
-      tags: [MIC_RECORDING_TAG],
-    }),
-  })
-  return r.tags
-}
 
 /** Global mic entry (Shell); library ingest mic is unchanged. */
 export function GlobalMicRecordAccess() {
@@ -67,28 +45,9 @@ export function GlobalMicRecordAccess() {
   }, [showMic])
 
   async function uploadFromMic(file: File) {
-    const pipeline = beginPipelineRun()
     setBusy(true)
     try {
-      const body = new FormData()
-      body.append('file', file)
-      body.append('from_microphone', 'true')
-      const item = await apiUpload<Audio>('/audios', body)
-      try {
-        item.user_tags = await tagMicrophoneRecording(item.id)
-      } catch (e) {
-        showError(e)
-      }
-      if (pipelineShouldTranscribe(pipeline)) {
-        const task = await api<Task>('/tasks/transcribe', {
-          method: 'POST',
-          body: JSON.stringify(transcribeRequest(item.id, pipeline)),
-        })
-        nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
-        return
-      }
-      endPipelineRun()
-      nav(libraryPath('audio'))
+      await uploadMicrophoneRecording(file, nav)
     } catch (e) {
       showError(e)
     } finally {

@@ -108,6 +108,11 @@ def test_add_dek_and_reencrypt_job(client):
     assert r.status_code == 200
     job_id = r.json()["id"]
 
+    busy = client.get("/api/v1/instance/crypto/deks")
+    assert busy.status_code == 200
+    assert busy.json()["reencrypt_available"] is False
+    assert busy.json()["running_job_id"] == job_id
+
     deadline = time.monotonic() + 15
     status = None
     while time.monotonic() < deadline:
