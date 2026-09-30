@@ -138,7 +138,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
 
   return (
     <Modal onClose={onClose} title={t('share.title')} panelClassName="share-dialog sm:max-w-lg">
-      <div className="flex flex-col gap-4">
+      <div className="share-dialog-body flex flex-col gap-4">
       {showPublic && (
         <section className="share-section">
           <h3 className="share-section-head">{t('share.publicLink')}</h3>
