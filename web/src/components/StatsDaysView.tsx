@@ -62,8 +62,8 @@ function StatsDaysCharts({
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={days} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={36} />
+            <XAxis dataKey="label" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} width={36} />
             <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.date ?? ''} />
             <Legend />
             <Bar dataKey="tasks_transcribe_success" name={t('stats.statTranscribe')} fill={STATS_CHART_COLORS.transcribe} />
@@ -77,8 +77,8 @@ function StatsDaysCharts({
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={days} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-            <YAxis tick={{ fontSize: 11 }} width={48} tickFormatter={(v) => fmtMediaTime(Number(v))} />
+            <XAxis dataKey="label" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
+            <YAxis tick={{ fontSize: 12 }} width={48} tickFormatter={(v) => fmtMediaTime(Number(v))} />
             <Tooltip
               labelFormatter={(_, payload) => payload?.[0]?.payload?.date ?? ''}
               formatter={(value) => fmtMediaTime(Number(value))}
@@ -100,8 +100,8 @@ function StatsDaysCharts({
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={days} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-            <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={48} tickFormatter={(v) => formatInteger(Number(v))} />
+            <XAxis dataKey="label" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} width={48} tickFormatter={(v) => formatInteger(Number(v))} />
             <Tooltip
               labelFormatter={(_, payload) => payload?.[0]?.payload?.date ?? ''}
               formatter={(value) => formatInteger(Number(value))}
@@ -123,8 +123,8 @@ function StatsDaysCharts({
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={days} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-            <XAxis dataKey="label" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
-            <YAxis tick={{ fontSize: 11 }} width={48} />
+            <XAxis dataKey="label" tick={{ fontSize: 12 }} interval="preserveStartEnd" />
+            <YAxis tick={{ fontSize: 12 }} width={48} />
             <Tooltip
               labelFormatter={(_, payload) => payload?.[0]?.payload?.date ?? ''}
               formatter={(value) => [formatDecimal(Number(value)), t(amountLabelKey)]}
