@@ -393,6 +393,9 @@ a.brand:hover,
   gap: 0.65rem 0.85rem;
   align-items: end;
 }
+.library-list-filters-no-user {
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 11rem) auto auto;
+}
 .library-list-filters > *:not(.library-list-toggles):not(.library-list-tag-manage) {
   min-width: 0;
 }
@@ -508,9 +511,6 @@ a.brand:hover,
   .library-list-filters {
     grid-template-columns: 1fr;
   }
-  .library-list-user-placeholder {
-    display: none;
-  }
 }
 .library-list-search {
   min-width: 0;
@@ -528,11 +528,6 @@ a.brand:hover,
 }
 .library-list-tag {
   max-width: 11rem;
-}
-.library-list-user-placeholder {
-  min-height: 0;
-  padding: 0;
-  border: 0;
 }
 .library-list-toggles {
   justify-self: end;

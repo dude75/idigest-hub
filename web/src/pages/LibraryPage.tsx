@@ -598,7 +598,9 @@ export function LibraryPage() {
         }))}
       />
       <AppStackCard className="library-panel mb-4" contentClassName="pt-0">
-        <div className="library-list-filters">
+        <div
+          className={`library-list-filters${showOwnerFilter ? '' : ' library-list-filters-no-user'}`}
+        >
           <AppInputField
             className="library-list-search"
             label={t('library.search')}
@@ -624,9 +626,7 @@ export function LibraryPage() {
                   .map((user) => ({ value: user.id, label: user.email })),
               ]}
             />
-          ) : (
-            <div className="library-list-user library-list-user-placeholder" aria-hidden="true" />
-          )}
+          ) : null}
           <AppSelectField
             className="library-list-tag"
             expandMenu
