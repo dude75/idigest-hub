@@ -83,9 +83,6 @@ export function Shell() {
           <NavLink to="/app/tasks" className={({ isActive }) => (isActive ? 'active' : undefined)}>
             {t('nav.tasks')}
           </NavLink>
-          <NavLink to="/app/profile" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-            {t('nav.profile')}
-          </NavLink>
           {instance && (
             <NavLink to="/app/instance" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               {t('nav.instance')}
@@ -96,6 +93,9 @@ export function Shell() {
               {t('nav.security')}
             </NavLink>
           )}
+          <NavLink to="/app/profile" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            {t('nav.profile')}
+          </NavLink>
         </nav>
         <div className="right row">
           <WalletLabel unlimited={me?.org?.unlimited} balance={me?.org?.balance} />
