@@ -94,6 +94,50 @@ def test_instance_admin_purge_keeps_artifacts_and_usage(client, fake_workers):
         assert event.amount == Decimal("1.50")
 
 
+def test_instance_admin_purge_respects_status_filter(client, fake_workers):
+    ctx = _org_user_with_audio(client, fake_workers, email="purge-status@example.com")
+    org_id = ctx["me"]["org"]["id"]
+    user_id = ctx["me"]["user"]["id"]
+    audio_id = ctx["audio"]["id"]
+
+    fake_workers.transcribe_mode = "success"
+    ok = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio_id})
+    assert ok.status_code == 202
+    success_id = ok.json()["task_id"]
+    wait_task(client, success_id, status="success")
+
+    fake_workers.transcribe_mode = "error"
+    bad = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio_id})
+    assert bad.status_code == 202
+    error_id = bad.json()["task_id"]
+    wait_task(client, error_id, status="error")
+
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+    purged = client.post(
+        f"/api/v1/tasks/purge?org_id={org_id}&user_id={user_id}&status=success",
+    )
+    assert purged.status_code == 200, purged.text
+    assert purged.json()["deleted"] == 1
+
+    listed = client.get(f"/api/v1/tasks?org_id={org_id}&user_id={user_id}")
+    ids = task_list_ids(listed.json())
+    assert success_id not in ids
+    assert error_id in ids
+
+    audit = client.get("/api/v1/instance/audit", params={"action": "tasks.purge"})
+    purge_events = [row for row in audit.json()["items"] if row.get("action") == "tasks.purge"]
+    assert purge_events[0]["payload"].get("status") == "success"
+
+
+def test_task_purge_rejects_invalid_status(client):
+    setup_admin(client)
+    response = client.post("/api/v1/tasks/purge?status=running")
+    assert response.status_code == 400
+    assert err_code(response) == "validation_error"
+
+
 def test_task_history_retention_days_setting(client):
     setup_admin(client)
     response = client.patch("/api/v1/instance/settings", json={"task_history_retention_days": 30})

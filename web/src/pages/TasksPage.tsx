@@ -192,6 +192,7 @@ export function TasksPage() {
       const q = new URLSearchParams()
       if (orgId) q.set('org_id', orgId)
       if (userId) q.set('user_id', userId)
+      if (statusFilter) q.set('status', statusFilter)
       const suffix = q.toString()
       await api<{ deleted: number }>(suffix ? `/tasks/purge?${suffix}` : '/tasks/purge', { method: 'POST' })
       setConfirmPurge(false)

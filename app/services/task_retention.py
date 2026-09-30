@@ -22,8 +22,13 @@ def _purge_filters(
     org_id: str | None = None,
     user_id: str | None = None,
     retention_days: int | None = None,
+    status: str | None = None,
 ) -> list:
-    filters = [~Task.status.in_(ACTIVE_TASK_STATUSES)]
+    raw = (status or "").strip().lower()
+    if raw:
+        filters = [Task.status == raw]
+    else:
+        filters = [~Task.status.in_(ACTIVE_TASK_STATUSES)]
     org = (org_id or "").strip()
     user = (user_id or "").strip()
     if org:
@@ -42,8 +47,14 @@ def purge_terminal_tasks(
     org_id: str | None = None,
     user_id: str | None = None,
     retention_days: int | None = None,
+    status: str | None = None,
 ) -> int:
-    filters = _purge_filters(org_id=org_id, user_id=user_id, retention_days=retention_days)
+    filters = _purge_filters(
+        org_id=org_id,
+        user_id=user_id,
+        retention_days=retention_days,
+        status=status,
+    )
     deleted = 0
     while True:
         ids = list(db.scalars(select(Task.id).where(*filters).limit(_PURGE_BATCH)).all())
@@ -55,10 +66,11 @@ def purge_terminal_tasks(
         deleted += len(ids)
     if deleted:
         log.info(
-            "purged terminal tasks count=%s org_id=%s user_id=%s retention_days=%s",
+            "purged terminal tasks count=%s org_id=%s user_id=%s status=%s retention_days=%s",
             deleted,
             org_id or "",
             user_id or "",
+            status or "",
             retention_days,
         )
     return deleted

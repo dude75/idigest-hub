@@ -377,20 +377,32 @@ def _done_status_filters(status: str | None, ctx: AuthContext) -> list:
     return [Task.status == raw]
 
 
+def _purge_status_param(status: str | None, ctx: AuthContext) -> str | None:
+    raw = (status or "").strip().lower()
+    if not raw:
+        return None
+    if raw not in DONE_STATUS_FILTERS:
+        ctx.raise_error(ErrorCode.validation_error)
+    return raw
+
+
 @router.post("/tasks/purge")
 def purge_task_history(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
     org_id: str | None = None,
     user_id: str | None = None,
+    status: str | None = None,
 ) -> dict:
     if not ctx.is_instance_admin:
         ctx.raise_error(ErrorCode.forbidden)
+    status_filter = _purge_status_param(status, ctx)
     deleted = purge_terminal_tasks(
         db,
         org_id=(org_id or "").strip() or None,
         user_id=(user_id or "").strip() or None,
         retention_days=None,
+        status=status_filter,
     )
     write_audit(
         db,
@@ -400,6 +412,7 @@ def purge_task_history(
             "deleted": deleted,
             "org_id": (org_id or "").strip() or None,
             "user_id": (user_id or "").strip() or None,
+            "status": status_filter,
         },
     )
     db.commit()
