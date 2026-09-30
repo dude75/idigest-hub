@@ -592,14 +592,12 @@ a.brand:hover,
     padding-inline: 1.5rem;
   }
 }
-.library-ingest {
-  margin-bottom: 0.85rem;
-  padding: 0.85rem 1rem;
+.library-ingest,
+.profile-identity,
+.stat-card {
+  --primary: var(--foreground);
 }
 .library-ingest [data-slot='input'] {
-  background: var(--background);
-}
-.dark .library-ingest [data-slot='input'] {
   background: var(--card);
 }
 .library-ingest-progress {
@@ -656,8 +654,8 @@ a.brand:hover,
 }
 .library-pipeline {
   margin: 0.65rem 0 0;
-  padding-top: 0.55rem;
-  border-top: 1px solid var(--line);
+  padding-top: 0.65rem;
+  border-top: 1px solid color-mix(in oklch, var(--foreground) 8%, transparent);
 }
 .library-pipeline > summary {
   font-size: 0.85rem;
@@ -1031,9 +1029,6 @@ th { color: var(--hub-muted); font-weight: 550; }
 .stat.stat-amount { background: #f8fbff; border-color: #bfdbfe; }
 .stat.stat-ops { background: var(--card); }
 /* dashboard-01: neutral tint (their primary/5), metric scale at 16px root */
-.stat-card {
-  --primary: var(--foreground);
-}
 .stat-card [data-slot='card-title'] {
   font-size: 24px;
   line-height: 1;
@@ -2772,9 +2767,6 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 .stats-chart-chars { background: #fffbeb; border-color: #fde68a; }
 .stats-chart-amount { background: #f8fbff; border-color: #bfdbfe; }
 
-.profile-identity .stat-label {
-  display: block;
-}
 .profile-settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -471,7 +471,7 @@ export function LibraryPage() {
 
   return (
     <div className="library-page">
-      <Card className="library-ingest mb-4 bg-[#fafcfe] ring-sky-100/70 dark:bg-sky-950/15 dark:ring-sky-900/35">
+      <Card className="library-ingest mb-4 font-sans bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none">
         <CardContent className="flex flex-col gap-3 pt-6">
         {uploadProgress && (
           <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
@@ -494,7 +494,7 @@ export function LibraryPage() {
           {ingestEnabled ? (
             <>
               <Input
-                className="library-ingest-url bg-white dark:bg-card"
+                className="library-ingest-url bg-card"
                 type="url"
                 value={importUrl}
                 placeholder={ingestUrlPlaceholder}
@@ -510,7 +510,7 @@ export function LibraryPage() {
               />
               {showCapturePin ? (
                 <Input
-                  className="library-capture-pin max-w-[8rem] bg-white dark:bg-card"
+                  className="library-capture-pin max-w-[8rem] bg-card"
                   type="password"
                   value={capturePin}
                   placeholder={t('library.capturePinPlaceholder')}

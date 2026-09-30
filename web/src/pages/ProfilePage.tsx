@@ -483,9 +483,9 @@ export function ProfilePage() {
   return (
     <AdminPage>
       {me && (
-        <Card className="profile-identity">
-          <CardHeader className="space-y-2">
-            <CardDescription className="stat-label m-0">{t('common.email')}</CardDescription>
+        <Card className="profile-identity font-sans bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none">
+          <CardHeader className="gap-2">
+            <CardDescription>{t('common.email')}</CardDescription>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <CardTitle className="min-w-0 break-all text-lg font-semibold leading-snug">{me.user.email}</CardTitle>
               {roleBadge ? <HubBadge tone={roleBadgeTone}>{roleBadge}</HubBadge> : null}
