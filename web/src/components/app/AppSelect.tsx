@@ -15,6 +15,33 @@ export type AppSelectOption = {
   disabled?: boolean
 }
 
+/** Dropdown at least as wide as the trigger, can grow for long labels. */
+export const appSelectExpandMenuClassName =
+  'w-auto min-w-(--anchor-width) max-w-[min(22rem,calc(100vw-2.5rem))]'
+
+/** Prefer viewport over clipping cards (e.g. library filter panel overflow-hidden). */
+export const appSelectExpandMenuCollisionAvoidance = {
+  side: 'flip' as const,
+  align: 'shift' as const,
+  fallbackAxisSide: 'none' as const,
+}
+
+function expandMenuCollisionBoundary() {
+  return typeof document !== 'undefined' ? document.documentElement : undefined
+}
+
+/** Shared SelectContent props for narrow trigger + wide menu (library filters, mic modal, …). */
+export function appSelectExpandMenuContentProps(className?: string) {
+  return {
+    side: 'bottom' as const,
+    align: 'start' as const,
+    alignItemWithTrigger: false as const,
+    className: cn(appSelectExpandMenuClassName, className),
+    collisionBoundary: expandMenuCollisionBoundary(),
+    collisionAvoidance: appSelectExpandMenuCollisionAvoidance,
+  }
+}
+
 type AppSelectProps = {
   id?: string
   className?: string
@@ -26,6 +53,8 @@ type AppSelectProps = {
   size?: 'sm' | 'default'
   required?: boolean
   'aria-invalid'?: boolean
+  /** Wider popup on open while the trigger can stay narrow; unified placement vs viewport. */
+  expandMenu?: boolean
 }
 
 export function AppSelect({
@@ -39,6 +68,7 @@ export function AppSelect({
   size = 'default',
   required,
   'aria-invalid': ariaInvalid,
+  expandMenu = false,
 }: AppSelectProps) {
   const items = options.map((o) => ({ value: o.value, label: o.label }))
 
@@ -58,7 +88,7 @@ export function AppSelect({
       >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent {...(expandMenu ? appSelectExpandMenuContentProps() : {})}>
         <SelectGroup>
           {options.map((opt) => (
             <SelectItem

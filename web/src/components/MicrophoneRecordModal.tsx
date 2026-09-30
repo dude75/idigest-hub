@@ -3,15 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { Mic, PauseIcon, PlayIcon, XIcon } from 'lucide-react'
 import { Modal } from './Modal'
 import { MicrophoneLevelVisualizer } from './MicrophoneLevelVisualizer'
+import { AppSelect } from './app/AppSelect'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AppSubmitButton } from './app/AdminUi'
@@ -414,29 +407,16 @@ export function MicrophoneRecordModal({ onClose, onSave, busy }: Props) {
                 <Mic className="size-5 text-muted-foreground" aria-hidden />
                 <span className="sr-only">{t('library.recordMicLabel')}</span>
               </Label>
-              <Select
+              <AppSelect
+                id="record-mic-select"
+                size="sm"
+                className="max-w-[10rem]"
+                expandMenu
                 disabled={starting || saving || Boolean(busy) || switchingDevice}
-                value={deviceId === '' ? null : deviceId}
-                onValueChange={(v) => void handleDeviceChange(v ?? 'default')}
-                items={deviceOptions.map((o) => ({ value: o.value, label: o.label }))}
-              >
-                <SelectTrigger id="record-mic-select" size="sm" className="max-w-[10rem]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent
-                  align="start"
-                  alignItemWithTrigger={false}
-                  className="w-auto min-w-(--anchor-width) max-w-[min(22rem,calc(100vw-2.5rem))]"
-                >
-                  <SelectGroup>
-                    {deviceOptions.map((opt) => (
-                      <SelectItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                value={deviceId}
+                onValueChange={(v) => void handleDeviceChange(v || 'default')}
+                options={deviceOptions}
+              />
             </div>
             <div className="flex shrink-0 items-center gap-1.5">{transportActions}</div>
           </div>
