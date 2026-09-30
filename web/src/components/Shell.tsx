@@ -7,6 +7,7 @@ import { showError, WalletLabel } from '../util'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { AppBrand } from './AppBrand'
+import { GlobalMicRecordAccess } from './GlobalMicRecordAccess'
 import { GitHubLink } from './GitHubLink'
 import { LanguageSwitcher } from './LanguageSwitcher'
 
@@ -33,7 +34,7 @@ export function Shell() {
   }
 
   return (
-    <div>
+    <div className="app-shell">
       {me?.impersonating && (
         <div className="banner">
           <span>{t('impersonate.banner', { email: me.user.email })}</span>
@@ -105,6 +106,7 @@ export function Shell() {
           </Button>
         </div>
       </header>
+      <GlobalMicRecordAccess />
       <main className="page">
         <Outlet />
       </main>

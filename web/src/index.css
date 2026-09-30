@@ -344,6 +344,20 @@ button:not([data-slot='button']):not([data-slot='tabs-trigger']):not([data-slot=
   top: 0;
   z-index: 5;
 }
+.app-shell {
+  /* set from JS: topbar bottom + .page padding-top */
+  --shell-mic-top: 5rem;
+}
+.shell-global-mic {
+  position: fixed;
+  top: var(--shell-mic-top);
+  right: max(0.45rem, env(safe-area-inset-right, 0px));
+  z-index: 20;
+  pointer-events: none;
+}
+.shell-global-mic > * {
+  pointer-events: auto;
+}
 a.brand,
 .brand {
   display: inline-flex;
