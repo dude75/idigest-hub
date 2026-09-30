@@ -292,11 +292,10 @@ export function TranscriptPage() {
                   const start = utteranceStart(u)
                   const seekable = Boolean(seekOnClick && item.source_audio_id && start != null)
                   const time = utteranceTimeLabel(u)
-                  return (
+                  const seekHint = seekable && time ? t('transcript.seekAudio', { time }) : undefined
+                  const utteranceBody = (
                     <div
-                      className={`utterance${seekable ? ' utterance-seekable' : ''}`}
-                      key={i}
-                      title={seekable && time ? t('transcript.seekAudio', { time }) : undefined}
+                      className={`utterance${seekable ? ' utterance-seekable' : ''}${seekHint ? ' cursor-help' : ''}`}
                       onClick={seekable ? () => playerRef.current?.seekTo(start!) : undefined}
                     >
                       {time && <span className="utterance-time">{time}</span>}
@@ -304,6 +303,14 @@ export function TranscriptPage() {
                       {utteranceDisplayText(u)}
                     </div>
                   )
+                  if (seekHint) {
+                    return (
+                      <AppHoverHint key={i} content={seekHint}>
+                        {utteranceBody}
+                      </AppHoverHint>
+                    )
+                  }
+                  return <div key={i}>{utteranceBody}</div>
                 })}
               </div>
             ) : null}

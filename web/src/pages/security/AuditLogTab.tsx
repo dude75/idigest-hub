@@ -10,9 +10,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  AdminTableCellHint,
   adminTableCellMuted,
   adminTableCellPrimary,
 } from '../../components/app/AdminDataTable'
+import { AppHoverHint } from '../../components/app/AppHoverHint'
 import { AuditFiltersPanel, auditActionLabel } from '../../components/AuditFiltersPanel'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import type { AuditLogEntry, Org } from '../../types'
@@ -196,15 +198,32 @@ export function AuditLogTab() {
                 {items.map((entry) => (
                   <TableRow key={entry.id}>
                     <TableCell className={adminTableCellMuted}>{fmtDate(entry.created_at)}</TableCell>
-                    <TableCell className={adminTableCellPrimary} title={entry.action}>
-                      <span className="block max-w-[14rem] truncate">{auditActionLabel(entry.action, t)}</span>
-                    </TableCell>
+                    <AdminTableCellHint
+                      hint={entry.action}
+                      className={adminTableCellPrimary}
+                      hintClassName="max-w-[14rem]"
+                    >
+                      {auditActionLabel(entry.action, t)}
+                    </AdminTableCellHint>
                     <TableCell>{entry.actor_email || '—'}</TableCell>
                     <TableCell>{entry.on_behalf_of_email || '—'}</TableCell>
-                    <TableCell className={adminTableCellMuted} title={payloadTitle(entry.payload)}>
-                      <code className="block max-w-[18rem] truncate text-xs font-normal">
-                        {formatPayload(entry.payload)}
-                      </code>
+                    <TableCell className={adminTableCellMuted}>
+                      {payloadTitle(entry.payload) ? (
+                        <AppHoverHint
+                          content={
+                            <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs font-normal">
+                              {payloadTitle(entry.payload)}
+                            </pre>
+                          }
+                          contentClassName="max-w-lg"
+                        >
+                          <code className="block max-w-[18rem] cursor-help truncate text-xs font-normal">
+                            {formatPayload(entry.payload)}
+                          </code>
+                        </AppHoverHint>
+                      ) : (
+                        <code className="block max-w-[18rem] truncate text-xs font-normal">{formatPayload(entry.payload)}</code>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

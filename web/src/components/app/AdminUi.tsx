@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { AppHoverHint } from '@/components/app/AppHoverHint'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { AppFormActions as AppFormActionsBase, AppSubmitButton } from './AppFormActions'
@@ -41,11 +42,15 @@ export function HubBadge({
   title?: string
   children: ReactNode
 }) {
-  return (
-    <Badge variant={hubBadgeVariant[tone]} title={title} className={cn(hubBadgeClass[tone], className)}>
+  const badge = (
+    <Badge variant={hubBadgeVariant[tone]} className={cn(hubBadgeClass[tone], className)}>
       {children}
     </Badge>
   )
+  if (!title) {
+    return badge
+  }
+  return <AppHoverHint content={title}>{badge}</AppHoverHint>
 }
 
 /** Maps legacy `.badge` modifier classes to HubBadge tones. */

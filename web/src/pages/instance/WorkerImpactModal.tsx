@@ -13,6 +13,7 @@ import type {
 } from '../../types'
 import { formatInteger, showError, truncateLabel } from '../../util'
 import { Button } from '@/components/ui/button'
+import { AppHoverHint } from '../../components/app/AppHoverHint'
 import { AppCheckboxRow, AppSelectField } from '../../components/app/AppFormControls'
 import { AdminMetaRow, HubBadge } from '../../components/app/AdminUi'
 
@@ -324,11 +325,13 @@ function InUseRow({
     const full = `${item.orgName} · ${item.host}`
     return (
       <li className="worker-impact-row">
-        <span className="worker-impact-capture-map" title={full}>
-          <span className="worker-impact-org-name">{truncateLabel(item.orgName, 24)}</span>
-          <span className="muted worker-impact-capture-sep"> · </span>
-          <code className="worker-impact-pair">{item.host}</code>
-        </span>
+        <AppHoverHint content={full}>
+          <span className="worker-impact-capture-map cursor-help">
+            <span className="worker-impact-org-name">{truncateLabel(item.orgName, 24)}</span>
+            <span className="muted worker-impact-capture-sep"> · </span>
+            <code className="worker-impact-pair">{item.host}</code>
+          </span>
+        </AppHoverHint>
       </li>
     )
   }

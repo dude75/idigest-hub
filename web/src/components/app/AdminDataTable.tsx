@@ -45,6 +45,54 @@ export const adminTableCellNum = 'text-right tabular-nums'
 export const adminTableCellActions = 'w-[1%] text-right whitespace-nowrap'
 export const adminTableCellBadges = cn('whitespace-normal min-w-[9rem] max-w-[16rem]')
 
+export const adminTruncateHintClass =
+  'cursor-help underline decoration-dotted decoration-muted-foreground/60 underline-offset-2'
+
+/** Truncated table/list text with HoverCard detail (replaces native `title`). */
+export function AdminTruncateHint({
+  hint,
+  className,
+  contentClassName,
+  children,
+}: {
+  hint?: ReactNode
+  className?: string
+  contentClassName?: string
+  children: ReactNode
+}) {
+  const el = <span className={cn('block truncate', adminTruncateHintClass, className)}>{children}</span>
+  if (hint == null || hint === '') {
+    return el
+  }
+  return (
+    <AppHoverHint content={hint} contentClassName={contentClassName}>
+      {el}
+    </AppHoverHint>
+  )
+}
+
+export function AdminTableCellHint({
+  hint,
+  className,
+  hintClassName,
+  contentClassName,
+  children,
+}: {
+  hint?: ReactNode
+  className?: string
+  hintClassName?: string
+  contentClassName?: string
+  children: ReactNode
+}) {
+  return (
+    <TableCell className={className}>
+      <AdminTruncateHint hint={hint} className={hintClassName} contentClassName={contentClassName}>
+        {children}
+      </AdminTruncateHint>
+    </TableCell>
+  )
+}
+
 export function AdminTableHeadHint({
   hint,
   className,

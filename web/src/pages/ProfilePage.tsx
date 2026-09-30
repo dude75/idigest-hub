@@ -487,9 +487,7 @@ export function ProfilePage() {
           <CardHeader className="space-y-2">
             <CardDescription className="stat-label m-0">{t('common.email')}</CardDescription>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <CardTitle className="min-w-0 break-all text-lg font-semibold leading-snug" title={me.user.email}>
-                {me.user.email}
-              </CardTitle>
+              <CardTitle className="min-w-0 break-all text-lg font-semibold leading-snug">{me.user.email}</CardTitle>
               {roleBadge ? <HubBadge tone={roleBadgeTone}>{roleBadge}</HubBadge> : null}
             </div>
           </CardHeader>

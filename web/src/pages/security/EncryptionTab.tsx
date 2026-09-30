@@ -4,6 +4,7 @@ import { api } from '../../api'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
 import {
   AdminDataTable,
+  AdminTruncateHint,
   TableBody,
   TableCell,
   TableHead,
@@ -221,7 +222,9 @@ export function EncryptionTab() {
                 <TableRow key={row.id}>
                   <TableCell className={adminTableCellPrimary}>
                     <AdminMetaRow>
-                      <code className="text-xs">{row.id.slice(0, 8)}…</code>
+                      <AdminTruncateHint hint={row.id} className="inline max-w-[8rem]">
+                        <code className="text-xs">{row.id.slice(0, 8)}…</code>
+                      </AdminTruncateHint>
                       {deks.active_dek_id === row.id ? (
                         <HubBadge tone="success">{t('encryption.active')}</HubBadge>
                       ) : null}

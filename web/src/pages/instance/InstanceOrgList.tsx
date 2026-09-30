@@ -4,6 +4,8 @@ import { ChevronDown, MoreHorizontal } from 'lucide-react'
 import { api } from '../../api'
 import {
   AdminDataTable,
+  AdminTableCellHint,
+  AdminTruncateHint,
   TableBody,
   TableCell,
   TableHead,
@@ -94,9 +96,13 @@ function OrgMembersTable({
       <TableBody>
         {members.map((u) => (
           <TableRow key={u.id}>
-            <TableCell className="max-w-[min(24rem,40vw)] truncate font-medium" title={u.email}>
+            <AdminTableCellHint
+              hint={u.email}
+              className="max-w-[min(24rem,40vw)] font-medium"
+              hintClassName="max-w-[min(24rem,40vw)]"
+            >
               {u.email}
-            </TableCell>
+            </AdminTableCellHint>
             <TableCell>
               {!u.is_instance_admin ? (
                 <AppSelect
@@ -323,9 +329,9 @@ export function InstanceOrgList({
                   </Button>
                 </TableCell>
                 <TableCell className={adminTableCellPrimary}>
-                  <span className="block max-w-[min(14rem,28vw)] truncate" title={org.name}>
+                  <AdminTruncateHint hint={org.name} className="max-w-[min(14rem,28vw)]">
                     {org.name}
-                  </span>
+                  </AdminTruncateHint>
                   {org.hidden ? (
                     <AdminMetaRow className="mt-1">
                       <HubBadge tone="pending">{t('library.hidden')}</HubBadge>

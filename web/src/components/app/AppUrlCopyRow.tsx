@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { AppHoverHint } from '@/components/app/AppHoverHint'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
@@ -41,6 +42,32 @@ function CopyButton({ text, disabled }: { text: string; disabled?: boolean }) {
   )
 }
 
+function UrlCodeValue({
+  value,
+  display,
+  id,
+  className,
+}: {
+  value: string
+  display: string
+  id?: string
+  className: string
+}) {
+  const code = (
+    <code className={cn(className, value && 'cursor-help')} id={id}>
+      {display}
+    </code>
+  )
+  if (!value) {
+    return code
+  }
+  return (
+    <AppHoverHint content={value} contentClassName="max-w-md break-all font-normal">
+      {code}
+    </AppHoverHint>
+  )
+}
+
 /** Monospace value + copy — inline (`public-link-url-row`) or labeled SSO grid row. */
 export function AppUrlCopyRow({
   value,
@@ -56,9 +83,7 @@ export function AppUrlCopyRow({
     return (
       <div className={cn('sso-url-row', className)}>
         <span className="sso-url-label">{label}</span>
-        <code className="sso-url-value" title={value || undefined} id={id}>
-          {display}
-        </code>
+        <UrlCodeValue value={value} display={display} id={id} className="sso-url-value" />
         <CopyButton text={value} disabled={disabled} />
       </div>
     )
@@ -66,9 +91,7 @@ export function AppUrlCopyRow({
 
   return (
     <div className={cn('public-link-url-row', className)}>
-      <code className="public-link-url" title={value || undefined} id={id}>
-        {display}
-      </code>
+      <UrlCodeValue value={value} display={display} id={id} className="public-link-url" />
       <CopyButton text={value} disabled={disabled} />
     </div>
   )
