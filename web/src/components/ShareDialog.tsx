@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
@@ -43,6 +44,9 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
   const [usePin, setUsePin] = useState(false)
   const [pin, setPin] = useState('')
   const showPublic = objectType === 'summary' && (canManagePublicLink ?? false)
+  const bodyRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [pageScroll, setPageScroll] = useState(false)
 
   async function loadShares() {
     const r = await api<{ items: ShareRecord[] }>(
@@ -69,6 +73,40 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
 
   const sharedIds = new Set(shares.map((s) => s.to_user_id))
   const available = users.filter((u) => !sharedIds.has(u.id))
+
+  useLayoutEffect(() => {
+    const body = bodyRef.current
+    const content = contentRef.current
+    if (!body) return
+
+    let raf = 0
+    const measure = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => {
+        const needsPageScroll = body.scrollHeight > body.clientHeight + 1
+        setPageScroll((prev) => (prev === needsPageScroll ? prev : needsPageScroll))
+      })
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(body)
+    if (content) ro.observe(content)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      ro.disconnect()
+    }
+  }, [
+    showPublic,
+    publicLink?.url,
+    usePin,
+    shares.length,
+    available.length,
+    users.length,
+    me?.org?.public_base_url_set,
+    me?.org?.allow_public_links,
+  ])
 
   async function submit() {
     const ids = Object.entries(picked).filter(([, v]) => v).map(([id]) => id)
@@ -137,10 +175,18 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
   }
 
   return (
-    <Modal onClose={onClose} title={t('share.title')} panelClassName="share-dialog sm:max-w-lg">
-      <div className="share-dialog-body flex flex-col gap-4">
+    <Modal
+      onClose={onClose}
+      title={t('share.title')}
+      panelClassName="share-dialog flex max-h-[min(90dvh,40rem)] flex-col overflow-hidden sm:max-w-lg"
+    >
+      <div
+        ref={bodyRef}
+        className={cn('share-dialog-body', pageScroll && 'share-dialog-body--page-scroll')}
+      >
+        <div ref={contentRef} className="share-dialog-content flex min-h-0 flex-1 flex-col gap-4">
       {showPublic && (
-        <section className="share-section">
+        <section className="share-section shrink-0">
           <h3 className="share-section-head">{t('share.publicLink')}</h3>
           {!me?.org?.public_base_url_set ? (
             <p className="muted share-panel-meta">{t('share.publicUrlMissing')}</p>
@@ -227,7 +273,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
         </section>
       )}
 
-      <section className="share-section">
+      <section className="share-section shrink-0">
         <h3 className="share-section-head">{t('share.current')}</h3>
         <div className="share-panel">
           {shares.length === 0 ? (
@@ -249,9 +295,9 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
       </section>
 
       {available.length > 0 && (
-        <section className="share-section">
+        <section className="share-section share-section-picker">
           <h3 className="share-section-head">{t('share.addMore')}</h3>
-          <div className="share-panel flex flex-col gap-3">
+          <div className="share-panel share-picker-panel flex flex-col gap-3">
             <p className="muted share-panel-meta">{t('share.pick')}</p>
             <div className="share-picker-list">
               {available.map((u) => (
@@ -268,9 +314,10 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
           </div>
         </section>
       )}
+        </div>
       </div>
 
-      <div className="share-dialog-footer">
+      <div className="share-dialog-footer shrink-0">
         {available.length > 0 && (
           <Button type="button" disabled={busy || !Object.values(picked).some(Boolean)} onClick={() => void submit()}
           >
