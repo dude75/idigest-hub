@@ -18,12 +18,14 @@ from app.services.access import can_use_audio, can_use_transcript
 from app.services.billing import assert_can_accept_task, snapshot_fields
 from app.rate_limit import enforce_write_limits, get_rate_limits
 from app.services.dispatcher import schedule_locked_tick
+from app.services.audit import write_audit
 from app.services.task_access import (
     can_manage_task as _can_manage_task,
     can_see_task as _can_see_task,
     task_list_extra as _task_list_extra,
     visible_tasks_filters as _visible_tasks_filters,
 )
+from app.services.task_retention import purge_terminal_tasks
 from app.timeutil import utcnow
 
 router = APIRouter()
@@ -363,6 +365,35 @@ def _list_tasks_filters(ctx: AuthContext, org_id: str | None, user_id: str | Non
     elif ctx.is_org_admin and user_filter:
         filters.append(Task.user_id == user_filter)
     return filters
+
+
+@router.post("/tasks/purge")
+def purge_task_history(
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+    org_id: str | None = None,
+    user_id: str | None = None,
+) -> dict:
+    if not ctx.is_instance_admin:
+        ctx.raise_error(ErrorCode.forbidden)
+    deleted = purge_terminal_tasks(
+        db,
+        org_id=(org_id or "").strip() or None,
+        user_id=(user_id or "").strip() or None,
+        retention_days=None,
+    )
+    write_audit(
+        db,
+        "tasks.purge",
+        ctx,
+        {
+            "deleted": deleted,
+            "org_id": (org_id or "").strip() or None,
+            "user_id": (user_id or "").strip() or None,
+        },
+    )
+    db.commit()
+    return {"deleted": deleted}
 
 
 @router.get("/tasks")

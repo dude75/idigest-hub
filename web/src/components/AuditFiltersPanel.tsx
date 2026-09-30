@@ -32,6 +32,7 @@ export const AUDIT_ACTIONS = [
   'summary.public_link.view',
   'org.public_links_policy',
   'org.delete',
+  'tasks.purge',
 ] as const
 
 type UserOption = { id: string; email: string }

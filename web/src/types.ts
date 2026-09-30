@@ -521,6 +521,7 @@ export type InstanceSettings = {
   import_audio_bitrate_kbps: number
   import_max_concurrent: number
   session_ttl_hours: number
+  task_history_retention_days: number
   rate_limit_enabled: boolean
   rate_limit_login_email: number
   rate_limit_login_ip: number

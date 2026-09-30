@@ -515,7 +515,8 @@
       "transcript_wipe": "Transcripción eliminada",
       "transcript_rename": "Transcripción renombrada",
       "summary_update": "Resumen actualizado",
-      "summary_delete": "Resumen eliminado"
+      "summary_delete": "Resumen eliminado",
+      "tasks_purge": "Historial de tareas borrado"
     }
   },
   "mfa": {
@@ -861,6 +862,8 @@
     "timezoneHint": "Las marcas de tiempo se convierten de UTC al desplazamiento GMT seleccionado para mostrarlas.",
     "sessionTtlHours": "TTL de sesión (horas)",
     "sessionTtlHint": "Duración deslizante de la sesión del navegador; cada solicitud autenticada extiende la caducidad. En entornos enterprise suele usarse 8–24 horas (predeterminado 24). Máximo 336 horas (14 días).",
+    "taskHistoryRetentionDays": "TTL del historial de tareas (días)",
+    "taskHistoryRetentionHint": "Elimina automáticamente filas de tareas completadas más antiguas que este plazo. 0 = no borrar automáticamente (solo limpieza manual en Tareas). No elimina audio, transcripciones, resúmenes ni cargos.",
     "legalDocumentsTitle": "Documentos legales",
     "legalDocumentsHint": "Los miembros de la organización deben aceptar los documentos activos antes de usar el servicio. Se admite Markdown; coloque las tablas en líneas separadas con una línea en blanco antes del encabezado. Editar un documento incrementa su versión y exige nueva aceptación.",
     "legalDocumentVersion": "v{{version}}",
@@ -953,6 +956,8 @@
     "filters": "Filtros",
     "filterOrg": "Organización",
     "filterUser": "Usuario",
+    "purgeHistory": "Borrar historial",
+    "purgeConfirm": "¿Eliminar todas las tareas completadas según los filtros actuales? Se conservan los cargos; no se borra contenido de la biblioteca.",
     "type": {
       "transcribe": "Transcribir",
       "summarize": "Resumir",

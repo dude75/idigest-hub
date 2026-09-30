@@ -47,6 +47,7 @@ export function InstanceSettingsTab() {
       import_max_concurrent: data.import_max_concurrent ?? DEFAULT_IMPORT_MAX_CONCURRENT,
       capture_connectors: data.capture_connectors ?? [],
       smtp_password_configured: data.smtp_password_configured ?? false,
+      task_history_retention_days: data.task_history_retention_days ?? 0,
     }
   }
 
@@ -193,6 +194,7 @@ export function InstanceSettingsTab() {
           capture_enabled: settings.capture_enabled,
           capture_allowed_connectors: settings.capture_connectors.filter((c) => c.enabled).map((c) => c.id),
           session_ttl_hours: settings.session_ttl_hours,
+          task_history_retention_days: settings.task_history_retention_days,
           date_time_format: settings.date_time_format,
           timezone: settings.timezone,
           ...(smtpPassword ? { smtp_password: smtpPassword } : {}),
@@ -245,6 +247,20 @@ export function InstanceSettingsTab() {
             value={settings.session_ttl_hours}
             onChange={(e) => setSettings({ ...settings, session_ttl_hours: Number(e.target.value) || 1 })}
             description={t('instance.sessionTtlHint')}
+          />
+          <AppInputField
+            label={t('instance.taskHistoryRetentionDays')}
+            htmlFor="instance-task-history-retention"
+            type="number"
+            min={0}
+            value={settings.task_history_retention_days ?? 0}
+            onChange={(e) =>
+              setSettings({
+                ...settings,
+                task_history_retention_days: Math.max(0, Number(e.target.value) || 0),
+              })
+            }
+            description={t('instance.taskHistoryRetentionHint')}
           />
         </div>
       </details>

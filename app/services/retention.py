@@ -1,4 +1,4 @@
-"""Удаление аудио старше лимита хранения тарифа организации."""
+"""Retention: audio по тарифу org; история tasks — см. task_retention."""
 
 from __future__ import annotations
 

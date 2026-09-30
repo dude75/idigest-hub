@@ -85,6 +85,7 @@ class InstanceSettings(Base):
     import_audio_bitrate_kbps: Mapped[int] = mapped_column(Integer, default=64, nullable=False)
     import_max_concurrent: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
     session_ttl_hours: Mapped[int] = mapped_column(Integer, default=24, nullable=False)
+    task_history_retention_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     date_time_format: Mapped[str] = mapped_column(String(16), default="eu_24h", nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), default="GMT+0", nullable=False)
     user_agreement_text_en: Mapped[str | None] = mapped_column(Text)

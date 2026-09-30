@@ -16,6 +16,7 @@ import {
 } from '../taskStage'
 import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage, taskIsRetriable } from '../util'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
 import { allOption, pageSizeOptions } from '../components/app/selectOptions'
 
@@ -73,6 +74,8 @@ export function TasksPage() {
   const [orgUsers, setOrgUsers] = useState<User[]>([])
   const [orgId, setOrgId] = useState('')
   const [userId, setUserId] = useState('')
+  const [confirmPurge, setConfirmPurge] = useState(false)
+  const [purgeBusy, setPurgeBusy] = useState(false)
   const fetchSeq = useRef(0)
   const instance = isInstanceAdmin(me)
   const admin = isOrgAdmin(me)
@@ -171,6 +174,24 @@ export function TasksPage() {
       await load()
     } catch (e) {
       showError(e)
+    }
+  }
+
+  async function purgeHistory() {
+    setPurgeBusy(true)
+    try {
+      const q = new URLSearchParams()
+      if (orgId) q.set('org_id', orgId)
+      if (userId) q.set('user_id', userId)
+      const suffix = q.toString()
+      await api<{ deleted: number }>(suffix ? `/tasks/purge?${suffix}` : '/tasks/purge', { method: 'POST' })
+      setConfirmPurge(false)
+      setPage(0)
+      await load(0, pageSize)
+    } catch (e) {
+      showError(e)
+    } finally {
+      setPurgeBusy(false)
     }
   }
 
@@ -295,7 +316,22 @@ export function TasksPage() {
         title={t('task.done')}
         empty={t('common.empty')}
         isEmpty={doneTotal === 0}
-        actions={pageSizeSelect}
+        actions={
+          <div className="flex flex-wrap items-end gap-3">
+            {instance ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="destructive"
+                disabled={doneTotal === 0}
+                onClick={() => setConfirmPurge(true)}
+              >
+                {t('task.purgeHistory')}
+              </Button>
+            ) : null}
+            {pageSizeSelect}
+          </div>
+        }
         footer={
           doneTotal > pageSize ? (
             <AdminTablePager>
@@ -318,6 +354,16 @@ export function TasksPage() {
       >
         {done.map(row)}
       </ListSection>
+      {confirmPurge ? (
+        <ConfirmDialog
+          message={t('task.purgeConfirm')}
+          confirmLabel={t('task.purgeHistory')}
+          danger
+          busy={purgeBusy}
+          onConfirm={() => void purgeHistory()}
+          onClose={() => setConfirmPurge(false)}
+        />
+      ) : null}
     </AdminPage>
   )
 }

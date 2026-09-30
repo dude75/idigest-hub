@@ -515,7 +515,8 @@
       "transcript_wipe": "Transcript deleted",
       "transcript_rename": "Transcript renamed",
       "summary_update": "Summary updated",
-      "summary_delete": "Summary deleted"
+      "summary_delete": "Summary deleted",
+      "tasks_purge": "Task history cleared"
     }
   },
   "mfa": {
@@ -857,6 +858,8 @@
     "timezoneHint": "Timestamps are converted from UTC storage to the selected GMT offset for display.",
     "sessionTtlHours": "Session TTL (hours)",
     "sessionTtlHint": "Sliding browser session lifetime. Each authenticated request extends expiry. Enterprise deployments typically use 8–24 hours (default 24). Max 336 hours (14 days).",
+    "taskHistoryRetentionDays": "Task history TTL (days)",
+    "taskHistoryRetentionHint": "Automatically removes completed task rows older than this age. 0 = keep forever (manual clear only on Tasks). Does not delete audio, transcripts, summaries, or billing entries.",
     "legalDocumentsTitle": "Legal documents",
     "legalDocumentsHint": "Organization members must accept active documents before using the service. Markdown is supported; put tables on their own lines with a blank line before the header row. Editing a document bumps its version and requires re-acceptance.",
     "legalDocumentVersion": "v{{version}}",
@@ -949,6 +952,8 @@
     "filters": "Filters",
     "filterOrg": "Organization",
     "filterUser": "User",
+    "purgeHistory": "Clear history",
+    "purgeConfirm": "Delete all completed tasks matching the current filters? Billing records are kept; library content is not removed.",
     "type": {
       "transcribe": "Transcribe",
       "summarize": "Summarize",

@@ -953,9 +953,12 @@ async def dispatcher_loop(stop_event: asyncio.Event) -> None:
                 session = SessionLocal()
                 try:
                     await tick_once(session)
+                    from app.deps import get_instance_settings
                     from app.services.retention import purge_expired_audio
+                    from app.services.task_retention import purge_expired_task_history
 
                     purge_expired_audio(session)
+                    purge_expired_task_history(session, get_instance_settings(session))
                     session.commit()
                 except Exception:
                     session.rollback()

@@ -153,6 +153,7 @@ class SettingsPatch(BaseModel):
     import_audio_bitrate_kbps: int | None = None
     import_max_concurrent: int | None = None
     session_ttl_hours: int | None = None
+    task_history_retention_days: int | None = None
     date_time_format: str | None = None
     timezone: str | None = None
     user_agreement_text_en: str | None = None
@@ -854,6 +855,7 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "import_audio_bitrate_kbps": bitrate,
         "import_max_concurrent": normalize_import_max_concurrent(s.import_max_concurrent),
         "session_ttl_hours": s.session_ttl_hours,
+        "task_history_retention_days": s.task_history_retention_days,
         "date_time_format": s.date_time_format,
         "timezone": s.timezone,
         "user_agreement_text_en": s.user_agreement_text_en,
@@ -1006,6 +1008,11 @@ def patch_settings(
             s.session_ttl_hours = normalize_session_ttl_hours(data.pop("session_ttl_hours"))
         except ValueError:
             ctx.raise_error(ErrorCode.validation_error)
+    if "task_history_retention_days" in data:
+        days = data.pop("task_history_retention_days")
+        if days is None or int(days) < 0:
+            ctx.raise_error(ErrorCode.validation_error)
+        s.task_history_retention_days = int(days)
     if "date_time_format" in data:
         from app.datetime_format import DATE_TIME_FORMATS, normalize_date_time_format
 
