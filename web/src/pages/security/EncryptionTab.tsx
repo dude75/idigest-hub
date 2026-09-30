@@ -27,6 +27,7 @@ type DekList = {
   running_job_id: string | null
   deks_pending_rewrap: number
   hub_secret_prev_configured: boolean
+  reencrypt_available: boolean
 }
 
 function dekStatusBadge(status: string, t: (key: string, opts?: { defaultValue?: string }) => string): string {
@@ -67,8 +68,15 @@ export function EncryptionTab() {
     return () => window.clearInterval(timer)
   }, [job, load])
 
-  const retiring = deks?.items.some((d) => d.status === 'retiring') ?? false
-  const jobRunning = job?.status === 'queued' || job?.status === 'running'
+  const jobRunning =
+    Boolean(deks?.running_job_id) || job?.status === 'queued' || job?.status === 'running'
+
+  /** Single active DEK → nothing to migrate; server sets reencrypt_available when retiring DEKs exist. */
+  const canReencrypt = Boolean(
+    deks &&
+      deks.items.length > 1 &&
+      (deks.reencrypt_available ?? deks.items.some((d) => d.status === 'retiring')),
+  )
 
   const activeDek = useMemo(() => {
     if (!deks?.active_dek_id) return null
@@ -161,7 +169,12 @@ export function EncryptionTab() {
           <Button type="button" disabled={busy || jobRunning} onClick={() => void addDek()}>
             {t('encryption.addDek')}
           </Button>
-          <Button type="button" variant="outline" disabled={busy || jobRunning || !retiring} onClick={() => void startReencrypt()}>
+          <Button
+            type="button"
+            variant={canReencrypt ? 'default' : 'outline'}
+            disabled={busy || jobRunning || !canReencrypt}
+            onClick={() => void startReencrypt()}
+          >
             {t('encryption.reencrypt')}
           </Button>
         </AdminFormActions>

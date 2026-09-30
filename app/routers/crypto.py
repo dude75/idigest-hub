@@ -41,12 +41,14 @@ def list_deks(db: Session = Depends(get_session, scope="function"), ctx: AuthCon
     _admin(ctx)
     settings = get_instance_settings(db)
     rows = list(db.scalars(select(DataEncryptionKey).order_by(DataEncryptionKey.created_at.desc())).all())
+    has_retiring = any(row.status == "retiring" for row in rows)
     return {
         "active_dek_id": settings.active_dek_id,
         "items": [dek_public(row, usage_count=count_dek_usage(db, row.id)) for row in rows],
         "running_job_id": active_job_id(),
         "deks_pending_rewrap": count_deks_needing_rewrap(db),
         "hub_secret_prev_configured": bool(get_settings().HUB_SECRET_PREV),
+        "reencrypt_available": has_retiring and active_job_id() is None,
     }
 
 

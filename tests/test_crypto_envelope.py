@@ -89,10 +89,20 @@ def test_add_dek_and_reencrypt_job(client):
     finally:
         db.close()
 
+    r = client.get("/api/v1/instance/crypto/deks")
+    assert r.status_code == 200
+    assert r.json()["reencrypt_available"] is False
+
     r = client.post("/api/v1/instance/crypto/deks")
     assert r.status_code == 200
     new_dek_id = r.json()["id"]
     assert new_dek_id != old_dek
+
+    r = client.get("/api/v1/instance/crypto/deks")
+    assert r.status_code == 200
+    deks = r.json()
+    assert len(deks["items"]) >= 2
+    assert deks["reencrypt_available"] is True
 
     r = client.post("/api/v1/instance/crypto/reencrypt")
     assert r.status_code == 200
