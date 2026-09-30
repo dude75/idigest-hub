@@ -27,6 +27,40 @@ def test_worker_probe_lists_models(client):
     assert {item["id"] for item in body["diarization_models"]} == {"nemo", "pyannote"}
 
 
+def test_worker_probe_worker_unreachable(client, monkeypatch):
+    from app.services.workers import WorkerClientError
+
+    setup_admin(client)
+
+    async def _fail(_base_url: str, _api_token: str) -> None:
+        raise WorkerClientError("http", 502, {})
+
+    monkeypatch.setattr("app.services.workers.verify_worker_token", _fail)
+    probed = client.post(
+        "/api/v1/workers/probe",
+        json={"type": "transcribe", "base_url": "http://worker.test", "api_token": "tok"},
+    )
+    assert probed.status_code == 502, probed.text
+    assert probed.json()["error"]["code"] == "worker_unreachable"
+
+
+def test_worker_probe_token_rejected(client, monkeypatch):
+    from app.services.workers import WorkerClientError
+
+    setup_admin(client)
+
+    async def _reject(_base_url: str, _api_token: str) -> None:
+        raise WorkerClientError("error_status", 401, {"error": {"code": "unauthorized"}})
+
+    monkeypatch.setattr("app.services.workers.verify_worker_token", _reject)
+    probed = client.post(
+        "/api/v1/workers/probe",
+        json={"type": "transcribe", "base_url": "http://worker.test", "api_token": "bad"},
+    )
+    assert probed.status_code == 400, probed.text
+    assert probed.json()["error"]["code"] == "worker_token_rejected"
+
+
 def test_worker_create_requires_asr_models(client):
     setup_admin(client)
     missing = client.post(

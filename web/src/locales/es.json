@@ -1111,6 +1111,8 @@
     "meeting_host_not_configured": "Este host de reunión no está configurado para su organización. Pida al admin de org que lo añada.",
     "capture_no_worker": "No hay worker de capture para este tipo de reunión. Admin de instancia: active telemost en el worker y en ajustes.",
     "invalid_capture_worker": "Elija un worker de capture de la lista (regístrelo en Instance → Workers si está vacía).",
+    "worker_token_rejected": "El worker rechazó el token de API. Compruebe el token en el worker.",
+    "worker_unreachable": "No se pudo contactar con el worker. Compruebe la URL, la red y que el worker esté en marcha.",
     "meeting_use_capture": "Este enlace es una reunión Jitsi. Use «Grabar reunión» arriba, no la importación por URL.",
     "proxy_unavailable": "El proxy de descarga no está disponible. La importación por URL está desactivada temporalmente.",
     "generic": "Algo salió mal."

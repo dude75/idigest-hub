@@ -217,6 +217,14 @@ def _resolve_worker_token(body: WorkerProbeBody | WorkerBody, node: WorkerNode |
     ctx.raise_error(ErrorCode.validation_error)
 
 
+def _raise_worker_connect_error(ctx: AuthContext, exc: object) -> None:
+    from app.services.workers import WorkerClientError
+
+    if isinstance(exc, WorkerClientError) and exc.kind == "error_status" and exc.status_code == 401:
+        ctx.raise_error(ErrorCode.worker_token_rejected)
+    ctx.raise_error(ErrorCode.worker_unreachable)
+
+
 def _apply_transcribe_worker_models(
     node: WorkerNode,
     body: WorkerBody,
@@ -381,12 +389,10 @@ async def probe_worker(
     try:
         await verify_worker_token(base_url, token)
     except WorkerClientError as exc:
-        if exc.status_code == 401:
-            ctx.raise_error(ErrorCode.validation_error)
-        raise
+        _raise_worker_connect_error(ctx, exc)
     status, health = await get_health_url(base_url)
     if status != 200:
-        ctx.raise_error(ErrorCode.validation_error)
+        ctx.raise_error(ErrorCode.worker_unreachable)
     payload: dict = {"authorized": True, "health_status": status}
     if body.type == "transcribe":
         payload.update(parse_worker_engines(health))
@@ -424,9 +430,7 @@ async def create_worker(
         try:
             await verify_worker_token(base_url, body.api_token)
         except WorkerClientError as exc:
-            if exc.status_code == 401:
-                ctx.raise_error(ErrorCode.validation_error)
-            raise
+            _raise_worker_connect_error(ctx, exc)
         if body.type == "transcribe" and not body.asr_models:
             ctx.raise_error(ErrorCode.validation_error)
         if body.type == "capture" and not body.capture_connectors:
@@ -481,9 +485,7 @@ async def patch_worker(
         try:
             await verify_worker_token(base_url, token)
         except WorkerClientError as exc:
-            if exc.status_code == 401:
-                ctx.raise_error(ErrorCode.validation_error)
-            raise
+            _raise_worker_connect_error(ctx, exc)
     node.type = body.type
     node.name = body.name.strip()
     node.base_url = base_url

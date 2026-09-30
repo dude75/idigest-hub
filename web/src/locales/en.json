@@ -1107,6 +1107,8 @@
     "meeting_host_not_configured": "This meeting host is not configured for your organization. Ask an org admin to add it.",
     "capture_no_worker": "No capture worker is available for this meeting type. Instance admin: enable telemost on the worker and in instance settings.",
     "invalid_capture_worker": "Choose a capture worker from the list (register one under Instance → Workers if empty).",
+    "worker_token_rejected": "The worker rejected the API token. Check the token on the worker side.",
+    "worker_unreachable": "Could not reach the worker. Check the base URL, network, and that the worker is running.",
     "meeting_use_capture": "This link is a Jitsi meeting. Use “Record meeting” above, not URL import.",
     "proxy_unavailable": "Download proxy is unavailable. URL import is temporarily disabled.",
     "generic": "Something went wrong."

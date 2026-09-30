@@ -58,6 +58,8 @@ class ErrorCode(str, Enum):
     meeting_host_not_configured = "meeting_host_not_configured"
     capture_no_worker = "capture_no_worker"
     invalid_capture_worker = "invalid_capture_worker"
+    worker_token_rejected = "worker_token_rejected"
+    worker_unreachable = "worker_unreachable"
     meeting_use_capture = "meeting_use_capture"
     proxy_unavailable = "proxy_unavailable"
     mfa_required = "mfa_required"
@@ -118,6 +120,8 @@ HTTP_STATUS: dict[ErrorCode, int] = {
     ErrorCode.meeting_host_not_configured: 400,
     ErrorCode.capture_no_worker: 503,
     ErrorCode.invalid_capture_worker: 400,
+    ErrorCode.worker_token_rejected: 400,
+    ErrorCode.worker_unreachable: 502,
     ErrorCode.meeting_use_capture: 400,
     ErrorCode.proxy_unavailable: 503,
     ErrorCode.invalid_totp: 401,
