@@ -339,7 +339,7 @@ export function MicrophoneRecordModal({ onClose, onSave, busy }: Props) {
       description={t('library.recordHint')}
       onClose={handleClose}
       closeOnBackdrop={!recording && !paused}
-      panelClassName="sm:max-w-xl"
+      panelClassName="mic-record-modal sm:max-w-xl font-sans bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none"
     >
       <div className="flex min-w-0 flex-col gap-4">
         <div
@@ -361,12 +361,12 @@ export function MicrophoneRecordModal({ onClose, onSave, busy }: Props) {
             }
           }}
           className={cn(
-            'mic-record-panel flex w-full min-w-0 flex-col items-center gap-3 overflow-hidden rounded-xl border bg-card/50 px-4 py-5 outline-none',
+            'mic-record-panel flex w-full min-w-0 flex-col items-center gap-3 overflow-hidden rounded-xl border bg-card px-4 py-5 shadow-xs outline-none',
             recording && 'mic-record-panel--recording',
             paused && 'mic-record-panel--paused',
             (starting || switchingDevice) && 'mic-record-panel--starting',
             canToggleFromPanel &&
-              'cursor-pointer transition-colors hover:bg-card/70 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              'cursor-pointer transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
           )}
         >
           <MicrophoneLevelVisualizer stream={captureStream} mode={vizMode} className="w-full" />

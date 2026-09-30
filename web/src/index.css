@@ -608,7 +608,8 @@ a.brand:hover,
 }
 .library-ingest,
 .profile-identity,
-.stat-card {
+.stat-card,
+.mic-record-modal {
   --primary: var(--foreground);
 }
 .library-ingest [data-slot='input'] {
