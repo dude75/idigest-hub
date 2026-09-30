@@ -15,7 +15,6 @@ import {
 } from '../../components/app/AdminDataTable'
 import { AuditFiltersPanel, auditActionLabel } from '../../components/AuditFiltersPanel'
 import { StatCard, StatGrid } from '../../components/StatCard'
-import { StatsPeriodCaption } from '../../components/StatsPeriodCaption'
 import type { AuditLogEntry, Org } from '../../types'
 import { defaultFilterRange } from '../../util/date'
 import { formatInteger, fmtDate, showError } from '../../util'
@@ -154,7 +153,7 @@ export function AuditLogTab() {
         }}
       />
 
-      <StatGrid caption={<StatsPeriodCaption fromDay={fromDay} toDay={toDay} />}>
+      <StatGrid>
         <StatCard label={t('audit.eventsTotal')} value={formatInteger(total)} tone="ops" />
       </StatGrid>
 

@@ -70,8 +70,6 @@ export function StatsPage() {
             amount={stats.total_amount}
             amountLabelKey="stats.statSpent"
             amountTooltipKey="stats.spent"
-            fromDay={fromDay}
-            toDay={toDay}
           />
           <StatsDaysView days={stats.days} />
         </>

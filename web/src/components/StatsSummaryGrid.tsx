@@ -1,6 +1,5 @@
 import { useTranslation } from 'react-i18next'
 import { StatCard, StatGrid } from './StatCard'
-import { StatsPeriodCaption } from './StatsPeriodCaption'
 import { formatDecimal, formatInteger, fmtMediaTime } from '../util'
 
 type Props = {
@@ -11,8 +10,6 @@ type Props = {
   amount: string
   amountLabelKey: string
   amountTooltipKey: string
-  fromDay: string
-  toDay: string
   tooltipPrefix?: 'stats' | 'instance'
 }
 
@@ -24,14 +21,12 @@ export function StatsSummaryGrid({
   amount,
   amountLabelKey,
   amountTooltipKey,
-  fromDay,
-  toDay,
   tooltipPrefix = 'stats',
 }: Props) {
   const { t } = useTranslation()
 
   return (
-    <StatGrid caption={<StatsPeriodCaption fromDay={fromDay} toDay={toDay} />}>
+    <StatGrid>
       <StatCard
         label={t('stats.statTranscribe')}
         title={t(`${tooltipPrefix}.transcribeDone`)}

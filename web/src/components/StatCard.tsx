@@ -54,13 +54,11 @@ export function StatCard({ label, value, unit, title, tone = 'default', valueCla
 
 type StatGridProps = {
   children: ReactNode
-  caption?: ReactNode
 }
 
-export function StatGrid({ children, caption }: StatGridProps) {
+export function StatGrid({ children }: StatGridProps) {
   return (
     <div className="stat-block">
-      {caption ? <div className="stat-caption">{caption}</div> : null}
       <div className="stat-grid">{children}</div>
     </div>
   )

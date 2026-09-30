@@ -444,10 +444,7 @@
     "statChars": "Characters",
     "statSpent": "Charged",
     "statUsage": "Usage",
-    "tasksUnit": "tasks",
-    "periodRange": "{{from}} — {{to}}",
-    "periodFrom": "From {{from}}",
-    "periodTo": "Until {{to}}"
+    "tasksUnit": "tasks"
   },
   "security": {
     "title": "Security",

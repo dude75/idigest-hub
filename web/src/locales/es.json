@@ -444,10 +444,7 @@
     "statChars": "Caracteres",
     "statSpent": "Cobrado",
     "statUsage": "Uso",
-    "tasksUnit": "tareas",
-    "periodRange": "{{from}} — {{to}}",
-    "periodFrom": "Desde {{from}}",
-    "periodTo": "Hasta {{to}}"
+    "tasksUnit": "tareas"
   },
   "security": {
     "title": "Seguridad",

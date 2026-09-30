@@ -112,8 +112,6 @@ export function InstanceStatsTab() {
             amount={stats.usage_total}
             amountLabelKey="stats.statUsage"
             amountTooltipKey="instance.usage"
-            fromDay={fromDay}
-            toDay={toDay}
             tooltipPrefix="instance"
           />
           <StatsDaysView

@@ -444,10 +444,7 @@
     "statChars": "Символы",
     "statSpent": "Списано",
     "statUsage": "Списано",
-    "tasksUnit": "задач",
-    "periodRange": "{{from}} — {{to}}",
-    "periodFrom": "С {{from}}",
-    "periodTo": "По {{to}}"
+    "tasksUnit": "задач"
   },
   "security": {
     "title": "Безопасность",

@@ -4,7 +4,6 @@ import type { Org, OrgLedger, OrgLedgerEntry } from '../types'
 import { formatDecimal, formatInteger, fmtDate, fmtMediaTime, WalletLabel } from '../util'
 import { StatCard, StatGrid } from './StatCard'
 import { StatsFiltersPanel } from './StatsFiltersPanel'
-import { StatsPeriodCaption } from './StatsPeriodCaption'
 import {
   AdminDataTable,
   TableBody,
@@ -103,7 +102,7 @@ export function OrgLedgerModal({
           <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
         ) : (
           <div className="flex flex-col gap-4">
-            <StatGrid caption={<StatsPeriodCaption fromDay={fromDay} toDay={toDay} />}>
+            <StatGrid>
               <StatCard
                 label={t('stats.statSpent')}
                 title={t('instance.ledgerTotalSpent')}
