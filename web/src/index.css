@@ -1637,22 +1637,6 @@ button.icon-btn {
 }
 button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 
-.org-cards {
-  display: grid;
-  gap: 0.5rem;
-}
-.admin-table-card .org-cards-embedded {
-  gap: 0;
-}
-.admin-table-card .org-cards-embedded .org-card {
-  border: none;
-  border-radius: 0;
-  border-top: 1px solid var(--line);
-  background: transparent;
-}
-.admin-table-card .org-cards-embedded .org-card:first-child {
-  border-top: none;
-}
 .admin-table-card .task-list-embedded {
   gap: 0;
 }
@@ -1711,170 +1695,91 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 .stat-card {
   box-shadow: none;
 }
-.org-card {
-  display: grid;
-  grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr);
-  align-items: start;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-.org-tile {
-  padding: 0.75rem 0.85rem;
-  min-width: 0;
-}
-.org-tile-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  min-height: 100%;
-  background: linear-gradient(180deg, #f8fafc 0%, var(--card) 100%);
-  border-right: 1px solid var(--line);
-}
-.org-tile-ops {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  justify-content: flex-start;
-}
-.org-card-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 650;
-  line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.org-card-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem 0.45rem;
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-.org-card-meta .wallet-label {
-  font-size: inherit;
-}
-.org-balance {
-  font-weight: 650;
-  font-variant-numeric: tabular-nums;
-}
-.org-member-count { font-size: 0.75rem; }
-.org-card-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
-  margin-top: auto;
-  max-width: 100%;
-}
-.org-card-foot [data-slot='button'] {
-  max-width: 100%;
-  height: auto;
-  min-height: 0;
-  justify-content: flex-start;
-  white-space: normal;
-  text-align: left;
-  line-height: 1.35;
-  text-decoration: none;
-}
-.org-card-foot [data-slot='button']:hover {
-  text-decoration: none;
-}
-.org-ops-toolbar {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
-  gap: 0.65rem;
-  align-items: end;
-}
-.org-ops-field {
-  display: grid;
-  gap: 0.2rem;
-  margin: 0;
-  min-width: 0;
-  font-size: 0.75rem;
+.instance-org-table .instance-org-expand {
   color: var(--hub-muted);
 }
-.org-ops-field [data-slot="select-trigger"],
-.org-ops-field input {
+.instance-org-row-detail > td {
+  border-top: none;
+  vertical-align: top;
+}
+.instance-org-detail {
+  padding: 0.65rem 1rem 0.85rem;
+  background: color-mix(in oklch, var(--muted) 35%, transparent);
+  border-top: 1px dashed var(--line);
+}
+.instance-org-detail-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.instance-org-field {
+  flex: 1 1 11rem;
+  min-width: 0;
+  max-width: 14rem;
+  font-size: 0.75rem;
+}
+.instance-org-field-wallet {
+  flex: 1 1 13rem;
+  max-width: 18rem;
+}
+.instance-org-field [data-slot='select-trigger'],
+.instance-org-field input {
   width: 100%;
-  padding: 0.4rem 0.5rem;
   font-size: 0.88rem;
 }
-.org-wallet-inline {
+.instance-org-wallet-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.35rem;
   align-items: center;
 }
-.org-wallet-inline input {
-  min-width: 0;
+.instance-org-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-left: auto;
 }
-.org-wallet-inline button {
-  white-space: nowrap;
-  padding: 0.4rem 0.65rem;
-  font-size: 0.85rem;
+.instance-org-detail-users-head {
+  margin-bottom: 0.4rem;
 }
-.org-users {
+.instance-org-detail-users-title {
   margin: 0;
-  border-top: 1px dashed var(--line);
-  padding-top: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
-.org-users > summary {
-  cursor: pointer;
-  font-size: 0.78rem;
+.instance-org-empty-members {
+  margin: 0;
+  padding: 0.5rem 0;
+  font-size: 0.8rem;
   color: var(--hub-muted);
-  user-select: none;
 }
-.org-users[open] > summary { color: var(--ink); }
-.org-users-table-wrap {
-  margin-top: 0.35rem;
+.instance-org-users-table {
+  font-size: 0.8rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
 }
-.org-users-table {
-  font-size: 0.78rem;
-}
-.org-users-table th,
-.org-users-table td {
-  padding: 0.35rem 0.45rem;
+.instance-org-users-table th,
+.instance-org-users-table td {
+  padding: 0.4rem 0.55rem;
   vertical-align: middle;
 }
-.org-users-table td.org-users-email {
-  max-width: 14rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.org-users-table td.org-users-status {
-  white-space: nowrap;
-}
-.org-users-table td.org-users-status .badge + .badge {
-  margin-left: 0.2rem;
-}
-.org-users-table td.org-users-action {
-  white-space: nowrap;
-  width: 1%;
-}
-.org-users-table [data-slot="select-trigger"] {
-  font-size: 0.75rem;
-  max-width: 8rem;
-}
-.org-users-table button {
-  padding: 0.15rem 0.4rem;
-  font-size: 0.75rem;
-  white-space: nowrap;
+.org-balance {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
 }
 @media (max-width: 720px) {
-  .org-ops-toolbar { grid-template-columns: 1fr; }
-}
-@media (max-width: 640px) {
-  .org-card { grid-template-columns: 1fr; }
-  .org-tile-info {
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-    min-height: 0;
+  .instance-org-detail-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+  .instance-org-field,
+  .instance-org-field-wallet {
+    max-width: none;
+    flex-basis: 100%;
   }
 }
 
@@ -2674,7 +2579,6 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 .admin-page > .admin-form-card,
 .admin-page > .admin-table-card,
 .admin-page > .admin-section-card,
-.admin-page > .org-cards,
 .admin-page > .org-fold,
 .admin-page > .org-settings-stack,
 .admin-page > .profile-identity,

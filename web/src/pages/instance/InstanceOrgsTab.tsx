@@ -3,36 +3,21 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
 import { useAuth } from '../../auth'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
-import {
-  AdminDataTable,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  adminTableCellActions,
-  adminTableCellBadges,
-  adminTableHeadActions,
-} from '../../components/app/AdminDataTable'
-import { AdminFormActions, AppSubmitButton, HubBadge } from '../../components/app/AdminUi'
-import { AppHoverHint } from '../../components/app/AppHoverHint'
+import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Modal } from '../../components/Modal'
-import { UserStatusBadges } from '../../components/UserAgreementBadge'
 import { OrgLedgerModal } from '../../components/OrgLedgerModal'
+import { InstanceOrgList } from './InstanceOrgList'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import type { Org, OrgLedger, Tariff, User } from '../../types'
 import { defaultFilterRange } from '../../util/date'
 import { randomPassword } from '../../util/password'
-import { formatInteger, showError, WalletLabel } from '../../util'
-import { canAdminResetMemberMfa } from '../../mfa'
+import { formatInteger, showError } from '../../util'
 import { emptyOrg } from './constants'
 import { Button } from '@/components/ui/button'
-import { AppSelect } from '../../components/app/AppSelect'
 import { AppCheckboxRow, AppInputField, AppSelectField } from '../../components/app/AppFormControls'
 import { AppField } from '../../components/app/AppField'
 import { AppUrlCopyRow } from '../../components/app/AppUrlCopyRow'
-import { Input } from '@/components/ui/input'
 
 export function InstanceOrgsTab() {
   const { t } = useTranslation()
@@ -58,6 +43,7 @@ export function InstanceOrgsTab() {
   const [createBusy, setCreateBusy] = useState(false)
   const [orgFormOpen, setOrgFormOpen] = useState(false)
   const orgFormRef = useRef<HTMLDivElement>(null)
+  const [expandedOrgId, setExpandedOrgId] = useState<string | null>(null)
 
   const activeTariffs = useMemo(
     () => tariffs.filter((tr) => !tr.archived),
@@ -282,173 +268,21 @@ export function InstanceOrgsTab() {
         }
       >
         {orgs.length > 0 ? (
-          <div className="org-cards org-cards-embedded">
-        {orgs.map((o) => (
-          <article className="org-card" key={o.id}>
-            <section className="org-tile org-tile-info">
-              <h3 className="org-card-title">{o.name}</h3>
-              <div className="org-card-meta">
-                <HubBadge tone="muted">{o.tariff.name}</HubBadge>
-                <WalletLabel unlimited={o.unlimited} balance={o.balance} />
-                {o.hidden ? <HubBadge tone="pending">{t('library.hidden')}</HubBadge> : null}
-                <span className="muted org-member-count">
-                  {t('instance.users')} · {formatInteger((o.members || []).length)}
-                </span>
-              </div>
-              <div className="org-card-foot">
-                <Button
-                  type="button"
-                  variant="link"
-                  size="sm"
-                  className="h-auto px-0 text-sm text-primary"
-                  onClick={() => openOrgCard(o)}
-                >
-                  {t('instance.ledger')} →
-                </Button>
-                <AppHoverHint content={t('instance.orgHideHint')}>
-                  <Button
-                    type="button"
-                    variant="link"
-                    size="sm"
-                    className="h-auto px-0 text-sm text-muted-foreground"
-                    onClick={() => void toggleOrgHidden(o)}
-                  >
-                    {o.hidden ? t('common.unhide') : t('common.hide')}
-                  </Button>
-                </AppHoverHint>
-                <AppHoverHint content={t('instance.orgDeleteHint')}>
-                  <Button
-                    type="button"
-                    variant="link"
-                    size="sm"
-                    className="h-auto px-0 text-sm text-destructive"
-                    onClick={() => openDeleteOrg(o)}
-                  >
-                    {t('instance.orgDelete')}
-                  </Button>
-                </AppHoverHint>
-              </div>
-            </section>
-            <section className="org-tile org-tile-ops">
-              <div className="org-ops-toolbar">
-                <div className="org-ops-field">
-                  <AppSelectField
-                    label={t('org.tariff')}
-                    htmlFor={`org-tariff-${o.id}`}
-                    value={o.tariff.id}
-                    onValueChange={(tariff_id) =>
-                      void api(`/orgs/${o.id}/tariff`, { method: 'PATCH', body: JSON.stringify({ tariff_id }) }).then(load)
-                    }
-                    options={tariffs.map((tr) => ({ value: tr.id, label: tr.name }))}
-                  />
-                </div>
-                <div className="org-ops-field">
-                  <AppField label={t('instance.walletDelta')} htmlFor={`org-wallet-${o.id}`}>
-                    <div className="org-wallet-inline">
-                      <Input
-                        id={`org-wallet-${o.id}`}
-                        placeholder="+100"
-                        value={deltas[o.id] || ''}
-                        onChange={(e) => setDeltas((d) => ({ ...d, [o.id]: e.target.value }))}
-                      />
-                      <Button type="button" onClick={() => void api(`/orgs/${o.id}/wallet`, { method: 'POST', body: JSON.stringify({ delta: deltas[o.id] }) }).then(load)}
-                      >
-                        {t('instance.apply')}
-                      </Button>
-                    </div>
-                  </AppField>
-                </div>
-              </div>
-              {(o.members || []).length > 0 && (
-                <details className="org-users">
-                  <summary>{t('instance.users')}</summary>
-                  <div className="org-users-table-wrap">
-                    <AdminDataTable className="org-users-table">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('common.email')}</TableHead>
-                          <TableHead>{t('common.role')}</TableHead>
-                          <TableHead>{t('common.status')}</TableHead>
-                          <TableHead className={adminTableHeadActions}>{t('instance.impersonate')}</TableHead>
-                          <TableHead className={adminTableHeadActions}>{t('org.resetPassword')}</TableHead>
-                          <TableHead className={adminTableHeadActions}>{t('org.resetMfa')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(o.members || []).map((u) => (
-                          <TableRow key={u.id}>
-                            <TableCell className="org-users-email max-w-[14rem] truncate" title={u.email}>
-                              {u.email}
-                            </TableCell>
-                            <TableCell>
-                              {!u.is_instance_admin ? (
-                                <AppSelect
-                                  id={`org-user-role-${u.id}`}
-                                  className="h-8 min-w-[8rem]"
-                                  value={u.role ?? 'org_member'}
-                                  onValueChange={(role) =>
-                                    void api(`/orgs/${o.id}/users/${u.id}`, {
-                                      method: 'PATCH',
-                                      body: JSON.stringify({ role }),
-                                    })
-                                      .then(load)
-                                      .catch(showError)
-                                  }
-                                  options={[
-                                    { value: 'org_admin', label: t('org.roleAdmin') },
-                                    { value: 'org_member', label: t('org.roleMember') },
-                                  ]}
-                                />
-                              ) : (
-                                <HubBadge tone="muted">{u.role}</HubBadge>
-                              )}
-                            </TableCell>
-                            <TableCell className={adminTableCellBadges}>
-                              <UserStatusBadges user={u} />
-                            </TableCell>
-                            <TableCell className={adminTableCellActions}>
-                              {!u.is_instance_admin ? (
-                                <Button type="button" size="sm" variant="outline" onClick={() =>
-                                    void api('/impersonate', { method: 'POST', body: JSON.stringify({ user_id: u.id }) })
-                                      .then(() => refresh())
-                                      .catch(showError)
-                                  }
-                                >
-                                  {t('instance.impersonate')}
-                                </Button>
-                              ) : null}
-                            </TableCell>
-                            <TableCell className={adminTableCellActions}>
-                              {u.role === 'org_admin' && !u.is_instance_admin ? (
-                                <Button type="button" size="sm" variant="outline" onClick={() =>
-                                    void api<{ password: string }>(`/orgs/${o.id}/users/${u.id}/reset-password`, { method: 'POST' })
-                                      .then((r) => setTempPw({ email: u.email, password: r.password, kind: 'reset' }))
-                                      .catch(showError)
-                                  }
-                                >
-                                  {t('org.resetPassword')}
-                                </Button>
-                              ) : null}
-                            </TableCell>
-                            <TableCell className={adminTableCellActions}>
-                              {canAdminResetMemberMfa(u) ? (
-                                <Button type="button" size="sm" variant="outline" onClick={() => setMfaResetTarget({ orgId: o.id, user: u })}
-                                >
-                                  {t('org.resetMfa')}
-                                </Button>
-                              ) : null}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </AdminDataTable>
-                  </div>
-                </details>
-              )}
-            </section>
-          </article>
-        ))}
-          </div>
+          <InstanceOrgList
+            orgs={orgs}
+            tariffs={tariffs}
+            deltas={deltas}
+            setDeltas={setDeltas}
+            expandedOrgId={expandedOrgId}
+            setExpandedOrgId={setExpandedOrgId}
+            onReload={load}
+            onRefreshAuth={() => void refresh()}
+            onOpenLedger={openOrgCard}
+            onToggleHidden={(org) => void toggleOrgHidden(org)}
+            onDelete={openDeleteOrg}
+            onTempPassword={(email, password) => setTempPw({ email, password, kind: 'reset' })}
+            onMfaReset={(orgId, user) => setMfaResetTarget({ orgId, user })}
+          />
         ) : null}
       </AdminTableCard>
 
