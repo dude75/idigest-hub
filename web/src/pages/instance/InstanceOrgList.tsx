@@ -314,19 +314,24 @@ export function InstanceOrgList({
           const expanded = expandedOrgId === org.id
           return (
             <Fragment key={org.id}>
-              <TableRow data-state={expanded ? 'selected' : undefined} className="instance-org-row">
-                <TableCell className="align-middle">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="instance-org-expand"
-                    aria-expanded={expanded}
-                    aria-label={expanded ? t('transcript.collapse') : t('transcript.expand')}
-                    onClick={() => toggleExpanded(org.id)}
-                  >
-                    <ChevronDown className={cn('size-4 transition-transform', expanded && 'rotate-180')} />
-                  </Button>
+              <TableRow
+                data-state={expanded ? 'selected' : undefined}
+                className="instance-org-row cursor-pointer"
+                aria-expanded={expanded}
+                tabIndex={0}
+                onClick={() => toggleExpanded(org.id)}
+                onKeyDown={(e) => {
+                  if (e.currentTarget !== e.target) return
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    toggleExpanded(org.id)
+                  }
+                }}
+              >
+                <TableCell className="align-middle text-muted-foreground" aria-hidden>
+                  <ChevronDown
+                    className={cn('instance-org-expand size-4 transition-transform', expanded && 'rotate-180')}
+                  />
                 </TableCell>
                 <TableCell className={adminTableCellPrimary}>
                   <AdminTruncateHint hint={org.name} className="max-w-[min(14rem,28vw)]">
@@ -345,7 +350,11 @@ export function InstanceOrgList({
                   <OrgWalletCell org={org} />
                 </TableCell>
                 <TableCell className={adminTableCellNum}>{formatInteger((org.members || []).length)}</TableCell>
-                <TableCell className={adminTableCellActions}>
+                <TableCell
+                  className={adminTableCellActions}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => e.stopPropagation()}
+                >
                   <AdminRowActions>
                     <Button type="button" size="sm" variant="outline" onClick={() => onOpenLedger(org)}>
                       {t('instance.openLedger')}
