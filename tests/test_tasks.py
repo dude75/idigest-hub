@@ -627,6 +627,9 @@ def test_list_tasks_admin_filters(client, fake_workers):
     assert task_list_ids(all_org.json()) == {lead_id, mem_id}
     by_mem = client.get(f"/api/v1/tasks?user_id={mem_user_id}")
     assert task_list_ids(by_mem.json()) == {mem_id}
+    by_status = client.get("/api/v1/tasks?status=success")
+    assert task_list_ids(by_status.json()) == {lead_id, mem_id}
+    assert by_status.json()["done_total"] == 2
 
     logout(client)
     assert signup(client, "other@example.com", "otherpass", tariff_id).status_code == 200
@@ -650,6 +653,42 @@ def test_list_tasks_admin_filters(client, fake_workers):
     assert task_list_ids(by_user.json()) == {other_id}
     other_org_list = client.get(f"/api/v1/tasks?org_id={other_org}")
     assert task_list_ids(other_org_list.json()) == {other_id}
+
+
+def test_list_tasks_done_status_filter(client, fake_workers):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    worker = add_worker(client)
+    seed_node_health(worker["id"])
+    logout(client)
+    assert signup(client, "status@example.com", "statuspass", tariff_id).status_code == 200
+    fake_workers.transcribe_mode = "success"
+    ok_audio = upload_audio(client)
+    ok_task = client.post("/api/v1/tasks/transcribe", json={"audio_id": ok_audio.json()["id"]})
+    ok_id = wait_task(client, ok_task.json()["task_id"], status="success")["task_id"]
+
+    fake_workers.transcribe_mode = "error"
+    fail_audio = upload_audio(client)
+    fail_created = client.post("/api/v1/tasks/transcribe", json={"audio_id": fail_audio.json()["id"]})
+    fail_id = fail_created.json()["task_id"]
+    wait_task(client, fail_id, status="error")
+
+    all_done = client.get("/api/v1/tasks")
+    assert {ok_id, fail_id}.issubset(task_list_ids(all_done.json()))
+
+    only_ok = client.get("/api/v1/tasks?status=success")
+    done_ids = {item["task_id"] for item in only_ok.json()["done"]}
+    assert ok_id in done_ids
+    assert fail_id not in done_ids
+    assert only_ok.json()["done_total"] == 1
+
+    only_fail = client.get("/api/v1/tasks?status=error")
+    fail_done = {item["task_id"] for item in only_fail.json()["done"]}
+    assert fail_id in fail_done
+    assert ok_id not in fail_done
+
+    bad = client.get("/api/v1/tasks?status=queued")
+    assert bad.status_code == 400
 
 
 @pytest.mark.asyncio

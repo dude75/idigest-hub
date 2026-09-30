@@ -38,14 +38,22 @@ function taskHref(task: Task): string {
   return `/app/task/${task.task_id}`
 }
 
-function tasksPath(orgId: string, userId: string, doneOffset: number, pageSize: PageSize): string {
+type DoneStatusFilter = '' | 'success' | 'error'
+
+function tasksPath(
+  orgId: string,
+  userId: string,
+  status: DoneStatusFilter,
+  doneOffset: number,
+  pageSize: PageSize,
+): string {
   const q = new URLSearchParams()
   if (orgId) q.set('org_id', orgId)
   if (userId) q.set('user_id', userId)
+  if (status) q.set('status', status)
   q.set('done_limit', String(pageSize))
   q.set('done_offset', String(doneOffset))
-  const s = q.toString()
-  return s ? `/tasks?${s}` : '/tasks'
+  return `/tasks?${q.toString()}`
 }
 
 function uniqueUsers(orgs: Org[], orgId: string): User[] {
@@ -74,6 +82,7 @@ export function TasksPage() {
   const [orgUsers, setOrgUsers] = useState<User[]>([])
   const [orgId, setOrgId] = useState('')
   const [userId, setUserId] = useState('')
+  const [statusFilter, setStatusFilter] = useState<DoneStatusFilter>('')
   const [confirmPurge, setConfirmPurge] = useState(false)
   const [purgeBusy, setPurgeBusy] = useState(false)
   const fetchSeq = useRef(0)
@@ -97,7 +106,7 @@ export function TasksPage() {
   async function load(offset = doneOffset, size: PageSize = pageSize) {
     const seq = ++fetchSeq.current
     try {
-      const r = await api<TaskListResponse>(tasksPath(orgId, userId, offset, size))
+      const r = await api<TaskListResponse>(tasksPath(orgId, userId, statusFilter, offset, size))
       if (seq !== fetchSeq.current) return
       setActive(r.active)
       setDone(r.done)
@@ -139,7 +148,7 @@ export function TasksPage() {
       if (stop) return
       const seq = ++fetchSeq.current
       try {
-        const r = await api<TaskListResponse>(tasksPath(orgId, userId, offset, pageSize))
+        const r = await api<TaskListResponse>(tasksPath(orgId, userId, statusFilter, offset, pageSize))
         if (stop || seq !== fetchSeq.current) return
         setActive(r.active)
         setDone(r.done)
@@ -157,7 +166,7 @@ export function TasksPage() {
       stop = true
       window.clearTimeout(timer)
     }
-  }, [orgId, userId, pageSize, safePage])
+  }, [orgId, userId, statusFilter, pageSize, safePage])
 
   async function cancel(id: string) {
     try {
@@ -260,8 +269,38 @@ export function TasksPage() {
     />
   )
 
+  const statusFilterField = (
+    <AppSelectField
+      label={t('task.filterStatus')}
+      htmlFor="tasks-filter-status"
+      value={statusFilter}
+      onValueChange={(next) => {
+        setStatusFilter(next as DoneStatusFilter)
+        setPage(0)
+      }}
+      options={[
+        allOption(t('common.all')),
+        { value: 'success', label: t('task.status.success') },
+        { value: 'error', label: t('task.status.error') },
+      ]}
+    />
+  )
+
   return (
     <AdminPage>
+      <ListSection
+        title={t('task.active')}
+        empty={t('common.empty')}
+        isEmpty={active.length === 0}
+        actions={
+          active.length > 0 ? (
+            <HubBadge tone="primary">{t('task.activeCount', { count: active.length })}</HubBadge>
+          ) : undefined
+        }
+      >
+        {active.map(row)}
+      </ListSection>
+
       {showFilters ? (
         <AppStackCard title={t('task.filters')}>
           <div className="stats-filters-fields">
@@ -295,22 +334,10 @@ export function TasksPage() {
               }}
               options={[allOption(t('common.all')), ...userOptions.map((user) => ({ value: user.id, label: user.email }))]}
             />
+            {statusFilterField}
           </div>
         </AppStackCard>
       ) : null}
-
-      <ListSection
-        title={t('task.active')}
-        empty={t('common.empty')}
-        isEmpty={active.length === 0}
-        actions={
-          active.length > 0 ? (
-            <HubBadge tone="primary">{t('task.activeCount', { count: active.length })}</HubBadge>
-          ) : undefined
-        }
-      >
-        {active.map(row)}
-      </ListSection>
 
       <ListSection
         title={t('task.done')}

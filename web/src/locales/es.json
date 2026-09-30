@@ -956,6 +956,7 @@
     "filters": "Filtros",
     "filterOrg": "Organización",
     "filterUser": "Usuario",
+    "filterStatus": "Estado",
     "purgeHistory": "Borrar historial",
     "purgeConfirm": "¿Eliminar todas las tareas completadas según los filtros actuales? Se conservan los cargos; no se borra contenido de la biblioteca.",
     "type": {

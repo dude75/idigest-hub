@@ -952,6 +952,7 @@
     "filters": "Filters",
     "filterOrg": "Organization",
     "filterUser": "User",
+    "filterStatus": "Status",
     "purgeHistory": "Clear history",
     "purgeConfirm": "Delete all completed tasks matching the current filters? Billing records are kept; library content is not removed.",
     "type": {

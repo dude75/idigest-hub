@@ -31,6 +31,7 @@ from app.timeutil import utcnow
 router = APIRouter()
 
 ACTIVE_TASK_STATUSES = ("queued", "running")
+DONE_STATUS_FILTERS = frozenset({"success", "error"})
 
 NON_RETRIABLE_ERROR_CODES = frozenset(
     {
@@ -367,6 +368,15 @@ def _list_tasks_filters(ctx: AuthContext, org_id: str | None, user_id: str | Non
     return filters
 
 
+def _done_status_filters(status: str | None, ctx: AuthContext) -> list:
+    raw = (status or "").strip().lower()
+    if not raw:
+        return [~Task.status.in_(ACTIVE_TASK_STATUSES)]
+    if raw not in DONE_STATUS_FILTERS:
+        ctx.raise_error(ErrorCode.validation_error)
+    return [Task.status == raw]
+
+
 @router.post("/tasks/purge")
 def purge_task_history(
     db: Session = Depends(get_session, scope="function"),
@@ -403,10 +413,12 @@ def list_tasks(
     ctx: AuthContext = Depends(require_auth),
     org_id: str | None = None,
     user_id: str | None = None,
+    status: str | None = None,
     done_limit: int = Query(10, ge=1, le=100),
     done_offset: int = Query(0, ge=0),
 ) -> dict:
     filters = _list_tasks_filters(ctx, org_id, user_id)
+    done_status = _done_status_filters(status, ctx)
     base = select(Task)
     if filters:
         base = base.where(*filters)
@@ -417,14 +429,14 @@ def list_tasks(
         ).all()
     )
 
-    done_count = select(func.count()).select_from(Task).where(~Task.status.in_(ACTIVE_TASK_STATUSES))
+    done_count = select(func.count()).select_from(Task).where(*done_status)
     if filters:
         done_count = done_count.where(*filters)
     done_total = int(db.scalar(done_count) or 0)
 
     done_rows = list(
         db.scalars(
-            base.where(~Task.status.in_(ACTIVE_TASK_STATUSES))
+            base.where(*done_status)
             .order_by(Task.updated_at.desc())
             .offset(done_offset)
             .limit(done_limit)
