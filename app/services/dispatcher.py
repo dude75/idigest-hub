@@ -20,6 +20,7 @@ from app.db import release_connection
 from app.models import Audio, Organization, Skill, Summary, Task, Transcript, WorkerNode, new_id
 from app.presenters import transcript_display_title
 from app.services.billing import apply_success_charge, summarize_amount, transcribe_amount
+from app.services.user_tags import inherit_object_user_tags
 from app.services.transcript_payload import (
     build_worker_payload,
     decode_transcript_payload,
@@ -292,6 +293,15 @@ def _persist_transcript(db: Session, task: Task, payload: dict[str, Any]) -> Tra
     )
     db.add(row)
     db.flush()
+    if task.audio_id:
+        inherit_object_user_tags(
+            db,
+            user_id=task.user_id,
+            from_object_type="audio",
+            from_object_id=task.audio_id,
+            to_object_type="transcript",
+            to_object_id=row.id,
+        )
     task.produced_transcript_id = row.id
     task.status = "success"
     task.error_code = None
@@ -425,6 +435,15 @@ def _persist_summary(db: Session, task: Task, body: str) -> Summary | None:
     )
     db.add(row)
     db.flush()
+    if task.transcript_id:
+        inherit_object_user_tags(
+            db,
+            user_id=task.user_id,
+            from_object_type="transcript",
+            from_object_id=task.transcript_id,
+            to_object_type="summary",
+            to_object_id=row.id,
+        )
     task.produced_summary_id = row.id
     task.status = "success"
     task.error_code = None

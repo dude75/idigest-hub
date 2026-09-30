@@ -126,6 +126,28 @@ def object_ids_with_tag(db: Session, user_id: str, object_type: str, tag_id: str
     return set(rows)
 
 
+def inherit_object_user_tags(
+    db: Session,
+    *,
+    user_id: str,
+    from_object_type: str,
+    from_object_id: str,
+    to_object_type: str,
+    to_object_id: str,
+) -> None:
+    """Copy-on-create: parent tags at persist time; no ongoing sync."""
+    source = object_user_tags(db, user_id, from_object_type, from_object_id)
+    if not source:
+        return
+    set_object_tags(
+        db,
+        user_id=user_id,
+        object_type=to_object_type,
+        object_id=to_object_id,
+        tag_names=[tag["name"] for tag in source],
+    )
+
+
 def set_object_tags(
     db: Session,
     *,

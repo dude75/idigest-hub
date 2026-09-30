@@ -1,4 +1,14 @@
-from tests.conftest import login_ready, logout, setup_admin, signup, upload_audio, default_tariff_id
+from tests.conftest import (
+    add_worker,
+    default_tariff_id,
+    login_ready,
+    logout,
+    seed_node_health,
+    setup_admin,
+    signup,
+    upload_audio,
+    wait_task,
+)
 
 
 def test_user_tags_private_and_filter(client):
@@ -93,3 +103,64 @@ def test_user_tag_limits(client):
     taken = client.patch(f"/api/v1/tags/{tag_id}", json={"name": "Beta"})
     assert taken.status_code == 400, taken.text
     assert taken.json()["error"]["code"] == "user_tag_name_taken"
+
+
+def test_user_tags_inherit_on_transcribe_and_summarize(client, fake_workers):
+    setup_admin(client)
+    transcribe_worker = add_worker(client, type="transcribe", name="asr", base_url="http://transcribe.test")
+    summarize_worker = add_worker(
+        client, type="summarize", name="llm", base_url="http://summarize.test"
+    )
+    seed_node_health(transcribe_worker["id"])
+    seed_node_health(summarize_worker["id"], ready_http=200)
+    skill = client.post("/api/v1/skills/base", json={"name": "Minutes", "body": "Sum it up"})
+    assert skill.status_code == 200, skill.text
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "inherit@example.com", "inheritpass1", tariff_id).status_code == 200
+
+    audio_id = upload_audio(client).json()["id"]
+    untagged_audio_id = upload_audio(client).json()["id"]
+
+    tag_put = client.put(
+        "/api/v1/object-tags",
+        json={"object_type": "audio", "object_id": audio_id, "tags": ["Project", "Q3"]},
+    )
+    assert tag_put.status_code == 200, tag_put.text
+
+    fake_workers.transcribe_mode = "success"
+    fake_workers.summarize_mode = "success"
+
+    transcribed = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio_id})
+    assert transcribed.status_code == 202, transcribed.text
+    transcript_id = wait_task(client, transcribed.json()["task_id"], status="success")["transcript_id"]
+
+    tr = client.get(f"/api/v1/transcripts/{transcript_id}")
+    assert tr.status_code == 200, tr.text
+    tr_names = {t["name"] for t in tr.json()["user_tags"]}
+    assert tr_names == {"Project", "Q3"}
+
+    client.put(
+        "/api/v1/object-tags",
+        json={"object_type": "audio", "object_id": audio_id, "tags": ["OnlyOnAudio"]},
+    )
+    tr_after = client.get(f"/api/v1/transcripts/{transcript_id}")
+    assert {t["name"] for t in tr_after.json()["user_tags"]} == {"Project", "Q3"}
+
+    summarized = client.post(
+        "/api/v1/tasks/summarize",
+        json={"transcript_id": transcript_id, "skill_ids": [skill.json()["id"]]},
+    )
+    assert summarized.status_code == 202, summarized.text
+    summary_id = wait_task(client, summarized.json()["task_id"], status="success")["summary_id"]
+
+    sm = client.get(f"/api/v1/summaries/{summary_id}")
+    assert sm.status_code == 200, sm.text
+    assert {t["name"] for t in sm.json()["user_tags"]} == {"Project", "Q3"}
+
+    bare = client.post("/api/v1/tasks/transcribe", json={"audio_id": untagged_audio_id})
+    assert bare.status_code == 202, bare.text
+    bare_tr_id = wait_task(client, bare.json()["task_id"], status="success")["transcript_id"]
+    bare_tr = client.get(f"/api/v1/transcripts/{bare_tr_id}")
+    assert bare_tr.status_code == 200, bare_tr.text
+    assert bare_tr.json()["user_tags"] == []
