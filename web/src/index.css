@@ -981,7 +981,7 @@ th { color: var(--hub-muted); font-weight: 550; }
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 1rem;
 }
 @media (min-width: 720px) {
   .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -1024,15 +1024,33 @@ th { color: var(--hub-muted); font-weight: 550; }
   font-size: 0.82rem;
   color: var(--hub-muted);
 }
-.stat-transcribe { background: #f8faff; border-color: #dbeafe; }
-.stat-summarize { background: #faf8ff; border-color: #e9d5ff; }
-.stat-audio { background: #f6fffb; border-color: #bbf7d0; }
-.stat-chars { background: #fffbeb; border-color: #fde68a; }
-.stat-amount { background: #f8fbff; border-color: #bfdbfe; }
-.stat-ops { background: var(--card); }
-.stat-value.stat-proxy-up { color: var(--ok); }
-.stat-value.stat-proxy-down { color: var(--danger); }
-.stat-value.stat-proxy-na { color: var(--hub-muted); }
+.stat.stat-transcribe { background: #f8faff; border-color: #dbeafe; }
+.stat.stat-summarize { background: #faf8ff; border-color: #e9d5ff; }
+.stat.stat-audio { background: #f6fffb; border-color: #bbf7d0; }
+.stat.stat-chars { background: #fffbeb; border-color: #fde68a; }
+.stat.stat-amount { background: #f8fbff; border-color: #bfdbfe; }
+.stat.stat-ops { background: var(--card); }
+/* dashboard-01: neutral tint (their primary/5), metric scale at 16px root */
+.stat-card {
+  --primary: var(--foreground);
+}
+.stat-card [data-slot='card-title'] {
+  font-size: 24px;
+  line-height: 1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+@container card (min-width: 250px) {
+  .stat-card [data-slot='card-title'] {
+    font-size: 30px;
+  }
+}
+.stat-value.stat-proxy-up,
+.stat-card .stat-proxy-up { color: var(--ok); }
+.stat-value.stat-proxy-down,
+.stat-card .stat-proxy-down { color: var(--danger); }
+.stat-value.stat-proxy-na,
+.stat-card .stat-proxy-na { color: var(--hub-muted); }
 .inline-rename { align-items: center; gap: 0.5rem; margin: 0.25rem 0 0.5rem; }
 .inline-rename h1 { margin: 0; }
 .inline-rename-input { flex: 1; min-width: 0; font-size: 1.35rem; font-weight: 650; padding: 0.25rem 0.5rem; }
@@ -1726,9 +1744,6 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
   font-size: 1.35rem;
   font-weight: 650;
   line-height: 1.25;
-}
-.stat-card {
-  box-shadow: none;
 }
 .instance-org-table .instance-org-expand {
   color: var(--hub-muted);
