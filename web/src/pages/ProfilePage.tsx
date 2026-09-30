@@ -6,9 +6,10 @@ import { useAuth } from '../auth'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../components/AdminSection'
 import { Modal } from '../components/Modal'
 import { MfaSetupPanel } from '../components/MfaSetupPanel'
-import { Segmented } from '../components/Segmented'
 import { StatCard, StatGrid } from '../components/StatCard'
 import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AdminFormActions, AppSubmitButton, HubBadge, type HubBadgeTone } from '../components/app/AdminUi'
 import { AppCheckboxRow, AppInputField, AppSelectField } from '../components/app/AppFormControls'
@@ -776,14 +777,13 @@ export function ProfilePage() {
             </form>
           </AdminFormCard>
         )}
-      </div>
 
-      {hasOrg && (
-        <AdminFormCard title={t('profile.backup')} lead={t('profile.backupLead')}>
-          <div className="profile-backup-body">
+        {hasOrg && (
+          <AdminFormCard className="profile-backup-card" title={t('profile.backup')} lead={t('profile.backupLead')}>
+            <div className="profile-backup-body">
             <div className="profile-backup-group">
               <span className="profile-backup-label">{t('profile.backupInclude')}</span>
-              <div className="profile-backup-checks flex flex-col gap-2">
+              <div className="profile-backup-checks flex flex-col gap-1">
                 <AppCheckboxRow
                   id="profile-backup-transcripts"
                   label={t('library.transcripts')}
@@ -805,21 +805,32 @@ export function ProfilePage() {
               </div>
             </div>
             <div className="profile-backup-group">
-              <span className="profile-backup-label">{t('profile.backupFormat')}</span>
-              <Segmented
-                variant="outline"
-                ariaLabel={t('profile.backupFormat')}
+              <span className="profile-backup-label" id="profile-backup-format-label">
+                {t('profile.backupFormat')}
+              </span>
+              <RadioGroup
+                className="profile-backup-format-group"
+                aria-labelledby="profile-backup-format-label"
                 value={backupFormat}
-                onChange={setBackupFormat}
-                options={[
-                  { value: 'zip', label: 'ZIP' },
-                  { value: 'tgz', label: 'TGZ' },
-                ]}
-              />
+                onValueChange={(value) => setBackupFormat(value as 'zip' | 'tgz')}
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="zip" id="profile-backup-format-zip" />
+                  <Label htmlFor="profile-backup-format-zip" className="font-normal">
+                    ZIP
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="tgz" id="profile-backup-format-tgz" />
+                  <Label htmlFor="profile-backup-format-tgz" className="font-normal">
+                    tar.gz
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
-          </div>
-          <p className="profile-backup-restore-hint">{t('profile.restoreBackupHint')}</p>
-          <div className="profile-actions profile-backup-actions">
+            </div>
+            <p className="profile-backup-restore-hint">{t('profile.restoreBackupHint')}</p>
+            <div className="profile-actions profile-backup-actions">
             <Button
               type="button"
               variant="outline"
@@ -847,9 +858,10 @@ export function ProfilePage() {
               {restoringUp ? t('common.loading') : t('profile.restoreBackup')}
             </Button>
             {restoreMessage && <p className="ok">{restoreMessage}</p>}
-          </div>
-        </AdminFormCard>
-      )}
+            </div>
+          </AdminFormCard>
+        )}
+      </div>
 
       <AdminTableCard title={t('profile.tokens')} lead={t('profile.tokensLead')}>
         <p className="muted profile-mcp-hint">{t('profile.mcpOAuthHint')}</p>

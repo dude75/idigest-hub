@@ -612,7 +612,7 @@
     "backupFormat": "Формат архива",
     "downloadBackup": "Скачать резервную копию",
     "restoreBackup": "Восстановить из архива",
-    "restoreBackupHint": "Загрузите ZIP или TGZ, скачанный здесь же. Тот же аккаунт — восстановление по id. Другой — добавление с новыми id.",
+    "restoreBackupHint": "Загрузите ZIP или tar.gz, скачанный здесь же. Тот же аккаунт — восстановление по id. Другой — добавление с новыми id.",
     "restoreBackupDone": "Готово ({{mode}}): транскрипты +{{tCreated}}/~{{tUpdated}}, саммари +{{sCreated}}/~{{sUpdated}}, скилы +{{kCreated}}/~{{kUpdated}}.",
     "restoreBackupInvalidFile": "Выберите файл резервной копии (.zip или .tar.gz).",
     "backupNothingSelected": "Выберите хотя бы один тип данных.",

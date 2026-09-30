@@ -612,7 +612,7 @@
     "backupFormat": "Archive format",
     "downloadBackup": "Download backup",
     "restoreBackup": "Restore from archive",
-    "restoreBackupHint": "Upload a ZIP or TGZ you downloaded here. Same account: restore by id. Other account: import as new items.",
+    "restoreBackupHint": "Upload a ZIP or tar.gz you downloaded here. Same account: restore by id. Other account: import as new items.",
     "restoreBackupDone": "Done ({{mode}}): transcripts +{{tCreated}}/~{{tUpdated}}, summaries +{{sCreated}}/~{{sUpdated}}, skills +{{kCreated}}/~{{kUpdated}}.",
     "restoreBackupInvalidFile": "Choose a .zip or .tar.gz backup file.",
     "backupNothingSelected": "Select at least one data type.",

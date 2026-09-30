@@ -612,7 +612,7 @@
     "backupFormat": "Formato del archivo",
     "downloadBackup": "Descargar copia",
     "restoreBackup": "Restaurar desde archivo",
-    "restoreBackupHint": "Suba un ZIP o TGZ descargado aquí. Misma cuenta: restaurar por id. Otra cuenta: importar como nuevos elementos.",
+    "restoreBackupHint": "Suba un ZIP o tar.gz descargado aquí. Misma cuenta: restaurar por id. Otra cuenta: importar como nuevos elementos.",
     "restoreBackupDone": "Listo ({{mode}}): transcripciones +{{tCreated}}/~{{tUpdated}}, resúmenes +{{sCreated}}/~{{sUpdated}}, skills +{{kCreated}}/~{{kUpdated}}.",
     "restoreBackupInvalidFile": "Elija un archivo de copia (.zip o .tar.gz).",
     "backupNothingSelected": "Seleccione al menos un tipo de datos.",
