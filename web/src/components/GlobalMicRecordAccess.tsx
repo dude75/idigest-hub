@@ -67,12 +67,12 @@ export function GlobalMicRecordAccess() {
             type="button"
             variant="outline"
             size="icon"
-            className="shrink-0 bg-card text-destructive shadow-xs hover:text-destructive"
+            className="shrink-0 bg-card text-emerald-600/80 shadow-xs hover:text-emerald-700"
             disabled={busy}
             aria-label={t('library.recordMic')}
             onClick={() => setOpen(true)}
           >
-            <MicIcon className="size-4 text-destructive" aria-hidden="true" />
+            <MicIcon className="size-4" aria-hidden="true" />
           </Button>
         </AppHoverHint>
       </div>
