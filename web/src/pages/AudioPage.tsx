@@ -121,9 +121,9 @@ export function AudioPage() {
                 </a>
               </p>
             )}
-            <div className="flex flex-wrap items-center gap-2">
-              <ShareBadges item={item} />
+            <div className="entity-meta-row flex flex-wrap items-center gap-2">
               <span className="muted">{fmtDate(item.created_at)}</span>
+              <ShareBadges item={item} />
             </div>
             <UserTagsEditor
               objectType="audio"

@@ -136,14 +136,14 @@ export function SummaryPage() {
       {item && (
         <>
           <EntityDetailCard>
-              <div className="flex flex-wrap items-center gap-2">
-                <ShareBadges item={item} />
+              <div className="entity-meta-row flex flex-wrap items-center gap-2">
                 <span className="muted">{fmtDate(item.created_at)}</span>
                 {item.source_transcript_id ? (
                   <Link to={`/app/transcript/${item.source_transcript_id}`}>
                     {item.source_transcript_title || t('summary.sourceTranscript', { id: item.source_transcript_id.slice(0, 8) })}
                   </Link>
                 ) : null}
+                <ShareBadges item={item} />
               </div>
               <UserTagsEditor
                 objectType="summary"

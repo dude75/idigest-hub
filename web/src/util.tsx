@@ -219,19 +219,21 @@ export function ShareBadges({ item, showHidden = true }: { item: ShareBadge; sho
   const sharedWith =
     item.shares?.map((s) => s.email).join(', ')
     || (item.shared_with?.length ? t('library.sharedWithCount', { count: item.shared_with.length }) : null)
+  const incoming = item.share_kind === 'incoming' && item.shared_by
+  const outgoingShared = item.share_kind === 'outgoing' && sharedWith
+  const outgoingYou = item.share_kind === 'outgoing' && !sharedWith
+  const hidden = showHidden && item.hidden
+  const edited = item.edited
+  if (!incoming && !outgoingShared && !outgoingYou && !hidden && !edited) return null
   return (
     <span className="row">
-      {item.share_kind === 'incoming' && item.shared_by && (
-        <HubBadge tone="warning">{t('library.sharedBy', { who: item.shared_by })}</HubBadge>
-      )}
-      {item.share_kind === 'outgoing' && sharedWith && (
+      {incoming ? <HubBadge tone="warning">{t('library.sharedBy', { who: item.shared_by })}</HubBadge> : null}
+      {outgoingShared ? (
         <HubBadge tone="success">{t('library.sharedWith', { who: sharedWith })}</HubBadge>
-      )}
-      {item.share_kind === 'outgoing' && !sharedWith && (
-        <HubBadge tone="success">{t('library.youShared')}</HubBadge>
-      )}
-      {showHidden && item.hidden && <HubBadge tone="muted">{t('library.hidden')}</HubBadge>}
-      {item.edited && <HubBadge tone="muted">{t('summary.edited')}</HubBadge>}
+      ) : null}
+      {outgoingYou ? <HubBadge tone="success">{t('library.youShared')}</HubBadge> : null}
+      {hidden ? <HubBadge tone="muted">{t('library.hidden')}</HubBadge> : null}
+      {edited ? <HubBadge tone="muted">{t('summary.edited')}</HubBadge> : null}
     </span>
   )
 }
