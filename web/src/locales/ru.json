@@ -302,7 +302,13 @@
     "transcribeAgain": "Транскрибировать снова",
     "noFile": "Файла нет, транскрипция невозможна.",
     "sourceUrl": "Источник",
-    "transcripts": "Транскрипты"
+    "transcripts": "Транскрипты",
+    "playerPlay": "Воспроизвести",
+    "playerPause": "Пауза",
+    "playerMute": "Выключить звук",
+    "playerUnmute": "Включить звук",
+    "playerSeek": "Позиция воспроизведения",
+    "playerSpeed": "Скорость воспроизведения"
   },
   "transcript": {
     "title": "Транскрипт",

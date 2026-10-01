@@ -302,7 +302,13 @@
     "transcribeAgain": "Transcribir de nuevo",
     "noFile": "El archivo ya no existe; no se puede transcribir.",
     "sourceUrl": "Origen",
-    "transcripts": "Transcripciones"
+    "transcripts": "Transcripciones",
+    "playerPlay": "Reproducir",
+    "playerPause": "Pausa",
+    "playerMute": "Silenciar",
+    "playerUnmute": "Activar sonido",
+    "playerSeek": "Posición de reproducción",
+    "playerSpeed": "Velocidad de reproducción"
   },
   "transcript": {
     "title": "Transcripción",
