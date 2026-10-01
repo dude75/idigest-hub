@@ -424,32 +424,19 @@ a.brand:hover,
   display: flex;
   flex-flow: row wrap;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.35rem;
   width: 100%;
 }
 .user-tags-label {
+  display: inline-flex;
+  align-items: center;
   flex: 0 0 auto;
+  min-height: 2rem;
   white-space: nowrap;
-}
-.user-tags-controls {
-  display: flex;
-  flex-flow: row nowrap;
-  align-items: center;
-  gap: 0.35rem;
-  flex: 0 0 auto;
-}
-.user-tags-chips {
-  display: flex;
-  flex-flow: row wrap;
-  align-items: center;
-  gap: 0.35rem;
-  flex: 1 1 100%;
-  min-width: 0;
-  max-width: 100%;
 }
 .user-tags-pick {
   width: 8.25rem;
-  flex: 0 0 8.25rem;
+  flex: 0 0 auto;
   max-width: 8.25rem;
 }
 .user-tags-pick [data-slot='select-trigger'] {
@@ -470,7 +457,7 @@ a.brand:hover,
 .user-tags-input {
   width: 7.5rem !important;
   max-width: 7.5rem;
-  flex: 0 0 7.5rem;
+  flex: 0 0 auto;
   height: 2rem;
   box-shadow: none;
   background: var(--background) !important;
@@ -486,8 +473,9 @@ a.brand:hover,
 .user-tags-add {
   height: 2rem;
   white-space: nowrap;
+  flex: 0 0 auto;
 }
-.user-tags-editor .user-tag-chip-assigned {
+.user-tags-row .user-tag-chip-assigned {
   flex: 0 0 auto;
 }
 .user-tag-chip-assigned button:focus-visible {

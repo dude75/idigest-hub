@@ -126,57 +126,53 @@ export function UserTagsEditor({ objectType, objectId, tags, onChange }: Props) 
     <div className="user-tags-editor">
       <div className="user-tags-row">
         <span className="user-tags-label muted text-sm">{t('library.myTags')}</span>
-        <div className="user-tags-controls">
-          {pickOptions.length > 0 ? (
-            <AppSelect
-              className="user-tags-pick [&_[data-slot=select-trigger]]:shadow-none [&_[data-slot=select-trigger]]:focus-visible:ring-0 [&_[data-slot=select-trigger]]:focus-visible:border-input"
-              value={pickId}
-              disabled={busy}
-              placeholder={t('library.pickTag')}
-              options={pickOptions}
-              size="sm"
-              onValueChange={(value) => {
-                setPickId(value)
-                if (value) addExisting(value)
-              }}
-            />
-          ) : null}
-          <Input
-            className="user-tags-input shadow-none focus-visible:border-input focus-visible:ring-0"
-            value={draft}
+        {pickOptions.length > 0 ? (
+          <AppSelect
+            className="user-tags-pick [&_[data-slot=select-trigger]]:shadow-none [&_[data-slot=select-trigger]]:focus-visible:ring-0 [&_[data-slot=select-trigger]]:focus-visible:border-input"
+            value={pickId}
             disabled={busy}
-            placeholder={t('library.addTagPlaceholder')}
-            aria-label={t('library.addTagPlaceholder')}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                addTag()
-              }
+            placeholder={t('library.pickTag')}
+            options={pickOptions}
+            size="sm"
+            onValueChange={(value) => {
+              setPickId(value)
+              if (value) addExisting(value)
             }}
           />
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="user-tags-add shrink-0"
-            disabled={busy || !draft.trim()}
-            onClick={() => addTag()}
-          >
-            {t('library.addTag')}
-          </Button>
-        </div>
-        <div className="user-tags-chips">
-          {tags.map((tag) => (
-            <UserTagChipAssigned
-              key={tag.id}
-              name={tag.name}
-              disabled={busy}
-              removeLabel={t('library.removeTag', { name: tag.name })}
-              onRemove={() => removeTag(tag.id)}
-            />
-          ))}
-        </div>
+        ) : null}
+        <Input
+          className="user-tags-input shadow-none focus-visible:border-input focus-visible:ring-0"
+          value={draft}
+          disabled={busy}
+          placeholder={t('library.addTagPlaceholder')}
+          aria-label={t('library.addTagPlaceholder')}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              addTag()
+            }
+          }}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="user-tags-add shrink-0"
+          disabled={busy || !draft.trim()}
+          onClick={() => addTag()}
+        >
+          {t('library.addTag')}
+        </Button>
+        {tags.map((tag) => (
+          <UserTagChipAssigned
+            key={tag.id}
+            name={tag.name}
+            disabled={busy}
+            removeLabel={t('library.removeTag', { name: tag.name })}
+            onRemove={() => removeTag(tag.id)}
+          />
+        ))}
       </div>
     </div>
   )
