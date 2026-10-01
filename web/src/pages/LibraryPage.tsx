@@ -541,7 +541,7 @@ export function LibraryPage() {
               type="button"
               variant="outline"
               size="icon"
-              className="shrink-0 text-emerald-600/80 hover:text-emerald-700"
+              className="shrink-0"
               disabled={busy}
               aria-label={t('library.recordMic')}
               onClick={() => setRecordOpen(true)}
