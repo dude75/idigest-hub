@@ -1,23 +1,75 @@
-import type { ReactNode } from 'react'
+import { useLayoutEffect, useRef, type ReactNode } from 'react'
+import { ArrowLeft } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { ButtonLink } from '@/components/ui/button-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { AdminTableCard } from '../AdminSection'
 
-/** Member entity pages (audio, transcript, summary, skill). */
-export function EntityPage({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('entity-page', className)}>{children}</div>
+type EntityPageProps = {
+  children: ReactNode
+  className?: string
+  backTo?: string
 }
 
-export function EntityBackLink({ to, children }: { to: string; children: ReactNode }) {
+const ENTITY_BACK_ANCHOR =
+  '.entity-detail-card, .entity-body-card, .admin-table-card, .transcript-summaries'
+
+/** Member entity pages (audio, transcript, summary, skill). */
+export function EntityPage({ children, className, backTo }: EntityPageProps) {
+  const { t } = useTranslation()
+  const layoutRef = useRef<HTMLDivElement>(null)
+  const mainRef = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    if (!backTo) return
+    const layout = layoutRef.current
+    const main = mainRef.current
+    if (!layout || !main) return
+
+    const sync = () => {
+      const block = main.querySelector(ENTITY_BACK_ANCHOR)
+      if (!block) {
+        layout.style.setProperty('--entity-back-offset', '0px')
+        return
+      }
+      const mainTop = main.getBoundingClientRect().top
+      const blockTop = block.getBoundingClientRect().top
+      layout.style.setProperty('--entity-back-offset', `${Math.max(0, Math.round(blockTop - mainTop))}px`)
+    }
+
+    sync()
+    window.addEventListener('resize', sync)
+    return () => {
+      window.removeEventListener('resize', sync)
+    }
+  }, [backTo, children])
+
+  if (!backTo) {
+    return <div className={cn('entity-page', className)}>{children}</div>
+  }
+  return (
+    <div className={cn('entity-page', className)}>
+      <div ref={layoutRef} className="entity-page-layout">
+        <EntityBackLink to={backTo} aria-label={t('common.back')} />
+        <div ref={mainRef} className="entity-page-main">
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function EntityBackLink({ to, 'aria-label': ariaLabel }: { to: string; 'aria-label': string }) {
   return (
     <ButtonLink
       to={to}
-      variant="link"
-      size="sm"
-      className="entity-back mb-3 h-auto px-0 no-underline hover:no-underline"
+      variant="outline"
+      size="icon"
+      className="entity-back size-9 shrink-0 rounded-full bg-card shadow-xs transition-none"
+      aria-label={ariaLabel}
     >
-      {children}
+      <ArrowLeft className="size-4" aria-hidden />
     </ButtonLink>
   )
 }

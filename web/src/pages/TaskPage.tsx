@@ -5,7 +5,7 @@ import { api } from '../api'
 import type { Task } from '../types'
 import { PipelineProgress } from '../components/PipelineProgress'
 import { isOrgAdmin, useAuth } from '../auth'
-import { EntityBackLink, EntityDetailCard, EntityPage } from '../components/app/EntityUi'
+import { EntityDetailCard, EntityPage } from '../components/app/EntityUi'
 import { Button } from '@/components/ui/button'
 import { CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -141,8 +141,7 @@ export function TaskPage() {
   const clientsTried = task ? taskYoutubeClientsTried(task) : null
 
   return (
-    <EntityPage>
-      <EntityBackLink to="/app/tasks">{t('common.back')}</EntityBackLink>
+    <EntityPage backTo="/app/tasks">
       <EntityDetailCard>
         <CardHeader className="space-y-3 p-0 pb-2">
           <PipelineProgress task={task} />

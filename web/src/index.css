@@ -1731,10 +1731,23 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 .library-page > .admin-table-card {
   margin-bottom: 1rem;
 }
-.entity-page > .entity-detail-card,
-.entity-page > .entity-body-card,
-.entity-page > .admin-table-card,
-.entity-page > .transcript-summaries {
+.entity-page-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+.entity-page-main {
+  flex: 1;
+  min-width: 0;
+}
+.entity-back {
+  margin-top: var(--entity-back-offset, 0px);
+  transition: none;
+}
+.entity-page .entity-detail-card,
+.entity-page .entity-body-card,
+.entity-page .admin-table-card,
+.entity-page .transcript-summaries {
   margin-bottom: 1rem;
 }
 .entity-title {

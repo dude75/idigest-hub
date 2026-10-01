@@ -21,7 +21,6 @@ import { AppCheckboxRow } from '../components/app/AppFormControls'
 import { HubBadge } from '../components/app/AdminUi'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import {
-  EntityBackLink,
   EntityBodyCard,
   EntityDetailCard,
   EntityPage,
@@ -228,8 +227,7 @@ export function TranscriptPage() {
   )
 
   return (
-    <EntityPage>
-      <EntityBackLink to={libraryPath('transcripts')}>{t('common.back')}</EntityBackLink>
+    <EntityPage backTo={libraryPath('transcripts')}>
       {item ? (
         <InlineRename
           value={item.display_title || item.title || item.id.slice(0, 8)}

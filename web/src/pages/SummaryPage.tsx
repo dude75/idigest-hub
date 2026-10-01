@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import { AdminFormActions, AppSubmitButton } from '../components/app/AdminUi'
 import {
-  EntityBackLink,
   EntityBodyCard,
   EntityDetailCard,
   EntityPage,
@@ -121,8 +120,7 @@ export function SummaryPage() {
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
-    <EntityPage>
-      <EntityBackLink to={libraryPath('summaries')}>{t('common.back')}</EntityBackLink>
+    <EntityPage backTo={libraryPath('summaries')}>
       {item ? (
         <InlineRename
           value={item.display_title || item.title || item.id.slice(0, 8)}

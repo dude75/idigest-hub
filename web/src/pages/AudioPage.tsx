@@ -9,7 +9,6 @@ import { EntityHint, EntityToolbar } from '../components/EntityToolbar'
 import { ListRow } from '../components/ListRow'
 import { ShareDialog } from '../components/ShareDialog'
 import {
-  EntityBackLink,
   EntityDetailCard,
   EntityPage,
   ListSection,
@@ -107,8 +106,7 @@ export function AudioPage() {
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
-    <EntityPage>
-      <EntityBackLink to={libraryPath('audio')}>{t('common.back')}</EntityBackLink>
+    <EntityPage backTo={libraryPath('audio')}>
       <h1 className="entity-title">{item?.filename || t('audio.title')}</h1>
       {item && (
         <>

@@ -14,7 +14,6 @@ import { AppInputField } from '../components/app/AppFormControls'
 import { AppField } from '../components/app/AppField'
 import { AdminFormActions, AppSubmitButton, HubBadge } from '../components/app/AdminUi'
 import {
-  EntityBackLink,
   EntityBodyCard,
   EntityDetailCard,
   EntityPage,
@@ -128,8 +127,7 @@ export function SkillPage() {
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   return (
-    <EntityPage>
-      <EntityBackLink to={backTo}>{t('common.back')}</EntityBackLink>
+    <EntityPage backTo={backTo}>
       {item ? (
         <InlineRename
           value={item.name}
