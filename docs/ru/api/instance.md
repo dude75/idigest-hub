@@ -109,9 +109,21 @@ Body: `{ "name": "..." }`. Новый активный тариф с теми ж
 
 ### POST `/tariffs/{id}/unarchive`
 
+### GET `/tariffs/{id}/delete-impact`
+
+Предпросмотр последствий удаления. `last_tariff` — единственный тариф в инстансе. `blocking` — удаление невозможно без ручных шагов (`last_tariff` или org на тарифе без другого активного тарифа). При org на тарифе: `affected_orgs`, `available_tariffs`, `suggested_replacement`, `can_remediate` — перенос на другой неархивный тариф.
+
 ### DELETE `/tariffs/{id}`
 
-Не выполняется с `tariff_in_use` или `last_tariff`, если заблокировано.
+Удаление тарифа. Опциональное JSON-тело:
+
+```json
+{ "remediation": { "tariff_id": "uuid" } }
+```
+
+Если org ещё на тарифе — передайте `remediation.tariff_id` (неархивный заменитель); все затронутые org переназначаются перед удалением. Без remediation → `tariff_in_use` (409). Один тариф в инстансе → `last_tariff` (409). Неверная замена → `validation_error`.
+
+Ответ: `{ "status": "ok" }`, при переносе — `remediation` с `orgs_updated`.
 
 ## Organizations
 

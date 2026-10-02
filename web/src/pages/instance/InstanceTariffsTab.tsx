@@ -18,8 +18,8 @@ import {
   adminTableHeadActions,
   adminTableHeadNum,
 } from '../../components/app/AdminDataTable'
-import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Modal } from '../../components/Modal'
+import { TariffImpactModal } from './TariffImpactModal'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import { TariffDetails } from '../../components/TariffDetails'
 import type { Tariff } from '../../types'
@@ -57,7 +57,6 @@ export function InstanceTariffsTab() {
   const [formOpen, setFormOpen] = useState(false)
   const [saveBusy, setSaveBusy] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Tariff | null>(null)
-  const [deleteBusy, setDeleteBusy] = useState(false)
   const [cloneTarget, setCloneTarget] = useState<Tariff | null>(null)
   const [cloneName, setCloneName] = useState('')
   const [cloneBusy, setCloneBusy] = useState(false)
@@ -194,21 +193,6 @@ export function InstanceTariffsTab() {
       showError(e)
     } finally {
       setCloneBusy(false)
-    }
-  }
-
-  async function confirmDelete() {
-    if (!deleteTarget) return
-    setDeleteBusy(true)
-    try {
-      await api(`/tariffs/${deleteTarget.id}`, { method: 'DELETE' })
-      if (editT === deleteTarget.id) cancelEdit()
-      setDeleteTarget(null)
-      await load()
-    } catch (e) {
-      showError(e)
-    } finally {
-      setDeleteBusy(false)
     }
   }
 
@@ -487,18 +471,20 @@ export function InstanceTariffsTab() {
         </Modal>
       ) : null}
 
-      {deleteTarget && (
-        <ConfirmDialog
-          message={t('instance.tariffDeleteConfirm', { name: deleteTarget.name })}
-          confirmLabel={t('common.delete')}
-          danger
-          busy={deleteBusy}
-          onConfirm={() => void confirmDelete()}
-          onClose={() => {
-            if (!deleteBusy) setDeleteTarget(null)
+      {deleteTarget ? (
+        <TariffImpactModal
+          tariff={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={async ({ remediation } = {}) => {
+            await api(`/tariffs/${deleteTarget.id}`, {
+              method: 'DELETE',
+              body: remediation ? JSON.stringify({ remediation }) : undefined,
+            })
+            if (editT === deleteTarget.id) cancelEdit()
+            await load()
           }}
         />
-      )}
+      ) : null}
     </AdminPage>
   )
 }

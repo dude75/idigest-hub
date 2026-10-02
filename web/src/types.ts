@@ -74,6 +74,26 @@ export type Tariff = {
   org_count?: number
 }
 
+export type TariffChoice = {
+  id: string
+  name: string
+}
+
+export type TariffRemediationPayload = {
+  tariff_id: string
+}
+
+export type TariffDeleteImpact = {
+  tariff: Pick<Tariff, 'id' | 'name'> & { archived: boolean }
+  last_tariff: boolean
+  org_count: number
+  affected_orgs: { id: string; name: string }[]
+  available_tariffs: TariffChoice[]
+  suggested_replacement: TariffChoice | null
+  can_remediate: boolean
+  blocking: boolean
+}
+
 export type OrgSso = {
   configured: boolean
   enabled: boolean

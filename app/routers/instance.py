@@ -62,6 +62,14 @@ class WorkerDeleteBody(BaseModel):
     remediation: WorkerRemediation | None = None
 
 
+class TariffRemediation(BaseModel):
+    tariff_id: str
+
+
+class TariffDeleteBody(BaseModel):
+    remediation: TariffRemediation | None = None
+
+
 class WorkerProbeBody(BaseModel):
     type: str
     base_url: str
@@ -820,10 +828,28 @@ def unarchive_tariff(
     return tariff_public(tariff, _org_count(db, tariff.id))
 
 
-@router.delete("/tariffs/{tariff_id}")
-def delete_tariff(
+@router.get("/tariffs/{tariff_id}/delete-impact")
+def tariff_delete_impact(
     tariff_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
+    from app.services.tariff_impact import compute_tariff_delete_impact
+
+    _admin(ctx)
+    tariff = db.get(Tariff, tariff_id)
+    if tariff is None:
+        ctx.raise_error(ErrorCode.not_found)
+    return compute_tariff_delete_impact(db, tariff)
+
+
+@router.delete("/tariffs/{tariff_id}")
+def delete_tariff(
+    tariff_id: str,
+    body: TariffDeleteBody | None = Body(default=None),
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    from app.services.tariff_impact import apply_tariff_remediation
+
     _admin(ctx)
     tariff = db.get(Tariff, tariff_id)
     if tariff is None:
@@ -831,10 +857,28 @@ def delete_tariff(
     total = int(db.scalar(select(func.count()).select_from(Tariff)) or 0)
     if total <= 1:
         ctx.raise_error(ErrorCode.last_tariff)
-    if _org_count(db, tariff.id) > 0:
-        ctx.raise_error(ErrorCode.tariff_in_use)
+    org_count = _org_count(db, tariff.id)
+    remediation = body.remediation if body else None
+    remediation_result = None
+    if org_count > 0:
+        if remediation is None:
+            ctx.raise_error(ErrorCode.tariff_in_use)
+        try:
+            remediation_result = apply_tariff_remediation(
+                db,
+                from_tariff_id=tariff.id,
+                replacement_tariff_id=remediation.tariff_id,
+            )
+        except ValueError:
+            ctx.raise_error(ErrorCode.validation_error)
+        if remediation_result["orgs_updated"] != org_count:
+            ctx.raise_error(ErrorCode.validation_error)
     db.delete(tariff)
-    return {"status": "ok"}
+    write_audit(db, "tariff.delete", ctx, {"tariff_id": tariff.id})
+    payload: dict = {"status": "ok"}
+    if remediation_result is not None:
+        payload["remediation"] = remediation_result
+    return payload
 
 
 @router.post("/orgs/{org_id}/wallet")

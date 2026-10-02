@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 
 from app.constants import MAX_UPLOAD_BYTES_CAP
@@ -203,6 +204,51 @@ def test_archive_and_delete_tariff_rules(client):
     last = client.delete(f"/api/v1/tariffs/{default_id}")
     assert last.status_code == 409
     assert err_code(last) == "last_tariff"
+
+
+def test_tariff_delete_impact_and_remediation(client):
+    setup_admin(client)
+    default_id = default_tariff_id(client)
+    spare = create_tariff(client, name="Spare")
+    logout(client)
+    assert signup(client, "tariff-move@example.com", "tariffmove1", default_id).status_code == 200
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    impact = client.get(f"/api/v1/tariffs/{default_id}/delete-impact")
+    assert impact.status_code == 200, impact.text
+    body = impact.json()
+    assert body["org_count"] == 1
+    assert body["can_remediate"] is True
+    assert body["suggested_replacement"] == {"id": spare["id"], "name": spare["name"]}
+    assert body["blocking"] is False
+
+    deleted = client.request(
+        "DELETE",
+        f"/api/v1/tariffs/{default_id}",
+        content=json.dumps({"remediation": {"tariff_id": spare["id"]}}),
+        headers={
+            "Content-Type": "application/json",
+            "X-CSRF-Token": client.cookies.get("hub_csrf") or "",
+        },
+    )
+    assert deleted.status_code == 200, deleted.text
+    assert deleted.json()["remediation"]["orgs_updated"] == 1
+
+    logout(client)
+    login(client, "tariff-move@example.com", "tariffmove1")
+    org = client.get("/api/v1/org").json()
+    assert org["tariff"]["id"] == spare["id"]
+
+
+def test_tariff_delete_impact_last_tariff(client):
+    setup_admin(client)
+    only_id = default_tariff_id(client)
+    impact = client.get(f"/api/v1/tariffs/{only_id}/delete-impact")
+    assert impact.status_code == 200, impact.text
+    body = impact.json()
+    assert body["last_tariff"] is True
+    assert body["blocking"] is True
+    assert body["can_remediate"] is False
 
 
 def test_clone_tariff_copies_settings(client):

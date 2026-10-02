@@ -109,9 +109,21 @@ Update fields.
 
 ### POST `/tariffs/{id}/unarchive`
 
+### GET `/tariffs/{id}/delete-impact`
+
+Preview of what delete would affect. `last_tariff` is true when this is the only tariff. `blocking` is true when delete is impossible without manual steps (`last_tariff`, or orgs remain with no other active tariff). When orgs use the tariff, `affected_orgs`, `available_tariffs`, `suggested_replacement`, and `can_remediate` describe moving them to another non-archived tariff.
+
 ### DELETE `/tariffs/{id}`
 
-Fails with `tariff_in_use` or `last_tariff` if blocked.
+Remove the tariff. Optional JSON body:
+
+```json
+{ "remediation": { "tariff_id": "uuid" } }
+```
+
+When organizations still reference the tariff, send `remediation.tariff_id` for a non-archived replacement; all affected orgs are reassigned before delete. Without remediation → `tariff_in_use` (409). Only one tariff left → `last_tariff` (409). Unknown replacement → `validation_error`.
+
+Response: `{ "status": "ok" }`, plus `remediation` with `orgs_updated` when reassignment ran.
 
 ## Organizations
 
