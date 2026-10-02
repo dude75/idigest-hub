@@ -19,6 +19,16 @@ Money is stored as `Numeric(12,2)`; charges are **floored to cents** (`app/money
 
 Default tariff seeded at setup: name `"Default"`, `unlimited=true`, `available_on_signup=true`.
 
+## Deleting tariffs
+
+Instance admin removes tariffs from **Instance → Tariffs** (or `DELETE /tariffs/{id}`). The UI loads `GET /tariffs/{id}/delete-impact` first (same pattern as worker delete):
+
+- **No orgs** — delete succeeds if at least one other tariff remains.
+- **Orgs still on the tariff** — choose a **non-archived** replacement in the impact modal (or send `remediation.tariff_id` on DELETE). All affected orgs are reassigned, then the tariff row is removed. Without remediation → `tariff_in_use` (409).
+- **Last tariff in the instance** — blocked (`last_tariff`, 409); create or clone another tariff first.
+
+Archiving hides a tariff from signup and org self-service but does not move existing orgs. Clone (`POST /tariffs/{id}/clone`) copies settings into a new active tariff.
+
 ## Wallet
 
 - One balance per organization

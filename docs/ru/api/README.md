@@ -87,8 +87,8 @@ OpenAPI выключен по умолчанию. При `OPENAPI_ENABLED=true`:
 | `email_taken` | 409 | Дубликат email |
 | `tariff_not_available` | 400 | Недопустимый выбор тарифа |
 | `last_org_admin` | 409 | Будет удалён последний admin |
-| `tariff_in_use` | 409 | Нельзя удалить тариф |
-| `last_tariff` | 409 | Нельзя удалить последний тариф |
+| `tariff_in_use` | 409 | DELETE тарифа при org на нём без `remediation.tariff_id` |
+| `last_tariff` | 409 | DELETE удалил бы единственный тариф инстанса |
 | `task_running` | 409 | Отмена отклонена |
 | `conflict` | 409 | Общий конфликт |
 | `public_base_url_missing` | 400 | Public URL не задан (public links, SSO) |

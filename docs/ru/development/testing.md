@@ -44,7 +44,7 @@ Framework: **pytest** с FastAPI `TestClient`.
 | `test_instance.py` | Workers, tariffs, settings |
 | `test_summarize_models.py` | Выбор модели summarize на инстансе и у пользователя, snapshot задачи |
 | `test_worker_delete.py` | Delete impact и remediation для transcribe, summarize и capture |
-| `test_billing.py` | Wallet, charges, unlimited |
+| `test_billing.py` | Wallet, charges, unlimited, archive/delete тарифов, impact и remediation |
 | `test_rate_limit.py` | Limiter buckets |
 
 ## Mocking workers

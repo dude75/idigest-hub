@@ -52,7 +52,9 @@ app/
     ├── totp.py         # TOTP secret generation and verification
     ├── backup.py       # Profile ZIP/TGZ archives
     ├── export.py       # Download filenames, markdown fence unwrap
-    └── storage.py      # Audio blobs: local filesystem or S3 (STORAGE_BACKEND)
+    ├── storage.py      # Audio blobs: local filesystem or S3 (STORAGE_BACKEND)
+    ├── worker_impact.py   # Impact и remediation при delete/change воркера
+    └── tariff_impact.py   # Impact удаления тарифа и перенос org
 ```
 
 ## Путь запроса

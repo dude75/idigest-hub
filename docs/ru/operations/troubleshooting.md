@@ -20,6 +20,8 @@
 | `insufficient_balance` | Wallet ≤ 0 на metered tariff | Пополнение wallet через instance admin |
 | Unexpected charge | Tariff snapshotted при создании task | Проверьте `usage_events` + task `snap_*` |
 | API blocked | `api_enabled=false` на tariff | Смените tariff или включите API |
+| `tariff_in_use` при DELETE | Org ещё на тарифе | Instance → Tariffs: модалка delete impact и перенос org (`remediation.tariff_id`) или переназначьте в **Organizations** |
+| `last_tariff` при DELETE | В инстансе один тариф | Сначала clone или создайте другой тариф |
 
 ## Задачи зависли
 

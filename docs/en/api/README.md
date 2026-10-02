@@ -87,8 +87,8 @@ Unauthenticated requests to protected routes → **401** `unauthorized`.
 | `email_taken` | 409 | Duplicate email |
 | `tariff_not_available` | 400 | Invalid tariff choice |
 | `last_org_admin` | 409 | Would remove last admin |
-| `tariff_in_use` | 409 | Cannot delete tariff |
-| `last_tariff` | 409 | Cannot delete last tariff |
+| `tariff_in_use` | 409 | DELETE tariff while orgs remain and no `remediation.tariff_id` |
+| `last_tariff` | 409 | DELETE would remove the only tariff in the instance |
 | `task_running` | 409 | Cancel rejected |
 | `conflict` | 409 | Generic conflict |
 | `public_base_url_missing` | 400 | Public URL not set (public links, SSO) |

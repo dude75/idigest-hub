@@ -20,6 +20,8 @@ Extended from [README — Typical errors](../../../README.md#typical-errors).
 | `insufficient_balance` | Wallet ≤ 0 on metered tariff | Instance admin wallet top-up |
 | Unexpected charge | Tariff snapshotted at task create | Check `usage_events` + task `snap_*` |
 | API blocked | `api_enabled=false` on tariff | Change tariff or enable API |
+| `tariff_in_use` on DELETE | Orgs still reference the tariff | Instance → Tariffs: use delete impact modal and move orgs (`remediation.tariff_id`), or reassign via **Organizations** first |
+| `last_tariff` on DELETE | Only one tariff left | Clone or create another tariff before deleting |
 
 ## Tasks stuck
 

@@ -44,7 +44,7 @@ Each test gets:
 | `test_instance.py` | Workers, tariffs, settings |
 | `test_summarize_models.py` | Instance and user summarize model selection, task snapshot |
 | `test_worker_delete.py` | Delete impact and remediation for transcribe, summarize, and capture |
-| `test_billing.py` | Wallet, charges, unlimited |
+| `test_billing.py` | Wallet, charges, unlimited, tariff archive/delete impact and remediation |
 | `test_rate_limit.py` | Limiter buckets |
 
 ## Mocking workers
