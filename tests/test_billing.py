@@ -205,6 +205,33 @@ def test_archive_and_delete_tariff_rules(client):
     assert err_code(last) == "last_tariff"
 
 
+def test_clone_tariff_copies_settings(client):
+    setup_admin(client)
+    base = create_tariff(
+        client,
+        name="Original",
+        price_per_audio_sec="2.500000",
+        audio_retention_days=14,
+        tone_analytics_enabled=True,
+        api_enabled=False,
+    )
+    client.post(f"/api/v1/tariffs/{base['id']}/archive")
+    cloned = client.post(f"/api/v1/tariffs/{base['id']}/clone", json={"name": "Cloned"})
+    assert cloned.status_code == 200, cloned.text
+    body = cloned.json()
+    assert body["name"] == "Cloned"
+    assert body["id"] != base["id"]
+    assert body["archived"] is False
+    assert body["price_per_audio_sec"] == "2.500000"
+    assert body["audio_retention_days"] == 14
+    assert body["tone_analytics_enabled"] is True
+    assert body["api_enabled"] is False
+    assert body["org_count"] == 0
+
+    empty = client.post(f"/api/v1/tariffs/{base['id']}/clone", json={"name": "   "})
+    assert err_code(empty) == "validation_error"
+
+
 def test_signup_credit_sets_org_balance(client):
     setup_admin(client)
     paid = create_tariff(client, name="Trial", price_per_audio_sec="0", price_per_summarize_job="0", signup_credit="12.50")

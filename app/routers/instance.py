@@ -83,6 +83,10 @@ class TariffBody(BaseModel):
     tone_analytics_enabled: bool = False
 
 
+class TariffCloneBody(BaseModel):
+    name: str
+
+
 class WalletBody(BaseModel):
     delta: str
 
@@ -730,6 +734,44 @@ def create_tariff(
     db.add(tariff)
     db.flush()
     write_audit(db, "tariff.create", ctx, {"tariff_id": tariff.id})
+    return tariff_public(tariff, 0)
+
+
+@router.post("/tariffs/{tariff_id}/clone")
+def clone_tariff(
+    tariff_id: str,
+    body: TariffCloneBody,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> dict:
+    _admin(ctx)
+    source = db.get(Tariff, tariff_id)
+    if source is None:
+        ctx.raise_error(ErrorCode.not_found)
+    name = body.name.strip()
+    if not name:
+        ctx.raise_error(ErrorCode.validation_error)
+    now = utcnow()
+    tariff = Tariff(
+        id=new_id(),
+        name=name,
+        unlimited=source.unlimited,
+        available_on_signup=source.available_on_signup,
+        archived_at=None,
+        price_per_audio_sec=source.price_per_audio_sec,
+        price_per_summarize_job=source.price_per_summarize_job,
+        price_per_1k_summary_chars=source.price_per_1k_summary_chars,
+        audio_retention_days=source.audio_retention_days,
+        api_enabled=source.api_enabled,
+        signup_credit=source.signup_credit,
+        max_upload_bytes=source.max_upload_bytes,
+        tone_analytics_enabled=source.tone_analytics_enabled,
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(tariff)
+    db.flush()
+    write_audit(db, "tariff.clone", ctx, {"tariff_id": tariff.id, "source_tariff_id": source.id})
     return tariff_public(tariff, 0)
 
 

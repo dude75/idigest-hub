@@ -97,6 +97,10 @@ All tariffs with org counts.
 
 Create tariff (prices as decimal strings).
 
+### POST `/tariffs/{id}/clone`
+
+Body: `{ "name": "..." }`. Creates a new active tariff with the same settings as the source (new id; not archived).
+
 ### PATCH `/tariffs/{id}`
 
 Update fields.

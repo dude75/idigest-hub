@@ -19,6 +19,7 @@ import {
   adminTableHeadNum,
 } from '../../components/app/AdminDataTable'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
+import { Modal } from '../../components/Modal'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import { TariffDetails } from '../../components/TariffDetails'
 import type { Tariff } from '../../types'
@@ -57,6 +58,9 @@ export function InstanceTariffsTab() {
   const [saveBusy, setSaveBusy] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Tariff | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [cloneTarget, setCloneTarget] = useState<Tariff | null>(null)
+  const [cloneName, setCloneName] = useState('')
+  const [cloneBusy, setCloneBusy] = useState(false)
   const formRef = useRef<HTMLDivElement>(null)
 
   async function load() {
@@ -167,6 +171,32 @@ export function InstanceTariffsTab() {
     }
   }
 
+  function openClone(tr: Tariff) {
+    setCloneTarget(tr)
+    setCloneName(`${tr.name} (${t('instance.tariffCloneNameSuffix')})`)
+  }
+
+  async function confirmClone() {
+    if (!cloneTarget) return
+    const name = cloneName.trim()
+    if (!name) {
+      toast.error(t('instance.tariffNameRequired'))
+      return
+    }
+    setCloneBusy(true)
+    try {
+      await api(`/tariffs/${cloneTarget.id}/clone`, { method: 'POST', body: JSON.stringify({ name }) })
+      toast.success(t('profile.saved'))
+      setCloneTarget(null)
+      setCloneName('')
+      await load()
+    } catch (e) {
+      showError(e)
+    } finally {
+      setCloneBusy(false)
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteTarget) return
     setDeleteBusy(true)
@@ -183,6 +213,19 @@ export function InstanceTariffsTab() {
   }
 
   const previewTariff = formToPreviewTariff(tform, editT ?? 'preview', editingArchived)
+  const cloneReady = cloneName.trim().length > 0
+
+  useEffect(() => {
+    if (!cloneTarget) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && !cloneBusy) {
+        setCloneTarget(null)
+        setCloneName('')
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [cloneTarget, cloneBusy])
 
   return (
     <AdminPage>
@@ -360,6 +403,9 @@ export function InstanceTariffsTab() {
                       >
                         {t('common.edit')}
                       </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => openClone(tr)}>
+                        {t('instance.tariffClone')}
+                      </Button>
                       {tr.archived ? (
                         <Button
                           type="button"
@@ -394,6 +440,52 @@ export function InstanceTariffsTab() {
           </AdminDataTable>
         ) : null}
       </AdminTableCard>
+
+      {cloneTarget ? (
+        <Modal
+          onClose={() => {
+            if (!cloneBusy) {
+              setCloneTarget(null)
+              setCloneName('')
+            }
+          }}
+          closeOnBackdrop={!cloneBusy}
+          showCloseButton={false}
+          title={t('instance.tariffCloneTitle')}
+          description={t('instance.tariffCloneHint', { name: cloneTarget.name })}
+          footer={
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={cloneBusy}
+                onClick={() => {
+                  setCloneTarget(null)
+                  setCloneName('')
+                }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="button"
+                disabled={cloneBusy || !cloneReady}
+                onClick={() => void confirmClone()}
+              >
+                {t('instance.tariffClone')}
+              </Button>
+            </>
+          }
+        >
+          <AppInputField
+            label={t('common.name')}
+            htmlFor="tariff-clone-name"
+            value={cloneName}
+            disabled={cloneBusy}
+            autoFocus
+            onChange={(e) => setCloneName(e.target.value)}
+          />
+        </Modal>
+      ) : null}
 
       {deleteTarget && (
         <ConfirmDialog
