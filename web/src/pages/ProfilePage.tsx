@@ -59,6 +59,7 @@ export function ProfilePage() {
   const [timezone, setTimezoneLocal] = useState<'inherit' | string>('inherit')
   const [asrModel, setAsrModelLocal] = useState<'inherit' | string>('inherit')
   const [diarizationModel, setDiarizationModelLocal] = useState<'inherit' | 'off' | string>('inherit')
+  const [toneAnalytics, setToneAnalyticsLocal] = useState(true)
   const [transcribeOk, setTranscribeOk] = useState(false)
   const [summarizeModel, setSummarizeModelLocal] = useState<'inherit' | string>('inherit')
   const [summarizeOk, setSummarizeOk] = useState(false)
@@ -137,6 +138,7 @@ export function ProfilePage() {
     if (me.user.diarization_model == null) setDiarizationModelLocal('inherit')
     else if (me.user.diarization_model === '') setDiarizationModelLocal('off')
     else setDiarizationModelLocal(me.user.diarization_model)
+    setToneAnalyticsLocal(me.user.tone_analytics_enabled ?? true)
     setSummarizeModelLocal(me.user.summarize_model || 'inherit')
     setCaptureBotNameLocal(me.user.capture_bot_display_name || '')
   }, [me])
@@ -195,8 +197,17 @@ export function ProfilePage() {
       : me.user.diarization_model === ''
         ? 'off'
         : me.user.diarization_model
-  const transcribeDirty = asrModel !== savedAsrModel || diarizationModel !== savedDiarizationModel
-  const transcribeReady = transcribeDirty && transcribeComboValid
+  const savedToneAnalytics = me?.user.tone_analytics_enabled ?? true
+  const transcribeDirty =
+    asrModel !== savedAsrModel ||
+    diarizationModel !== savedDiarizationModel ||
+    toneAnalytics !== savedToneAnalytics
+  const onlyTonePrefDirty =
+    toneAnalytics !== savedToneAnalytics &&
+    asrModel === savedAsrModel &&
+    diarizationModel === savedDiarizationModel
+  const transcribeReady = transcribeDirty && (onlyTonePrefDirty || transcribeComboValid)
+  const tariffAllowsTone = Boolean(me?.org?.tariff.tone_analytics_enabled)
 
   const savedSummarizeModel = me?.user.summarize_model || 'inherit'
   const summarizeDirty = summarizeModel !== savedSummarizeModel
@@ -244,6 +255,7 @@ export function ProfilePage() {
         body: JSON.stringify({
           asr_model: asrModel === 'inherit' ? null : asrModel,
           diarization_model: diarizationModel === 'inherit' ? null : diarizationModel === 'off' ? '' : diarizationModel,
+          tone_analytics_enabled: toneAnalytics,
         }),
       })
       await refresh()
@@ -532,55 +544,83 @@ export function ProfilePage() {
           </AdminFormActions>
         </AdminFormCard>
 
-        {me && (me.transcribe_models.asr_models.length > 0 || me.transcribe_models.diarization_models.length > 0) && (
+        {me &&
+          (me.transcribe_models.asr_models.length > 0 ||
+            me.transcribe_models.diarization_models.length > 0 ||
+            me.org) && (
           <AdminFormCard title={t('profile.transcribeTitle')} lead={t('profile.transcribeHint')}>
-            <AppSelectField
-              label={t('instance.asr')}
-              htmlFor="profile-asr"
-              value={asrModel}
-              onValueChange={(nextAsr) => {
-                setTranscribeOk(false)
-                setAsrModelLocal(nextAsr)
-                if (!me) return
-                const effectiveAsr = resolveEffectiveAsr(nextAsr, me.transcribe_prefs)
-                const allowedDiar = diarizationOptionsForAsr(me.transcribe_models, effectiveAsr)
-                if (diarizationModel !== 'inherit' && diarizationModel !== 'off' && !allowedDiar.includes(diarizationModel)) {
-                  setDiarizationModelLocal('inherit')
-                }
-              }}
-              options={[
-                {
-                  value: 'inherit',
-                  label: t('profile.dateTimeInherit', { value: me.transcribe_prefs.instance_asr_model }),
-                },
-                ...me.transcribe_models.asr_models.map((modelId) => ({ value: modelId, label: modelId })),
-              ]}
-            />
-            <AppSelectField
-              label={t('instance.diarization')}
-              htmlFor="profile-diarization"
-              value={diarizationModel}
-              onValueChange={(next) => {
-                setTranscribeOk(false)
-                setDiarizationModelLocal(next)
-              }}
-              options={[
-                {
-                  value: 'inherit',
-                  label: t('profile.transcribeDiarizationInherit', {
-                    value: me.transcribe_prefs.instance_diarization_model || t('instance.diarizationOff'),
-                  }),
-                },
-                { value: 'off', label: t('instance.diarizationOff') },
-                ...availableDiarizationModels.map((modelId) => ({ value: modelId, label: modelId })),
-              ]}
-            />
-            <p className="muted">
-              {t('profile.transcribePreview', {
-                asr: resolveEffectiveAsr(asrModel, me.transcribe_prefs),
-                diarization: resolveEffectiveDiarization(diarizationModel, me.transcribe_prefs) || t('instance.diarizationOff'),
-              })}
-            </p>
+            {(me.transcribe_models.asr_models.length > 0 || me.transcribe_models.diarization_models.length > 0) && (
+              <div className="profile-transcribe-grid">
+                <AppSelectField
+                  label={t('instance.asr')}
+                  htmlFor="profile-asr"
+                  value={asrModel}
+                  onValueChange={(nextAsr) => {
+                    setTranscribeOk(false)
+                    setAsrModelLocal(nextAsr)
+                    if (!me) return
+                    const effectiveAsr = resolveEffectiveAsr(nextAsr, me.transcribe_prefs)
+                    const allowedDiar = diarizationOptionsForAsr(me.transcribe_models, effectiveAsr)
+                    if (diarizationModel !== 'inherit' && diarizationModel !== 'off' && !allowedDiar.includes(diarizationModel)) {
+                      setDiarizationModelLocal('inherit')
+                    }
+                  }}
+                  options={[
+                    {
+                      value: 'inherit',
+                      label: t('profile.dateTimeInherit', { value: me.transcribe_prefs.instance_asr_model }),
+                    },
+                    ...me.transcribe_models.asr_models.map((modelId) => ({ value: modelId, label: modelId })),
+                  ]}
+                />
+                <AppSelectField
+                  label={t('instance.diarization')}
+                  htmlFor="profile-diarization"
+                  value={diarizationModel}
+                  onValueChange={(next) => {
+                    setTranscribeOk(false)
+                    setDiarizationModelLocal(next)
+                  }}
+                  options={[
+                    {
+                      value: 'inherit',
+                      label: t('profile.transcribeDiarizationInherit', {
+                        value: me.transcribe_prefs.instance_diarization_model || t('instance.diarizationOff'),
+                      }),
+                    },
+                    { value: 'off', label: t('instance.diarizationOff') },
+                    ...availableDiarizationModels.map((modelId) => ({ value: modelId, label: modelId })),
+                  ]}
+                />
+              </div>
+            )}
+            {me.org ? (
+              <div className="mt-2">
+                <AppCheckboxRow
+                  id="profile-tone-analytics"
+                  label={t('profile.toneAnalytics', {
+                    state: toneAnalytics && tariffAllowsTone ? t('profile.toneOn') : t('profile.toneOff'),
+                  })}
+                  checked={tariffAllowsTone && toneAnalytics}
+                  disabled={!tariffAllowsTone}
+                  onCheckedChange={(checked) => {
+                    setTranscribeOk(false)
+                    setToneAnalyticsLocal(checked)
+                  }}
+                />
+                <p className="muted text-sm">
+                  {tariffAllowsTone ? t('profile.toneAnalyticsHint') : t('profile.toneTariffLocked')}
+                </p>
+              </div>
+            ) : null}
+            {(me.transcribe_models.asr_models.length > 0 || me.transcribe_models.diarization_models.length > 0) && (
+              <p className="muted">
+                {t('profile.transcribePreview', {
+                  asr: resolveEffectiveAsr(asrModel, me.transcribe_prefs),
+                  diarization: resolveEffectiveDiarization(diarizationModel, me.transcribe_prefs) || t('instance.diarizationOff'),
+                })}
+              </p>
+            )}
             {!transcribeComboValid ? (
               <p className="err">{t('profile.transcribeComboInvalid')}</p>
             ) : null}

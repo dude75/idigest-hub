@@ -40,6 +40,7 @@ def user_public(
         "timezone": user.timezone,
         "asr_model": user.asr_model,
         "diarization_model": user.diarization_model,
+        "tone_analytics_enabled": user.tone_analytics_enabled,
         "summarize_model": user.summarize_model,
         "capture_bot_display_name": user.capture_bot_display_name,
         "show_only_my_items": user.show_only_my_items,
@@ -73,6 +74,7 @@ def tariff_public(tariff: Tariff, org_count: int | None = None) -> dict[str, Any
         "api_enabled": tariff.api_enabled,
         "signup_credit": money_str(Decimal(tariff.signup_credit)),
         "max_upload_bytes": tariff.max_upload_bytes,
+        "tone_analytics_enabled": tariff.tone_analytics_enabled,
     }
     if org_count is not None:
         body["org_count"] = org_count

@@ -282,6 +282,8 @@ def _persist_transcript(db: Session, task: Task, payload: dict[str, Any]) -> Tra
         audio = db.get(Audio, task.audio_id)
         if audio and audio.original_filename:
             title = Path(audio.original_filename).stem or None
+    from app.services.transcript_payload import stored_has_tone
+
     row = Transcript(
         id=new_id(),
         org_id=task.org_id,
@@ -289,6 +291,7 @@ def _persist_transcript(db: Session, task: Task, payload: dict[str, Any]) -> Tra
         source_audio_id=task.audio_id,
         title=title,
         utterances_encrypted=encrypt_str(json.dumps(payload, ensure_ascii=False), db),
+        has_tone_analytics=stored_has_tone(payload),
         created_at=utcnow(),
     )
     db.add(row)
@@ -354,6 +357,7 @@ def enqueue_transcribe_after_ingest(db: Session, ingest_task: Task) -> Task | No
         snap_max_upload_bytes=ingest_task.snap_max_upload_bytes,
         snap_asr_model=ingest_task.snap_asr_model,
         snap_diarization_model=ingest_task.snap_diarization_model,
+        snap_tone_analytics=ingest_task.snap_tone_analytics,
     )
     db.add(follow_up)
     db.flush()
@@ -478,7 +482,12 @@ async def _on_transcribe_success(
             audio.duration_sec = audio_sec
     amount = transcribe_amount(task, audio_sec)
     worker_task_id = task.worker_task_id
-    _persist_transcript(db, task, build_worker_payload(body, utterances))
+    payload = build_worker_payload(body, utterances)
+    _persist_transcript(db, task, payload)
+    from app.prometheus_metrics import observe_transcribe_tone
+    from app.services.transcript_payload import stored_has_tone
+
+    observe_transcribe_tone(bool(task.snap_tone_analytics), stored_has_tone(payload))
     _charge(db, task, audio_sec, amount)
     follow_up = _enqueue_summarize_after_transcribe(db, task)
     meta = dict(task.meta_json or {})
@@ -739,6 +748,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
                         audio.original_filename,
                         task.snap_asr_model or "whisper",
                         task.snap_diarization_model,
+                        tone=bool(task.snap_tone_analytics),
                     )
             else:
                 transcript = db.get(Transcript, task.transcript_id) if task.transcript_id else None

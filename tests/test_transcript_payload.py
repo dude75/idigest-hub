@@ -4,6 +4,8 @@ from app.services.transcript_payload import (
     extract_utterances,
     is_worker_payload,
     normalize_utterances,
+    payload_tone_fields,
+    stored_has_tone,
     summarize_input_text,
 )
 
@@ -52,6 +54,20 @@ def test_summarize_and_export_use_stored_payload():
     exported = export_json_payload(payload)
     assert exported == payload
     assert '"task_id": "t1"' in summarize_input_text(payload)
+
+
+def test_stored_has_tone_and_payload_fields():
+    payload = {
+        "status": "success",
+        "meta": {"tone_layers": ["text"]},
+        "transcript": [{"speaker": "A", "text": "hi", "tone": {"valence": 0.1}}],
+        "call_summary": {"opening_valence": 0.1},
+    }
+    assert stored_has_tone(payload) is True
+    fields = payload_tone_fields(payload)
+    assert fields["has_tone_analytics"] is True
+    assert fields["call_summary"]["opening_valence"] == 0.1
+    assert fields["tone_layers"] == ["text"]
 
 
 def test_summarize_strips_tone_and_call_summary():

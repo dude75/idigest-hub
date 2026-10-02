@@ -318,7 +318,7 @@ export function LibraryPage() {
       const pipeline = beginPipelineRun()
       const task = await api<Task>('/tasks/capture', {
         method: 'POST',
-        body: JSON.stringify(captureRequest(trimmed, pin.trim(), pipeline)),
+        body: JSON.stringify(captureRequest(trimmed, pin.trim(), pipeline, me)),
       })
       setCapturePin('')
       setImportUrl('')
@@ -342,7 +342,7 @@ export function LibraryPage() {
       const pipeline = beginPipelineRun()
       const task = await api<Task>('/tasks/import', {
         method: 'POST',
-        body: JSON.stringify(importRequest(url, pipeline)),
+        body: JSON.stringify(importRequest(url, pipeline, me)),
       })
       setImportUrl('')
       nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
@@ -382,7 +382,7 @@ export function LibraryPage() {
       if (pipelineShouldTranscribe(pipeline)) {
         const task = await api<Task>('/tasks/transcribe', {
           method: 'POST',
-          body: JSON.stringify(transcribeRequest(item.id, pipeline)),
+          body: JSON.stringify(transcribeRequest(item.id, pipeline, me)),
         })
         nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
         return
@@ -854,13 +854,18 @@ export function LibraryPage() {
             setRecordOpen(false)
             setBusy(true)
             setUploadProgress({ name: file.name, percent: 0, phase: 'uploading', video: true })
-            void uploadMicrophoneRecording(file, nav, {
-              onProgress: (p) => setUploadProgress({ ...p, video: true }),
-              afterUpload: async (item) => {
-                setAudios((prev) => [item, ...prev.filter((a) => a.id !== item.id)])
-                await load('audio')
+            void uploadMicrophoneRecording(
+              file,
+              nav,
+              {
+                onProgress: (p) => setUploadProgress({ ...p, video: true }),
+                afterUpload: async (item) => {
+                  setAudios((prev) => [item, ...prev.filter((a) => a.id !== item.id)])
+                  await load('audio')
+                },
               },
-            })
+              me,
+            )
               .catch(showError)
               .finally(() => {
                 setBusy(false)

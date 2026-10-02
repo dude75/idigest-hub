@@ -47,7 +47,7 @@ export function GlobalMicRecordAccess() {
   async function uploadFromMic(file: File) {
     setBusy(true)
     try {
-      await uploadMicrophoneRecording(file, nav)
+      await uploadMicrophoneRecording(file, nav, undefined, me)
     } catch (e) {
       showError(e)
     } finally {

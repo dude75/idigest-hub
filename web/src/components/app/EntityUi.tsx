@@ -77,7 +77,7 @@ export function EntityBackLink({ to, 'aria-label': ariaLabel }: { to: string; 'a
 export function EntityDetailCard({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <Card className={cn('entity-detail-card', className)}>
-      <CardContent className="flex flex-col gap-3 pt-6">{children}</CardContent>
+      <CardContent className="flex flex-col gap-3">{children}</CardContent>
     </Card>
   )
 }

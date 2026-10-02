@@ -480,7 +480,9 @@ class FakeWorkers:
     async def get_ready(self, _db, node) -> int:
         return self.ready_status
 
-    async def post_transcribe(self, _db, node, path, filename, asr_model, diarization_model) -> dict[str, Any]:
+    async def post_transcribe(
+        self, _db, node, path, filename, asr_model, diarization_model, *, tone: bool = False
+    ) -> dict[str, Any]:
         self.asr_models_seen.append(asr_model)
         self.post_count += 1
         self.nodes_posted.append(node.id)

@@ -166,6 +166,7 @@ class User(Base):
     diarization_model: Mapped[str | None] = mapped_column(String(32))
     summarize_model: Mapped[str | None] = mapped_column(String(255))
     capture_bot_display_name: Mapped[str | None] = mapped_column(String(128))
+    tone_analytics_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     show_only_my_items: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -288,6 +289,7 @@ class Tariff(Base):
     api_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     signup_credit: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
     max_upload_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    tone_analytics_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -370,6 +372,7 @@ class Transcript(Base):
     )
     title: Mapped[str | None] = mapped_column(String(255))
     utterances_encrypted: Mapped[str] = mapped_column(Text, nullable=False)
+    has_tone_analytics: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
@@ -498,6 +501,7 @@ class Task(Base):
     snap_asr_model: Mapped[str | None] = mapped_column(String(32))
     snap_diarization_model: Mapped[str | None] = mapped_column(String(32))
     snap_summarize_model: Mapped[str | None] = mapped_column(String(255))
+    snap_tone_analytics: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     queued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     retry_without_timeout: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     skip_persist: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

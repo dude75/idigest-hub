@@ -16,6 +16,7 @@ export function TariffDetails({ tariff }: { tariff: Tariff }) {
           : t('landing.retentionForever')}
       </li>
       <li>{tariff.api_enabled ? t('landing.apiYes') : t('landing.apiNo')}</li>
+      <li>{tariff.tone_analytics_enabled ? t('landing.toneYes') : t('landing.toneNo')}</li>
       {!tariff.unlimited && Number(tariff.signup_credit) > 0 && (
         <li>{t('landing.credit', { amount: tariff.signup_credit })}</li>
       )}

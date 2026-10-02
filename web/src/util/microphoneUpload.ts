@@ -9,7 +9,7 @@ import {
   transcribeRequest,
 } from '../pipeline'
 import { libraryPath } from '../routes'
-import type { Audio, Task, UserTag } from '../types'
+import type { Audio, Me, Task, UserTag } from '../types'
 import { showError } from '../util'
 
 export async function tagMicrophoneRecording(audioId: string): Promise<UserTag[]> {
@@ -39,6 +39,7 @@ export async function uploadMicrophoneRecording(
   file: File,
   navigate: NavigateFunction,
   options?: UploadMicOptions,
+  me?: Me | null,
 ): Promise<Audio> {
   const pipeline = beginPipelineRun()
   const body = new FormData()
@@ -64,7 +65,7 @@ export async function uploadMicrophoneRecording(
   if (pipelineShouldTranscribe(pipeline)) {
     const task = await api<Task>('/tasks/transcribe', {
       method: 'POST',
-      body: JSON.stringify(transcribeRequest(item.id, pipeline)),
+      body: JSON.stringify(transcribeRequest(item.id, pipeline, me)),
     })
     navigate(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
     return item

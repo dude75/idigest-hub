@@ -1071,23 +1071,219 @@ th { color: var(--hub-muted); font-weight: 550; }
 }
 .fold[open] > summary { color: var(--ink); }
 .fold-body { margin-top: 0.5rem; }
-.utterance { padding: 0.35rem 0; border-bottom: 1px dashed var(--line); }
-.utterance:last-child { border-bottom: 0; }
-.utterance-seekable {
-  cursor: pointer;
-  border-radius: 4px;
-  margin-inline: -0.35rem;
+.transcript-utterance-actions { min-height: 2.25rem; }
+.utterance-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.utterance-row:last-child { border-bottom: 0; }
+.utterance-stripe-col {
+  flex-shrink: 0;
+  width: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+.utterance-stripe-hit {
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  cursor: help;
+}
+.utterance-stripe {
+  width: 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  align-self: stretch;
+  min-height: 1.25rem;
+}
+.utterance-stripe-pos { background: #22c55e; }
+.utterance-stripe-neg { background: #ef4444; }
+.utterance-stripe-neutral { background: var(--line); }
+.utterance-main { flex: 1; min-width: 0; }
+.utterance-main-hit { flex: 1; min-width: 0; display: block; }
+.utterance-main-seekable { cursor: pointer; border-radius: 4px; }
+.utterance-main-seekable:hover,
+.utterance-main-hit.utterance-main-seekable:hover {
+  background: #eef2f7;
+}
+.utterance-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  margin-bottom: 0.15rem;
+}
+.utterance-text {
+  display: block;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.utterance-tone-chip {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  line-height: 1.25;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--line) 60%, var(--ink));
+  background: color-mix(in oklab, var(--line) 55%, white);
+  color: var(--muted-foreground);
+  vertical-align: baseline;
+}
+.transcript-tone-inline {
+  margin: 0;
+}
+.transcript-tone-inline .transcript-tone-head-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.transcript-tone-inline .transcript-tone-stat {
+  padding: 0.18rem 0.35rem;
+  font-size: 0.75rem;
+  gap: 0.25rem 0.35rem;
+}
+.transcript-tone-inline .transcript-tone-stat-badge {
+  font-size: 0.7rem;
+  height: 1.2rem;
   padding-inline: 0.35rem;
 }
-.utterance-seekable:hover { background: #eef2f7; }
+.transcript-tone-inline .transcript-tone-stat-num {
+  font-size: 0.68rem;
+}
+.transcript-tone-inline .transcript-tone-layer-badge {
+  font-size: 0.65rem;
+  height: 1.15rem;
+}
+.transcript-tone-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.65rem;
+  margin-bottom: 0.45rem;
+}
+.transcript-tone-head-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.25;
+}
+.transcript-tone-layers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.4rem;
+}
+.transcript-tone-layers-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+.transcript-tone-layers-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+.transcript-tone-layer-badge {
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0 0.35rem;
+  height: 1.25rem;
+}
+.transcript-tone-metrics-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.5rem;
+}
+.transcript-tone-metrics-row .transcript-tone-head-title {
+  margin-right: 0.15rem;
+}
+.transcript-tone-metrics-row .transcript-tone-layers {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.transcript-tone-stat {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--line) 22%, white);
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+.transcript-tone-stat-positive { border-color: color-mix(in oklab, #22c55e 40%, var(--line)); }
+.transcript-tone-stat-negative { border-color: color-mix(in oklab, #ef4444 40%, var(--line)); }
+.transcript-tone-stat-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted-foreground);
+}
+.transcript-tone-stat-label-wrap {
+  text-transform: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  max-width: 9rem;
+}
+.transcript-tone-stat-badge {
+  font-size: 0.75rem;
+  height: 1.35rem;
+  padding-inline: 0.4rem;
+}
+.transcript-tone-stat-num {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.72rem;
+  color: var(--muted-foreground);
+}
+.app-cursor-hint {
+  position: fixed;
+  z-index: 9999;
+  max-width: min(10rem, calc(100vw - 1.5rem));
+  padding: 0.45rem 0.65rem;
+  border-radius: 8px;
+  background: var(--popover, #fff);
+  color: var(--popover-foreground, var(--ink));
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  white-space: pre-line;
+  pointer-events: none;
+}
+.profile-transcribe-grid { display: grid; gap: 0.75rem; }
+@media (min-width: 640px) {
+  .profile-transcribe-grid { grid-template-columns: 1fr 1fr; }
+}
 .utterance-time {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 0.82rem;
   color: var(--hub-accent);
-  margin-right: 0.5rem;
 }
-.speaker { font-weight: 600; margin-right: 0.35rem; }
-.summary-body { background: #fafbfc; border: 1px solid var(--line); border-radius: 6px; padding: 0.75rem; overflow-x: auto; }
+.utterance-meta .utterance-time { margin-right: 0; }
+.speaker { font-weight: 600; }
+.summary-body {
+  background: #fafbfc;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  scrollbar-gutter: stable;
+}
+.summary-body.transcript-utterances-show-tone .utterance-meta {
+  min-height: 1.35rem;
+}
 .summary-body a:not([data-slot='button']) {
   text-decoration: underline;
   text-underline-offset: 0.15em;
@@ -1749,6 +1945,11 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 .entity-page .admin-table-card,
 .entity-page .transcript-summaries {
   margin-bottom: 1rem;
+}
+.entity-detail-card [data-slot='card-content'] > .user-tags-editor,
+.entity-detail-card [data-slot='card-content'] > .entity-toolbar,
+.entity-detail-card [data-slot='card-content'] > .transcript-tone-inline {
+  margin: 0;
 }
 .entity-title {
   margin: 0 0 1rem;

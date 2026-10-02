@@ -168,6 +168,7 @@ class MePatchBody(BaseModel):
     diarization_model: str | None = Field(default=None)
     summarize_model: str | None = None
     capture_bot_display_name: str | None = None
+    tone_analytics_enabled: bool | None = None
 
 
 class AccountDeleteBody(BaseModel):
@@ -1044,6 +1045,11 @@ def patch_me(
                 validate_dispatchable_summarize_model(db, model=prefs["summarize_model"])
             except ValueError:
                 ctx.raise_error(ErrorCode.validation_error)
+    if "tone_analytics_enabled" in data:
+        raw = data["tone_analytics_enabled"]
+        if raw is not None:
+            ctx.user.tone_analytics_enabled = bool(raw)
+            ctx.user.updated_at = utcnow()
     if "capture_bot_display_name" in data:
         from app.services.capture_meeting import normalize_capture_bot_display_name
 

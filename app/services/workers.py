@@ -132,6 +132,8 @@ async def post_transcribe(
     filename: str,
     asr_model: str,
     diarization_model: str | None,
+    *,
+    tone: bool = False,
 ) -> dict[str, Any]:
     url = node.base_url.rstrip("/") + "/transcribe"
     headers = _auth_header(db, node)
@@ -148,7 +150,7 @@ async def post_transcribe(
     data = {
         "asr_model": asr_model,
         "diarization_model": diarization_model or "",
-        "tone": "true",
+        "tone": "true" if tone else "false",
     }
     _release(db)
     try:

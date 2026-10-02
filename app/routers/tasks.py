@@ -52,6 +52,7 @@ NON_RETRIABLE_ERROR_CODES = frozenset(
 class TranscribeBody(BaseModel):
     audio_id: str
     skill_ids: list[str] = Field(default_factory=list)
+    tone: bool = False
 
 
 class SummarizeBody(BaseModel):
@@ -64,6 +65,7 @@ class ImportBody(BaseModel):
     transcribe: bool = False
     skill_ids: list[str] = Field(default_factory=list)
     bot_display_name: str | None = None
+    tone: bool = False
 
 
 class CaptureBody(BaseModel):
@@ -72,6 +74,7 @@ class CaptureBody(BaseModel):
     transcribe: bool = False
     skill_ids: list[str] = Field(default_factory=list)
     bot_display_name: str | None = None
+    tone: bool = False
 
 
 def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Task:
@@ -114,6 +117,9 @@ def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Ta
         ctx.raise_error(ErrorCode.pipeline_error)
     models = resolve_transcribe_models(ctx.user, settings)
     tariff = org.tariff
+    from app.services.tone_analytics import validate_tone_for_ctx
+
+    tone = validate_tone_for_ctx(ctx, body.tone) if body.transcribe else False
     now = utcnow()
     meta: dict = {
         "meeting_url": target.meeting_url,
@@ -140,7 +146,7 @@ def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Ta
         created_at=now,
         updated_at=now,
         meta_json=meta,
-        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
+        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"], tone_analytics=tone),
     )
     db.add(task)
     db.flush()
@@ -179,6 +185,7 @@ def enqueue_import_task(db: Session, ctx: AuthContext, body: ImportBody) -> Task
                 transcribe=body.transcribe,
                 skill_ids=body.skill_ids,
                 bot_display_name=body.bot_display_name,
+                tone=body.tone,
             ),
         )
     if import_url_looks_like_meeting(body.url):
@@ -199,6 +206,9 @@ def enqueue_import_task(db: Session, ctx: AuthContext, body: ImportBody) -> Task
 
     models = resolve_transcribe_models(ctx.user, settings)
     tariff = org.tariff
+    from app.services.tone_analytics import validate_tone_for_ctx
+
+    tone = validate_tone_for_ctx(ctx, body.tone) if body.transcribe else False
     now = utcnow()
     meta: dict = {"url": url, "stage": "queued"}
     if body.transcribe:
@@ -214,7 +224,7 @@ def enqueue_import_task(db: Session, ctx: AuthContext, body: ImportBody) -> Task
         created_at=now,
         updated_at=now,
         meta_json=meta,
-        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
+        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"], tone_analytics=tone),
     )
     db.add(task)
     db.flush()
@@ -235,6 +245,9 @@ def enqueue_transcribe_task(db: Session, ctx: AuthContext, body: TranscribeBody)
     from app.services.transcribe_models import resolve_transcribe_models
 
     models = resolve_transcribe_models(ctx.user, settings)
+    from app.services.tone_analytics import validate_tone_for_ctx
+
+    tone = validate_tone_for_ctx(ctx, body.tone)
     skill_ids = list(body.skill_ids or [])
     if skill_ids:
         _validate_summarize_skills(ctx, db, org, skill_ids)
@@ -250,7 +263,7 @@ def enqueue_transcribe_task(db: Session, ctx: AuthContext, body: TranscribeBody)
         queued_at=now,
         created_at=now,
         updated_at=now,
-        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"]),
+        **snapshot_fields(tariff, models["asr_model"], models["diarization_model"], tone_analytics=tone),
     )
     db.add(task)
     db.flush()

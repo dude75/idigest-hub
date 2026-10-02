@@ -49,4 +49,5 @@ export const emptyTariff = {
   api_enabled: true,
   signup_credit: '0',
   max_upload_bytes: MAX_UPLOAD,
+  tone_analytics_enabled: false,
 }

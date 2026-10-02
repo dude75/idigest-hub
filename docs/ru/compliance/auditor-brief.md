@@ -28,6 +28,7 @@
 | **Audit trail** | Персистентный `audit_log` для admin-действий, impersonation, wallet, wipe данных, crypto-операций |
 | **Изоляция tenant** | Одна org на пользователя, cross-org доступ запрещён by design (покрыто автотестами) |
 | **Жизненный цикл данных** | Offboarding (transfer/wipe), purge audio по тарифу, экспорт персональных данных (`GET /me/backup`) |
+| **Метрики тона (inferred)** | Опциональный анализ тональности от transcribe-воркеров; хранится в том же зашифрованном blob транскрипта; в summarize по умолчанию не передаётся |
 | **Observability** | Health endpoint, Prometheus metrics (Bearer), Grafana dashboard, readiness gauge |
 | **Secure SDLC** | GitLab CI: lint, pytest, frontend build, SAST, dependency scanning, secret detection; non-root container |
 | **Traceability деплоя** | Docker-образы по SHA коммита; manual deploy с audit trail в GitLab Environments |

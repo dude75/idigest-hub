@@ -44,6 +44,7 @@ function formToPreviewTariff(tform: typeof emptyTariff, id: string, archived: bo
     api_enabled: tform.api_enabled,
     signup_credit: tform.signup_credit,
     max_upload_bytes: tform.max_upload_bytes,
+    tone_analytics_enabled: tform.tone_analytics_enabled,
   }
 }
 
@@ -93,6 +94,7 @@ export function InstanceTariffsTab() {
         api_enabled: editingTariff.api_enabled,
         signup_credit: editingTariff.signup_credit,
         max_upload_bytes: editingTariff.max_upload_bytes,
+        tone_analytics_enabled: editingTariff.tone_analytics_enabled ?? false,
       }
     }
     return emptyTariff
@@ -126,6 +128,7 @@ export function InstanceTariffsTab() {
       api_enabled: tr.api_enabled,
       signup_credit: tr.signup_credit,
       max_upload_bytes: tr.max_upload_bytes,
+      tone_analytics_enabled: tr.tone_analytics_enabled ?? false,
     })
     scrollToForm()
   }
@@ -253,6 +256,13 @@ export function InstanceTariffsTab() {
               checked={tform.api_enabled}
               disabled={saveBusy}
               onCheckedChange={(checked) => setTform({ ...tform, api_enabled: checked })}
+            />
+            <AppCheckboxRow
+              id="tariff-tone-analytics"
+              label={t('instance.toneAnalyticsEnabled')}
+              checked={tform.tone_analytics_enabled}
+              disabled={saveBusy}
+              onCheckedChange={(checked) => setTform({ ...tform, tone_analytics_enabled: checked })}
             />
             <AppInputField
               label={t('instance.signupCredit')}

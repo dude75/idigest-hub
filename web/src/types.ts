@@ -22,6 +22,7 @@ export type User = {
   diarization_model: string | null
   summarize_model: string | null
   capture_bot_display_name: string | null
+  tone_analytics_enabled: boolean
   show_only_my_items: boolean
   disabled: boolean
   must_change_password: boolean
@@ -69,6 +70,7 @@ export type Tariff = {
   api_enabled: boolean
   signup_credit: string
   max_upload_bytes: number
+  tone_analytics_enabled: boolean
   org_count?: number
 }
 
@@ -237,11 +239,23 @@ export type Audio = ShareBadge & {
   summary_transcript_id?: string | null
 }
 
+export type UtteranceTone = {
+  valence?: number
+  emotions?: Record<string, number>
+}
+
+export type CallToneSummary = {
+  opening_valence?: number
+  closing_valence?: number
+  de_escalation?: boolean
+}
+
 export type Utterance = {
   speaker?: string
   text?: string
   start?: number
   end?: number
+  tone?: UtteranceTone
 }
 
 export type Transcript = ShareBadge & {
@@ -256,6 +270,9 @@ export type Transcript = ShareBadge & {
   utterances?: Utterance[]
   summaries?: Summary[]
   has_summary?: boolean
+  has_tone_analytics?: boolean
+  call_summary?: CallToneSummary | null
+  tone_layers?: string[] | null
 }
 
 export type Summary = ShareBadge & {

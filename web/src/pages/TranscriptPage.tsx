@@ -18,7 +18,14 @@ import { utteranceDisplayText, utteranceStart, utteranceTimeLabel } from '../uti
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppCheckboxRow } from '../components/app/AppFormControls'
+import {
+  TranscriptToneSummaryCard,
+  UtteranceToneChip,
+  utteranceValenceHint,
+  utteranceValenceStripeClass,
+} from '../components/TranscriptTonePanel'
 import { HubBadge } from '../components/app/AdminUi'
+import { AppCursorHint } from '../components/app/AppCursorHint'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import {
   EntityBodyCard,
@@ -54,6 +61,13 @@ export function TranscriptPage() {
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null)
   const [openText, setOpenText] = useState(false)
   const [seekOnClick, setSeekOnClick] = useState(false)
+  const [showToneOnUtterances, setShowToneOnUtterances] = useState(() => {
+    try {
+      return localStorage.getItem('idigest-transcript-show-tone') === 'true'
+    } catch {
+      return false
+    }
+  })
   const playerRef = useRef<AudioPlayerHandle>(null)
   const pickedInit = useRef(false)
   const admin = isOrgAdmin(me)
@@ -198,9 +212,24 @@ export function TranscriptPage() {
   if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
 
   const utteranceActions = (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="transcript-utterance-actions flex flex-wrap items-center justify-end gap-2">
       {!openText ? (
         <span className="text-sm text-muted-foreground">{t('transcript.collapsed', { n: (item?.utterances || []).length })}</span>
+      ) : null}
+      {openText && item?.has_tone_analytics ? (
+        <AppCheckboxRow
+          id="transcript-show-tone"
+          label={t('transcript.showToneOnLines')}
+          checked={showToneOnUtterances}
+          onCheckedChange={(checked) => {
+            setShowToneOnUtterances(checked)
+            try {
+              localStorage.setItem('idigest-transcript-show-tone', checked ? 'true' : 'false')
+            } catch {
+              /* ignore */
+            }
+          }}
+        />
       ) : null}
       {openText && item?.source_audio_id ? (
         <AppCheckboxRow
@@ -250,6 +279,7 @@ export function TranscriptPage() {
                 ) : null}
                 <ShareBadges item={item} />
               </div>
+              <TranscriptToneSummaryCard item={item} />
               <UserTagsEditor
                 objectType="transcript"
                 objectId={item.id}
@@ -284,31 +314,79 @@ export function TranscriptPage() {
           </EntityDetailCard>
           <EntityBodyCard title={t('transcript.utterances')} actions={utteranceActions}>
             {openText ? (
-              <div className="summary-body">
+              <div
+                className={`summary-body${showToneOnUtterances && item.has_tone_analytics ? ' transcript-utterances-show-tone' : ''}`}
+              >
                 {(item.utterances || []).length === 0 ? <p className="muted">{t('common.empty')}</p> : null}
                 {(item.utterances || []).map((u, i) => {
                   const start = utteranceStart(u)
                   const seekable = Boolean(seekOnClick && item.source_audio_id && start != null)
+                  const onSeek = seekable ? () => playerRef.current?.seekTo(start!) : undefined
                   const time = utteranceTimeLabel(u)
                   const seekHint = seekable && time ? t('transcript.seekAudio', { time }) : undefined
-                  const utteranceBody = (
+                  const showTone = showToneOnUtterances && item.has_tone_analytics
+                  const stripeClass = showTone ? utteranceValenceStripeClass(u) : ''
+                  const toneHint = stripeClass ? utteranceValenceHint(u, t) : null
+                  const stripe = stripeClass ? (
+                    <div className={`utterance-stripe ${stripeClass}`} />
+                  ) : null
+                  const stripeInCol =
+                    stripe && toneHint ? (
+                      <AppCursorHint content={toneHint} className="utterance-stripe-hit">
+                        {stripe}
+                      </AppCursorHint>
+                    ) : (
+                      stripe
+                    )
+                  const toneCol =
+                    item.has_tone_analytics ? (
+                      <div className="utterance-stripe-col">{showTone ? stripeInCol : null}</div>
+                    ) : null
+                  const main = (
                     <div
-                      className={`utterance${seekable ? ' utterance-seekable' : ''}${seekHint ? ' cursor-help' : ''}`}
-                      onClick={seekable ? () => playerRef.current?.seekTo(start!) : undefined}
+                      className={`utterance-main${seekable ? ' utterance-main-seekable' : ''}${seekHint ? ' cursor-help' : ''}`}
                     >
-                      {time && <span className="utterance-time">{time}</span>}
-                      {u.speaker && <span className="speaker">{u.speaker}:</span>}
-                      {utteranceDisplayText(u)}
+                      <span className="utterance-meta">
+                        {time && <span className="utterance-time">{time}</span>}
+                        {u.speaker && <span className="speaker">{u.speaker}:</span>}
+                        {showTone ? <UtteranceToneChip u={u} /> : null}
+                      </span>
+                      <span className="utterance-text">{utteranceDisplayText(u)}</span>
                     </div>
                   )
-                  if (seekHint) {
-                    return (
-                      <AppHoverHint key={i} content={seekHint}>
-                        {utteranceBody}
-                      </AppHoverHint>
+                  const mainWithHint =
+                    seekHint && onSeek ? (
+                      <AppCursorHint
+                        content={seekHint}
+                        className="utterance-main-hit utterance-main-seekable"
+                        onClick={onSeek}
+                      >
+                        {main}
+                      </AppCursorHint>
+                    ) : onSeek ? (
+                      <div
+                        className="utterance-main-hit utterance-main-seekable"
+                        onClick={onSeek}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            onSeek()
+                          }
+                        }}
+                      >
+                        {main}
+                      </div>
+                    ) : (
+                      main
                     )
-                  }
-                  return <div key={i}>{utteranceBody}</div>
+                  return (
+                    <div key={i} className="utterance-row">
+                      {toneCol}
+                      {mainWithHint}
+                    </div>
+                  )
                 })}
               </div>
             ) : null}

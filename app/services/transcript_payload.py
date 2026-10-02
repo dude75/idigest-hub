@@ -96,3 +96,31 @@ def summarize_input_text(payload: Any) -> str:
 def export_json_payload(payload: Any) -> Any:
     """Object serialized for transcript JSON download."""
     return payload
+
+
+def stored_has_tone(payload: Any) -> bool:
+    if not isinstance(payload, dict):
+        return False
+    call_summary = payload.get("call_summary")
+    if isinstance(call_summary, dict) and call_summary:
+        return True
+    transcript = payload.get("transcript")
+    if isinstance(transcript, list):
+        for item in transcript:
+            if isinstance(item, dict) and item.get("tone"):
+                return True
+    return False
+
+
+def payload_tone_fields(payload: Any) -> dict[str, Any]:
+    """Top-level tone view for transcript detail API."""
+    if not isinstance(payload, dict):
+        return {"has_tone_analytics": False, "call_summary": None, "tone_layers": None}
+    meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
+    layers = meta.get("tone_layers")
+    call_summary = payload.get("call_summary")
+    return {
+        "has_tone_analytics": stored_has_tone(payload),
+        "call_summary": call_summary if isinstance(call_summary, dict) else None,
+        "tone_layers": layers if isinstance(layers, list) else None,
+    }

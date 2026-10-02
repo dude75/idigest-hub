@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
+import { useAuth } from '../auth'
+import { toneAnalyticsLabelKey } from '../toneAnalytics'
 import { loadPipeline, normalizePipeline, savePipeline, type IngestPipeline } from '../pipeline'
 import type { Skill } from '../types'
 import { showError } from '../util'
@@ -14,6 +16,7 @@ function pipelineSummaryKey(pipeline: IngestPipeline): string {
 
 export function IngestPipelinePanel() {
   const { t } = useTranslation()
+  const { me } = useAuth()
   const [pipeline, setPipeline] = useState<IngestPipeline>(() => loadPipeline())
   const [skills, setSkills] = useState<Skill[]>([])
 
@@ -60,6 +63,9 @@ export function IngestPipelinePanel() {
           checked={pipeline.transcribe}
           onCheckedChange={setTranscribe}
         />
+        {pipeline.transcribe ? (
+          <p className="muted library-pipeline-tone">{t(toneAnalyticsLabelKey(me))}</p>
+        ) : null}
         {pipeline.transcribe && (
           <div className="library-pipeline-skills">
             <div className="library-pipeline-skills-label">{t('library.pipeline.summarizeSkills')}</div>

@@ -28,6 +28,7 @@ The product implements **defense-in-depth** controls typical of enterprise SaaS 
 | **Audit trail** | Persistent `audit_log` for admin actions, impersonation, wallet changes, data wipes, crypto operations |
 | **Tenant isolation** | Single-org membership, cross-org access denied by design (covered by automated tests) |
 | **Data lifecycle** | User offboarding (transfer/wipe), tariff-driven audio retention purge, personal data export (`GET /me/backup`) |
+| **Inferred tone metrics** | Optional per-line/call emotional analytics from transcribe workers; stored in the same encrypted transcript blob as text; excluded from summarize input by default |
 | **Observability** | Health endpoint, Prometheus metrics (Bearer-protected), Grafana dashboard, readiness gauge |
 | **Secure SDLC** | GitLab CI: lint, pytest, frontend build, SAST, dependency scanning, secret detection; non-root container |
 | **Operational traceability** | Docker images tagged by commit SHA; manual deploy with GitLab environment audit trail |

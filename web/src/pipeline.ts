@@ -1,4 +1,5 @@
-import type { Task } from './types'
+import type { Me, Task } from './types'
+import { requestTone } from './toneAnalytics'
 
 export type IngestPipeline = {
   transcribe: boolean
@@ -123,11 +124,19 @@ export function initialTaskFromNav(
   return null
 }
 
-export function transcribeRequest(audioId: string, pipeline: IngestPipeline = activePipeline()): {
+export function transcribeRequest(
+  audioId: string,
+  pipeline: IngestPipeline = activePipeline(),
+  me?: Me | null,
+): {
   audio_id: string
   skill_ids?: string[]
+  tone: boolean
 } {
-  const body: { audio_id: string; skill_ids?: string[] } = { audio_id: audioId }
+  const body: { audio_id: string; skill_ids?: string[]; tone: boolean } = {
+    audio_id: audioId,
+    tone: requestTone(me),
+  }
   if (pipeline.skillIds.length > 0) {
     body.skill_ids = [...pipeline.skillIds]
   }
@@ -138,20 +147,24 @@ export function captureRequest(
   meetingUrl: string,
   pin: string,
   pipeline: IngestPipeline = activePipeline(),
+  me?: Me | null,
 ): {
   meeting_url: string
   pin: string
   transcribe?: boolean
   skill_ids?: string[]
+  tone?: boolean
 } {
   const body: {
     meeting_url: string
     pin: string
     transcribe?: boolean
     skill_ids?: string[]
+    tone?: boolean
   } = { meeting_url: meetingUrl, pin }
   if (pipelineShouldTranscribe(pipeline)) {
     body.transcribe = true
+    body.tone = requestTone(me)
     if (pipeline.skillIds.length > 0) {
       body.skill_ids = [...pipeline.skillIds]
     }
@@ -159,14 +172,16 @@ export function captureRequest(
   return body
 }
 
-export function importRequest(url: string, pipeline: IngestPipeline = activePipeline()): {
+export function importRequest(url: string, pipeline: IngestPipeline = activePipeline(), me?: Me | null): {
   url: string
   transcribe?: boolean
   skill_ids?: string[]
+  tone?: boolean
 } {
-  const body: { url: string; transcribe?: boolean; skill_ids?: string[] } = { url }
+  const body: { url: string; transcribe?: boolean; skill_ids?: string[]; tone?: boolean } = { url }
   if (pipelineShouldTranscribe(pipeline)) {
     body.transcribe = true
+    body.tone = requestTone(me)
     if (pipeline.skillIds.length > 0) {
       body.skill_ids = [...pipeline.skillIds]
     }

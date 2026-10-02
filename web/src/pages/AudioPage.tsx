@@ -15,6 +15,7 @@ import {
 } from '../components/app/EntityUi'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import { pipelineNavState } from '../pipeline'
+import { requestTone, toneAnalyticsLabelKey } from '../toneAnalytics'
 import { libraryPath } from '../routes'
 import type { Audio, Task } from '../types'
 import { UserTagsEditor } from '../components/UserTagsEditor'
@@ -68,7 +69,7 @@ export function AudioPage() {
     try {
       const task = await api<Task>('/tasks/transcribe', {
         method: 'POST',
-        body: JSON.stringify({ audio_id: id }),
+        body: JSON.stringify({ audio_id: id, tone: requestTone(me) }),
       })
       nav(`/app/task/${task.task_id}`, {
         state: pipelineNavState({ transcribe: true, skillIds: [] }, task),
@@ -137,9 +138,12 @@ export function AudioPage() {
                 </Button>
               )}
               {item.can_transcribe ? (
-                <Button type="button" disabled={busy} onClick={() => void transcribe()}>
-                  {transcripts.length > 0 ? t('audio.transcribeAgain') : t('audio.transcribe')}
-                </Button>
+                <>
+                  <Button type="button" disabled={busy} onClick={() => void transcribe()}>
+                    {transcripts.length > 0 ? t('audio.transcribeAgain') : t('audio.transcribe')}
+                  </Button>
+                  <span className="muted text-sm">{t(toneAnalyticsLabelKey(me))}</span>
+                </>
               ) : (
                 <span className="muted">{t('audio.noFile')}</span>
               )}

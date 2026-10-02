@@ -42,6 +42,7 @@ from app.services.transcript_payload import (
     decode_transcript_payload,
     export_json_payload,
     extract_utterances,
+    payload_tone_fields,
 )
 from app.services.export import attachment_response, safe_filename, unwrap_markdown_fence
 from app.rate_limit import enforce_write_limits, get_rate_limits
@@ -598,6 +599,7 @@ def list_transcripts(
                     source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
                 ),
                 **derived.get(row.id, {"has_summary": False}),
+                "has_tone_analytics": row.has_tone_analytics,
             }
             for row in rows
         ],
@@ -623,7 +625,10 @@ def get_transcript(
     payload = transcript_public(
         row,
         utterances,
-        _share_badge(db, "transcript", row.id, row.owner_user_id, ctx),
+        {
+            **_share_badge(db, "transcript", row.id, row.owner_user_id, ctx),
+            **payload_tone_fields(stored),
+        },
         source_filename=source_audio.original_filename if source_audio else None,
     )
     payload["summaries"] = [

@@ -336,6 +336,12 @@ class Metrics:
             buckets=HTTP_BUCKETS,
             registry=self.registry,
         )
+        self.transcribe_tone = Counter(
+            "idigest_hub_transcribe_tone_total",
+            "Transcribe tasks with tone analytics requested or present in result",
+            ["requested", "present"],
+            registry=self.registry,
+        )
 
     def bind(self, *, settings: Settings) -> None:
         self.runtime.settings = settings
@@ -400,6 +406,16 @@ def observe_task_terminal(task) -> None:
     duration = (as_utc(task.updated_at) - as_utc(task.queued_at)).total_seconds()
     if duration >= 0:
         metrics.task_duration.labels(type=task.type).observe(duration)
+
+
+def observe_transcribe_tone(requested: bool, present: bool) -> None:
+    metrics = _active
+    if metrics is None or not metrics.enabled:
+        return
+    metrics.transcribe_tone.labels(
+        requested="true" if requested else "false",
+        present="true" if present else "false",
+    ).inc()
 
 
 def observe_http(method: str, route: str, status_code: int, duration_sec: float) -> None:

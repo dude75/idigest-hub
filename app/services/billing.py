@@ -35,6 +35,7 @@ def snapshot_fields(
     diarization_model: str | None,
     *,
     summarize_model: str | None = None,
+    tone_analytics: bool = False,
 ) -> dict:
     return {
         "snap_unlimited": tariff.unlimited,
@@ -45,6 +46,7 @@ def snapshot_fields(
         "snap_asr_model": asr_model,
         "snap_diarization_model": diarization_model,
         "snap_summarize_model": summarize_model,
+        "snap_tone_analytics": tone_analytics,
     }
 
 

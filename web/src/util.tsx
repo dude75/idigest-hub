@@ -190,12 +190,23 @@ export function AudioDerivedBadges({ audio }: { audio: Audio }) {
 
 export function TranscriptDerivedBadges({ transcript }: { transcript: Transcript }) {
   const { t } = useTranslation()
-  if (!transcript.has_summary) return null
-  return (
-    <HubBadgeLink to={libraryPath('summaries', { source: transcript.id })} tone="success">
-      {t('library.summaries')}
-    </HubBadgeLink>
-  )
+  const badges = []
+  if (transcript.has_tone_analytics) {
+    badges.push(
+      <HubBadge key="tone" tone="muted">
+        {t('library.toneBadge')}
+      </HubBadge>,
+    )
+  }
+  if (transcript.has_summary) {
+    badges.push(
+      <HubBadgeLink key="summary" to={libraryPath('summaries', { source: transcript.id })} tone="success">
+        {t('library.summaries')}
+      </HubBadgeLink>,
+    )
+  }
+  if (badges.length === 0) return null
+  return <span className="inline-flex flex-wrap items-center gap-1">{badges}</span>
 }
 
 export function UserTagBadges({ tags, max = 3 }: { tags?: UserTag[]; max?: number }) {

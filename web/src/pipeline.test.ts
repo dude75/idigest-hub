@@ -23,6 +23,7 @@ describe('importRequest', () => {
     expect(importRequest('https://example.com/v', { transcribe: true, skillIds: [] })).toEqual({
       url: 'https://example.com/v',
       transcribe: true,
+      tone: false,
     })
   })
 
@@ -30,6 +31,7 @@ describe('importRequest', () => {
     expect(importRequest('https://example.com/v', { transcribe: true, skillIds: ['skill-1'] })).toEqual({
       url: 'https://example.com/v',
       transcribe: true,
+      tone: false,
       skill_ids: ['skill-1'],
     })
   })

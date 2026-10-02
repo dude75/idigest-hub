@@ -80,6 +80,7 @@ class TariffBody(BaseModel):
     api_enabled: bool = True
     signup_credit: str = "0"
     max_upload_bytes: int = MAX_UPLOAD_BYTES_CAP
+    tone_analytics_enabled: bool = False
 
 
 class WalletBody(BaseModel):
@@ -706,6 +707,7 @@ def _apply_tariff(tariff: Tariff, body: TariffBody, ctx: AuthContext) -> None:
     tariff.api_enabled = body.api_enabled
     tariff.signup_credit = parse_money(body.signup_credit)
     tariff.max_upload_bytes = body.max_upload_bytes
+    tariff.tone_analytics_enabled = body.tone_analytics_enabled
     tariff.updated_at = utcnow()
 
 
