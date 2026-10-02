@@ -221,6 +221,19 @@ def test_instance_org_ledger_shows_charges_and_wallet_topups(client, fake_worker
     assert topup["actor_email"] == ADMIN_EMAIL
 
 
+def test_wallet_delta_rejects_empty(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "wallet-empty@example.com", "walletpass", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    bad = client.post(f"/api/v1/orgs/{org_id}/wallet", json={"delta": ""})
+    assert bad.status_code == 400
+    assert err_code(bad) == "validation_error"
+
+
 def test_instance_org_ledger_forbidden_for_non_admin(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

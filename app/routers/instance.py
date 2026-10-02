@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from fastapi import APIRouter, BackgroundTasks, Body, Depends, Query
 from pydantic import BaseModel, EmailStr, Field
@@ -806,7 +806,10 @@ def wallet_delta(
     org = db.get(Organization, org_id)
     if org is None:
         ctx.raise_error(ErrorCode.not_found)
-    delta = parse_money(body.delta)
+    try:
+        delta = parse_money(body.delta)
+    except InvalidOperation:
+        ctx.raise_error(ErrorCode.validation_error)
     org.balance = parse_money(Decimal(org.balance) + delta)
     org.updated_at = utcnow()
     write_audit(db, "wallet.delta", ctx, {"org_id": org.id, "delta": str(delta)})

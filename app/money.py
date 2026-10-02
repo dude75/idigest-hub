@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from decimal import ROUND_DOWN, Decimal
+from decimal import ROUND_DOWN, Decimal, InvalidOperation
 
 TWOPLACES = Decimal("0.01")
 
@@ -15,7 +15,13 @@ def parse_money(value: str | Decimal) -> Decimal:
     if isinstance(value, Decimal):
         amount = value
     else:
-        amount = Decimal(value)
+        text = value.strip()
+        if not text:
+            raise InvalidOperation
+        try:
+            amount = Decimal(text)
+        except InvalidOperation:
+            raise
     return amount.quantize(TWOPLACES, rounding=ROUND_DOWN)
 
 

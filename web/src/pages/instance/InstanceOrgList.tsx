@@ -1,4 +1,4 @@
-import { Fragment, type Dispatch, type SetStateAction } from 'react'
+import { Fragment, useEffect, useState, type Dispatch, type SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, MoreHorizontal } from 'lucide-react'
 import { api } from '../../api'
@@ -202,6 +202,38 @@ function OrgDetailPanel({
 }) {
   const { t } = useTranslation()
   const memberCount = (org.members || []).length
+  const [tariffId, setTariffId] = useState(org.tariff.id)
+  const walletDelta = delta.trim()
+  const tariffChanged = tariffId !== org.tariff.id
+  const walletChanged = walletDelta.length > 0
+  const canApply = tariffChanged || walletChanged
+
+  useEffect(() => {
+    setTariffId(org.tariff.id)
+  }, [org.id, org.tariff.id])
+
+  const applyOrgChanges = () => {
+    void (async () => {
+      try {
+        if (tariffChanged) {
+          await api(`/orgs/${org.id}/tariff`, {
+            method: 'PATCH',
+            body: JSON.stringify({ tariff_id: tariffId }),
+          })
+        }
+        if (walletChanged) {
+          await api(`/orgs/${org.id}/wallet`, {
+            method: 'POST',
+            body: JSON.stringify({ delta: walletDelta }),
+          })
+          setDelta('')
+        }
+        await onReload()
+      } catch (e) {
+        showError(e)
+      }
+    })()
+  }
 
   return (
     <div className="instance-org-detail">
@@ -210,10 +242,8 @@ function OrgDetailPanel({
           <AppSelectField
             label={t('org.tariff')}
             htmlFor={`org-tariff-${org.id}`}
-            value={org.tariff.id}
-            onValueChange={(tariff_id) =>
-              void api(`/orgs/${org.id}/tariff`, { method: 'PATCH', body: JSON.stringify({ tariff_id }) }).then(onReload)
-            }
+            value={tariffId}
+            onValueChange={setTariffId}
             options={tariffs.map((tr) => ({ value: tr.id, label: tr.name }))}
           />
         </div>
@@ -226,16 +256,7 @@ function OrgDetailPanel({
                 value={delta}
                 onChange={(e) => setDelta(e.target.value)}
               />
-              <Button
-                type="button"
-                size="sm"
-                onClick={() =>
-                  void api(`/orgs/${org.id}/wallet`, {
-                    method: 'POST',
-                    body: JSON.stringify({ delta }),
-                  }).then(onReload)
-                }
-              >
+              <Button type="button" size="sm" disabled={!canApply} onClick={applyOrgChanges}>
                 {t('instance.apply')}
               </Button>
             </div>
