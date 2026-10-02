@@ -145,7 +145,11 @@ async def post_transcribe(
         ".opus": "audio/opus",
         ".flac": "audio/flac",
     }.get(suffix, "application/octet-stream")
-    data = {"asr_model": asr_model, "diarization_model": diarization_model or ""}
+    data = {
+        "asr_model": asr_model,
+        "diarization_model": diarization_model or "",
+        "tone": "true",
+    }
     _release(db)
     try:
         async with httpx2.AsyncClient(timeout=_timeout(upload=True)) as client:

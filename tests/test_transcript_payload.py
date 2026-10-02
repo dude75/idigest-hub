@@ -30,6 +30,7 @@ def test_build_worker_payload():
         "status": "success",
         "meta": {"audio_duration_sec": 12.5, "asr_model": "whisper"},
         "error": None,
+        "call_summary": {"opening_valence": 0.1, "closing_valence": -0.2, "de_escalation": False},
     }
     utterances = [{"speaker": "A", "text": "hi"}]
     payload = build_worker_payload(body, utterances)
@@ -37,6 +38,7 @@ def test_build_worker_payload():
     assert payload["meta"]["audio_duration_sec"] == 12.5
     assert payload["transcript"] == utterances
     assert payload["error"] is None
+    assert payload["call_summary"]["de_escalation"] is False
 
 
 def test_normalize_utterances_coerces_string_timestamps():
@@ -50,3 +52,20 @@ def test_summarize_and_export_use_stored_payload():
     exported = export_json_payload(payload)
     assert exported == payload
     assert '"task_id": "t1"' in summarize_input_text(payload)
+
+
+def test_summarize_strips_tone_and_call_summary():
+    payload = {
+        "status": "success",
+        "meta": {"task_id": "t1", "tone_layers": ["text", "prosody"]},
+        "transcript": [
+            {"speaker": "A", "text": "hi", "tone": {"valence": 0.5, "emotions": {"joy": 0.9}}},
+        ],
+        "call_summary": {"opening_valence": 0.1, "closing_valence": 0.0, "de_escalation": False},
+        "error": None,
+    }
+    text = summarize_input_text(payload)
+    assert "call_summary" not in text
+    assert "valence" not in text
+    assert "tone_layers" in text
+    assert '"text": "hi"' in text
