@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
-import type { SchemaInstanceUsageStatsResponse } from '../../openapi'
+import type { SchemaInstanceOrgListResponse, SchemaInstanceUsageStatsResponse } from '../../openapi'
 import type { InstanceSnapshot, Org } from '../../types'
 import { StatsDaysView } from '../../components/StatsDaysView'
 import { defaultFilterRange } from '../../util/date'
@@ -39,7 +39,9 @@ export function InstanceStatsTab() {
   }, [statsOrgs, statsOrgId])
 
   useEffect(() => {
-    api<{ items: Org[] }>('/orgs?include_hidden=true').then((r) => setStatsOrgs(r.items)).catch(showError)
+    api<SchemaInstanceOrgListResponse>('/orgs?include_hidden=true')
+      .then((r) => setStatsOrgs(r.items ?? []))
+      .catch(showError)
   }, [])
 
   useEffect(() => {

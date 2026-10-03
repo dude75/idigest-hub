@@ -3,8 +3,10 @@ import type {
   SchemaImportPlatformsResponse,
   SchemaInstanceUsageStatsResponse,
   SchemaMeResponse,
+  SchemaApiTokenPublic,
   SchemaOrgPublicResponse,
   SchemaOrgSsoAdminResponse,
+  SchemaShareRecordBrief,
   SchemaSkillPublicResponse,
   SchemaTariffDeleteImpactResponse,
   SchemaTariffPublic,
@@ -157,11 +159,7 @@ export type Me = Omit<
   }[] | null
 }
 
-export type ShareRecord = {
-  id: string
-  to_user_id: string
-  email: string
-}
+export type ShareRecord = SchemaShareRecordBrief
 
 export type SummaryPublicLink = {
   id: string
@@ -290,15 +288,8 @@ export type Task = {
 
 export type Skill = SchemaSkillPublicResponse
 
-export type ApiToken = {
-  id: string
-  name: string
-  prefix: string
-  revoked: boolean
-  blocked_by_tariff?: boolean
-  created_at: string
-  token?: string
-}
+/** Listed API token (`ApiTokenPublic`); create response adds `token` via `ApiTokenCreateResponse`. */
+export type ApiToken = SchemaApiTokenPublic & { token?: string }
 
 /** Instance worker row from OpenAPI `WorkerListItem` / `WorkerPublicResponse`. */
 export type Worker = SchemaWorkerListItem

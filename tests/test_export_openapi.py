@@ -115,3 +115,27 @@ def test_export_openapi_writes_health_path():
     assert oauth_token.get("$ref", "").endswith("/OAuthTokenResponse")
     assert "OAuthClientRegistrationResponse" in components
     assert "/oauth/authorize" not in schema.get("paths", {})
+    tokens_list = schema["paths"]["/api/v1/auth/tokens"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert tokens_list.get("$ref", "").endswith("/ApiTokenListResponse")
+    token_create = schema["paths"]["/api/v1/auth/tokens"]["post"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert token_create.get("$ref", "").endswith("/ApiTokenCreateResponse")
+    tags_list = schema["paths"]["/api/v1/tags"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert tags_list.get("$ref", "").endswith("/UserTagListResponse")
+    object_tags = schema["paths"]["/api/v1/object-tags"]["put"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert object_tags.get("$ref", "").endswith("/ObjectTagsResponse")
+    public_summary = schema["paths"]["/api/v1/public/summary/{token}"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert public_summary.get("$ref", "").endswith("/PublicSummaryResponse")
+    share_create = schema["paths"]["/api/v1/shares"]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert share_create.get("$ref", "").endswith("/ShareCreateResponse")
+    assert "ShareRecordBrief" in components
+    assert components["InstanceOrgListResponse"]["properties"]["items"]["items"]["$ref"].endswith(
+        "/InstanceOrgListItem"
+    )

@@ -21,6 +21,7 @@ import {
   normalizeDefaultRoute,
   type DefaultRoute,
 } from '../routes'
+import type { SchemaApiTokenCreateResponse, SchemaApiTokenListResponse } from '../openapi'
 import type { ApiToken, DateTimeFormatId, DateTimePrefs } from '../types'
 import {
   isAvailableSummarizeModel,
@@ -111,8 +112,8 @@ export function ProfilePage() {
   }, [me, showLocalAuth, t])
 
   async function load() {
-    const r = await api<{ items: ApiToken[] }>('/auth/tokens')
-    setTokens(r.items)
+    const r = await api<SchemaApiTokenListResponse>('/auth/tokens')
+    setTokens(r.items ?? [])
   }
 
   useEffect(() => {
@@ -343,7 +344,10 @@ export function ProfilePage() {
     try {
       const body: { name: string; totp_code?: string } = { name }
       if (me?.mfa_enabled && totpCode) body.totp_code = totpCode
-      const row = await api<ApiToken>('/auth/tokens', { method: 'POST', body: JSON.stringify(body) })
+      const row = await api<SchemaApiTokenCreateResponse>('/auth/tokens', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      })
       setSecret(row.token || null)
       setTokenName('')
       setTokenTotp('')

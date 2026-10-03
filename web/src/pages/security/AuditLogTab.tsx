@@ -17,6 +17,7 @@ import {
 import { AppHoverHint } from '../../components/app/AppHoverHint'
 import { AuditFiltersPanel, auditActionLabel } from '../../components/AuditFiltersPanel'
 import { StatCard, StatGrid } from '../../components/StatCard'
+import type { SchemaInstanceOrgListResponse } from '../../openapi'
 import type { AuditLogEntry, Org } from '../../types'
 import { defaultFilterRange } from '../../util/date'
 import { formatInteger, fmtDate, showError } from '../../util'
@@ -99,7 +100,9 @@ export function AuditLogTab() {
   }, [orgs, orgId])
 
   useEffect(() => {
-    api<{ items: Org[] }>('/orgs?include_hidden=true').then((r) => setOrgs(r.items)).catch(showError)
+    api<SchemaInstanceOrgListResponse>('/orgs?include_hidden=true')
+      .then((r) => setOrgs(r.items ?? []))
+      .catch(showError)
   }, [])
 
   useEffect(() => {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
-import type { SchemaOrgUserListResponse } from '../openapi'
+import type { SchemaInstanceOrgListResponse, SchemaOrgUserListResponse } from '../openapi'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import type { Org, Task, User } from '../types'
 import { AdminPage, AppStackCard } from '../components/AdminSection'
@@ -89,11 +89,11 @@ export function TasksPage() {
     async function loadFilters() {
       try {
         if (instance) {
-          const r = await api<{ items: Org[] }>('/orgs')
-          if (!stop) setOrgs(r.items)
+          const r = await api<SchemaInstanceOrgListResponse>('/orgs')
+          if (!stop) setOrgs(r.items ?? [])
         } else {
           const r = await api<SchemaOrgUserListResponse>('/org/users')
-          if (!stop) setOrgUsers(r.items)
+          if (!stop) setOrgUsers(r.items ?? [])
         }
       } catch (e) {
         if (!stop) showError(e)

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
-import type { SchemaOrgUserListResponse } from '../openapi'
+import type { SchemaOrgUserListResponse, SchemaShareListResponse } from '../openapi'
 import { useAuth } from '../auth'
 import type { ShareRecord, SummaryPublicLink, User } from '../types'
 import { fmtDate, showError } from '../util'
@@ -50,10 +50,10 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
   const [pageScroll, setPageScroll] = useState(false)
 
   async function loadShares() {
-    const r = await api<{ items: ShareRecord[] }>(
+    const r = await api<SchemaShareListResponse>(
       `/shares?object_type=${encodeURIComponent(objectType)}&object_id=${encodeURIComponent(objectId)}`,
     )
-    setShares(r.items)
+    setShares(r.items ?? [])
   }
 
   async function loadPublicLink() {
@@ -68,7 +68,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
       loadShares(),
       showPublic ? loadPublicLink() : Promise.resolve(),
     ])
-      .then(([orgUsers]) => setUsers(orgUsers.items))
+      .then(([orgUsers]) => setUsers(orgUsers.items ?? []))
       .catch(showError)
   }, [objectType, objectId, showPublic])
 
