@@ -32,6 +32,7 @@ from app.services.audit import export_audit_csv, list_audit, write_audit
 from app.services.export import attachment_response, safe_filename
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.billing import signup_balance
+from app.services.instance_orgs import list_orgs_payload
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
 from app.timeutil import utcnow
 
@@ -1211,11 +1212,6 @@ def smtp_test_send(
     return {"status": "ok", "to": to_email}
 
 
-def _count_hidden_orgs(ctx: AuthContext, db: Session) -> int:
-    rows = db.scalars(select(Organization.id)).all()
-    return sum(1 for org_id in rows if is_hidden(db, ctx.user.id, "org", org_id))
-
-
 @router.get("/orgs")
 def list_orgs(
     include_hidden: bool = False,
@@ -1223,23 +1219,7 @@ def list_orgs(
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     _admin(ctx)
-    settings = get_instance_settings(db)
-    rows = db.scalars(select(Organization).options(joinedload(Organization.tariff)).order_by(Organization.created_at)).all()
-    items = []
-    for org in rows:
-        hidden = is_hidden(db, ctx.user.id, "org", org.id)
-        if not include_hidden and hidden:
-            continue
-        payload = org_public(org)
-        payload["hidden"] = hidden
-        members = db.scalars(select(Membership).where(Membership.org_id == org.id)).all()
-        payload["members"] = []
-        for membership in members:
-            user = db.get(User, membership.user_id)
-            if user:
-                payload["members"].append(user_public(user, membership.role, instance_settings=settings))
-        items.append(payload)
-    return {"items": items, "hidden_count": _count_hidden_orgs(ctx, db)}
+    return list_orgs_payload(ctx, db, include_hidden=include_hidden)
 
 
 @router.post("/orgs")

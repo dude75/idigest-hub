@@ -49,7 +49,12 @@ from app.rate_limit import enforce_write_limits, get_rate_limits
 from app.services.audit import write_audit
 from app.services.storage import PayloadTooLarge, get_storage
 from app.services.upload_validation import InvalidAudioContent
-from app.services.user_tags import batch_object_user_tags, object_ids_with_tag, object_user_tags, resolve_user_tag
+from app.services.library_list import (
+    batch_share_badges,
+    count_hidden_library_rows,
+    list_library_rows,
+)
+from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
@@ -260,11 +265,7 @@ def _transcript_derived_info(db: Session, ctx: AuthContext, transcript_ids: list
 
 
 def _count_hidden_for_user(ctx: AuthContext, db: Session, model, object_type: str) -> int:
-    return sum(
-        1
-        for row in _list_filter(ctx, db, model, object_type, include_hidden=True)
-        if is_hidden(db, ctx.user.id, object_type, row.id)
-    )
+    return count_hidden_library_rows(ctx, db, model, object_type)
 
 
 def _list_filter(
@@ -275,30 +276,7 @@ def _list_filter(
     include_hidden: bool,
     tag: str | None = None,
 ):
-    org, membership = ctx.require_org()
-    rows = list(db.scalars(select(model).where(model.org_id == org.id).order_by(model.created_at.desc())).all())
-    visible = []
-    for row in rows:
-        owner = row.owner_user_id
-        own = owner == ctx.user.id
-        if membership.role == "org_admin":
-            if not include_hidden and is_hidden(db, ctx.user.id, object_type, row.id):
-                continue
-            visible.append(row)
-            continue
-        shared = is_shared_with(db, object_type, row.id, ctx.user.id) is not None
-        if not own and not shared:
-            continue
-        if not include_hidden and is_hidden(db, ctx.user.id, object_type, row.id):
-            continue
-        visible.append(row)
-    if tag:
-        row_tag = resolve_user_tag(db, ctx.user.id, tag)
-        if row_tag is None:
-            return []
-        allowed = object_ids_with_tag(db, ctx.user.id, object_type, row_tag.id)
-        visible = [row for row in visible if row.id in allowed]
-    return visible
+    return list_library_rows(ctx, db, model, object_type, include_hidden, tag)
 
 
 def _upload_as_video(suffix: str, file: UploadFile) -> bool:
@@ -403,21 +381,12 @@ def list_audios(
 ) -> dict:
     rows = _list_filter(ctx, db, Audio, "audio", include_hidden, tag)
     tag_map = batch_object_user_tags(db, ctx.user.id, "audio", [row.id for row in rows])
+    badges = batch_share_badges(db, ctx, "audio", rows, user_tags_by_id=tag_map)
     derived = _audio_derived_info(db, ctx, [row.id for row in rows])
     return {
         "items": [
             {
-                **audio_public(
-                    row,
-                    _share_badge(
-                        db,
-                        "audio",
-                        row.id,
-                        row.owner_user_id,
-                        ctx,
-                        user_tags=tag_map.get(row.id, []),
-                    ),
-                ),
+                **audio_public(row, badges.get(row.id)),
                 **derived.get(
                     row.id,
                     {
@@ -581,6 +550,7 @@ def list_transcripts(
 ) -> dict:
     rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden, tag)
     tag_map = batch_object_user_tags(db, ctx.user.id, "transcript", [row.id for row in rows])
+    badges = batch_share_badges(db, ctx, "transcript", rows, user_tags_by_id=tag_map)
     filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
     derived = _transcript_derived_info(db, ctx, [row.id for row in rows])
     return {
@@ -588,14 +558,7 @@ def list_transcripts(
             {
                 **transcript_public(
                     row,
-                    extra=_share_badge(
-                        db,
-                        "transcript",
-                        row.id,
-                        row.owner_user_id,
-                        ctx,
-                        user_tags=tag_map.get(row.id, []),
-                    ),
+                    extra=badges.get(row.id),
                     source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
                 ),
                 **derived.get(row.id, {"has_summary": False}),
@@ -728,6 +691,7 @@ def list_summaries(
 ) -> dict:
     rows = _list_filter(ctx, db, Summary, "summary", include_hidden, tag)
     tag_map = batch_object_user_tags(db, ctx.user.id, "summary", [row.id for row in rows])
+    badges = batch_share_badges(db, ctx, "summary", rows, user_tags_by_id=tag_map)
     transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})
     audio_filenames = _audio_filenames(
         db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
@@ -738,14 +702,7 @@ def list_summaries(
         items.append(
             summary_public(
                 row,
-                extra=_share_badge(
-                    db,
-                    "summary",
-                    row.id,
-                    row.owner_user_id,
-                    ctx,
-                    user_tags=tag_map.get(row.id, []),
-                ),
+                extra=badges.get(row.id),
                 source_transcript=source_transcript,
                 source_filename=source_filename,
             )

@@ -23,6 +23,7 @@ from app.routers.library import (
     _transcript_derived_info,
     _transcripts_by_id,
 )
+from app.services.library_list import batch_share_badges, list_library_rows
 from app.routers.skills import _can_read_skill, _visible_skills
 from app.routers.tasks import (
     ImportBody,
@@ -118,24 +119,23 @@ def list_audios_payload(
     tag: str | None = None,
 ) -> dict:
     _require_oauth_scope(ctx, SCOPE_AUDIO_READ)
-    rows = _list_filter(ctx, db, Audio, "audio", include_hidden, tag)
-    rows = rows[:MCP_AUDIO_LIST_LIMIT]
+    rows = list_library_rows(
+        ctx,
+        db,
+        Audio,
+        "audio",
+        include_hidden,
+        tag,
+        limit=MCP_AUDIO_LIST_LIMIT,
+    )
     tag_map = batch_object_user_tags(db, ctx.user.id, "audio", [row.id for row in rows])
+    badges = batch_share_badges(db, ctx, "audio", rows, user_tags_by_id=tag_map)
     derived = _audio_derived_info(db, ctx, [row.id for row in rows])
+    total = len(rows)
     return {
         "items": [
             {
-                **audio_public(
-                    row,
-                    _share_badge(
-                        db,
-                        "audio",
-                        row.id,
-                        row.owner_user_id,
-                        ctx,
-                        user_tags=tag_map.get(row.id, []),
-                    ),
-                ),
+                **audio_public(row, badges.get(row.id)),
                 **derived.get(
                     row.id,
                     {
@@ -148,7 +148,7 @@ def list_audios_payload(
             }
             for row in rows
         ],
-        "truncated": len(rows) >= MCP_AUDIO_LIST_LIMIT,
+        "truncated": total >= MCP_AUDIO_LIST_LIMIT,
     }
 
 
@@ -338,31 +338,33 @@ def list_transcripts_payload(
     tag: str | None = None,
 ) -> dict:
     _require_oauth_scope(ctx, SCOPE_TRANSCRIPTS_READ)
-    rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden, tag)
-    rows = rows[:MCP_TRANSCRIPT_LIST_LIMIT]
+    rows = list_library_rows(
+        ctx,
+        db,
+        Transcript,
+        "transcript",
+        include_hidden,
+        tag,
+        limit=MCP_TRANSCRIPT_LIST_LIMIT,
+    )
     tag_map = batch_object_user_tags(db, ctx.user.id, "transcript", [row.id for row in rows])
+    badges = batch_share_badges(db, ctx, "transcript", rows, user_tags_by_id=tag_map)
     filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
     derived = _transcript_derived_info(db, ctx, [row.id for row in rows])
+    total = len(rows)
     return {
         "items": [
             {
                 **transcript_public(
                     row,
-                    extra=_share_badge(
-                        db,
-                        "transcript",
-                        row.id,
-                        row.owner_user_id,
-                        ctx,
-                        user_tags=tag_map.get(row.id, []),
-                    ),
+                    extra=badges.get(row.id),
                     source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
                 ),
                 **derived.get(row.id, {"has_summary": False}),
             }
             for row in rows
         ],
-        "truncated": len(rows) >= MCP_TRANSCRIPT_LIST_LIMIT,
+        "truncated": total >= MCP_TRANSCRIPT_LIST_LIMIT,
     }
 
 
@@ -448,9 +450,17 @@ def list_summaries_payload(
     tag: str | None = None,
 ) -> dict:
     _require_oauth_scope(ctx, SCOPE_SUMMARIES_READ)
-    rows = _list_filter(ctx, db, Summary, "summary", include_hidden, tag)
-    rows = rows[:MCP_SUMMARY_LIST_LIMIT]
+    rows = list_library_rows(
+        ctx,
+        db,
+        Summary,
+        "summary",
+        include_hidden,
+        tag,
+        limit=MCP_SUMMARY_LIST_LIMIT,
+    )
     tag_map = batch_object_user_tags(db, ctx.user.id, "summary", [row.id for row in rows])
+    badges = batch_share_badges(db, ctx, "summary", rows, user_tags_by_id=tag_map)
     transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})
     audio_filenames = _audio_filenames(
         db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
@@ -461,21 +471,15 @@ def list_summaries_payload(
         items.append(
             summary_public(
                 row,
-                extra=_share_badge(
-                    db,
-                    "summary",
-                    row.id,
-                    row.owner_user_id,
-                    ctx,
-                    user_tags=tag_map.get(row.id, []),
-                ),
+                extra=badges.get(row.id),
                 source_transcript=source_transcript,
                 source_filename=source_filename,
             )
         )
+    total = len(rows)
     return {
         "items": items,
-        "truncated": len(rows) >= MCP_SUMMARY_LIST_LIMIT,
+        "truncated": total >= MCP_SUMMARY_LIST_LIMIT,
     }
 
 

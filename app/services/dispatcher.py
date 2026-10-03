@@ -880,7 +880,12 @@ async def tick_once(db: Session, task_id: str | None = None, *, refresh_health: 
     settings = get_settings()
     nodes = list(db.scalars(select(WorkerNode)).all())
     if refresh_health:
-        await refresh_nodes_health(db, nodes)
+        health_nodes = nodes
+        if task_id:
+            focused = db.get(Task, task_id)
+            if focused and focused.worker_id:
+                health_nodes = [node for node in nodes if node.id == focused.worker_id]
+        await refresh_nodes_health(db, health_nodes)
     _commit(db)
     query = select(Task).where(Task.status.in_(("queued", "running")))
     if task_id:
