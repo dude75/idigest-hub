@@ -1,3 +1,5 @@
+import type { SchemaUserPublic } from './openapi/contracts'
+
 export type Locale = 'en' | 'ru' | 'es'
 
 export type DateTimeFormatId = 'eu_24h' | 'us_12h' | 'iso' | 'relative'
@@ -11,29 +13,8 @@ export type DateTimePrefs = {
   instance_timezone: string
 }
 
-export type User = {
-  id: string
-  email: string
-  locale: string
-  default_route: string
-  date_time_format: string | null
-  timezone: string | null
-  asr_model: string | null
-  diarization_model: string | null
-  summarize_model: string | null
-  capture_bot_display_name: string | null
-  tone_analytics_enabled: boolean
-  show_only_my_items: boolean
-  disabled: boolean
-  must_change_password: boolean
-  mfa_enabled: boolean
-  mfa_configured?: boolean
-  is_instance_admin: boolean
-  role: string | null
-  auth_provider: string
-  user_agreement_status?: 'accepted' | 'pending' | null
-  legal_documents_acceptance?: LegalDocumentAcceptance[] | null
-}
+/** Org member / session user shape from OpenAPI `UserPublic`. */
+export type User = SchemaUserPublic
 
 export type LegalDocumentAcceptance = {
   key: 'user_agreement' | 'personal_data_consent' | 'privacy_policy'

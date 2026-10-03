@@ -15,7 +15,7 @@ from app.errors import ErrorCode
 from app.models import Membership, Summary, SummaryPublicLink, Tariff, UsageEvent, User, new_id
 from app.presenters import org_public, user_public
 from app.schemas.me import UserPublic
-from app.schemas.org_api import OrgPublicResponse
+from app.schemas.org_api import OrgPublicResponse, TariffListResponse
 from app.schemas.org_users import (
     OffboardStatusResponse,
     OrgUserListResponse,
@@ -100,15 +100,17 @@ class OffboardBody(BaseModel):
     target_user_id: str | None = None
 
 
-@router.get("/org/available-tariffs")
-def available_tariffs(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.get("/org/available-tariffs", response_model=TariffListResponse)
+def available_tariffs(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> TariffListResponse:
     from app.presenters import tariff_public
 
     ctx.require_org()
     rows = db.scalars(
         select(Tariff).where(Tariff.archived_at.is_(None), Tariff.available_on_signup.is_(True))
     ).all()
-    return {"items": [tariff_public(row) for row in rows]}
+    return TariffListResponse(items=[tariff_public(row) for row in rows])
 
 
 @router.get("/org", response_model=OrgPublicResponse)

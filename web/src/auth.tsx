@@ -4,6 +4,7 @@ import { api, ApiError } from './api'
 import { setDateTimePrefs } from './util/datetimeFormat'
 import { showError } from './util'
 import { resolveLoginPath, type DefaultRoute } from './routes'
+import type { SchemaMeResponse } from './openapi'
 import type { Locale, Me } from './types'
 
 type AuthState = {
@@ -21,6 +22,11 @@ type AuthState = {
 
 const AuthCtx = createContext<AuthState | null>(null)
 
+function meFromApi(next: SchemaMeResponse): Me {
+  setDateTimePrefs(next.date_time_prefs as Me['date_time_prefs'])
+  return next as Me
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { i18n } = useTranslation()
   const [ready, setReady] = useState(false)
@@ -37,9 +43,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return null
     }
     try {
-      const next = await api<Me>('/me')
+      const raw = await api<SchemaMeResponse>('/me')
+      const next = meFromApi(raw)
       setMe(next)
-      setDateTimePrefs(next.date_time_prefs)
       if (next.user.locale && next.user.locale !== i18n.language) {
         localStorage.setItem('locale', next.user.locale)
         await i18n.changeLanguage(next.user.locale)
@@ -69,9 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('locale', locale)
       await i18n.changeLanguage(locale)
       if (me) {
-        const next = await api<Me>('/me', { method: 'PATCH', body: JSON.stringify({ locale }) })
+        const next = meFromApi(
+          await api<SchemaMeResponse>('/me', { method: 'PATCH', body: JSON.stringify({ locale }) }),
+        )
         setMe(next)
-        setDateTimePrefs(next.date_time_prefs)
       }
     },
     [i18n, me],
@@ -80,9 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setDefaultRoute = useCallback(
     async (route: DefaultRoute) => {
       if (me) {
-        const next = await api<Me>('/me', { method: 'PATCH', body: JSON.stringify({ default_route: route }) })
+        const next = meFromApi(
+          await api<SchemaMeResponse>('/me', { method: 'PATCH', body: JSON.stringify({ default_route: route }) }),
+        )
         setMe(next)
-        setDateTimePrefs(next.date_time_prefs)
       }
     },
     [me],
@@ -91,9 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setDateTimeFormat = useCallback(
     async (format: string | null) => {
       if (me) {
-        const next = await api<Me>('/me', { method: 'PATCH', body: JSON.stringify({ date_time_format: format }) })
+        const next = meFromApi(
+          await api<SchemaMeResponse>('/me', {
+            method: 'PATCH',
+            body: JSON.stringify({ date_time_format: format }),
+          }),
+        )
         setMe(next)
-        setDateTimePrefs(next.date_time_prefs)
       }
     },
     [me],
@@ -102,9 +114,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setTimezone = useCallback(
     async (timezone: string | null) => {
       if (me) {
-        const next = await api<Me>('/me', { method: 'PATCH', body: JSON.stringify({ timezone }) })
+        const next = meFromApi(
+          await api<SchemaMeResponse>('/me', { method: 'PATCH', body: JSON.stringify({ timezone }) }),
+        )
         setMe(next)
-        setDateTimePrefs(next.date_time_prefs)
       }
     },
     [me],

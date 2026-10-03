@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
+import type { SchemaOrgUserListResponse } from '../openapi'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import type { Org, Task, User } from '../types'
 import { AdminPage, AppStackCard } from '../components/AdminSection'
@@ -91,7 +92,7 @@ export function TasksPage() {
           const r = await api<{ items: Org[] }>('/orgs')
           if (!stop) setOrgs(r.items)
         } else {
-          const r = await api<{ items: User[] }>('/org/users')
+          const r = await api<SchemaOrgUserListResponse>('/org/users')
           if (!stop) setOrgUsers(r.items)
         }
       } catch (e) {

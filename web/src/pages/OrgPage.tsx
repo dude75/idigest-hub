@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
+import type {
+  SchemaOrgPublicResponse,
+  SchemaOrgUserListResponse,
+  SchemaOrgUserResetPasswordResponse,
+  SchemaTariffListResponse,
+} from '../openapi'
 import { isOrgAdmin, useAuth } from '../auth'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../components/AdminSection'
 import { ConfirmDialog } from '../components/ConfirmDialog'
@@ -93,9 +99,9 @@ export function OrgPage() {
 
   async function load() {
     const requests: [
-      Promise<Org>,
-      Promise<{ items: User[] }>,
-      Promise<{ items: Tariff[] }>,
+      Promise<SchemaOrgPublicResponse>,
+      Promise<SchemaOrgUserListResponse>,
+      Promise<SchemaTariffListResponse>,
       Promise<OrgSsoAdmin> | Promise<null>,
       Promise<{
         allowed: boolean
@@ -104,9 +110,9 @@ export function OrgPage() {
         workers: OrgCaptureWorkerChoice[]
       }> | Promise<null>,
     ] = [
-      api<Org>('/org'),
-      api<{ items: User[] }>('/org/users'),
-      api<{ items: Tariff[] }>('/org/available-tariffs'),
+      api<SchemaOrgPublicResponse>('/org'),
+      api<SchemaOrgUserListResponse>('/org/users'),
+      api<SchemaTariffListResponse>('/org/available-tariffs'),
       admin && hasOrg ? api<OrgSsoAdmin>('/org/sso') : Promise.resolve(null),
       admin && hasOrg
         ? api<{
@@ -118,14 +124,14 @@ export function OrgPage() {
         : Promise.resolve(null),
     ]
     const [o, u, tr, ssoConfig, captureConfig] = await Promise.all(requests)
-    setOrg(o)
+    setOrg(o as Org)
     setName(o.name)
     setTtl(o.password_ttl_days)
     setMfaRequired(o.mfa_required)
     setAllowPublicLinks(o.allow_public_links)
-    setTariffId(tariffSelectable(tr.items, o.tariff) ? o.tariff.id : '')
+    setTariffId(tariffSelectable(tr.items as Tariff[], o.tariff as Tariff) ? o.tariff.id : '')
     setUsers(u.items)
-    setTariffs(tr.items)
+    setTariffs(tr.items as Tariff[])
     if (ssoConfig) {
       setSso(ssoConfig)
       setSsoIssuer(ssoConfig.issuer || '')
@@ -360,7 +366,9 @@ export function OrgPage() {
 
   async function resetPw(user: User) {
     try {
-      const r = await api<{ password: string }>(`/org/users/${user.id}/reset-password`, { method: 'POST' })
+      const r = await api<SchemaOrgUserResetPasswordResponse>(`/org/users/${user.id}/reset-password`, {
+        method: 'POST',
+      })
       setTempPw({ email: user.email, password: r.password })
       setMfaResetOk(null)
       await load()

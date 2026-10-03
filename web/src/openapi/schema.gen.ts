@@ -3186,6 +3186,11 @@ export interface components {
         TariffDeleteBody: {
             remediation?: components["schemas"]["TariffRemediation"] | null;
         };
+        /** TariffListResponse */
+        TariffListResponse: {
+            /** Items */
+            items: components["schemas"]["TariffPublic"][];
+        };
         /** TariffPublic */
         TariffPublic: {
             /** Id */
@@ -6105,9 +6110,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TariffListResponse"];
                 };
             };
         };

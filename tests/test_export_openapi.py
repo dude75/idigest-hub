@@ -57,4 +57,8 @@ def test_export_openapi_writes_health_path():
     ]
     assert org_users.get("$ref", "").endswith("/OrgUserListResponse")
     assert "OrgUserListResponse" in components
-    assert "UserPublic" in components["OrgUserListResponse"]["properties"]["items"]["items"]["$ref"].split("/")[-1]
+    assert components["OrgUserListResponse"]["properties"]["items"]["items"]["$ref"].endswith("/UserPublic")
+    avail = schema["paths"]["/api/v1/org/available-tariffs"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert avail.get("$ref", "").endswith("/TariffListResponse")

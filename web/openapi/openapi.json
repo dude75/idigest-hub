@@ -3874,9 +3874,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Available Tariffs Api V1 Org Available Tariffs Get"
+                  "$ref": "#/components/schemas/TariffListResponse"
                 }
               }
             }
@@ -11053,6 +11051,22 @@
         },
         "type": "object",
         "title": "TariffDeleteBody"
+      },
+      "TariffListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TariffPublic"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "TariffListResponse"
       },
       "TariffPublic": {
         "properties": {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiUpload } from '../api'
+import type { SchemaOrgUserListResponse } from '../openapi'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
 import { Button } from '@/components/ui/button'
@@ -134,7 +135,7 @@ export function LibraryPage() {
     let stop = false
     async function loadUsers() {
       try {
-        const r = await api<{ items: User[] }>('/org/users')
+        const r = await api<SchemaOrgUserListResponse>('/org/users')
         if (!stop) setOrgUsers(r.items)
       } catch (e) {
         if (!stop) showError(e)

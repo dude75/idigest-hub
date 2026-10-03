@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
+import { useOrgUsers } from '../hooks/useOrgUsers'
 import { LIBRARY_DEFAULT } from '../routes'
-import type { OrgStats, User } from '../types'
+import type { OrgStats } from '../types'
 import { StatsDaysView } from '../components/StatsDaysView'
 import { StatsFiltersPanel } from '../components/StatsFiltersPanel'
 import { AdminPage } from '../components/AdminSection'
@@ -14,13 +15,13 @@ import { showError } from '../util'
 export function StatsPage() {
   const { me } = useAuth()
   const [stats, setStats] = useState<OrgStats | null>(null)
-  const [users, setUsers] = useState<User[]>([])
   const [fromDay, setFromDay] = useState(() => defaultFilterRange().from)
   const [toDay, setToDay] = useState(() => defaultFilterRange().to)
   const [userId, setUserId] = useState('')
   const [kind, setKind] = useState('')
   const admin = isOrgAdmin(me)
   const hasOrg = Boolean(me?.org)
+  const { users } = useOrgUsers(hasOrg && admin)
 
   const query = useMemo(() => {
     const params = new URLSearchParams()
@@ -31,11 +32,6 @@ export function StatsPage() {
     const text = params.toString()
     return text ? `?${text}` : ''
   }, [fromDay, toDay, userId, kind])
-
-  useEffect(() => {
-    if (!hasOrg || !admin) return
-    api<{ items: User[] }>('/org/users').then((r) => setUsers(r.items)).catch(showError)
-  }, [hasOrg, admin])
 
   useEffect(() => {
     if (!hasOrg || !admin) return

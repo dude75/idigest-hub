@@ -34,6 +34,10 @@ class TariffPublic(BaseModel):
     org_count: int | None = None
 
 
+class TariffListResponse(BaseModel):
+    items: list[TariffPublic]
+
+
 class OrgPublicResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 

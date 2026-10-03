@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
+import type { SchemaOrgUserListResponse } from '../openapi'
 import { useAuth } from '../auth'
 import type { ShareRecord, SummaryPublicLink, User } from '../types'
 import { fmtDate, showError } from '../util'
@@ -63,7 +64,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
 
   useEffect(() => {
     Promise.all([
-      api<{ items: User[] }>('/org/users'),
+      api<SchemaOrgUserListResponse>('/org/users'),
       loadShares(),
       showPublic ? loadPublicLink() : Promise.resolve(),
     ])
