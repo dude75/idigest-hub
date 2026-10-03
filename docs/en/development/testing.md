@@ -46,6 +46,9 @@ Each test gets:
 | `test_worker_delete.py` | Delete impact and remediation for transcribe, summarize, and capture |
 | `test_billing.py` | Wallet, charges, unlimited, tariff archive/delete impact and remediation |
 | `test_rate_limit.py` | Limiter buckets |
+| `test_export_openapi.py` | Runs `scripts/export_openapi.py`; asserts key paths and `$ref` response schemas in `web/openapi/openapi.json` |
+
+When you add or change a public JSON `response_model`, extend `test_export_openapi.py` with a focused assertion (path + expected schema name) so the committed snapshot and frontend types stay aligned.
 
 ## Mocking workers
 

@@ -25,7 +25,8 @@ web/src/
 ├── auth.tsx          # Session context, login state
 ├── api.ts            # fetch wrappers for /api/v1
 ├── routes.ts         # Path helpers, default_route logic
-├── types.ts          # Me, Task, entities
+├── types.ts          # Доменные типы; многие — алиасы OpenAPI через openapi/contracts.ts
+├── openapi/          # Сгенерированная схема + алиасы (см. ниже)
 ├── i18n.ts           # i18next setup
 ├── locales/          # en.json, ru.json, es.json
 ├── pages/
@@ -65,6 +66,28 @@ Public: `/`, `/login`, `/signup`, `/setup`, `/forgot`, `/reset`, `/verify-2fa`, 
 
 Errors ожидают `{ status: "error", error: { code, message } }`. Ошибки API показываются toast-уведомлениями справа сверху (`sonner` через `util.tsx` `showError`).
 
+## API types (OpenAPI)
+
+TypeScript UI синхронизируется с контрактом backend:
+
+| Артефакт | Назначение |
+| -------- | ---------- |
+| `web/openapi/openapi.json` | Закоммиченный snapshot OpenAPI (скрипт экспорта, без живого сервера) |
+| `web/src/openapi/schema.gen.ts` | Сгенерированные `components` / `paths` (`openapi-typescript`) |
+| `web/src/openapi/contracts.ts` | Алиасы `Schema*` и list-envelope; в pages — `import` из `../openapi` |
+| `web/src/types.ts` | Имена для приложения (`Me`, `Task`, `Org`, …); где совпадает — re-export OpenAPI |
+
+После изменения backend `response_model` или routes:
+
+```bash
+cd web
+npm run generate:api    # export_openapi.py + generate:api-types
+```
+
+В новом и затронутом коде предпочитайте `api<SchemaFooResponse>(…)` вместо inline `api<{ … }>(…)`. Списки с доп. UI-полями (например `ShareBadge`) — через helpers в `contracts.ts`. `Me` — небольшой гибрид над `SchemaMeResponse` (prefs и legal).
+
+Перегенерация косвенно проверяется в CI: pytest `tests/test_export_openapi.py` и `npm run build`.
+
 ## Auth flow
 
 1. `GET /me` при загрузке
@@ -91,6 +114,7 @@ npm run build      # tsc + vite → dist/
 npm run lint       # oxlint
 npm run test       # vitest (например auth route helpers)
 npm run check:ui   # guard скрипт миграции UI
+npm run generate:api   # обновить openapi.json + schema.gen.ts (после изменений API)
 ```
 
 Assets попадают в `web/dist/assets/` — монтируются на `/assets` через FastAPI.
@@ -98,4 +122,5 @@ Assets попадают в `web/dist/assets/` — монтируются на `/
 ## Связанные страницы
 
 - [Development setup](setup.md)
+- [Backend layout](backend.md)
 - [Auth API](../api/auth.md)

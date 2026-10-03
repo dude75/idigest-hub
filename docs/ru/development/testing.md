@@ -46,6 +46,9 @@ Framework: **pytest** с FastAPI `TestClient`.
 | `test_worker_delete.py` | Delete impact и remediation для transcribe, summarize и capture |
 | `test_billing.py` | Wallet, charges, unlimited, archive/delete тарифов, impact и remediation |
 | `test_rate_limit.py` | Limiter buckets |
+| `test_export_openapi.py` | Запускает `scripts/export_openapi.py`; проверяет ключевые paths и `$ref` схем в `web/openapi/openapi.json` |
+
+При новом или изменённом публичном JSON `response_model` добавьте точечную проверку в `test_export_openapi.py` (path + имя schema), чтобы snapshot и типы фронта не расходились.
 
 ## Mocking workers
 

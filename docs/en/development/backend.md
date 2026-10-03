@@ -18,14 +18,15 @@ app/
 ├── i18n.py           # Locale negotiation + translations
 ├── rate_limit.py     # In-memory limiter
 ├── openapi.py        # Swagger security schemes (Bearer + session cookie)
+├── schemas/          # Pydantic response/request models for OpenAPI (e.g. auth_api, org_api, oauth_api)
 ├── routers/
-│   ├── auth.py
+│   ├── auth/         # setup, session, MFA, me, tokens (package; mounted via auth/_router.py)
+│   ├── instance/     # workers, tariffs, orgs, settings, audit, …
 │   ├── tasks.py
 │   ├── library.py
 │   ├── org.py
-│   ├── instance.py
 │   ├── crypto.py     # DEK management API (instance_admin)
-│   ├── oauth.py      # OAuth 2.1 authorize / token / DCR / well-known
+│   ├── oauth.py      # OAuth 2.1 — JSON in OpenAPI; HTML authorize/login/SSO excluded
 │   ├── public.py     # Guest public summary links (no session)
 │   ├── skills.py
 │   └── tags.py       # Personal tag catalog + object-tags
@@ -62,7 +63,9 @@ app/
 1. Router endpoint (`require_auth` dependency)
 2. Business checks via `AuthContext` helpers
 3. DB mutation via `Session` from `get_session`
-4. Return `presenters.*_public()` dict
+4. Return a **Pydantic model** (or dict only for legacy/internal helpers). Public routes use `response_model=…` from `app/schemas/`.
+
+Presenters (`presenters.py`) still shape many entities; prefer reusing or wrapping them when building schema models.
 
 Task endpoints additionally `await locked_tick()` to progress queue synchronously.
 
@@ -96,14 +99,29 @@ Always use `floor_to_cents` from `app/money.py` for wallet operations.
 
 ## Adding an endpoint
 
-1. Add route to appropriate router
-2. Extend `ErrorCode` if new failure mode
-3. Add translations to locale JSON files
-4. Add presenter if new entity shape
-5. Write pytest coverage in `tests/`
+1. Add route to the appropriate router (or submodule under `routers/auth/`, `routers/instance/`, …).
+2. Extend `ErrorCode` if there is a new failure mode; add strings to `app/locales/{en,ru,es}.json`.
+3. For a **new or changed JSON response shape**:
+   - Add or extend a model in `app/schemas/` (often `*_api.py`).
+   - Set `response_model=…` on the route; use `include_in_schema=False` only for HTML, redirects, or internal routes (see `oauth.py`).
+   - Regenerate the committed OpenAPI snapshot and frontend types (below).
+4. Keep business logic in `services/`; use presenters where they already exist.
+5. Add pytest coverage in `tests/`. If the route is part of the public contract, extend `tests/test_export_openapi.py` with a `$ref` check for the path.
+
+### OpenAPI export (backend + web types)
+
+From repo root (uses `.venv`, no running server):
+
+```bash
+./.venv/bin/python scripts/export_openapi.py   # → web/openapi/openapi.json
+cd web && npm run generate:api-types             # → web/src/openapi/schema.gen.ts
+```
+
+Or from `web/`: `npm run generate:api` (runs both steps). Commit `openapi.json` and `schema.gen.ts` when the API contract changes. See [Frontend — API types](frontend.md#api-types-openapi).
 
 ## Related pages
 
 - [Database](../operations/database.md)
 - [Testing](testing.md)
+- [Frontend layout](frontend.md)
 - [MCP tools](../api/mcp.md)

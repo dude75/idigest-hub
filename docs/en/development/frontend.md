@@ -25,7 +25,8 @@ web/src/
 ├── auth.tsx          # Session context, login state
 ├── api.ts            # fetch wrappers for /api/v1
 ├── routes.ts         # Path helpers, default_route logic
-├── types.ts          # Me, Task, entities
+├── types.ts          # Domain types; many alias OpenAPI via openapi/contracts.ts
+├── openapi/          # Generated schema + hand-maintained aliases (see below)
 ├── i18n.ts           # i18next setup
 ├── locales/          # en.json, ru.json, es.json
 ├── pages/
@@ -65,6 +66,28 @@ Authenticated app: `/app/*` (library with `:tab`, audio/transcript/summary detai
 
 Errors expect `{ status: "error", error: { code, message } }`. API failures show as top-right toast notifications (`sonner` via `util.tsx` `showError`).
 
+## API types (OpenAPI)
+
+The UI keeps TypeScript in sync with the backend contract:
+
+| Artifact | Role |
+| -------- | ---- |
+| `web/openapi/openapi.json` | Committed OpenAPI snapshot (export script, not live server) |
+| `web/src/openapi/schema.gen.ts` | Generated `components` / `paths` (`openapi-typescript`) |
+| `web/src/openapi/contracts.ts` | `Schema*` aliases and list envelopes; import from `../openapi` in pages |
+| `web/src/types.ts` | App-facing names (`Me`, `Task`, `Org`, …); re-exports OpenAPI where aligned |
+
+After changing backend `response_model` or routes:
+
+```bash
+cd web
+npm run generate:api    # export_openapi.py + generate:api-types
+```
+
+In new or touched code, prefer `api<SchemaFooResponse>(…)` over inline `api<{ … }>(…)`. List pages that merge OpenAPI list payloads with extra UI fields (e.g. `ShareBadge`) use helpers in `contracts.ts`. `Me` stays a small hybrid over `SchemaMeResponse` for prefs and legal acceptance.
+
+Regeneration is covered in CI indirectly via pytest (`tests/test_export_openapi.py`) and `npm run build`.
+
 ## Auth flow
 
 1. `GET /me` on load
@@ -91,6 +114,7 @@ npm run build      # tsc + vite → dist/
 npm run lint       # oxlint
 npm run test       # vitest (e.g. auth route helpers)
 npm run check:ui   # migration guard script
+npm run generate:api   # refresh openapi.json + schema.gen.ts (after backend API changes)
 ```
 
 Assets emit to `web/dist/assets/` — mounted at `/assets` by FastAPI.
@@ -98,4 +122,5 @@ Assets emit to `web/dist/assets/` — mounted at `/assets` by FastAPI.
 ## Related pages
 
 - [Development setup](setup.md)
+- [Backend layout](backend.md)
 - [Auth API](../api/auth.md)

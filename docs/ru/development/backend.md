@@ -18,14 +18,15 @@ app/
 ├── i18n.py           # Locale negotiation + translations
 ├── rate_limit.py     # In-memory limiter
 ├── openapi.py        # Swagger security schemes (Bearer + session cookie)
+├── schemas/          # Pydantic request/response для OpenAPI (auth_api, org_api, oauth_api, …)
 ├── routers/
-│   ├── auth.py
+│   ├── auth/         # setup, session, MFA, me, tokens (пакет, монтируется через auth/_router.py)
+│   ├── instance/     # workers, tariffs, orgs, settings, audit, …
 │   ├── tasks.py
 │   ├── library.py
 │   ├── org.py
-│   ├── instance.py
 │   ├── crypto.py     # API управления DEK (instance_admin)
-│   ├── oauth.py      # OAuth 2.1 authorize / token / DCR / well-known
+│   ├── oauth.py      # OAuth 2.1 — JSON в OpenAPI; HTML authorize/login/SSO вне схемы
 │   ├── public.py     # Гостевые public summary links (без сессии)
 │   ├── skills.py
 │   └── tags.py       # Каталог personal tags + object-tags
@@ -62,7 +63,9 @@ app/
 1. Router endpoint (`require_auth` dependency)
 2. Business checks через helpers `AuthContext`
 3. DB mutation через `Session` из `get_session`
-4. Return `presenters.*_public()` dict
+4. Возвращайте **Pydantic-модель** (dict — только legacy/внутренние helpers). Публичные routes — `response_model=…` из `app/schemas/`.
+
+Presenters (`presenters.py`) по-прежнему формируют многие entity; при сборке schema-моделей их удобно переиспользовать.
 
 Task endpoints дополнительно вызывают `await locked_tick()` для синхронного продвижения очереди.
 
@@ -96,14 +99,29 @@ Server strings: `app/locales/{en,ru,es}.json`. Client strings: `web/src/locales/
 
 ## Добавление endpoint
 
-1. Добавьте route в соответствующий router
-2. Расширьте `ErrorCode`, если нужен новый режим ошибки
-3. Добавьте переводы в locale JSON files
-4. Добавьте presenter, если новая форма entity
-5. Напишите pytest coverage в `tests/`
+1. Добавьте route в нужный router (или подмодуль `routers/auth/`, `routers/instance/`, …).
+2. При новом коде ошибки — расширьте `ErrorCode` и строки в `app/locales/{en,ru,es}.json`.
+3. Для **новой или изменённой JSON-формы ответа**:
+   - модель в `app/schemas/` (часто `*_api.py`);
+   - `response_model=…` на route; `include_in_schema=False` — только HTML, redirect и внутренние маршруты (см. `oauth.py`);
+   - перегенерируйте OpenAPI и типы фронта (ниже).
+4. Бизнес-логика — в `services/`; presenters — где уже есть.
+5. pytest в `tests/`. Если route — часть публичного контракта, добавьте проверку `$ref` в `tests/test_export_openapi.py`.
+
+### Экспорт OpenAPI (backend + типы web)
+
+Из корня репозитория (`.venv`, сервер не нужен):
+
+```bash
+./.venv/bin/python scripts/export_openapi.py   # → web/openapi/openapi.json
+cd web && npm run generate:api-types             # → web/src/openapi/schema.gen.ts
+```
+
+Или из `web/`: `npm run generate:api` (оба шага). Коммитьте `openapi.json` и `schema.gen.ts` при изменении контракта API. См. [Frontend — API types](frontend.md#api-types-openapi).
 
 ## Связанные страницы
 
 - [Database](../operations/database.md)
 - [Testing](testing.md)
+- [Frontend layout](frontend.md)
 - [MCP tools](../api/mcp.md)
