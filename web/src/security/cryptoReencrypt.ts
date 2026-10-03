@@ -1,5 +1,5 @@
 export type DekListReencrypt = {
-  items: { status: string }[]
+  items?: { status: string }[]
   reencrypt_available?: boolean
   running_job_id?: string | null
 }
@@ -14,6 +14,7 @@ export function isCryptoReencryptJobRunning(
 
 /** More than one DEK and server allows starting a re-encrypt job. */
 export function canStartCryptoReencrypt(deks: DekListReencrypt | null): boolean {
-  if (!deks || deks.items.length <= 1) return false
-  return deks.reencrypt_available ?? deks.items.some((d) => d.status === 'retiring')
+  const items = deks?.items ?? []
+  if (items.length <= 1) return false
+  return deks?.reencrypt_available ?? items.some((d) => d.status === 'retiring')
 }

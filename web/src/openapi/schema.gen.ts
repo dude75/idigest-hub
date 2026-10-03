@@ -38,49 +38,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/setup": {
+    "/api/v1/me": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Me */
+        get: operations["me_api_v1_me_get"];
         put?: never;
-        /** Setup */
-        post: operations["setup_api_v1_setup_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** Patch Me */
+        patch: operations["patch_me_api_v1_me_patch"];
         trace?: never;
     };
-    "/api/v1/auth/signup": {
+    "/api/v1/me/backup": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Signup */
-        post: operations["signup_api_v1_auth_signup_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/signup-tariffs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Signup Tariffs */
-        get: operations["signup_tariffs_api_v1_auth_signup_tariffs_get"];
+        /** Download Backup */
+        get: operations["download_backup_api_v1_me_backup_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -89,17 +73,154 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/setup/status": {
+    "/api/v1/me/backup/restore": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Setup Status */
-        get: operations["setup_status_api_v1_setup_status_get"];
+        get?: never;
+        put?: never;
+        /** Upload Backup Restore */
+        post: operations["upload_backup_restore_api_v1_me_backup_restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/account-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Account Delete Preview Route */
+        get: operations["account_delete_preview_route_api_v1_me_account_delete_get"];
+        put?: never;
+        /** Account Delete */
+        post: operations["account_delete_api_v1_me_account_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mfa Verify */
+        post: operations["mfa_verify_api_v1_auth_mfa_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/recover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mfa Recover */
+        post: operations["mfa_recover_api_v1_auth_mfa_recover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mfa Status */
+        get: operations["mfa_status_api_v1_auth_mfa_status_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/setup/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mfa Setup Start */
+        post: operations["mfa_setup_start_api_v1_auth_mfa_setup_start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/agreement/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept User Agreement */
+        post: operations["accept_user_agreement_api_v1_auth_agreement_accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/setup/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mfa Setup Confirm */
+        post: operations["mfa_setup_confirm_api_v1_auth_mfa_setup_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/mfa/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mfa Disable */
+        post: operations["mfa_disable_api_v1_auth_mfa_disable_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -242,7 +363,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/mfa/verify": {
+    "/api/v1/setup": {
         parameters: {
             query?: never;
             header?: never;
@@ -251,15 +372,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Mfa Verify */
-        post: operations["mfa_verify_api_v1_auth_mfa_verify_post"];
+        /** Setup */
+        post: operations["setup_api_v1_setup_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/mfa/recover": {
+    "/api/v1/auth/signup": {
         parameters: {
             query?: never;
             header?: never;
@@ -268,23 +389,23 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Mfa Recover */
-        post: operations["mfa_recover_api_v1_auth_mfa_recover_post"];
+        /** Signup */
+        post: operations["signup_api_v1_auth_signup_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/mfa/status": {
+    "/api/v1/auth/signup-tariffs": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Mfa Status */
-        get: operations["mfa_status_api_v1_auth_mfa_status_get"];
+        /** Signup Tariffs */
+        get: operations["signup_tariffs_api_v1_auth_signup_tariffs_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -293,138 +414,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/auth/mfa/setup/start": {
+    "/api/v1/setup/status": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Mfa Setup Start */
-        post: operations["mfa_setup_start_api_v1_auth_mfa_setup_start_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/agreement/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Accept User Agreement */
-        post: operations["accept_user_agreement_api_v1_auth_agreement_accept_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/mfa/setup/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Mfa Setup Confirm */
-        post: operations["mfa_setup_confirm_api_v1_auth_mfa_setup_confirm_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/auth/mfa/disable": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Mfa Disable */
-        post: operations["mfa_disable_api_v1_auth_mfa_disable_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Me */
-        get: operations["me_api_v1_me_get"];
+        /** Setup Status */
+        get: operations["setup_status_api_v1_setup_status_get"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Patch Me */
-        patch: operations["patch_me_api_v1_me_patch"];
-        trace?: never;
-    };
-    "/api/v1/me/backup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Download Backup */
-        get: operations["download_backup_api_v1_me_backup_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/backup/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Upload Backup Restore */
-        post: operations["upload_backup_restore_api_v1_me_backup_restore_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/me/account-delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Account Delete Preview Route */
-        get: operations["account_delete_preview_route_api_v1_me_account_delete_get"];
-        put?: never;
-        /** Account Delete */
-        post: operations["account_delete_api_v1_me_account_delete_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4820,73 +4820,7 @@ export interface operations {
             };
         };
     };
-    setup_api_v1_setup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SetupBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthUserBootstrapResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    signup_api_v1_auth_signup_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SignupBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AuthUserBootstrapResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    signup_tariffs_api_v1_auth_signup_tariffs_get: {
+    me_api_v1_me_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4901,12 +4835,112 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TariffListResponse"];
+                    "application/json": components["schemas"]["MeResponse"];
                 };
             };
         };
     };
-    setup_status_api_v1_setup_status_get: {
+    patch_me_api_v1_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MePatchBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_backup_api_v1_me_backup_get: {
+        parameters: {
+            query?: {
+                transcripts?: boolean;
+                summaries?: boolean;
+                skills?: boolean;
+                format?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_backup_restore_api_v1_me_backup_restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_backup_restore_api_v1_me_backup_restore_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupRestoreReportResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    account_delete_preview_route_api_v1_me_account_delete_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -4921,7 +4955,232 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SetupStatusResponse"];
+                    "application/json": components["schemas"]["AccountDeletePreviewResponse"];
+                };
+            };
+        };
+    };
+    account_delete_api_v1_me_account_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDeleteBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeleteResultResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_verify_api_v1_auth_mfa_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaVerifyBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_recover_api_v1_auth_mfa_recover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaRecoverBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_status_api_v1_auth_mfa_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaStatusResponse"];
+                };
+            };
+        };
+    };
+    mfa_setup_start_api_v1_auth_mfa_setup_start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaSetupStartResponse"];
+                };
+            };
+        };
+    };
+    accept_user_agreement_api_v1_auth_agreement_accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
+    mfa_setup_confirm_api_v1_auth_mfa_setup_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaConfirmBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MfaSetupConfirmResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mfa_disable_api_v1_auth_mfa_disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaDisableBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5174,7 +5433,7 @@ export interface operations {
             };
         };
     };
-    mfa_verify_api_v1_auth_mfa_verify_post: {
+    setup_api_v1_setup_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5183,7 +5442,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MfaVerifyBody"];
+                "application/json": components["schemas"]["SetupBody"];
             };
         };
         responses: {
@@ -5193,7 +5452,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OkStatusResponse"];
+                    "application/json": components["schemas"]["AuthUserBootstrapResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5207,7 +5466,7 @@ export interface operations {
             };
         };
     };
-    mfa_recover_api_v1_auth_mfa_recover_post: {
+    signup_api_v1_auth_signup_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5216,7 +5475,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MfaRecoverBody"];
+                "application/json": components["schemas"]["SignupBody"];
             };
         };
         responses: {
@@ -5226,7 +5485,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["OkStatusResponse"];
+                    "application/json": components["schemas"]["AuthUserBootstrapResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5240,7 +5499,7 @@ export interface operations {
             };
         };
     };
-    mfa_status_api_v1_auth_mfa_status_get: {
+    signup_tariffs_api_v1_auth_signup_tariffs_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5255,12 +5514,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MfaStatusResponse"];
+                    "application/json": components["schemas"]["TariffListResponse"];
                 };
             };
         };
     };
-    mfa_setup_start_api_v1_auth_mfa_setup_start_post: {
+    setup_status_api_v1_setup_status_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5275,266 +5534,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MfaSetupStartResponse"];
-                };
-            };
-        };
-    };
-    accept_user_agreement_api_v1_auth_agreement_accept_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MeResponse"];
-                };
-            };
-        };
-    };
-    mfa_setup_confirm_api_v1_auth_mfa_setup_confirm_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MfaConfirmBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MfaSetupConfirmResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    mfa_disable_api_v1_auth_mfa_disable_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MfaDisableBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["OkStatusResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    me_api_v1_me_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MeResponse"];
-                };
-            };
-        };
-    };
-    patch_me_api_v1_me_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MePatchBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MeResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    download_backup_api_v1_me_backup_get: {
-        parameters: {
-            query?: {
-                transcripts?: boolean;
-                summaries?: boolean;
-                skills?: boolean;
-                format?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    upload_backup_restore_api_v1_me_backup_restore_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_backup_restore_api_v1_me_backup_restore_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BackupRestoreReportResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    account_delete_preview_route_api_v1_me_account_delete_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountDeletePreviewResponse"];
-                };
-            };
-        };
-    };
-    account_delete_api_v1_me_account_delete_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AccountDeleteBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AccountDeleteResultResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["SetupStatusResponse"];
                 };
             };
         };

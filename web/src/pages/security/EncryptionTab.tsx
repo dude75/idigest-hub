@@ -17,19 +17,11 @@ import {
 } from '../../components/app/AdminDataTable'
 import { AdminFormActions, AdminMetaRow, HubBadge } from '../../components/app/AdminUi'
 import { StatCard, StatGrid } from '../../components/StatCard'
-import type { DataEncryptionKey, EncryptionJob } from '../../types'
+import type { SchemaDekListResponse, SchemaEncryptionJobLatestResponse } from '../../openapi'
+import type { EncryptionJob } from '../../types'
 import { formatInteger, fmtAge, fmtDate, showError } from '../../util'
 import { canStartCryptoReencrypt, isCryptoReencryptJobRunning } from '../../security/cryptoReencrypt'
 import { Button } from '@/components/ui/button'
-
-type DekList = {
-  active_dek_id: string | null
-  items: DataEncryptionKey[]
-  running_job_id: string | null
-  deks_pending_rewrap: number
-  hub_secret_prev_configured: boolean
-  reencrypt_available: boolean
-}
 
 function dekStatusBadge(status: string, t: (key: string, opts?: { defaultValue?: string }) => string): string {
   return t(`encryption.statusValue.${status}`, { defaultValue: status })
@@ -37,16 +29,16 @@ function dekStatusBadge(status: string, t: (key: string, opts?: { defaultValue?:
 
 export function EncryptionTab() {
   const { t } = useTranslation()
-  const [deks, setDeks] = useState<DekList | null>(null)
+  const [deks, setDeks] = useState<SchemaDekListResponse | null>(null)
   const [job, setJob] = useState<EncryptionJob | null>(null)
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(() => {
-    api<DekList>('/instance/crypto/deks')
+    api<SchemaDekListResponse>('/instance/crypto/deks')
       .then(setDeks)
       .catch(showError)
-    api<{ job: EncryptionJob | null }>('/instance/crypto/reencrypt/latest')
-      .then((r) => setJob(r.job))
+    api<SchemaEncryptionJobLatestResponse>('/instance/crypto/reencrypt/latest')
+      .then((r) => setJob((r.job as EncryptionJob | null) ?? null))
       .catch(showError)
   }, [])
 
@@ -72,13 +64,15 @@ export function EncryptionTab() {
   const jobRunning = isCryptoReencryptJobRunning(deks, job?.status)
   const canReencrypt = canStartCryptoReencrypt(deks)
 
+  const dekItems = deks?.items ?? []
+
   const activeDek = useMemo(() => {
     if (!deks?.active_dek_id) return null
-    return deks.items.find((d) => d.id === deks.active_dek_id) ?? null
-  }, [deks])
+    return dekItems.find((d) => d.id === deks.active_dek_id) ?? null
+  }, [deks, dekItems])
 
   const summary = useMemo(() => ({
-    total: deks?.items.length ?? 0,
+    total: dekItems.length,
     active: activeDek ? 1 : 0,
     job: job?.status ?? '—',
   }), [deks, activeDek, job])
@@ -211,10 +205,10 @@ export function EncryptionTab() {
       <AdminTableCard
         title={t('encryption.deksTitle')}
         empty={t('encryption.noDeks')}
-        isEmpty={!deks?.items.length}
+        isEmpty={dekItems.length === 0}
         tableLayout
       >
-        {deks && deks.items.length > 0 ? (
+        {dekItems.length > 0 ? (
           <AdminDataTable>
             <TableHeader>
               <TableRow>
@@ -225,14 +219,14 @@ export function EncryptionTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {deks.items.map((row) => (
+              {dekItems.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className={adminTableCellPrimary}>
                     <AdminMetaRow>
                       <AdminTruncateHint hint={row.id} className="inline max-w-[8rem]">
                         <code className="text-xs">{row.id.slice(0, 8)}…</code>
                       </AdminTruncateHint>
-                      {deks.active_dek_id === row.id ? (
+                      {deks?.active_dek_id === row.id ? (
                         <HubBadge tone="success">{t('encryption.active')}</HubBadge>
                       ) : null}
                     </AdminMetaRow>

@@ -133,9 +133,9 @@ export function TariffImpactModal({ tariff, onClose, onConfirm }: Props) {
                   <h3>{t('instance.tariffImpactOrgsTitle')}</h3>
                   <p className="muted worker-impact-section-hint">{t('instance.tariffImpactOrgsHint')}</p>
                 </div>
-                {impact.affected_orgs.length ? (
+                {(impact.affected_orgs ?? []).length ? (
                   <ul className="worker-impact-list">
-                    {impact.affected_orgs.map((org) => (
+                    {(impact.affected_orgs ?? []).map((org) => (
                       <li key={org.id} className="worker-impact-row">
                         <span className="worker-impact-org-name">{truncateLabel(org.name, 48)}</span>
                       </li>

@@ -3,6 +3,7 @@ import type {
   SchemaMeResponse,
   SchemaOrgPublicResponse,
   SchemaOrgSsoAdminResponse,
+  SchemaTariffDeleteImpactResponse,
   SchemaTariffPublic,
   SchemaUsageStatsResponse,
   SchemaUserPublic,
@@ -59,16 +60,8 @@ export type TariffRemediationPayload = {
   tariff_id: string
 }
 
-export type TariffDeleteImpact = {
-  tariff: Pick<Tariff, 'id' | 'name'> & { archived: boolean }
-  last_tariff: boolean
-  org_count: number
-  affected_orgs: { id: string; name: string }[]
-  available_tariffs: TariffChoice[]
-  suggested_replacement: TariffChoice | null
-  can_remediate: boolean
-  blocking: boolean
-}
+/** Tariff delete preview from OpenAPI `TariffDeleteImpactResponse`. */
+export type TariffDeleteImpact = SchemaTariffDeleteImpactResponse
 
 export type OrgSso = {
   configured: boolean

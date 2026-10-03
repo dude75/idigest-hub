@@ -49,15 +49,39 @@
         ]
       }
     },
-    "/api/v1/setup": {
-      "post": {
-        "summary": "Setup",
-        "operationId": "setup_api_v1_setup_post",
+    "/api/v1/me": {
+      "get": {
+        "summary": "Me",
+        "operationId": "me_api_v1_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Patch Me",
+        "operationId": "patch_me_api_v1_me_patch",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SetupBody"
+                "$ref": "#/components/schemas/MePatchBody"
               }
             }
           },
@@ -69,7 +93,246 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthUserBootstrapResponse"
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/backup": {
+      "get": {
+        "summary": "Download Backup",
+        "operationId": "download_backup_api_v1_me_backup_get",
+        "parameters": [
+          {
+            "name": "transcripts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Transcripts"
+            }
+          },
+          {
+            "name": "summaries",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Summaries"
+            }
+          },
+          {
+            "name": "skills",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Skills"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(zip|tgz)$",
+              "default": "zip",
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/backup/restore": {
+      "post": {
+        "summary": "Upload Backup Restore",
+        "operationId": "upload_backup_restore_api_v1_me_backup_restore_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_backup_restore_api_v1_me_backup_restore_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BackupRestoreReportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/account-delete": {
+      "get": {
+        "summary": "Account Delete Preview Route",
+        "operationId": "account_delete_preview_route_api_v1_me_account_delete_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletePreviewResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Account Delete",
+        "operationId": "account_delete_api_v1_me_account_delete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeleteBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeleteResultResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/verify": {
+      "post": {
+        "summary": "Mfa Verify",
+        "operationId": "mfa_verify_api_v1_auth_mfa_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaVerifyBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -87,15 +350,15 @@
         }
       }
     },
-    "/api/v1/auth/signup": {
+    "/api/v1/auth/mfa/recover": {
       "post": {
-        "summary": "Signup",
-        "operationId": "signup_api_v1_auth_signup_post",
+        "summary": "Mfa Recover",
+        "operationId": "mfa_recover_api_v1_auth_mfa_recover_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SignupBody"
+                "$ref": "#/components/schemas/MfaRecoverBody"
               }
             }
           },
@@ -107,7 +370,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuthUserBootstrapResponse"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -125,40 +388,174 @@
         }
       }
     },
-    "/api/v1/auth/signup-tariffs": {
+    "/api/v1/auth/mfa/status": {
       "get": {
-        "summary": "Signup Tariffs",
-        "operationId": "signup_tariffs_api_v1_auth_signup_tariffs_get",
+        "summary": "Mfa Status",
+        "operationId": "mfa_status_api_v1_auth_mfa_status_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TariffListResponse"
+                  "$ref": "#/components/schemas/MfaStatusResponse"
                 }
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
       }
     },
-    "/api/v1/setup/status": {
-      "get": {
-        "summary": "Setup Status",
-        "operationId": "setup_status_api_v1_setup_status_get",
+    "/api/v1/auth/mfa/setup/start": {
+      "post": {
+        "summary": "Mfa Setup Start",
+        "operationId": "mfa_setup_start_api_v1_auth_mfa_setup_start_post",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SetupStatusResponse"
+                  "$ref": "#/components/schemas/MfaSetupStartResponse"
                 }
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/agreement/accept": {
+      "post": {
+        "summary": "Accept User Agreement",
+        "operationId": "accept_user_agreement_api_v1_auth_agreement_accept_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/setup/confirm": {
+      "post": {
+        "summary": "Mfa Setup Confirm",
+        "operationId": "mfa_setup_confirm_api_v1_auth_mfa_setup_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaConfirmBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaSetupConfirmResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/disable": {
+      "post": {
+        "summary": "Mfa Disable",
+        "operationId": "mfa_disable_api_v1_auth_mfa_disable_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaDisableBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
       }
     },
     "/api/v1/auth/login": {
@@ -516,15 +913,15 @@
         }
       }
     },
-    "/api/v1/auth/mfa/verify": {
+    "/api/v1/setup": {
       "post": {
-        "summary": "Mfa Verify",
-        "operationId": "mfa_verify_api_v1_auth_mfa_verify_post",
+        "summary": "Setup",
+        "operationId": "setup_api_v1_setup_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MfaVerifyBody"
+                "$ref": "#/components/schemas/SetupBody"
               }
             }
           },
@@ -536,7 +933,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OkStatusResponse"
+                  "$ref": "#/components/schemas/AuthUserBootstrapResponse"
                 }
               }
             }
@@ -554,15 +951,15 @@
         }
       }
     },
-    "/api/v1/auth/mfa/recover": {
+    "/api/v1/auth/signup": {
       "post": {
-        "summary": "Mfa Recover",
-        "operationId": "mfa_recover_api_v1_auth_mfa_recover_post",
+        "summary": "Signup",
+        "operationId": "signup_api_v1_auth_signup_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MfaRecoverBody"
+                "$ref": "#/components/schemas/SignupBody"
               }
             }
           },
@@ -574,7 +971,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OkStatusResponse"
+                  "$ref": "#/components/schemas/AuthUserBootstrapResponse"
                 }
               }
             }
@@ -592,437 +989,40 @@
         }
       }
     },
-    "/api/v1/auth/mfa/status": {
+    "/api/v1/auth/signup-tariffs": {
       "get": {
-        "summary": "Mfa Status",
-        "operationId": "mfa_status_api_v1_auth_mfa_status_get",
+        "summary": "Signup Tariffs",
+        "operationId": "signup_tariffs_api_v1_auth_signup_tariffs_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MfaStatusResponse"
+                  "$ref": "#/components/schemas/TariffListResponse"
                 }
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
+        }
       }
     },
-    "/api/v1/auth/mfa/setup/start": {
-      "post": {
-        "summary": "Mfa Setup Start",
-        "operationId": "mfa_setup_start_api_v1_auth_mfa_setup_start_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MfaSetupStartResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/agreement/accept": {
-      "post": {
-        "summary": "Accept User Agreement",
-        "operationId": "accept_user_agreement_api_v1_auth_agreement_accept_post",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/mfa/setup/confirm": {
-      "post": {
-        "summary": "Mfa Setup Confirm",
-        "operationId": "mfa_setup_confirm_api_v1_auth_mfa_setup_confirm_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MfaConfirmBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MfaSetupConfirmResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/auth/mfa/disable": {
-      "post": {
-        "summary": "Mfa Disable",
-        "operationId": "mfa_disable_api_v1_auth_mfa_disable_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MfaDisableBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OkStatusResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/me": {
+    "/api/v1/setup/status": {
       "get": {
-        "summary": "Me",
-        "operationId": "me_api_v1_me_get",
+        "summary": "Setup Status",
+        "operationId": "setup_status_api_v1_setup_status_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
+                  "$ref": "#/components/schemas/SetupStatusResponse"
                 }
               }
             }
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      },
-      "patch": {
-        "summary": "Patch Me",
-        "operationId": "patch_me_api_v1_me_patch",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MePatchBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/me/backup": {
-      "get": {
-        "summary": "Download Backup",
-        "operationId": "download_backup_api_v1_me_backup_get",
-        "parameters": [
-          {
-            "name": "transcripts",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false,
-              "title": "Transcripts"
-            }
-          },
-          {
-            "name": "summaries",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false,
-              "title": "Summaries"
-            }
-          },
-          {
-            "name": "skills",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false,
-              "title": "Skills"
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "pattern": "^(zip|tgz)$",
-              "default": "zip",
-              "title": "Format"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/me/backup/restore": {
-      "post": {
-        "summary": "Upload Backup Restore",
-        "operationId": "upload_backup_restore_api_v1_me_backup_restore_post",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_upload_backup_restore_api_v1_me_backup_restore_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BackupRestoreReportResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/me/account-delete": {
-      "get": {
-        "summary": "Account Delete Preview Route",
-        "operationId": "account_delete_preview_route_api_v1_me_account_delete_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountDeletePreviewResponse"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      },
-      "post": {
-        "summary": "Account Delete",
-        "operationId": "account_delete_api_v1_me_account_delete_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AccountDeleteBody"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountDeleteResultResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
+        }
       }
     },
     "/api/v1/auth/tokens": {
