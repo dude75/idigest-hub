@@ -466,33 +466,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/workers": {
+    "/api/v1/instance/audit": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Workers */
-        get: operations["list_workers_api_v1_workers_get"];
-        put?: never;
-        /** Create Worker */
-        post: operations["create_worker_api_v1_workers_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/instance/transcribe-models": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Transcribe Models */
-        get: operations["list_transcribe_models_api_v1_instance_transcribe_models_get"];
+        /** Audit Log */
+        get: operations["audit_log_api_v1_instance_audit_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -501,15 +483,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/instance/summarize-models": {
+    "/api/v1/instance/audit/export": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Summarize Models */
-        get: operations["list_summarize_models_api_v1_instance_summarize_models_get"];
+        /** Audit Log Export */
+        get: operations["audit_log_export_api_v1_instance_audit_export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -518,50 +500,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/workers/probe": {
+    "/api/v1/instance/stats": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        /** Probe Worker */
-        post: operations["probe_worker_api_v1_workers_probe_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/workers/{worker_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Worker */
-        delete: operations["delete_worker_api_v1_workers__worker_id__delete"];
-        options?: never;
-        head?: never;
-        /** Patch Worker */
-        patch: operations["patch_worker_api_v1_workers__worker_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/workers/{worker_id}/delete-impact": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Worker Delete Impact */
-        get: operations["worker_delete_impact_api_v1_workers__worker_id__delete_impact_get"];
+        /** Stats */
+        get: operations["stats_api_v1_instance_stats_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -570,7 +517,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/workers/{worker_id}/change-impact": {
+    "/api/v1/impersonate": {
         parameters: {
             query?: never;
             header?: never;
@@ -579,113 +526,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Worker Change Impact */
-        post: operations["worker_change_impact_api_v1_workers__worker_id__change_impact_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tariffs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Tariffs */
-        get: operations["list_tariffs_api_v1_tariffs_get"];
-        put?: never;
-        /** Create Tariff */
-        post: operations["create_tariff_api_v1_tariffs_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tariffs/{tariff_id}/clone": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Clone Tariff */
-        post: operations["clone_tariff_api_v1_tariffs__tariff_id__clone_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tariffs/{tariff_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Tariff */
-        delete: operations["delete_tariff_api_v1_tariffs__tariff_id__delete"];
-        options?: never;
-        head?: never;
-        /** Patch Tariff */
-        patch: operations["patch_tariff_api_v1_tariffs__tariff_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/tariffs/{tariff_id}/archive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Archive Tariff */
-        post: operations["archive_tariff_api_v1_tariffs__tariff_id__archive_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tariffs/{tariff_id}/unarchive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Unarchive Tariff */
-        post: operations["unarchive_tariff_api_v1_tariffs__tariff_id__unarchive_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/tariffs/{tariff_id}/delete-impact": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Tariff Delete Impact */
-        get: operations["tariff_delete_impact_api_v1_tariffs__tariff_id__delete_impact_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
+        /** Impersonate */
+        post: operations["impersonate_api_v1_impersonate_post"];
+        /** Stop Impersonate */
+        delete: operations["stop_impersonate_api_v1_impersonate_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -702,109 +546,6 @@ export interface paths {
         put?: never;
         /** Wallet Delta */
         post: operations["wallet_delta_api_v1_orgs__org_id__wallet_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/instance/settings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Settings Ep */
-        get: operations["get_settings_ep_api_v1_instance_settings_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Patch Settings */
-        patch: operations["patch_settings_api_v1_instance_settings_patch"];
-        trace?: never;
-    };
-    "/api/v1/instance/settings/agreement/preview": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Preview Agreement Markdown */
-        post: operations["preview_agreement_markdown_api_v1_instance_settings_agreement_preview_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/instance/legal-documents/{key}/versions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Legal Document Versions Ep */
-        get: operations["list_legal_document_versions_ep_api_v1_instance_legal_documents__key__versions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/instance/legal-documents/{key}/versions/{version}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Legal Document Version Ep */
-        get: operations["get_legal_document_version_ep_api_v1_instance_legal_documents__key__versions__version__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/instance/smtp/test-connection": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Smtp Test Connection */
-        post: operations["smtp_test_connection_api_v1_instance_smtp_test_connection_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/instance/smtp/test-send": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Smtp Test Send */
-        post: operations["smtp_test_send_api_v1_instance_smtp_test_send_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -965,7 +706,25 @@ export interface paths {
         patch: operations["assign_org_tariff_api_v1_orgs__org_id__tariff_patch"];
         trace?: never;
     };
-    "/api/v1/impersonate": {
+    "/api/v1/instance/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Settings Ep */
+        get: operations["get_settings_ep_api_v1_instance_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch Settings */
+        patch: operations["patch_settings_api_v1_instance_settings_patch"];
+        trace?: never;
+    };
+    "/api/v1/instance/settings/agreement/preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -974,24 +733,23 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Impersonate */
-        post: operations["impersonate_api_v1_impersonate_post"];
-        /** Stop Impersonate */
-        delete: operations["stop_impersonate_api_v1_impersonate_delete"];
+        /** Preview Agreement Markdown */
+        post: operations["preview_agreement_markdown_api_v1_instance_settings_agreement_preview_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/instance/audit": {
+    "/api/v1/instance/legal-documents/{key}/versions": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Audit Log */
-        get: operations["audit_log_api_v1_instance_audit_get"];
+        /** List Legal Document Versions Ep */
+        get: operations["list_legal_document_versions_ep_api_v1_instance_legal_documents__key__versions_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1000,15 +758,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/instance/audit/export": {
+    "/api/v1/instance/legal-documents/{key}/versions/{version}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Audit Log Export */
-        get: operations["audit_log_export_api_v1_instance_audit_export_get"];
+        /** Get Legal Document Version Ep */
+        get: operations["get_legal_document_version_ep_api_v1_instance_legal_documents__key__versions__version__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1017,17 +775,34 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/instance/stats": {
+    "/api/v1/instance/smtp/test-connection": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Stats */
-        get: operations["stats_api_v1_instance_stats_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Smtp Test Connection */
+        post: operations["smtp_test_connection_api_v1_instance_smtp_test_connection_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/instance/smtp/test-send": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Smtp Test Send */
+        post: operations["smtp_test_send_api_v1_instance_smtp_test_send_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1068,6 +843,231 @@ export interface paths {
         head?: never;
         /** Patch Base Skill */
         patch: operations["patch_base_skill_api_v1_skills_base__skill_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/tariffs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tariffs */
+        get: operations["list_tariffs_api_v1_tariffs_get"];
+        put?: never;
+        /** Create Tariff */
+        post: operations["create_tariff_api_v1_tariffs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tariffs/{tariff_id}/clone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clone Tariff */
+        post: operations["clone_tariff_api_v1_tariffs__tariff_id__clone_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tariffs/{tariff_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Tariff */
+        delete: operations["delete_tariff_api_v1_tariffs__tariff_id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Tariff */
+        patch: operations["patch_tariff_api_v1_tariffs__tariff_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/tariffs/{tariff_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive Tariff */
+        post: operations["archive_tariff_api_v1_tariffs__tariff_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tariffs/{tariff_id}/unarchive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unarchive Tariff */
+        post: operations["unarchive_tariff_api_v1_tariffs__tariff_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tariffs/{tariff_id}/delete-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tariff Delete Impact */
+        get: operations["tariff_delete_impact_api_v1_tariffs__tariff_id__delete_impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Workers */
+        get: operations["list_workers_api_v1_workers_get"];
+        put?: never;
+        /** Create Worker */
+        post: operations["create_worker_api_v1_workers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/instance/transcribe-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Transcribe Models */
+        get: operations["list_transcribe_models_api_v1_instance_transcribe_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/instance/summarize-models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Summarize Models */
+        get: operations["list_summarize_models_api_v1_instance_summarize_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workers/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Probe Worker */
+        post: operations["probe_worker_api_v1_workers_probe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workers/{worker_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Worker */
+        delete: operations["delete_worker_api_v1_workers__worker_id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Worker */
+        patch: operations["patch_worker_api_v1_workers__worker_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/workers/{worker_id}/delete-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Worker Delete Impact */
+        get: operations["worker_delete_impact_api_v1_workers__worker_id__delete_impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workers/{worker_id}/change-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Worker Change Impact */
+        post: operations["worker_change_impact_api_v1_workers__worker_id__change_impact_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/instance/crypto/deks": {
@@ -2562,6 +2562,14 @@ export interface components {
             /** Target User Id */
             target_user_id?: string | null;
         };
+        /** OffboardStatusResponse */
+        OffboardStatusResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+        };
         /** OkStatusResponse */
         OkStatusResponse: {
             /**
@@ -2673,6 +2681,21 @@ export interface components {
         OrgUsageSummary: {
             /** Total Amount */
             total_amount: string;
+        };
+        /** OrgUserListResponse */
+        OrgUserListResponse: {
+            /** Items */
+            items: components["schemas"]["UserPublic"][];
+        };
+        /** OrgUserResetPasswordResponse */
+        OrgUserResetPasswordResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            /** Password */
+            password: string;
         };
         /** OrgUserRoleBody */
         OrgUserRoleBody: {
@@ -4439,13 +4462,16 @@ export interface operations {
             };
         };
     };
-    list_workers_api_v1_workers_get: {
+    audit_log_api_v1_instance_audit_get: {
         parameters: {
             query?: {
-                /** @description Probe worker /health (set false for cached snapshot) */
-                probe?: boolean;
-                /** @description Re-probe all enabled nodes, not only stale */
-                refresh?: boolean;
+                from?: string | null;
+                to?: string | null;
+                org_id?: string | null;
+                user_id?: string | null;
+                action?: string | null;
+                limit?: number;
+                offset?: number;
             };
             header?: never;
             path?: never;
@@ -4475,18 +4501,20 @@ export interface operations {
             };
         };
     };
-    create_worker_api_v1_workers_post: {
+    audit_log_export_api_v1_instance_audit_export_get: {
         parameters: {
-            query?: never;
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                org_id?: string | null;
+                user_id?: string | null;
+                action?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WorkerBody"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -4494,9 +4522,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -4510,31 +4536,15 @@ export interface operations {
             };
         };
     };
-    list_transcribe_models_api_v1_instance_transcribe_models_get: {
+    stats_api_v1_instance_stats_get: {
         parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                org_id?: string | null;
+                user_id?: string | null;
+                kind?: string | null;
             };
-        };
-    };
-    list_summarize_models_api_v1_instance_summarize_models_get: {
-        parameters: {
-            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -4552,9 +4562,18 @@ export interface operations {
                     };
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
-    probe_worker_api_v1_workers_probe_post: {
+    impersonate_api_v1_impersonate_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4563,7 +4582,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["WorkerProbeBody"];
+                "application/json": components["schemas"]["ImpersonateBody"];
             };
         };
         responses: {
@@ -4589,151 +4608,7 @@ export interface operations {
             };
         };
     };
-    delete_worker_api_v1_workers__worker_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                worker_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["WorkerDeleteBody"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    patch_worker_api_v1_workers__worker_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                worker_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WorkerBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    worker_delete_impact_api_v1_workers__worker_id__delete_impact_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                worker_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    worker_change_impact_api_v1_workers__worker_id__change_impact_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                worker_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["WorkerBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_tariffs_api_v1_tariffs_get: {
+    stop_impersonate_api_v1_impersonate_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -4751,251 +4626,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-        };
-    };
-    create_tariff_api_v1_tariffs_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TariffBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    clone_tariff_api_v1_tariffs__tariff_id__clone_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tariff_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TariffCloneBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_tariff_api_v1_tariffs__tariff_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tariff_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["TariffDeleteBody"] | null;
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    patch_tariff_api_v1_tariffs__tariff_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tariff_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TariffBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    archive_tariff_api_v1_tariffs__tariff_id__archive_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tariff_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    unarchive_tariff_api_v1_tariffs__tariff_id__unarchive_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tariff_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    tariff_delete_impact_api_v1_tariffs__tariff_id__delete_impact_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                tariff_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -5012,235 +4642,6 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["WalletBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_settings_ep_api_v1_instance_settings_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    patch_settings_api_v1_instance_settings_patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SettingsPatch"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    preview_agreement_markdown_api_v1_instance_settings_agreement_preview_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgreementPreviewBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_legal_document_versions_ep_api_v1_instance_legal_documents__key__versions_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_legal_document_version_ep_api_v1_instance_legal_documents__key__versions__version__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                key: string;
-                version: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    smtp_test_connection_api_v1_instance_smtp_test_connection_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SmtpTestBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    smtp_test_send_api_v1_instance_smtp_test_send_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SmtpTestSendBody"];
             };
         };
         responses: {
@@ -5618,7 +5019,29 @@ export interface operations {
             };
         };
     };
-    impersonate_api_v1_impersonate_post: {
+    get_settings_ep_api_v1_instance_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    patch_settings_api_v1_instance_settings_patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -5627,7 +5050,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ImpersonateBody"];
+                "application/json": components["schemas"]["SettingsPatch"];
             };
         };
         responses: {
@@ -5653,14 +5076,18 @@ export interface operations {
             };
         };
     };
-    stop_impersonate_api_v1_impersonate_delete: {
+    preview_agreement_markdown_api_v1_instance_settings_agreement_preview_post: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgreementPreviewBody"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -5673,21 +5100,24 @@ export interface operations {
                     };
                 };
             };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
         };
     };
-    audit_log_api_v1_instance_audit_get: {
+    list_legal_document_versions_ep_api_v1_instance_legal_documents__key__versions_get: {
         parameters: {
-            query?: {
-                from?: string | null;
-                to?: string | null;
-                org_id?: string | null;
-                user_id?: string | null;
-                action?: string | null;
-                limit?: number;
-                offset?: number;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                key: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -5714,17 +5144,14 @@ export interface operations {
             };
         };
     };
-    audit_log_export_api_v1_instance_audit_export_get: {
+    get_legal_document_version_ep_api_v1_instance_legal_documents__key__versions__version__get: {
         parameters: {
-            query?: {
-                from?: string | null;
-                to?: string | null;
-                org_id?: string | null;
-                user_id?: string | null;
-                action?: string | null;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                key: string;
+                version: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -5735,7 +5162,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -5749,20 +5178,53 @@ export interface operations {
             };
         };
     };
-    stats_api_v1_instance_stats_get: {
+    smtp_test_connection_api_v1_instance_smtp_test_connection_post: {
         parameters: {
-            query?: {
-                from?: string | null;
-                to?: string | null;
-                org_id?: string | null;
-                user_id?: string | null;
-                kind?: string | null;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmtpTestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    smtp_test_send_api_v1_instance_smtp_test_send_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SmtpTestSendBody"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -5888,6 +5350,567 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["BaseSkillBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tariffs_api_v1_tariffs_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    create_tariff_api_v1_tariffs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TariffBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    clone_tariff_api_v1_tariffs__tariff_id__clone_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tariff_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TariffCloneBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_tariff_api_v1_tariffs__tariff_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tariff_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TariffDeleteBody"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_tariff_api_v1_tariffs__tariff_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tariff_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TariffBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_tariff_api_v1_tariffs__tariff_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tariff_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unarchive_tariff_api_v1_tariffs__tariff_id__unarchive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tariff_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tariff_delete_impact_api_v1_tariffs__tariff_id__delete_impact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tariff_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workers_api_v1_workers_get: {
+        parameters: {
+            query?: {
+                /** @description Probe worker /health (set false for cached snapshot) */
+                probe?: boolean;
+                /** @description Re-probe all enabled nodes, not only stale */
+                refresh?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_worker_api_v1_workers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkerBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transcribe_models_api_v1_instance_transcribe_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    list_summarize_models_api_v1_instance_summarize_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    probe_worker_api_v1_workers_probe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkerProbeBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_worker_api_v1_workers__worker_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                worker_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["WorkerDeleteBody"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_worker_api_v1_workers__worker_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                worker_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkerBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    worker_delete_impact_api_v1_workers__worker_id__delete_impact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                worker_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    worker_change_impact_api_v1_workers__worker_id__change_impact_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                worker_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkerBody"];
             };
         };
         responses: {
@@ -6430,9 +6453,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgUserListResponse"];
                 };
             };
         };
@@ -6456,9 +6477,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UserPublic"];
                 };
             };
             /** @description Validation Error */
@@ -6493,9 +6512,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UserPublic"];
                 };
             };
             /** @description Validation Error */
@@ -6526,9 +6543,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UserPublic"];
                 };
             };
             /** @description Validation Error */
@@ -6559,9 +6574,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UserPublic"];
                 };
             };
             /** @description Validation Error */
@@ -6592,9 +6605,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgUserResetPasswordResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6625,9 +6636,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UserPublic"];
                 };
             };
             /** @description Validation Error */
@@ -6662,9 +6671,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OffboardStatusResponse"];
                 };
             };
             /** @description Validation Error */

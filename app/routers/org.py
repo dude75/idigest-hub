@@ -14,7 +14,13 @@ from app.deps import AuthContext, get_instance_settings, require_auth
 from app.errors import ErrorCode
 from app.models import Membership, Summary, SummaryPublicLink, Tariff, UsageEvent, User, new_id
 from app.presenters import org_public, user_public
+from app.schemas.me import UserPublic
 from app.schemas.org_api import OrgPublicResponse
+from app.schemas.org_users import (
+    OffboardStatusResponse,
+    OrgUserListResponse,
+    OrgUserResetPasswordResponse,
+)
 from app.routers.auth import revoke_user_auth
 from app.security import hash_password, random_password
 from app.services.access import guard_last_org_admin
@@ -346,23 +352,29 @@ def patch_org_sso(
     return org_sso_admin_public(org, public_base_url=public_base)
 
 
-@router.get("/org/users")
-def list_users(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.get("/org/users", response_model=OrgUserListResponse)
+def list_users(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> OrgUserListResponse:
     org, _ = ctx.require_org()
     settings = get_instance_settings(db)
     memberships = db.scalars(select(Membership).where(Membership.org_id == org.id)).all()
-    items = []
+    items: list[UserPublic] = []
     for membership in memberships:
         user = db.get(User, membership.user_id)
         if user:
-            items.append(user_public(user, membership.role, instance_settings=settings))
-    return {"items": items}
+            items.append(
+                UserPublic.model_validate(
+                    user_public(user, membership.role, instance_settings=settings)
+                )
+            )
+    return OrgUserListResponse(items=items)
 
 
-@router.post("/org/users")
+@router.post("/org/users", response_model=UserPublic)
 def create_user(
     body: CreateUserBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> UserPublic:
     org, _ = ctx.require_org_admin()
     if body.role not in {"org_admin", "org_member"}:
         ctx.raise_error(ErrorCode.validation_error)
@@ -385,16 +397,16 @@ def create_user(
     db.add(user)
     db.flush()
     db.add(Membership(id=new_id(), user_id=user.id, org_id=org.id, role=body.role))
-    return user_public(user, body.role)
+    return UserPublic.model_validate(user_public(user, body.role))
 
 
-@router.patch("/org/users/{user_id}")
+@router.patch("/org/users/{user_id}", response_model=UserPublic)
 def patch_user_role(
     user_id: str,
     body: RoleBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> UserPublic:
     org, _ = ctx.require_org_admin()
     if body.role not in {"org_admin", "org_member"}:
         ctx.raise_error(ErrorCode.validation_error)
@@ -407,13 +419,15 @@ def patch_user_role(
         guard_last_org_admin(db, org.id, user_id, ctx.locale)
     membership.role = body.role
     user = db.get(User, user_id)
-    return user_public(user, body.role) if user else {"id": user_id}
+    if user is None:
+        ctx.raise_error(ErrorCode.not_found)
+    return UserPublic.model_validate(user_public(user, body.role))
 
 
-@router.post("/org/users/{user_id}/disable")
+@router.post("/org/users/{user_id}/disable", response_model=UserPublic)
 def disable_user(
     user_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> UserPublic:
     org, _ = ctx.require_org_admin()
     membership = db.scalar(
         select(Membership).where(Membership.org_id == org.id, Membership.user_id == user_id)
@@ -427,13 +441,13 @@ def disable_user(
     user.updated_at = utcnow()
     revoke_user_auth(db, user.id)
     write_audit(db, "user.disable", ctx, {"user_id": user.id})
-    return user_public(user, membership.role)
+    return UserPublic.model_validate(user_public(user, membership.role))
 
 
-@router.post("/org/users/{user_id}/enable")
+@router.post("/org/users/{user_id}/enable", response_model=UserPublic)
 def enable_user(
     user_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> UserPublic:
     org, _ = ctx.require_org_admin()
     membership = db.scalar(
         select(Membership).where(Membership.org_id == org.id, Membership.user_id == user_id)
@@ -444,13 +458,13 @@ def enable_user(
     user.disabled_at = None
     user.updated_at = utcnow()
     write_audit(db, "user.enable", ctx, {"user_id": user.id})
-    return user_public(user, membership.role)
+    return UserPublic.model_validate(user_public(user, membership.role))
 
 
-@router.post("/org/users/{user_id}/reset-password")
+@router.post("/org/users/{user_id}/reset-password", response_model=OrgUserResetPasswordResponse)
 def reset_user_password(
     user_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OrgUserResetPasswordResponse:
     org, _ = ctx.require_org_admin()
     membership = db.scalar(
         select(Membership).where(Membership.org_id == org.id, Membership.user_id == user_id)
@@ -464,13 +478,13 @@ def reset_user_password(
     user.password_changed_at = utcnow()
     user.updated_at = utcnow()
     revoke_user_auth(db, user.id)
-    return {"status": "ok", "password": password}
+    return OrgUserResetPasswordResponse(password=password)
 
 
-@router.post("/org/users/{user_id}/reset-mfa")
+@router.post("/org/users/{user_id}/reset-mfa", response_model=UserPublic)
 def reset_user_mfa(
     user_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> UserPublic:
     org, _ = ctx.require_org_admin()
     membership = db.scalar(
         select(Membership).where(Membership.org_id == org.id, Membership.user_id == user_id)
@@ -485,16 +499,16 @@ def reset_user_mfa(
     disable_totp(db, user)
     revoke_user_auth(db, user.id)
     write_audit(db, "user.mfa.reset", ctx, {"user_id": user.id})
-    return user_public(user, membership.role)
+    return UserPublic.model_validate(user_public(user, membership.role))
 
 
-@router.post("/org/users/{user_id}/offboard")
+@router.post("/org/users/{user_id}/offboard", response_model=OffboardStatusResponse)
 def offboard_user(
     user_id: str,
     body: OffboardBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OffboardStatusResponse:
     org, _ = ctx.require_org_admin()
     membership = db.scalar(
         select(Membership).where(Membership.org_id == org.id, Membership.user_id == user_id)
@@ -524,4 +538,4 @@ def offboard_user(
         ctx.raise_error(ErrorCode.validation_error)
     db.delete(membership)
     db.delete(user)
-    return {"status": "ok"}
+    return OffboardStatusResponse()

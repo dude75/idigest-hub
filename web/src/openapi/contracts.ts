@@ -20,6 +20,8 @@ export type SchemaTaskPurgeResponse = components['schemas']['TaskPurgeResponse']
 export type SchemaMeResponse = components['schemas']['MeResponse']
 export type SchemaOrgPublicResponse = components['schemas']['OrgPublicResponse']
 export type SchemaShareListResponse = components['schemas']['ShareListResponse']
+export type SchemaOrgUserListResponse = components['schemas']['OrgUserListResponse']
+export type SchemaUserPublic = components['schemas']['UserPublic']
 
 export type LibraryListEnvelope<T> = {
   items: T[]

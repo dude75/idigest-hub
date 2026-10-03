@@ -52,3 +52,9 @@ def test_export_openapi_writes_health_path():
         "schema"
     ]
     assert share_list.get("$ref", "").endswith("/ShareListResponse")
+    org_users = schema["paths"]["/api/v1/org/users"]["get"]["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+    assert org_users.get("$ref", "").endswith("/OrgUserListResponse")
+    assert "OrgUserListResponse" in components
+    assert "UserPublic" in components["OrgUserListResponse"]["properties"]["items"]["items"]["$ref"].split("/")[-1]
