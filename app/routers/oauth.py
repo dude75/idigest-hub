@@ -17,7 +17,8 @@ from app.config import get_settings
 from app.cookies import issue_auth_cookies, oauth_embedded_session_samesite
 from app.db import get_session
 from app.deps import get_instance_settings, resolve_auth
-from app.routers.auth import create_session, session_ttl_sec_from_db
+from app.services.auth_helpers import create_session
+from app.deps import session_ttl_sec_from_db
 from app.services.oauth_scopes import SUPPORTED_SCOPES
 from app.services.oauth_provider import (
     authenticate_login_for_oauth,

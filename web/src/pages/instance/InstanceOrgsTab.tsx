@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
-import type { SchemaTariffListResponse } from '../../openapi'
+import type { SchemaInstanceOrgListResponse, SchemaTariffListResponse } from '../../openapi'
 import { useAuth } from '../../auth'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
 import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
@@ -72,12 +72,12 @@ export function InstanceOrgsTab() {
     try {
       const orgQuery = showHiddenOrgs ? '?include_hidden=true' : ''
       const [o, tr] = await Promise.all([
-        api<{ items: Org[]; hidden_count: number }>(`/orgs${orgQuery}`),
+        api<SchemaInstanceOrgListResponse>(`/orgs${orgQuery}`),
         api<SchemaTariffListResponse>('/tariffs'),
       ])
       setOrgs(o.items)
       setHiddenOrgCount(o.hidden_count ?? 0)
-      setTariffs(tr.items as Tariff[])
+      setTariffs(tr.items)
     } catch (e) {
       showError(e)
     }

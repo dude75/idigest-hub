@@ -21,7 +21,7 @@ from app.models import HiddenItem, Membership, Organization, Task, Tariff, User,
 from app.money import parse_money
 from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
-from app.routers.auth import revoke_user_auth, seed_default_tariff
+from app.services.auth_helpers import seed_default_tariff
 from app.routers.instance._body import (
     AgreementPreviewBody,
     BaseSkillBody,
@@ -60,6 +60,15 @@ from app.services.instance_helpers import (
 from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
+from app.schemas.common import OkStatusResponse
+from app.schemas.instance_settings import (
+    AgreementPreviewResponse,
+    InstanceSettingsResponse,
+    LegalDocumentVersionDetailResponse,
+    LegalDocumentVersionListResponse,
+    LegalDocumentVersionSummary,
+    SmtpTestSendResponse,
+)
 from app.timeutil import utcnow
 
 def resolve_smtp_test_params(body: SmtpTestBody, db: Session, ctx: AuthContext):
@@ -87,8 +96,8 @@ def smtp_test_error(exc: Exception) -> None:
     log.warning("smtp test failed: %s", exc)
     raise ApiError(ErrorCode.validation_error, str(exc)) from exc
 
-@router.get("/instance/settings")
-def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.get("/instance/settings", response_model=InstanceSettingsResponse)
+def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> InstanceSettingsResponse:
     require_instance_admin(ctx)
     s = get_instance_settings(db)
     from app.services.import_platforms import (
@@ -103,7 +112,7 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
     bitrate = s.import_audio_bitrate_kbps
     if bitrate is None:
         bitrate = DEFAULT_IMPORT_AUDIO_BITRATE_KBPS
-    return {
+    payload = {
         "allow_new_orgs": s.allow_new_orgs,
         "public_base_url": s.public_base_url,
         "smtp_host": s.smtp_host,
@@ -155,25 +164,26 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "landing_footer_published": s.landing_footer_published,
         **rate_limits_public(s),
     }
+    return InstanceSettingsResponse.model_validate(payload)
 
 
-@router.post("/instance/settings/agreement/preview")
+@router.post("/instance/settings/agreement/preview", response_model=AgreementPreviewResponse)
 def preview_agreement_markdown(
     body: AgreementPreviewBody,
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> AgreementPreviewResponse:
     require_instance_admin(ctx)
     from app.services.user_agreement import normalize_agreement_markdown
 
-    return {"text": normalize_agreement_markdown(body.text.strip())}
+    return AgreementPreviewResponse(text=normalize_agreement_markdown(body.text.strip()))
 
 
-@router.get("/instance/legal-documents/{key}/versions")
+@router.get("/instance/legal-documents/{key}/versions", response_model=LegalDocumentVersionListResponse)
 def list_legal_document_versions_ep(
     key: str,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> LegalDocumentVersionListResponse:
     require_instance_admin(ctx)
     from app.services.user_agreement import LEGAL_DOCUMENT_KEYS, legal_document_version_summary, list_legal_document_versions
 
@@ -185,22 +195,24 @@ def list_legal_document_versions_ep(
     if author_ids:
         for user in db.scalars(select(User).where(User.id.in_(author_ids))).all():
             emails[user.id] = user.email
-    return {
-        "key": key,
-        "items": [
-            legal_document_version_summary(row, author_email=emails.get(row.created_by_user_id or ""))
+    return LegalDocumentVersionListResponse(
+        key=key,
+        items=[
+            LegalDocumentVersionSummary.model_validate(
+                legal_document_version_summary(row, author_email=emails.get(row.created_by_user_id or ""))
+            )
             for row in rows
         ],
-    }
+    )
 
 
-@router.get("/instance/legal-documents/{key}/versions/{version}")
+@router.get("/instance/legal-documents/{key}/versions/{version}", response_model=LegalDocumentVersionDetailResponse)
 def get_legal_document_version_ep(
     key: str,
     version: int,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> LegalDocumentVersionDetailResponse:
     require_instance_admin(ctx)
     from app.services.user_agreement import LEGAL_DOCUMENT_KEYS, get_legal_document_version, legal_document_version_detail
 
@@ -215,10 +227,10 @@ def get_legal_document_version_ep(
     if row.created_by_user_id:
         author = db.get(User, row.created_by_user_id)
         author_email = author.email if author else None
-    return legal_document_version_detail(row, author_email=author_email)
+    return LegalDocumentVersionDetailResponse.model_validate(legal_document_version_detail(row, author_email=author_email))
 
 
-@router.patch("/instance/settings")
+@router.patch("/instance/settings", response_model=InstanceSettingsResponse)
 def patch_settings(
     body: SettingsPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
@@ -325,7 +337,7 @@ def patch_settings(
             ctx.raise_error(ErrorCode.validation_error)
     invalidate_rate_limit_cache()
     invalidate_session_ttl_cache()
-    return get_settings_ep(db, ctx)
+    return get_settings_ep(db, ctx)  # InstanceSettingsResponse
 
 
 def resolve_smtp_test_params(body: SmtpTestBody, db: Session, ctx: AuthContext):
@@ -354,7 +366,7 @@ def smtp_test_error(exc: Exception) -> None:
     raise ApiError(ErrorCode.validation_error, str(exc)) from exc
 
 
-@router.post("/instance/smtp/test-connection")
+@router.post("/instance/smtp/test-connection", response_model=OkStatusResponse)
 def smtp_test_connection(
     body: SmtpTestBody,
     db: Session = Depends(get_session, scope="function"),
@@ -368,10 +380,10 @@ def smtp_test_connection(
         check_smtp_connection(params)
     except Exception as exc:
         smtp_test_error(exc)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/instance/smtp/test-send")
+@router.post("/instance/smtp/test-send", response_model=SmtpTestSendResponse)
 def smtp_test_send(
     body: SmtpTestSendBody,
     db: Session = Depends(get_session, scope="function"),
@@ -393,4 +405,4 @@ def smtp_test_send(
         )
     except Exception as exc:
         smtp_test_error(exc)
-    return {"status": "ok", "to": to_email}
+    return SmtpTestSendResponse(to=to_email)

@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import type {
+  SchemaOrgCaptureJitsiResponse,
   SchemaOrgPublicResponse,
   SchemaOrgUserListResponse,
   SchemaOrgUserResetPasswordResponse,
@@ -104,35 +105,23 @@ export function OrgPage() {
       Promise<SchemaOrgUserListResponse>,
       Promise<SchemaTariffListResponse>,
       Promise<SchemaOrgSsoAdminResponse> | Promise<null>,
-      Promise<{
-        allowed: boolean
-        bot_display_name?: string
-        items: OrgCaptureJitsiHost[]
-        workers: OrgCaptureWorkerChoice[]
-      }> | Promise<null>,
+      Promise<SchemaOrgCaptureJitsiResponse> | Promise<null>,
     ] = [
       api<SchemaOrgPublicResponse>('/org'),
       api<SchemaOrgUserListResponse>('/org/users'),
       api<SchemaTariffListResponse>('/org/available-tariffs'),
       admin && hasOrg ? api<SchemaOrgSsoAdminResponse>('/org/sso') : Promise.resolve(null),
-      admin && hasOrg
-        ? api<{
-            allowed: boolean
-            bot_display_name?: string
-            items: OrgCaptureJitsiHost[]
-            workers: OrgCaptureWorkerChoice[]
-          }>('/org/capture/jitsi')
-        : Promise.resolve(null),
+      admin && hasOrg ? api<SchemaOrgCaptureJitsiResponse>('/org/capture/jitsi') : Promise.resolve(null),
     ]
     const [o, u, tr, ssoConfig, captureConfig] = await Promise.all(requests)
-    setOrg(o as Org)
+    setOrg(o)
     setName(o.name)
     setTtl(o.password_ttl_days)
     setMfaRequired(o.mfa_required)
     setAllowPublicLinks(o.allow_public_links)
-    setTariffId(tariffSelectable(tr.items as Tariff[], o.tariff as Tariff) ? o.tariff.id : '')
+    setTariffId(tariffSelectable(tr.items, o.tariff) ? o.tariff.id : '')
     setUsers(u.items)
-    setTariffs(tr.items as Tariff[])
+    setTariffs(tr.items)
     if (ssoConfig) {
       setSso(ssoConfig)
       setSsoIssuer(ssoConfig.issuer || '')
@@ -141,11 +130,16 @@ export function OrgPage() {
       setSsoClientSecret('')
     }
     if (captureConfig) {
-      setCaptureAllowed(captureConfig.allowed)
+      setCaptureAllowed(Boolean(captureConfig.allowed))
       const botName = captureConfig.bot_display_name ?? ''
       setCaptureBotDisplayName(botName)
       setSavedCaptureBotName(botName)
-      setCaptureHosts(captureConfig.items)
+      setCaptureHosts(
+        (captureConfig.items ?? []).map((row) => ({
+          ...row,
+          jwt_app_id: row.jwt_app_id ?? null,
+        })),
+      )
       setCaptureWorkers(captureConfig.workers ?? [])
     }
   }

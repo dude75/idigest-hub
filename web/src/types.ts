@@ -1,6 +1,9 @@
 import type {
   SchemaInstanceUsageStatsResponse,
+  SchemaMeResponse,
+  SchemaOrgPublicResponse,
   SchemaOrgSsoAdminResponse,
+  SchemaTariffPublic,
   SchemaUsageStatsResponse,
   SchemaUserPublic,
   SchemaWorkerListItem,
@@ -44,22 +47,8 @@ export type LegalDocumentVersionDetail = LegalDocumentVersionSummary & {
   text_es: string | null
 }
 
-export type Tariff = {
-  id: string
-  name: string
-  unlimited: boolean
-  available_on_signup: boolean
-  archived: boolean
-  price_per_audio_sec: string
-  price_per_summarize_job: string
-  price_per_1k_summary_chars: string
-  audio_retention_days: number
-  api_enabled: boolean
-  signup_credit: string
-  max_upload_bytes: number
-  tone_analytics_enabled: boolean
-  org_count?: number
-}
+/** Tariff row from OpenAPI `TariffPublic`. */
+export type Tariff = SchemaTariffPublic
 
 export type TariffChoice = {
   id: string
@@ -90,20 +79,9 @@ export type OrgSso = {
 /** Org SSO admin panel shape from OpenAPI `OrgSsoAdminResponse`. */
 export type OrgSsoAdmin = SchemaOrgSsoAdminResponse
 
-export type Org = {
-  id: string
-  name: string
-  is_personal: boolean
-  password_ttl_days: number
-  mfa_required: boolean
-  allow_public_links: boolean
-  public_base_url_set?: boolean
-  balance: string
-  unlimited: boolean
-  tariff: Tariff
-  usage?: { total_amount: string }
+/** Org profile from OpenAPI `OrgPublicResponse` (instance list may add `hidden` / `members`). */
+export type Org = SchemaOrgPublicResponse & {
   members?: User[]
-  sso?: OrgSso
   hidden?: boolean
 }
 
@@ -148,11 +126,23 @@ export type SummarizeModelChoice = {
   summarize_model: string
 }
 
-export type Me = {
-  csrf_token?: string
+/** Session `/me` payload (aligned with OpenAPI `MeResponse`; nested prefs stay explicit for UI). */
+export type Me = Omit<
+  SchemaMeResponse,
+  | 'date_time_prefs'
+  | 'transcribe_prefs'
+  | 'transcribe_models'
+  | 'summarize_prefs'
+  | 'summarize_models'
+  | 'capture_prefs'
+  | 'user'
+  | 'org'
+  | 'actor'
+  | 'legal_documents'
+  | 'user_agreement'
+> & {
   user: User
   org: Org | null
-  impersonating: boolean
   actor: User | null
   date_time_prefs: DateTimePrefs
   transcribe_prefs: TranscribePrefs
@@ -160,13 +150,7 @@ export type Me = {
   summarize_prefs: SummarizePrefs
   summarize_models: SummarizeModels
   capture_prefs: CapturePrefs
-  must_change_password: boolean
-  mfa_enabled: boolean
-  mfa_required: boolean
-  mfa_enrollment_required: boolean
-  user_agreement_required: boolean
   user_agreement: { version: number; text: string } | null
-  user_agreement_version: number | null
   legal_documents: {
     key: 'user_agreement' | 'personal_data_consent' | 'privacy_policy'
     version: number

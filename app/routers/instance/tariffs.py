@@ -21,7 +21,7 @@ from app.models import HiddenItem, Membership, Organization, Task, Tariff, User,
 from app.money import parse_money
 from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
-from app.routers.auth import revoke_user_auth, seed_default_tariff
+from app.services.auth_helpers import revoke_user_auth, seed_default_tariff
 from app.routers.instance._body import (
     AgreementPreviewBody,
     BaseSkillBody,

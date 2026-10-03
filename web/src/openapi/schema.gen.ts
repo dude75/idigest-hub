@@ -2206,6 +2206,36 @@ export interface components {
             /** Successor User Id */
             successor_user_id?: string | null;
         };
+        /** AccountDeleteCandidate */
+        AccountDeleteCandidate: {
+            /** Id */
+            id: string;
+            /** Email */
+            email: string;
+            /** Role */
+            role: string;
+        };
+        /** AccountDeletePreviewResponse */
+        AccountDeletePreviewResponse: {
+            /** Requires Successor */
+            requires_successor: boolean;
+            /** Will Delete Org */
+            will_delete_org: boolean;
+            /** Candidates */
+            candidates?: components["schemas"]["AccountDeleteCandidate"][];
+        };
+        /** AccountDeleteResultResponse */
+        AccountDeleteResultResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            /** Org Deleted */
+            org_deleted: boolean;
+            /** Org Id */
+            org_id?: string | null;
+        };
         /** AgreementPreviewBody */
         AgreementPreviewBody: {
             /**
@@ -2213,6 +2243,48 @@ export interface components {
              * @default
              */
             text: string;
+        };
+        /** AgreementPreviewResponse */
+        AgreementPreviewResponse: {
+            /** Text */
+            text: string;
+        };
+        /** ApiTokenCreateResponse */
+        ApiTokenCreateResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix: string;
+            /** Revoked */
+            revoked: boolean;
+            /** Blocked By Tariff */
+            blocked_by_tariff: boolean;
+            /** Created At */
+            created_at: string;
+            /** Token */
+            token: string;
+        };
+        /** ApiTokenListResponse */
+        ApiTokenListResponse: {
+            /** Items */
+            items: components["schemas"]["ApiTokenPublic"][];
+        };
+        /** ApiTokenPublic */
+        ApiTokenPublic: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix: string;
+            /** Revoked */
+            revoked: boolean;
+            /** Blocked By Tariff */
+            blocked_by_tariff: boolean;
+            /** Created At */
+            created_at: string;
         };
         /** AudioDetailResponse */
         AudioDetailResponse: {
@@ -2315,6 +2387,74 @@ export interface components {
             total: number;
             /** Hidden Count */
             hidden_count: number;
+        };
+        /** AuditLogEntry */
+        AuditLogEntry: {
+            /** Id */
+            id: string;
+            /** Action */
+            action: string;
+            /** Actor Email */
+            actor_email?: string | null;
+            /** On Behalf Of Email */
+            on_behalf_of_email?: string | null;
+            /** Payload */
+            payload?: {
+                [key: string]: unknown;
+            } | null;
+            /** Created At */
+            created_at: string;
+        };
+        /** AuditLogListResponse */
+        AuditLogListResponse: {
+            /** Items */
+            items: components["schemas"]["AuditLogEntry"][];
+            /** Total */
+            total: number;
+        };
+        /** AuthUserBootstrapResponse */
+        AuthUserBootstrapResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            user: components["schemas"]["UserPublic"];
+        };
+        /** BackupRestoreReportResponse */
+        BackupRestoreReportResponse: {
+            /** Mode */
+            mode: string;
+            /** Skills */
+            skills?: components["schemas"]["BackupRestoreSectionReport"] | {
+                [key: string]: number;
+            } | null;
+            /** Transcripts */
+            transcripts?: components["schemas"]["BackupRestoreSectionReport"] | {
+                [key: string]: number;
+            } | null;
+            /** Summaries */
+            summaries?: components["schemas"]["BackupRestoreSectionReport"] | {
+                [key: string]: number;
+            } | null;
+        };
+        /** BackupRestoreSectionReport */
+        BackupRestoreSectionReport: {
+            /**
+             * Created
+             * @default 0
+             */
+            created: number;
+            /**
+             * Updated
+             * @default 0
+             */
+            updated: number;
+            /**
+             * Skipped
+             * @default 0
+             */
+            skipped: number;
         };
         /** BaseSkillBody */
         BaseSkillBody: {
@@ -2435,6 +2575,259 @@ export interface components {
              */
             tone: boolean;
         };
+        /** InstanceOrgCreateResponse */
+        InstanceOrgCreateResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Is Personal */
+            is_personal: boolean;
+            /** Password Ttl Days */
+            password_ttl_days: number;
+            /** Mfa Required */
+            mfa_required: boolean;
+            /** Balance */
+            balance: string;
+            /** Unlimited */
+            unlimited: boolean;
+            tariff: components["schemas"]["TariffPublic"];
+            sso: components["schemas"]["OrgSsoPublic"];
+            usage?: components["schemas"]["OrgUsageSummary"] | null;
+            /**
+             * Public Base Url Set
+             * @default false
+             */
+            public_base_url_set: boolean;
+            /** Allow Public Links */
+            allow_public_links: boolean;
+            /** Members */
+            members?: components["schemas"]["UserPublic"][];
+        };
+        /** InstanceOrgListItem */
+        InstanceOrgListItem: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Is Personal */
+            is_personal: boolean;
+            /** Password Ttl Days */
+            password_ttl_days: number;
+            /** Mfa Required */
+            mfa_required: boolean;
+            /** Balance */
+            balance: string;
+            /** Unlimited */
+            unlimited: boolean;
+            tariff: components["schemas"]["TariffPublic"];
+            sso: components["schemas"]["OrgSsoPublic"];
+            usage?: components["schemas"]["OrgUsageSummary"] | null;
+            /**
+             * Public Base Url Set
+             * @default false
+             */
+            public_base_url_set: boolean;
+            /** Allow Public Links */
+            allow_public_links: boolean;
+            /**
+             * Hidden
+             * @default false
+             */
+            hidden: boolean;
+            /** Members */
+            members?: components["schemas"]["UserPublic"][];
+        };
+        /** InstanceOrgListResponse */
+        InstanceOrgListResponse: {
+            /** Items */
+            items: components["schemas"]["InstanceOrgListItem"][];
+            /** Hidden Count */
+            hidden_count: number;
+        };
+        /** InstanceSettingsResponse */
+        InstanceSettingsResponse: {
+            /** Allow New Orgs */
+            allow_new_orgs: boolean;
+            /** Public Base Url */
+            public_base_url?: string | null;
+            /** Smtp Host */
+            smtp_host?: string | null;
+            /** Smtp Port */
+            smtp_port?: number | null;
+            /** Smtp User */
+            smtp_user?: string | null;
+            /** Smtp Configured */
+            smtp_configured: boolean;
+            /** Smtp Password Configured */
+            smtp_password_configured: boolean;
+            /** Smtp From */
+            smtp_from?: string | null;
+            /** Smtp Tls */
+            smtp_tls: boolean;
+            /** Asr Model */
+            asr_model?: string | null;
+            /** Diarization Model */
+            diarization_model?: string | null;
+            /** Summarize Model */
+            summarize_model?: string | null;
+            /** Asr Models */
+            asr_models?: string[];
+            /** Diarization Models */
+            diarization_models?: string[];
+            /** Summarize Models */
+            summarize_models?: string[];
+            /** Dispatchable Pairs */
+            dispatchable_pairs?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Import Enabled */
+            import_enabled: boolean;
+            /** Import Platforms */
+            import_platforms?: {
+                [key: string]: unknown;
+            }[];
+            /** Capture Enabled */
+            capture_enabled: boolean;
+            /** Capture Connectors */
+            capture_connectors?: {
+                [key: string]: unknown;
+            }[];
+            /** Download Proxy Url */
+            download_proxy_url?: string | null;
+            /** Download Proxy Configured */
+            download_proxy_configured: boolean;
+            /** Download Proxy Enabled */
+            download_proxy_enabled: boolean;
+            /** Download Cookies Path */
+            download_cookies_path?: string | null;
+            /** Import Audio Bitrate Kbps */
+            import_audio_bitrate_kbps: number;
+            /** Import Max Concurrent */
+            import_max_concurrent: number;
+            /** Session Ttl Hours */
+            session_ttl_hours: number;
+            /** Task History Retention Days */
+            task_history_retention_days: number;
+            /** Date Time Format */
+            date_time_format?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** User Agreement Text En */
+            user_agreement_text_en?: string | null;
+            /** User Agreement Text Ru */
+            user_agreement_text_ru?: string | null;
+            /** User Agreement Text Es */
+            user_agreement_text_es?: string | null;
+            /** User Agreement Version */
+            user_agreement_version?: number | null;
+            /** User Agreement Published */
+            user_agreement_published?: boolean | null;
+            /** Personal Data Consent Text En */
+            personal_data_consent_text_en?: string | null;
+            /** Personal Data Consent Text Ru */
+            personal_data_consent_text_ru?: string | null;
+            /** Personal Data Consent Text Es */
+            personal_data_consent_text_es?: string | null;
+            /** Personal Data Consent Version */
+            personal_data_consent_version?: number | null;
+            /** Personal Data Consent Published */
+            personal_data_consent_published?: boolean | null;
+            /** Privacy Policy Text En */
+            privacy_policy_text_en?: string | null;
+            /** Privacy Policy Text Ru */
+            privacy_policy_text_ru?: string | null;
+            /** Privacy Policy Text Es */
+            privacy_policy_text_es?: string | null;
+            /** Privacy Policy Version */
+            privacy_policy_version?: number | null;
+            /** Privacy Policy Published */
+            privacy_policy_published?: boolean | null;
+            /** Landing Footer Text En */
+            landing_footer_text_en?: string | null;
+            /** Landing Footer Text Ru */
+            landing_footer_text_ru?: string | null;
+            /** Landing Footer Text Es */
+            landing_footer_text_es?: string | null;
+            /** Landing Footer Published */
+            landing_footer_published?: boolean | null;
+            /** Rate Limit Enabled */
+            rate_limit_enabled?: boolean | null;
+            /** Rate Limit Login Email */
+            rate_limit_login_email?: number | null;
+            /** Rate Limit Login Ip */
+            rate_limit_login_ip?: number | null;
+            /** Rate Limit Login Global */
+            rate_limit_login_global?: number | null;
+            /** Rate Limit Signup Email */
+            rate_limit_signup_email?: number | null;
+            /** Rate Limit Signup Ip */
+            rate_limit_signup_ip?: number | null;
+            /** Rate Limit Signup Global */
+            rate_limit_signup_global?: number | null;
+            /** Rate Limit Reset Email */
+            rate_limit_reset_email?: number | null;
+            /** Rate Limit Reset Ip */
+            rate_limit_reset_ip?: number | null;
+            /** Rate Limit Reset Global */
+            rate_limit_reset_global?: number | null;
+            /** Rate Limit Reset Confirm Ip */
+            rate_limit_reset_confirm_ip?: number | null;
+            /** Rate Limit Reset Confirm Global */
+            rate_limit_reset_confirm_global?: number | null;
+            /** Rate Limit Setup Ip */
+            rate_limit_setup_ip?: number | null;
+            /** Rate Limit Setup Global */
+            rate_limit_setup_global?: number | null;
+            /** Rate Limit Api User */
+            rate_limit_api_user?: number | null;
+            /** Rate Limit Api Ip */
+            rate_limit_api_ip?: number | null;
+            /** Rate Limit Api Global */
+            rate_limit_api_global?: number | null;
+            /** Rate Limit Api Tasks User */
+            rate_limit_api_tasks_user?: number | null;
+            /** Rate Limit Api Tasks Ip */
+            rate_limit_api_tasks_ip?: number | null;
+            /** Rate Limit Mcp Poll User */
+            rate_limit_mcp_poll_user?: number | null;
+            /** Rate Limit Oauth Register Ip */
+            rate_limit_oauth_register_ip?: number | null;
+            /** Rate Limit Oauth Register Global */
+            rate_limit_oauth_register_global?: number | null;
+            /** Rate Limit Oauth Token Ip */
+            rate_limit_oauth_token_ip?: number | null;
+            /** Rate Limit Oauth Token Global */
+            rate_limit_oauth_token_global?: number | null;
+            /** Rate Limit Public Link Ip */
+            rate_limit_public_link_ip?: number | null;
+            /** Rate Limit Public Link Global */
+            rate_limit_public_link_global?: number | null;
+            /** Rate Limit Public Pin Ip */
+            rate_limit_public_pin_ip?: number | null;
+        };
+        /** InstanceSummarizeModelsResponse */
+        InstanceSummarizeModelsResponse: {
+            /** Summarize Models */
+            summarize_models?: string[];
+            /** Default Summarize Model */
+            default_summarize_model?: string | null;
+        };
+        /** InstanceTranscribeModelsResponse */
+        InstanceTranscribeModelsResponse: {
+            /** Asr Models */
+            asr_models?: string[];
+            /** Diarization Models */
+            diarization_models?: string[];
+            /** Dispatchable Pairs */
+            dispatchable_pairs?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Default Asr Model */
+            default_asr_model?: string | null;
+            /** Default Diarization Model */
+            default_diarization_model?: string | null;
+        };
         /** InstanceUsageStatsResponse */
         InstanceUsageStatsResponse: {
             /** Tasks Transcribe Success */
@@ -2465,6 +2858,47 @@ export interface components {
             /** Usage Total */
             usage_total: string;
         };
+        /** LegalDocumentVersionDetailResponse */
+        LegalDocumentVersionDetailResponse: {
+            /** Version */
+            version: number;
+            /** Published */
+            published: boolean;
+            /** Created At */
+            created_at: string;
+            /** Created By User Id */
+            created_by_user_id?: string | null;
+            /** Created By Email */
+            created_by_email?: string | null;
+            /** Key */
+            key: string;
+            /** Text En */
+            text_en?: string | null;
+            /** Text Ru */
+            text_ru?: string | null;
+            /** Text Es */
+            text_es?: string | null;
+        };
+        /** LegalDocumentVersionListResponse */
+        LegalDocumentVersionListResponse: {
+            /** Key */
+            key: string;
+            /** Items */
+            items: components["schemas"]["LegalDocumentVersionSummary"][];
+        };
+        /** LegalDocumentVersionSummary */
+        LegalDocumentVersionSummary: {
+            /** Version */
+            version: number;
+            /** Published */
+            published: boolean;
+            /** Created At */
+            created_at: string;
+            /** Created By User Id */
+            created_by_user_id?: string | null;
+            /** Created By Email */
+            created_by_email?: string | null;
+        };
         /** LoginBody */
         LoginBody: {
             /**
@@ -2474,6 +2908,26 @@ export interface components {
             email: string;
             /** Password */
             password: string;
+        };
+        /** LoginMfaRequiredResponse */
+        LoginMfaRequiredResponse: {
+            /**
+             * Status
+             * @default mfa_required
+             * @constant
+             */
+            status: "mfa_required";
+            /** Challenge Id */
+            challenge_id: string;
+        };
+        /** LoginOkResponse */
+        LoginOkResponse: {
+            /**
+             * Status
+             * @default ok
+             * @constant
+             */
+            status: "ok";
         };
         /** MePatchBody */
         MePatchBody: {
@@ -2569,6 +3023,32 @@ export interface components {
             /** Recovery Code */
             recovery_code: string;
         };
+        /** MfaSetupConfirmResponse */
+        MfaSetupConfirmResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            /** Recovery Codes */
+            recovery_codes: string[];
+        };
+        /** MfaSetupStartResponse */
+        MfaSetupStartResponse: {
+            /** Secret */
+            secret: string;
+            /** Otpauth Uri */
+            otpauth_uri: string;
+        };
+        /** MfaStatusResponse */
+        MfaStatusResponse: {
+            /** Enabled */
+            enabled: boolean;
+            /** Required */
+            required: boolean;
+            /** Enrollment Required */
+            enrollment_required: boolean;
+        };
         /** MfaVerifyBody */
         MfaVerifyBody: {
             /** Challenge Id */
@@ -2631,15 +3111,118 @@ export interface components {
             /** Bot Display Name */
             bot_display_name?: string | null;
         };
+        /** OrgCaptureJitsiResponse */
+        OrgCaptureJitsiResponse: {
+            /** Allowed */
+            allowed?: boolean | null;
+            /**
+             * Bot Display Name
+             * @default
+             */
+            bot_display_name: string;
+            /** Items */
+            items?: components["schemas"]["OrgJitsiHostPublic"][];
+            /** Workers */
+            workers?: components["schemas"]["OrgCaptureWorkerChoice"][];
+        };
+        /** OrgCaptureWorkerChoice */
+        OrgCaptureWorkerChoice: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
         /** OrgDeleteBody */
         OrgDeleteBody: {
             /** Confirm Name */
             confirm_name: string;
         };
+        /** OrgJitsiHostPublic */
+        OrgJitsiHostPublic: {
+            /** Id */
+            id: string;
+            /** Host */
+            host: string;
+            /** Jwt App Id */
+            jwt_app_id?: string | null;
+            /**
+             * Jwt Secret Configured
+             * @default false
+             */
+            jwt_secret_configured: boolean;
+        };
+        /** OrgLedgerEntry */
+        OrgLedgerEntry: {
+            /** Id */
+            id: string;
+            /** Entry Type */
+            entry_type: string;
+            /** Created At */
+            created_at: string;
+            /** Amount */
+            amount: string;
+            /** Usage Amount */
+            usage_amount?: string | null;
+            /** Kind */
+            kind?: string | null;
+            /** User Id */
+            user_id?: string | null;
+            /** User Email */
+            user_email?: string | null;
+            /** Task Id */
+            task_id?: string | null;
+            /** Actor Email */
+            actor_email?: string | null;
+            /** Unlimited Skip */
+            unlimited_skip: boolean;
+            /** Audio Sec */
+            audio_sec?: number | null;
+            /** Summary Chars */
+            summary_chars?: number | null;
+        };
+        /** OrgLedgerResponse */
+        OrgLedgerResponse: {
+            /** Items */
+            items: components["schemas"]["OrgLedgerEntry"][];
+            /** Total Spent */
+            total_spent: string;
+            /** Total Topup */
+            total_topup: string;
+            /** Net */
+            net: string;
+        };
         /** OrgPatch */
         OrgPatch: {
             /** Name */
             name?: string | null;
+        };
+        /** OrgPublicLinkItem */
+        OrgPublicLinkItem: {
+            /** Id */
+            id: string;
+            /** Summary Id */
+            summary_id: string;
+            /** Url */
+            url?: string | null;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Pin Required */
+            pin_required: boolean;
+            /** Created At */
+            created_at: string;
+            /** Revoked */
+            revoked: boolean;
+            /** Summary Title */
+            summary_title?: string | null;
+            /** Owner Email */
+            owner_email?: string | null;
+            /** Active */
+            active: boolean;
+        };
+        /** OrgPublicLinkListResponse */
+        OrgPublicLinkListResponse: {
+            /** Items */
+            items: components["schemas"]["OrgPublicLinkItem"][];
         };
         /** OrgPublicResponse */
         OrgPublicResponse: {
@@ -2941,6 +3524,11 @@ export interface components {
              */
             locale: string;
         };
+        /** SetupStatusResponse */
+        SetupStatusResponse: {
+            /** Bootstrap Done */
+            bootstrap_done: boolean;
+        };
         /** ShareBody */
         ShareBody: {
             /** Object Type */
@@ -3029,6 +3617,29 @@ export interface components {
             smtp_tls?: boolean | null;
             /** To */
             to?: string | null;
+        };
+        /** SmtpTestSendResponse */
+        SmtpTestSendResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            /** To */
+            to: string;
+        };
+        /** SsoInfoResponse */
+        SsoInfoResponse: {
+            /** Org Id */
+            org_id: string;
+            /** Org Name */
+            org_name: string;
+            /** Configured */
+            configured: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Login Url */
+            login_url?: string | null;
         };
         /** SummarizeBody */
         SummarizeBody: {
@@ -3633,6 +4244,106 @@ export interface components {
         WorkerDeleteBody: {
             remediation?: components["schemas"]["WorkerRemediation"] | null;
         };
+        /** WorkerDeleteResponse */
+        WorkerDeleteResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            /** Remediation */
+            remediation?: {
+                [key: string]: unknown;
+            } | null;
+            /** Cleanup */
+            cleanup?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /** WorkerEngineOption */
+        WorkerEngineOption: {
+            /** Id */
+            id: string;
+            /** Status */
+            status: string;
+            /** Label */
+            label?: string | null;
+        };
+        /** WorkerImpactResponse */
+        WorkerImpactResponse: {
+            /** Action */
+            action?: string | null;
+            /** Worker */
+            worker: {
+                [key: string]: unknown;
+            };
+            /** Blocking */
+            blocking: boolean;
+            /** Can Remediate */
+            can_remediate?: boolean | null;
+            /** Remaining Transcribe Workers */
+            remaining_transcribe_workers?: number | null;
+            /** Lost Model Pairs */
+            lost_model_pairs?: {
+                [key: string]: string;
+            }[];
+            /** Available Pairs */
+            available_pairs?: {
+                [key: string]: string;
+            }[] | null;
+            /** Suggested Replacement */
+            suggested_replacement?: {
+                [key: string]: string;
+            } | null;
+            /** Instance Defaults Broken */
+            instance_defaults_broken?: boolean | null;
+            /** Instance Defaults */
+            instance_defaults?: {
+                [key: string]: unknown;
+            } | null;
+            /** Affected Users */
+            affected_users?: {
+                [key: string]: unknown;
+            }[];
+            /** Affected Users Count */
+            affected_users_count?: number | null;
+            /** Affected Tasks */
+            affected_tasks?: {
+                [key: string]: unknown;
+            }[];
+            /** Affected Tasks Count */
+            affected_tasks_count?: number | null;
+            /** Remaining Summarize Workers */
+            remaining_summarize_workers?: number | null;
+            /** Last Enabled Worker */
+            last_enabled_worker?: boolean | null;
+            /** Lost Summarize Models */
+            lost_summarize_models?: string[] | null;
+            /** Available Summarize Models */
+            available_summarize_models?: {
+                [key: string]: string;
+            }[] | null;
+            /** Suggested Summarize Replacement */
+            suggested_summarize_replacement?: {
+                [key: string]: string;
+            } | null;
+            /** Capture Jitsi Hosts */
+            capture_jitsi_hosts?: unknown[];
+            /** Capture Jitsi Hosts Count */
+            capture_jitsi_hosts_count?: number | null;
+            /** Capture Tasks Count */
+            capture_tasks_count?: number | null;
+            /** Capture Losing Jitsi */
+            capture_losing_jitsi?: boolean | null;
+            /** Available Capture Workers */
+            available_capture_workers?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Suggested Capture Worker */
+            suggested_capture_worker?: {
+                [key: string]: unknown;
+            } | null;
+        };
         /** WorkerListItem */
         WorkerListItem: {
             /** Id */
@@ -3717,6 +4428,21 @@ export interface components {
             api_token?: string | null;
             /** Worker Id */
             worker_id?: string | null;
+        };
+        /** WorkerProbeResponse */
+        WorkerProbeResponse: {
+            /** Authorized */
+            authorized: boolean;
+            /** Health Status */
+            health_status: number;
+            /** Asr Models */
+            asr_models?: components["schemas"]["WorkerEngineOption"][] | null;
+            /** Diarization Models */
+            diarization_models?: components["schemas"]["WorkerEngineOption"][] | null;
+            /** Connectors */
+            connectors?: components["schemas"]["WorkerEngineOption"][] | null;
+            /** Summarize Model */
+            summarize_model?: string | null;
         };
         /** WorkerPublicResponse */
         WorkerPublicResponse: {
@@ -3864,9 +4590,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuthUserBootstrapResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3899,9 +4623,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuthUserBootstrapResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3930,9 +4652,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TariffListResponse"];
                 };
             };
         };
@@ -3952,9 +4672,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SetupStatusResponse"];
                 };
             };
         };
@@ -3978,9 +4696,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LoginOkResponse"] | components["schemas"]["LoginMfaRequiredResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4011,9 +4727,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SsoInfoResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4107,9 +4821,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
         };
@@ -4133,9 +4845,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4168,9 +4878,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4203,9 +4911,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4238,9 +4944,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4273,9 +4977,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4304,9 +5006,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MfaStatusResponse"];
                 };
             };
         };
@@ -4326,9 +5026,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MfaSetupStartResponse"];
                 };
             };
         };
@@ -4348,9 +5046,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MeResponse"];
                 };
             };
         };
@@ -4374,9 +5070,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MfaSetupConfirmResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4409,9 +5103,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4464,9 +5156,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4533,9 +5223,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["BackupRestoreReportResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4564,9 +5252,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AccountDeletePreviewResponse"];
                 };
             };
         };
@@ -4590,9 +5276,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AccountDeleteResultResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4621,9 +5305,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiTokenListResponse"];
                 };
             };
         };
@@ -4647,9 +5329,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ApiTokenCreateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4680,9 +5360,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4719,9 +5397,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AuditLogListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4879,9 +5555,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgPublicResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4912,9 +5586,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["InstanceOrgListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4947,9 +5619,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["InstanceOrgCreateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4984,9 +5654,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5017,9 +5685,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5050,9 +5716,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5088,9 +5752,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgLedgerResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5122,9 +5784,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgUserResetPasswordResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5156,9 +5816,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UserPublic"];
                 };
             };
             /** @description Validation Error */
@@ -5194,9 +5852,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UserPublic"];
                 };
             };
             /** @description Validation Error */
@@ -5231,9 +5887,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgPublicResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5262,9 +5916,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["InstanceSettingsResponse"];
                 };
             };
         };
@@ -5288,9 +5940,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["InstanceSettingsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5323,9 +5973,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AgreementPreviewResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5356,9 +6004,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LegalDocumentVersionListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5390,9 +6036,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["LegalDocumentVersionDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5425,9 +6069,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5460,9 +6102,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SmtpTestSendResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5940,9 +6580,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["InstanceTranscribeModelsResponse"];
                 };
             };
         };
@@ -5962,9 +6600,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["InstanceSummarizeModelsResponse"];
                 };
             };
         };
@@ -5988,9 +6624,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WorkerProbeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6025,9 +6659,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WorkerDeleteResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6093,9 +6725,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WorkerImpactResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6130,9 +6760,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WorkerImpactResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6455,9 +7083,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgCaptureJitsiResponse"];
                 };
             };
         };
@@ -6481,9 +7107,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgCaptureJitsiResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6545,9 +7169,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgPublicLinkListResponse"];
                 };
             };
         };

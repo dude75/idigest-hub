@@ -21,7 +21,7 @@ from app.models import HiddenItem, Membership, Organization, Task, Tariff, User,
 from app.money import parse_money
 from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
-from app.routers.auth import revoke_user_auth, seed_default_tariff
+from app.services.auth_helpers import revoke_user_auth, seed_default_tariff
 from app.routers.instance._body import (
     AgreementPreviewBody,
     BaseSkillBody,
@@ -60,7 +60,16 @@ from app.services.instance_helpers import (
 from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
-from app.schemas.workers import WorkerListResponse, WorkerMutateResponse, WorkerPublicResponse
+from app.schemas.workers import (
+    InstanceSummarizeModelsResponse,
+    InstanceTranscribeModelsResponse,
+    WorkerDeleteResponse,
+    WorkerImpactResponse,
+    WorkerListResponse,
+    WorkerMutateResponse,
+    WorkerProbeResponse,
+    WorkerPublicResponse,
+)
 from app.timeutil import utcnow
 
 @router.get("/workers", response_model=WorkerListResponse)
@@ -95,7 +104,7 @@ async def list_workers(
     return WorkerListResponse.model_validate(payload)
 
 
-@router.get("/instance/transcribe-models")
+@router.get("/instance/transcribe-models", response_model=InstanceTranscribeModelsResponse)
 def list_transcribe_models(
     db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
@@ -104,14 +113,10 @@ def list_transcribe_models(
     require_instance_admin(ctx)
     settings = get_instance_settings(db)
     available = aggregate_instance_models(db)
-    return {
-        **available,
-        "default_asr_model": settings.asr_model,
-        "default_diarization_model": settings.diarization_model,
-    }
+    return InstanceTranscribeModelsResponse.model_validate({**available, "default_asr_model": settings.asr_model, "default_diarization_model": settings.diarization_model})
 
 
-@router.get("/instance/summarize-models")
+@router.get("/instance/summarize-models", response_model=InstanceSummarizeModelsResponse)
 def list_summarize_models(
     db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
@@ -120,13 +125,10 @@ def list_summarize_models(
     require_instance_admin(ctx)
     settings = get_instance_settings(db)
     available = aggregate_instance_summarize_models(db)
-    return {
-        **available,
-        "default_summarize_model": settings.summarize_model,
-    }
+    return InstanceSummarizeModelsResponse.model_validate({**available, "default_summarize_model": settings.summarize_model})
 
 
-@router.post("/workers/probe")
+@router.post("/workers/probe", response_model=WorkerProbeResponse)
 async def probe_worker(
     body: WorkerProbeBody,
     db: Session = Depends(get_session, scope="function"),
@@ -167,7 +169,7 @@ async def probe_worker(
         model = summarize_model_from_health(health)
         if model is not None:
             payload["summarize_model"] = model
-    return payload
+    return WorkerProbeResponse.model_validate(payload)
 
 
 @router.post("/workers", response_model=WorkerPublicResponse)
@@ -287,26 +289,26 @@ async def patch_worker(
     return WorkerMutateResponse.model_validate(payload)
 
 
-@router.get("/workers/{worker_id}/delete-impact")
+@router.get("/workers/{worker_id}/delete-impact", response_model=WorkerImpactResponse)
 def worker_delete_impact(
     worker_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> WorkerImpactResponse:
     from app.services.worker_impact import compute_worker_delete_impact
 
     require_instance_admin(ctx)
     node = db.get(WorkerNode, worker_id)
     if node is None:
         ctx.raise_error(ErrorCode.not_found)
-    return compute_worker_delete_impact(db, node)
+    return WorkerImpactResponse.model_validate(compute_worker_delete_impact(db, node))
 
 
-@router.post("/workers/{worker_id}/change-impact")
+@router.post("/workers/{worker_id}/change-impact", response_model=WorkerImpactResponse)
 def worker_change_impact(
     worker_id: str,
     body: WorkerBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> WorkerImpactResponse:
     from app.services.worker_impact import compute_worker_change_impact
 
     require_instance_admin(ctx)
@@ -324,32 +326,36 @@ def worker_change_impact(
             if body.capture_connectors is not None
             else list(node.capture_connectors_json or [])
         )
-        return compute_worker_capture_change_impact(
-            db,
-            node,
-            enabled=body.enabled,
-            capture_connectors=connectors,
+        return WorkerImpactResponse.model_validate(
+            compute_worker_capture_change_impact(
+                db,
+                node,
+                enabled=body.enabled,
+                capture_connectors=connectors,
+            )
         )
     if body.type == "transcribe" and not body.asr_models:
         ctx.raise_error(ErrorCode.validation_error)
-    return compute_worker_change_impact(
-        db,
-        node,
-        type=body.type,
-        enabled=body.enabled,
-        asr_models=body.asr_models,
-        diarization_models=body.diarization_models,
+    return WorkerImpactResponse.model_validate(
+        compute_worker_change_impact(
+            db,
+            node,
+            type=body.type,
+            enabled=body.enabled,
+            asr_models=body.asr_models,
+            diarization_models=body.diarization_models,
+        )
     )
 
 
-@router.delete("/workers/{worker_id}")
+@router.delete("/workers/{worker_id}", response_model=WorkerDeleteResponse)
 def delete_worker(
     worker_id: str,
     background_tasks: BackgroundTasks,
     body: WorkerDeleteBody | None = Body(default=None),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> WorkerDeleteResponse:
     require_instance_admin(ctx)
     node = db.get(WorkerNode, worker_id)
     if node is None:
@@ -376,12 +382,10 @@ def delete_worker(
     db.delete(node)
     tick_payload = remediation_result if remediation_result else cleanup
     _schedule_worker_remediation_tick(background_tasks, tick_payload)
-    payload: dict = {"status": "ok"}
+    payload: dict = {"status": "ok", "cleanup": cleanup}
     if remediation_result is not None:
         payload["remediation"] = remediation_result
-    if cleanup["jitsi_hosts_removed"] or cleanup["tasks_updated"]:
-        payload["cleanup"] = cleanup
-    return payload
+    return WorkerDeleteResponse.model_validate(payload)
 
 
 def _schedule_worker_remediation_tick(background_tasks: BackgroundTasks | None, remediation_result: dict | None) -> None:

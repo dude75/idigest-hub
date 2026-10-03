@@ -45,8 +45,35 @@ from app.models import (
     new_id,
 )
 from app.presenters import org_public, tariff_public, token_public, user_public
-from app.schemas.me import MeResponse
-from app.schemas.me import MeResponse
+from app.services.auth_helpers import (
+    create_session,
+    me_payload,
+    me_with_csrf,
+    public_base_url,
+    revoke_user_auth,
+    seed_default_tariff,
+    sso_login_redirect,
+)
+from app.schemas.auth_api import (
+    AccountDeletePreviewResponse,
+    AccountDeleteResultResponse,
+    ApiTokenCreateResponse,
+    ApiTokenListResponse,
+    ApiTokenPublic,
+    AuthUserBootstrapResponse,
+    BackupRestoreReportResponse,
+    LoginMfaRequiredResponse,
+    LoginOkResponse,
+    MfaSetupConfirmResponse,
+    MfaSetupStartResponse,
+    MfaStatusResponse,
+    OkStatusResponse,
+    SetupStatusResponse,
+    SignupTariffListResponse,
+    SsoInfoResponse,
+)
+from app.schemas.me import MeResponse, UserPublic
+from app.schemas.org_api import TariffPublic
 from app.services.billing import signup_balance
 from app.security import (
     hash_password,
@@ -215,160 +242,8 @@ def _default_route(value: str) -> str:
     return value if value in DEFAULT_ROUTES else DEFAULT_ROUTE
 
 
-def seed_default_tariff(db: Session) -> Tariff:
-    existing = db.scalar(select(Tariff).limit(1))
-    if existing is not None:
-        return existing
-    now = utcnow()
-    tariff = Tariff(
-        id=new_id(),
-        name=DEFAULT_TARIFF_NAME,
-        unlimited=True,
-        available_on_signup=True,
-        archived_at=None,
-        price_per_audio_sec=Decimal("0"),
-        price_per_summarize_job=Decimal("0"),
-        price_per_1k_summary_chars=Decimal("0"),
-        audio_retention_days=0,
-        api_enabled=True,
-        signup_credit=Decimal("0.00"),
-        max_upload_bytes=MAX_UPLOAD_BYTES_CAP,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(tariff)
-    db.flush()
-    return tariff
-
-
-def create_session(db: Session, user_id: str) -> str:
-    raw = new_session_token()
-    now = utcnow()
-    ttl_sec = session_ttl_sec_from_db(db)
-    db.add(
-        AuthSession(
-            id=new_id(),
-            user_id=user_id,
-            token_hash=hash_secret(raw),
-            impersonate_user_id=None,
-            expires_at=now + timedelta(seconds=ttl_sec),
-            created_at=now,
-            last_seen_at=now,
-        )
-    )
-    return raw
-
-
-def invalidate_user_sessions(db: Session, user_id: str) -> None:
-    db.execute(delete(AuthSession).where(AuthSession.user_id == user_id))
-
-
-def revoke_user_tokens(db: Session, user_id: str) -> None:
-    now = utcnow()
-    tokens = db.scalars(select(ApiToken).where(ApiToken.user_id == user_id, ApiToken.revoked_at.is_(None)))
-    for token in tokens:
-        token.revoked_at = now
-
-
-def revoke_user_auth(db: Session, user_id: str) -> None:
-    invalidate_user_sessions(db, user_id)
-    revoke_user_tokens(db, user_id)
-
-
-def _public_base_url(db: Session) -> str | None:
-    settings = get_instance_settings(db)
-    value = (settings.public_base_url or "").strip()
-    return value or None
-
-
-def _sso_login_redirect(public_base: str, org_id: str, code: ErrorCode) -> RedirectResponse:
-    query = urlencode({"error": code.value})
-    return RedirectResponse(f"{public_base.rstrip('/')}/sso/{org_id}?{query}", status_code=302)
-
-
-def _summarize_me_payload(user, settings, db: Session) -> dict:
-    from app.services.summarize_models import aggregate_instance_summarize_models, resolve_summarize_models
-
-    available = aggregate_instance_summarize_models(db)
-    return {
-        "summarize_prefs": resolve_summarize_models(user, settings, available=available["summarize_models"]),
-        "summarize_models": available,
-    }
-
-
-def _me_payload(ctx: AuthContext, db: Session) -> dict:
-    role = ctx.membership.role if ctx.membership else ("instance_admin" if ctx.user.is_instance_admin else None)
-    usage = None
-    if ctx.org is not None:
-        from app.models import UsageEvent
-
-        total = db.scalar(
-            select(func.coalesce(func.sum(UsageEvent.amount), 0)).where(UsageEvent.org_id == ctx.org.id)
-        )
-        usage = {"total_amount": str(total)}
-    enrollment_required = mfa_enrollment_required(
-        user=ctx.user,
-        org=ctx.org,
-        membership=ctx.membership,
-    )
-    from app.datetime_format import resolve_date_time_prefs
-    from app.services.transcribe_models import aggregate_instance_models, resolve_transcribe_models
-    from app.services.user_agreement import (
-        agreement_active,
-        agreement_text,
-        member_legal_documents,
-        user_agreement_required,
-    )
-
-    settings = get_instance_settings(db)
-    from app.services.capture_meeting import resolve_capture_prefs
-
-    capture_prefs = resolve_capture_prefs(ctx.user, ctx.org, settings)
-    agreement_pending = user_agreement_required(
-        user=ctx.user,
-        org=ctx.org,
-        membership=ctx.membership,
-        settings=settings,
-    )
-    agreement_payload = None
-    legal_documents = None
-    if ctx.membership is not None and ctx.org is not None:
-        legal_documents = member_legal_documents(ctx.user, settings, ctx.locale)
-        if agreement_active(settings):
-            agreement_payload = {
-                "version": settings.user_agreement_version,
-                "text": agreement_text(settings, ctx.locale),
-            }
-    return {
-        "user": user_public(ctx.user, role),
-        "org": org_public(ctx.org, usage=usage, public_base_url=_public_base_url(db)) if ctx.org else None,
-        "impersonating": ctx.impersonating,
-        "actor": user_public(ctx.actor) if ctx.impersonating else None,
-        "date_time_prefs": resolve_date_time_prefs(ctx.user, settings),
-        "transcribe_prefs": resolve_transcribe_models(ctx.user, settings),
-        "transcribe_models": aggregate_instance_models(db),
-        "capture_prefs": capture_prefs,
-        **_summarize_me_payload(ctx.user, settings, db),
-        "must_change_password": ctx.user.must_change_password
-        or (
-            ctx.org is not None
-            and ctx.org.password_ttl_days > 0
-            and ctx.user.password_changed_at is not None
-            and utcnow()
-            >= as_utc(ctx.user.password_changed_at) + timedelta(days=ctx.org.password_ttl_days)
-        ),
-        "mfa_enabled": totp_enabled(ctx.user),
-        "mfa_required": org_mfa_required(user=ctx.user, org=ctx.org, membership=ctx.membership),
-        "mfa_enrollment_required": enrollment_required,
-        "user_agreement_required": agreement_pending,
-        "user_agreement": agreement_payload,
-        "user_agreement_version": settings.user_agreement_version if agreement_active(settings) else None,
-        "legal_documents": legal_documents,
-    }
-
-
-@router.post("/setup")
-def setup(body: SetupBody, request: Request, response: Response, db: Session = Depends(get_session, scope="function")) -> dict:
+@router.post("/setup", response_model=AuthUserBootstrapResponse)
+def setup(body: SetupBody, request: Request, response: Response, db: Session = Depends(get_session, scope="function")) -> AuthUserBootstrapResponse:
     locale = _locale(body.locale)
     limits = get_rate_limits(db)
     enforce_setup(client_ip(request), limits, locale)
@@ -406,11 +281,11 @@ def setup(body: SetupBody, request: Request, response: Response, db: Session = D
     write_audit(db, "instance.setup", actor_id=user.id, payload={"email": email})
     raw = create_session(db, user.id)
     issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
-    return {"status": "ok", "user": user_public(user, "instance_admin")}
+    return AuthUserBootstrapResponse(status="ok", user=UserPublic.model_validate(user_public(user, "instance_admin")))
 
 
-@router.post("/auth/signup")
-def signup(body: SignupBody, request: Request, response: Response, db: Session = Depends(get_session, scope="function")) -> dict:
+@router.post("/auth/signup", response_model=AuthUserBootstrapResponse)
+def signup(body: SignupBody, request: Request, response: Response, db: Session = Depends(get_session, scope="function")) -> AuthUserBootstrapResponse:
     locale = _locale(body.locale)
     settings = get_instance_settings(db)
     if not settings.bootstrap_done:
@@ -472,7 +347,7 @@ def signup(body: SignupBody, request: Request, response: Response, db: Session =
         user.updated_at = utcnow()
     raw = create_session(db, user.id)
     issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
-    return {"status": "ok", "user": user_public(user, "org_admin")}
+    return AuthUserBootstrapResponse(status="ok", user=UserPublic.model_validate(user_public(user, "org_admin")))
 
 
 def _tariff_org_count(db: Session, tariff_id: str) -> int:
@@ -481,22 +356,24 @@ def _tariff_org_count(db: Session, tariff_id: str) -> int:
     )
 
 
-@router.get("/auth/signup-tariffs")
-def signup_tariffs(request: Request, db: Session = Depends(get_session, scope="function")) -> dict:
+@router.get("/auth/signup-tariffs", response_model=SignupTariffListResponse)
+def signup_tariffs(request: Request, db: Session = Depends(get_session, scope="function")) -> SignupTariffListResponse:
     locale = locale_from_request(request)
     settings = get_instance_settings(db)
     if not settings.bootstrap_done or not settings.allow_new_orgs:
-        return {"items": []}
+        return SignupTariffListResponse(items=[])
     rows = db.scalars(
         select(Tariff).where(Tariff.archived_at.is_(None), Tariff.available_on_signup.is_(True))
     ).all()
-    return {"items": [tariff_public(row, _tariff_org_count(db, row.id)) for row in rows]}
+    return SignupTariffListResponse(
+        items=[TariffPublic.model_validate(tariff_public(row, _tariff_org_count(db, row.id))) for row in rows]
+    )
 
 
-@router.get("/setup/status")
-def setup_status(db: Session = Depends(get_session, scope="function")) -> dict:
+@router.get("/setup/status", response_model=SetupStatusResponse)
+def setup_status(db: Session = Depends(get_session, scope="function")) -> SetupStatusResponse:
     settings = get_instance_settings(db)
-    return {"bootstrap_done": bool(settings.bootstrap_done)}
+    return SetupStatusResponse(bootstrap_done=bool(settings.bootstrap_done))
 
 
 def _login_membership_org(db: Session, user: User) -> tuple[Membership | None, Organization | None]:
@@ -507,8 +384,13 @@ def _login_membership_org(db: Session, user: User) -> tuple[Membership | None, O
     return membership, org
 
 
-@router.post("/auth/login")
-def login(body: LoginBody, request: Request, response: Response, db: Session = Depends(get_session, scope="function")) -> dict:
+@router.post("/auth/login", response_model=LoginOkResponse | LoginMfaRequiredResponse)
+def login(
+    body: LoginBody,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_session, scope="function"),
+) -> LoginOkResponse | LoginMfaRequiredResponse:
     locale = locale_from_request(request)
     email = _norm_email(body.email)
     limits = get_rate_limits(db)
@@ -527,23 +409,25 @@ def login(body: LoginBody, request: Request, response: Response, db: Session = D
         abort(locale, ErrorCode.invalid_credentials)
     if should_challenge_at_login(user=user, org=org, membership=membership):
         challenge_id = create_mfa_challenge(db, user.id)
-        return {"status": "mfa_required", "challenge_id": challenge_id}
+        return LoginMfaRequiredResponse(challenge_id=challenge_id)
     raw = create_session(db, user.id)
     issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
-    return {"status": "ok"}
+    return LoginOkResponse()
 
 
-@router.get("/auth/sso/{org_id}/info")
-def sso_info(org_id: str, request: Request, db: Session = Depends(get_session, scope="function")) -> dict:
+@router.get("/auth/sso/{org_id}/info", response_model=SsoInfoResponse)
+def sso_info(org_id: str, request: Request, db: Session = Depends(get_session, scope="function")) -> SsoInfoResponse:
     locale = locale_from_request(request)
     org = db.get(Organization, org_id)
     if org is None:
         abort(locale, ErrorCode.not_found)
-    return {
-        "org_id": org.id,
-        "org_name": org.name,
-        **org_sso_public(org, public_base_url=_public_base_url(db)),
-    }
+    return SsoInfoResponse.model_validate(
+        {
+            "org_id": org.id,
+            "org_name": org.name,
+            **org_sso_public(org, public_base_url=public_base_url(db)),
+        }
+    )
 
 
 @router.get("/auth/sso/{org_id}/start")
@@ -556,7 +440,7 @@ def sso_start(org_id: str, request: Request, db: Session = Depends(get_session, 
         abort(locale, ErrorCode.sso_misconfigured)
     if not org.sso_enabled:
         abort(locale, ErrorCode.sso_disabled)
-    public_base = _public_base_url(db)
+    public_base = public_base_url(db)
     if not public_base:
         abort(locale, ErrorCode.sso_misconfigured)
     try:
@@ -580,11 +464,11 @@ def sso_callback(
     state: str | None = None,
 ) -> RedirectResponse:
     locale = locale_from_request(request)
-    public_base = _public_base_url(db)
+    public_base = public_base_url(db)
 
     def fail(error_code: ErrorCode) -> RedirectResponse:
         if public_base:
-            return _sso_login_redirect(public_base, org_id, error_code)
+            return sso_login_redirect(public_base, org_id, error_code)
         abort(locale, error_code)
 
     org = db.get(Organization, org_id)
@@ -633,27 +517,27 @@ def sso_callback(
     return redirect
 
 
-@router.post("/auth/logout")
+@router.post("/auth/logout", response_model=OkStatusResponse)
 def logout(
     request: Request,
     response: Response,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext | None = Depends(optional_auth),
-) -> dict:
+) -> OkStatusResponse:
     token = request.cookies.get(COOKIE_NAME)
     if token:
         db.execute(delete(AuthSession).where(AuthSession.token_hash == hash_secret(token)))
     clear_auth_cookies(response)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/auth/password/change")
+@router.post("/auth/password/change", response_model=OkStatusResponse)
 def change_password(
     body: PasswordChangeBody,
     response: Response,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OkStatusResponse:
     user = ctx.user
     if ctx.impersonating:
         ctx.raise_error(ErrorCode.forbidden)
@@ -670,11 +554,11 @@ def change_password(
     revoke_user_auth(db, user.id)
     raw = create_session(db, user.id)
     issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/auth/password/reset/request")
-def reset_request(body: ResetRequestBody, request: Request, db: Session = Depends(get_session, scope="function")) -> dict:
+@router.post("/auth/password/reset/request", response_model=OkStatusResponse)
+def reset_request(body: ResetRequestBody, request: Request, db: Session = Depends(get_session, scope="function")) -> OkStatusResponse:
     locale = locale_from_request(request)
     settings = get_instance_settings(db)
     if not smtp_configured(settings):
@@ -690,7 +574,7 @@ def reset_request(body: ResetRequestBody, request: Request, db: Session = Depend
             org=org,
             is_instance_admin=user.is_instance_admin,
         ):
-            return {"status": "ok"}
+            return OkStatusResponse()
         cooldown_cutoff = utcnow() - timedelta(seconds=PASSWORD_RESET_COOLDOWN_SEC)
         recent = db.scalar(
             select(PasswordResetToken.id).where(
@@ -701,7 +585,7 @@ def reset_request(body: ResetRequestBody, request: Request, db: Session = Depend
             )
         )
         if recent is not None:
-            return {"status": "ok"}
+            return OkStatusResponse()
         raw = new_reset_token()
         now = utcnow()
         db.add(
@@ -721,11 +605,11 @@ def reset_request(body: ResetRequestBody, request: Request, db: Session = Depend
             "Password reset",
             f"Reset your password (valid 1 hour):\n{link}\n",
         )
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/auth/password/reset/confirm")
-def reset_confirm(body: ResetConfirmBody, request: Request, db: Session = Depends(get_session, scope="function")) -> dict:
+@router.post("/auth/password/reset/confirm", response_model=OkStatusResponse)
+def reset_confirm(body: ResetConfirmBody, request: Request, db: Session = Depends(get_session, scope="function")) -> OkStatusResponse:
     locale = locale_from_request(request)
     limits = get_rate_limits(db)
     enforce_reset_confirm(client_ip(request), limits, locale)
@@ -747,16 +631,16 @@ def reset_confirm(body: ResetConfirmBody, request: Request, db: Session = Depend
     user.updated_at = utcnow()
     row.used_at = utcnow()
     revoke_user_auth(db, user.id)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/auth/mfa/verify")
+@router.post("/auth/mfa/verify", response_model=OkStatusResponse)
 def mfa_verify(
     body: MfaVerifyBody,
     request: Request,
     response: Response,
     db: Session = Depends(get_session, scope="function"),
-) -> dict:
+) -> OkStatusResponse:
     locale = locale_from_request(request)
     challenge = resolve_mfa_challenge(db, body.challenge_id.strip())
     if challenge is None:
@@ -772,16 +656,16 @@ def mfa_verify(
     raw = create_session(db, user.id)
     issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
     write_audit(db, "auth.mfa.verify", actor_id=user.id)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/auth/mfa/recover")
+@router.post("/auth/mfa/recover", response_model=OkStatusResponse)
 def mfa_recover(
     body: MfaRecoverBody,
     request: Request,
     response: Response,
     db: Session = Depends(get_session, scope="function"),
-) -> dict:
+) -> OkStatusResponse:
     locale = locale_from_request(request)
     challenge = resolve_mfa_challenge(db, body.challenge_id.strip())
     if challenge is None:
@@ -797,35 +681,35 @@ def mfa_recover(
     raw = create_session(db, user.id)
     issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
     write_audit(db, "auth.mfa.recovery", actor_id=user.id)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.get("/auth/mfa/status")
-def mfa_status(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
-    return {
-        "enabled": totp_enabled(ctx.user),
-        "required": org_mfa_required(user=ctx.user, org=ctx.org, membership=ctx.membership),
-        "enrollment_required": mfa_enrollment_required(
+@router.get("/auth/mfa/status", response_model=MfaStatusResponse)
+def mfa_status(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> MfaStatusResponse:
+    return MfaStatusResponse(
+        enabled=totp_enabled(ctx.user),
+        required=org_mfa_required(user=ctx.user, org=ctx.org, membership=ctx.membership),
+        enrollment_required=mfa_enrollment_required(
             user=ctx.user,
             org=ctx.org,
             membership=ctx.membership,
         ),
-    }
+    )
 
 
-@router.post("/auth/mfa/setup/start")
-def mfa_setup_start(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.post("/auth/mfa/setup/start", response_model=MfaSetupStartResponse)
+def mfa_setup_start(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> MfaSetupStartResponse:
     if ctx.impersonating or not hub_local_auth_applies(user=ctx.user, org=ctx.org, membership=ctx.membership):
         ctx.raise_error(ErrorCode.forbidden)
     secret, uri = start_totp_setup(db, ctx.user)
-    return {"secret": secret, "otpauth_uri": uri}
+    return MfaSetupStartResponse(secret=secret, otpauth_uri=uri)
 
 
-@router.post("/auth/agreement/accept")
+@router.post("/auth/agreement/accept", response_model=MeResponse)
 def accept_user_agreement(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> MeResponse:
     from app.deps import _password_expired
     from app.services.user_agreement import accept_all_pending_documents, user_agreement_required
 
@@ -853,31 +737,31 @@ def accept_user_agreement(
             "user_agreement_version": settings.user_agreement_version,
         },
     )
-    return _me_payload(ctx, db)
+    return MeResponse.model_validate(me_payload(ctx, db))
 
 
-@router.post("/auth/mfa/setup/confirm")
+@router.post("/auth/mfa/setup/confirm", response_model=MfaSetupConfirmResponse)
 def mfa_setup_confirm(
     body: MfaConfirmBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> MfaSetupConfirmResponse:
     if ctx.impersonating or not hub_local_auth_applies(user=ctx.user, org=ctx.org, membership=ctx.membership):
         ctx.raise_error(ErrorCode.forbidden)
     codes = confirm_totp_setup(db, ctx.user, body.code)
     if not codes:
         ctx.raise_error(ErrorCode.invalid_totp)
     write_audit(db, "auth.mfa.enable", ctx, {})
-    return {"status": "ok", "recovery_codes": codes}
+    return MfaSetupConfirmResponse(recovery_codes=codes)
 
 
-@router.post("/auth/mfa/disable")
+@router.post("/auth/mfa/disable", response_model=OkStatusResponse)
 def mfa_disable(
     body: MfaDisableBody,
     response: Response,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OkStatusResponse:
     if ctx.impersonating or not hub_local_auth_applies(user=ctx.user, org=ctx.org, membership=ctx.membership):
         ctx.raise_error(ErrorCode.forbidden)
     if not totp_enabled(ctx.user):
@@ -892,14 +776,7 @@ def mfa_disable(
     revoke_user_auth(db, ctx.user.id)
     write_audit(db, "auth.mfa.disable", ctx, {})
     clear_auth_cookies(response)
-    return {"status": "ok"}
-
-
-def _me_with_csrf(request: Request, response: Response, ctx: AuthContext, db: Session) -> dict:
-    token = bind_csrf_token(request, response, max_age=session_ttl_sec_from_db(db))
-    payload = _me_payload(ctx, db)
-    payload["csrf_token"] = token
-    return payload
+    return OkStatusResponse()
 
 
 @router.get("/me", response_model=MeResponse)
@@ -909,7 +786,7 @@ def me(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> MeResponse:
-    return MeResponse.model_validate(_me_with_csrf(request, response, ctx, db))
+    return MeResponse.model_validate(me_with_csrf(request, response, ctx, db))
 
 
 @router.get("/me/backup")
@@ -938,7 +815,7 @@ def download_backup(
     )
 
 
-@router.post("/me/backup/restore")
+@router.post("/me/backup/restore", response_model=BackupRestoreReportResponse)
 async def upload_backup_restore(
     file: UploadFile,
     db: Session = Depends(get_session, scope="function"),
@@ -947,17 +824,17 @@ async def upload_backup_restore(
     ctx.require_org()
     raw = await file.read()
     report = restore_backup(ctx, db, raw, filename=file.filename)
-    return report.as_dict()
+    return BackupRestoreReportResponse.model_validate(report.as_dict())
 
 
-@router.patch("/me")
+@router.patch("/me", response_model=MeResponse)
 def patch_me(
     body: MePatchBody,
     request: Request,
     response: Response,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> MeResponse:
     from app.datetime_format import DATE_TIME_FORMATS, normalize_timezone
 
     data = body.model_dump(exclude_unset=True)
@@ -1061,7 +938,7 @@ def patch_me(
         else:
             ctx.user.capture_bot_display_name = normalize_capture_bot_display_name(str(raw))
         ctx.user.updated_at = utcnow()
-    return _me_with_csrf(request, response, ctx, db)
+    return MeResponse.model_validate(me_with_csrf(request, response, ctx, db))
 
 
 def _verify_account_delete_step_up(ctx: AuthContext, db: Session, body: AccountDeleteBody) -> None:
@@ -1080,25 +957,25 @@ def _verify_account_delete_step_up(ctx: AuthContext, db: Session, body: AccountD
             ctx.raise_error(ErrorCode.invalid_totp)
 
 
-@router.get("/me/account-delete")
+@router.get("/me/account-delete", response_model=AccountDeletePreviewResponse)
 def account_delete_preview_route(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> AccountDeletePreviewResponse:
     if ctx.via_api_token or ctx.impersonating or ctx.user.is_instance_admin:
         ctx.raise_error(ErrorCode.forbidden)
     from app.services.account_delete import account_delete_preview
 
-    return account_delete_preview(db, ctx.user, ctx.membership, ctx.org)
+    return AccountDeletePreviewResponse.model_validate(account_delete_preview(db, ctx.user, ctx.membership, ctx.org))
 
 
-@router.post("/me/account-delete")
+@router.post("/me/account-delete", response_model=AccountDeleteResultResponse)
 def account_delete(
     body: AccountDeleteBody,
     response: Response,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> AccountDeleteResultResponse:
     _verify_account_delete_step_up(ctx, db, body)
     from app.services.account_delete import account_delete_preview, delete_user_account
 
@@ -1123,15 +1000,15 @@ def account_delete(
         locale=ctx.locale,
     )
     clear_auth_cookies(response)
-    return result
+    return AccountDeleteResultResponse.model_validate(result)
 
 
-@router.post("/auth/tokens")
+@router.post("/auth/tokens", response_model=ApiTokenCreateResponse)
 def create_token(
     body: TokenCreateBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> ApiTokenCreateResponse:
     if ctx.via_api_token or ctx.impersonating:
         ctx.raise_error(ErrorCode.forbidden)
     if ctx.user.must_change_password:
@@ -1170,29 +1047,31 @@ def create_token(
     db.flush()
     payload = token_public(row)
     payload["token"] = raw
-    return payload
+    return ApiTokenCreateResponse.model_validate(payload)
 
 
-@router.get("/auth/tokens")
+@router.get("/auth/tokens", response_model=ApiTokenListResponse)
 def list_tokens(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> ApiTokenListResponse:
     rows = db.scalars(select(ApiToken).where(ApiToken.user_id == ctx.user.id).order_by(ApiToken.created_at.desc()))
     from app.services.billing import org_api_enabled
 
     blocked = not org_api_enabled(ctx.org)
-    return {"items": [token_public(row, blocked_by_tariff=blocked) for row in rows]}
+    return ApiTokenListResponse(
+        items=[ApiTokenPublic.model_validate(token_public(row, blocked_by_tariff=blocked)) for row in rows]
+    )
 
 
-@router.delete("/auth/tokens/{token_id}")
+@router.delete("/auth/tokens/{token_id}", response_model=OkStatusResponse)
 def revoke_token(
     token_id: str,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(ApiToken, token_id)
     if row is None or row.user_id != ctx.user.id:
         ctx.raise_error(ErrorCode.not_found)
     row.revoked_at = utcnow()
-    return {"status": "ok"}
+    return OkStatusResponse()

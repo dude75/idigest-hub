@@ -65,7 +65,7 @@ export function InstanceTariffsTab() {
 
   async function load() {
     try {
-      setTariffs((await api<SchemaTariffListResponse>('/tariffs')).items as Tariff[])
+      setTariffs((await api<SchemaTariffListResponse>('/tariffs')).items)
     } catch (e) {
       showError(e)
     }

@@ -76,3 +76,22 @@ def test_export_openapi_writes_health_path():
     assert workers.get("$ref", "").endswith("/WorkerListResponse")
     inst_tariffs = schema["paths"]["/api/v1/tariffs"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
     assert inst_tariffs.get("$ref", "").endswith("/TariffListResponse")
+    login_ok = schema["paths"]["/api/v1/auth/login"]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert login_ok.get("anyOf") or login_ok.get("$ref")
+    refs = login_ok.get("anyOf", [])
+    if refs:
+        ref_names = {item.get("$ref", "").split("/")[-1] for item in refs}
+        assert {"LoginOkResponse", "LoginMfaRequiredResponse"} <= ref_names
+    inst_orgs = schema["paths"]["/api/v1/orgs"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert inst_orgs.get("$ref", "").endswith("/InstanceOrgListResponse")
+    settings = schema["paths"]["/api/v1/instance/settings"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert settings.get("$ref", "").endswith("/InstanceSettingsResponse")
+    delete_impact = schema["paths"]["/api/v1/workers/{worker_id}/delete-impact"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert delete_impact.get("$ref", "").endswith("/WorkerImpactResponse")
+    assert "lost_model_pairs" in components["WorkerImpactResponse"]["properties"]
+    pub_links = schema["paths"]["/api/v1/org/public-links"]["get"]["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+    assert pub_links.get("$ref", "").endswith("/OrgPublicLinkListResponse")

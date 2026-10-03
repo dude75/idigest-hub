@@ -17,13 +17,15 @@ from app.presenters import org_public, user_public
 from app.schemas.me import UserPublic
 from app.schemas.org_api import OrgPublicResponse, OrgSsoAdminResponse, TariffListResponse
 from app.schemas.common import OkStatusResponse
+from app.schemas.org_capture import OrgCaptureJitsiResponse
+from app.schemas.public_links import OrgPublicLinkListResponse
 from app.schemas.stats import UsageStatsResponse
 from app.schemas.org_users import (
     OffboardStatusResponse,
     OrgUserListResponse,
     OrgUserResetPasswordResponse,
 )
-from app.routers.auth import revoke_user_auth
+from app.services.auth_helpers import revoke_user_auth
 from app.security import hash_password, random_password
 from app.services.access import guard_last_org_admin
 from app.services.audit import write_audit
@@ -178,7 +180,7 @@ def patch_org_tariff(
     return OrgPublicResponse.model_validate(org_public(org, public_base_url=_public_base_url(db)))
 
 
-@router.get("/org/capture/jitsi")
+@router.get("/org/capture/jitsi", response_model=OrgCaptureJitsiResponse)
 def get_org_capture_jitsi(
     db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
@@ -188,15 +190,15 @@ def get_org_capture_jitsi(
     from app.services.capture_platforms import org_jitsi_capture_enabled
 
     settings = get_instance_settings(db)
-    return {
+    return OrgCaptureJitsiResponse.model_validate({
         "allowed": org_jitsi_capture_enabled(settings),
         "bot_display_name": org.capture_bot_display_name or "",
         "items": org_jitsi_hosts_public(db, org.id),
         "workers": org_capture_worker_choices(db),
-    }
+    })
 
 
-@router.put("/org/capture/jitsi")
+@router.put("/org/capture/jitsi", response_model=OrgCaptureJitsiResponse)
 def replace_org_capture_jitsi(
     body: OrgCaptureJitsiReplaceBody,
     db: Session = Depends(get_session, scope="function"),
@@ -226,11 +228,11 @@ def replace_org_capture_jitsi(
     db.commit()
     from app.services.capture_meeting import org_capture_worker_choices
 
-    return {
+    return OrgCaptureJitsiResponse.model_validate({
         "bot_display_name": org.capture_bot_display_name or "",
         "items": org_jitsi_hosts_public(db, org.id),
         "workers": org_capture_worker_choices(db),
-    }
+    })
 
 
 @router.patch("/org/settings", response_model=OrgPublicResponse)
@@ -256,7 +258,7 @@ def patch_org_settings(
     return OrgPublicResponse.model_validate(org_public(org, public_base_url=_public_base_url(db)))
 
 
-@router.get("/org/public-links")
+@router.get("/org/public-links", response_model=OrgPublicLinkListResponse)
 def org_public_links(
     db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
@@ -276,7 +278,7 @@ def org_public_links(
                 link.summary_id,
                 ctx.user.id,
             )
-    return {"items": items}
+    return OrgPublicLinkListResponse(items=items)
 
 
 @router.delete("/org/public-links/{link_id}", response_model=OkStatusResponse)

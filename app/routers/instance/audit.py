@@ -21,7 +21,7 @@ from app.models import HiddenItem, Membership, Organization, Task, Tariff, User,
 from app.money import parse_money
 from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
-from app.routers.auth import revoke_user_auth, seed_default_tariff
+from app.services.auth_helpers import revoke_user_auth, seed_default_tariff
 from app.routers.instance._body import (
     AgreementPreviewBody,
     BaseSkillBody,
@@ -60,10 +60,11 @@ from app.services.instance_helpers import (
 from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
+from app.schemas.audit_api import AuditLogListResponse
 from app.schemas.stats import InstanceUsageStatsResponse
 from app.timeutil import utcnow
 
-@router.get("/instance/audit")
+@router.get("/instance/audit", response_model=AuditLogListResponse)
 def audit_log(
     from_day: str | None = Query(None, alias="from"),
     to_day: str | None = Query(None, alias="to"),
@@ -96,7 +97,7 @@ def audit_log(
         limit=limit,
         offset=offset,
     )
-    return {"items": items, "total": total}
+    return AuditLogListResponse(items=items, total=total)
 
 
 @router.get("/instance/audit/export")

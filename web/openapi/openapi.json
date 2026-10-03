@@ -69,9 +69,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Setup Api V1 Setup Post"
+                  "$ref": "#/components/schemas/AuthUserBootstrapResponse"
                 }
               }
             }
@@ -109,9 +107,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Signup Api V1 Auth Signup Post"
+                  "$ref": "#/components/schemas/AuthUserBootstrapResponse"
                 }
               }
             }
@@ -139,9 +135,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Signup Tariffs Api V1 Auth Signup Tariffs Get"
+                  "$ref": "#/components/schemas/TariffListResponse"
                 }
               }
             }
@@ -159,9 +153,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Setup Status Api V1 Setup Status Get"
+                  "$ref": "#/components/schemas/SetupStatusResponse"
                 }
               }
             }
@@ -189,8 +181,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/LoginOkResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LoginMfaRequiredResponse"
+                    }
+                  ],
                   "title": "Response Login Api V1 Auth Login Post"
                 }
               }
@@ -230,9 +228,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Sso Info Api V1 Auth Sso  Org Id  Info Get"
+                  "$ref": "#/components/schemas/SsoInfoResponse"
                 }
               }
             }
@@ -390,9 +386,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Logout Api V1 Auth Logout Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -420,9 +414,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Change Password Api V1 Auth Password Change Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -468,9 +460,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Reset Request Api V1 Auth Password Reset Request Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -508,9 +498,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Reset Confirm Api V1 Auth Password Reset Confirm Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -548,9 +536,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Mfa Verify Api V1 Auth Mfa Verify Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -588,9 +574,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Mfa Recover Api V1 Auth Mfa Recover Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -618,9 +602,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Mfa Status Api V1 Auth Mfa Status Get"
+                  "$ref": "#/components/schemas/MfaStatusResponse"
                 }
               }
             }
@@ -646,9 +628,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Mfa Setup Start Api V1 Auth Mfa Setup Start Post"
+                  "$ref": "#/components/schemas/MfaSetupStartResponse"
                 }
               }
             }
@@ -674,9 +654,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Accept User Agreement Api V1 Auth Agreement Accept Post"
+                  "$ref": "#/components/schemas/MeResponse"
                 }
               }
             }
@@ -712,9 +690,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Mfa Setup Confirm Api V1 Auth Mfa Setup Confirm Post"
+                  "$ref": "#/components/schemas/MfaSetupConfirmResponse"
                 }
               }
             }
@@ -760,9 +736,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Mfa Disable Api V1 Auth Mfa Disable Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -832,9 +806,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Patch Me Api V1 Me Patch"
+                  "$ref": "#/components/schemas/MeResponse"
                 }
               }
             }
@@ -957,9 +929,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Upload Backup Restore Api V1 Me Backup Restore Post"
+                  "$ref": "#/components/schemas/BackupRestoreReportResponse"
                 }
               }
             }
@@ -995,9 +965,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Account Delete Preview Route Api V1 Me Account Delete Get"
+                  "$ref": "#/components/schemas/AccountDeletePreviewResponse"
                 }
               }
             }
@@ -1031,9 +999,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Account Delete Api V1 Me Account Delete Post"
+                  "$ref": "#/components/schemas/AccountDeleteResultResponse"
                 }
               }
             }
@@ -1069,9 +1035,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response List Tokens Api V1 Auth Tokens Get"
+                  "$ref": "#/components/schemas/ApiTokenListResponse"
                 }
               }
             }
@@ -1105,9 +1069,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Create Token Api V1 Auth Tokens Post"
+                  "$ref": "#/components/schemas/ApiTokenCreateResponse"
                 }
               }
             }
@@ -1154,9 +1116,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Revoke Token Api V1 Auth Tokens  Token Id  Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -1297,9 +1257,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Audit Log Api V1 Instance Audit Get"
+                  "$ref": "#/components/schemas/AuditLogListResponse"
                 }
               }
             }
@@ -1660,9 +1618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Wallet Delta Api V1 Orgs  Org Id  Wallet Post"
+                  "$ref": "#/components/schemas/OrgPublicResponse"
                 }
               }
             }
@@ -1710,9 +1666,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Orgs Api V1 Orgs Get"
+                  "$ref": "#/components/schemas/InstanceOrgListResponse"
                 }
               }
             }
@@ -1756,9 +1710,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Org Api V1 Orgs Post"
+                  "$ref": "#/components/schemas/InstanceOrgCreateResponse"
                 }
               }
             }
@@ -1815,9 +1767,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Org Api V1 Orgs  Org Id  Delete Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -1864,9 +1814,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Hide Org Api V1 Orgs  Org Id  Hide Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -1913,9 +1861,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Unhide Org Api V1 Orgs  Org Id  Unhide Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -2026,9 +1972,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Org Ledger Ep Api V1 Orgs  Org Id  Ledger Get"
+                  "$ref": "#/components/schemas/OrgLedgerResponse"
                 }
               }
             }
@@ -2084,9 +2028,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Reset Org Admin Password Api V1 Orgs  Org Id  Users  User Id  Reset Password Post"
+                  "$ref": "#/components/schemas/OrgUserResetPasswordResponse"
                 }
               }
             }
@@ -2142,9 +2084,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Reset Org User Mfa Api V1 Orgs  Org Id  Users  User Id  Reset Mfa Post"
+                  "$ref": "#/components/schemas/UserPublic"
                 }
               }
             }
@@ -2210,9 +2150,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Org User Role Api V1 Orgs  Org Id  Users  User Id  Patch"
+                  "$ref": "#/components/schemas/UserPublic"
                 }
               }
             }
@@ -2269,9 +2207,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Assign Org Tariff Api V1 Orgs  Org Id  Tariff Patch"
+                  "$ref": "#/components/schemas/OrgPublicResponse"
                 }
               }
             }
@@ -2307,9 +2243,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Get Settings Ep Api V1 Instance Settings Get"
+                  "$ref": "#/components/schemas/InstanceSettingsResponse"
                 }
               }
             }
@@ -2343,9 +2277,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Patch Settings Api V1 Instance Settings Patch"
+                  "$ref": "#/components/schemas/InstanceSettingsResponse"
                 }
               }
             }
@@ -2391,9 +2323,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Preview Agreement Markdown Api V1 Instance Settings Agreement Preview Post"
+                  "$ref": "#/components/schemas/AgreementPreviewResponse"
                 }
               }
             }
@@ -2440,9 +2370,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Legal Document Versions Ep Api V1 Instance Legal Documents  Key  Versions Get"
+                  "$ref": "#/components/schemas/LegalDocumentVersionListResponse"
                 }
               }
             }
@@ -2498,9 +2426,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Legal Document Version Ep Api V1 Instance Legal Documents  Key  Versions  Version  Get"
+                  "$ref": "#/components/schemas/LegalDocumentVersionDetailResponse"
                 }
               }
             }
@@ -2546,9 +2472,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Smtp Test Connection Api V1 Instance Smtp Test Connection Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -2594,9 +2518,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Smtp Test Send Api V1 Instance Smtp Test Send Post"
+                  "$ref": "#/components/schemas/SmtpTestSendResponse"
                 }
               }
             }
@@ -3309,9 +3231,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response List Transcribe Models Api V1 Instance Transcribe Models Get"
+                  "$ref": "#/components/schemas/InstanceTranscribeModelsResponse"
                 }
               }
             }
@@ -3337,9 +3257,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response List Summarize Models Api V1 Instance Summarize Models Get"
+                  "$ref": "#/components/schemas/InstanceSummarizeModelsResponse"
                 }
               }
             }
@@ -3375,9 +3293,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Probe Worker Api V1 Workers Probe Post"
+                  "$ref": "#/components/schemas/WorkerProbeResponse"
                 }
               }
             }
@@ -3496,9 +3412,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Worker Api V1 Workers  Worker Id  Delete"
+                  "$ref": "#/components/schemas/WorkerDeleteResponse"
                 }
               }
             }
@@ -3545,9 +3459,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Worker Delete Impact Api V1 Workers  Worker Id  Delete Impact Get"
+                  "$ref": "#/components/schemas/WorkerImpactResponse"
                 }
               }
             }
@@ -3604,9 +3516,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Worker Change Impact Api V1 Workers  Worker Id  Change Impact Post"
+                  "$ref": "#/components/schemas/WorkerImpactResponse"
                 }
               }
             }
@@ -4094,9 +4004,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Get Org Capture Jitsi Api V1 Org Capture Jitsi Get"
+                  "$ref": "#/components/schemas/OrgCaptureJitsiResponse"
                 }
               }
             }
@@ -4130,9 +4038,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Replace Org Capture Jitsi Api V1 Org Capture Jitsi Put"
+                  "$ref": "#/components/schemas/OrgCaptureJitsiResponse"
                 }
               }
             }
@@ -4214,9 +4120,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Org Public Links Api V1 Org Public Links Get"
+                  "$ref": "#/components/schemas/OrgPublicLinkListResponse"
                 }
               }
             }
@@ -7869,6 +7773,83 @@
         "type": "object",
         "title": "AccountDeleteBody"
       },
+      "AccountDeleteCandidate": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "role": {
+            "type": "string",
+            "title": "Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "role"
+        ],
+        "title": "AccountDeleteCandidate"
+      },
+      "AccountDeletePreviewResponse": {
+        "properties": {
+          "requires_successor": {
+            "type": "boolean",
+            "title": "Requires Successor"
+          },
+          "will_delete_org": {
+            "type": "boolean",
+            "title": "Will Delete Org"
+          },
+          "candidates": {
+            "items": {
+              "$ref": "#/components/schemas/AccountDeleteCandidate"
+            },
+            "type": "array",
+            "title": "Candidates"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requires_successor",
+          "will_delete_org"
+        ],
+        "title": "AccountDeletePreviewResponse"
+      },
+      "AccountDeleteResultResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "org_deleted": {
+            "type": "boolean",
+            "title": "Org Deleted"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "org_deleted"
+        ],
+        "title": "AccountDeleteResultResponse"
+      },
       "AgreementPreviewBody": {
         "properties": {
           "text": {
@@ -7879,6 +7860,116 @@
         },
         "type": "object",
         "title": "AgreementPreviewBody"
+      },
+      "AgreementPreviewResponse": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "AgreementPreviewResponse"
+      },
+      "ApiTokenCreateResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "prefix": {
+            "type": "string",
+            "title": "Prefix"
+          },
+          "revoked": {
+            "type": "boolean",
+            "title": "Revoked"
+          },
+          "blocked_by_tariff": {
+            "type": "boolean",
+            "title": "Blocked By Tariff"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "token": {
+            "type": "string",
+            "title": "Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "revoked",
+          "blocked_by_tariff",
+          "created_at",
+          "token"
+        ],
+        "title": "ApiTokenCreateResponse"
+      },
+      "ApiTokenListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ApiTokenPublic"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ApiTokenListResponse"
+      },
+      "ApiTokenPublic": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "prefix": {
+            "type": "string",
+            "title": "Prefix"
+          },
+          "revoked": {
+            "type": "boolean",
+            "title": "Revoked"
+          },
+          "blocked_by_tariff": {
+            "type": "boolean",
+            "title": "Blocked By Tariff"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "revoked",
+          "blocked_by_tariff",
+          "created_at"
+        ],
+        "title": "ApiTokenPublic"
       },
       "AudioDetailResponse": {
         "properties": {
@@ -8228,6 +8319,186 @@
         ],
         "title": "AudioListResponse"
       },
+      "AuditLogEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action"
+          },
+          "actor_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Email"
+          },
+          "on_behalf_of_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Behalf Of Email"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Payload"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "action",
+          "created_at"
+        ],
+        "title": "AuditLogEntry"
+      },
+      "AuditLogListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogEntry"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "AuditLogListResponse"
+      },
+      "AuthUserBootstrapResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserPublic"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user"
+        ],
+        "title": "AuthUserBootstrapResponse"
+      },
+      "BackupRestoreReportResponse": {
+        "properties": {
+          "mode": {
+            "type": "string",
+            "title": "Mode"
+          },
+          "skills": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupRestoreSectionReport"
+              },
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skills"
+          },
+          "transcripts": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupRestoreSectionReport"
+              },
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcripts"
+          },
+          "summaries": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BackupRestoreSectionReport"
+              },
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summaries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mode"
+        ],
+        "title": "BackupRestoreReportResponse"
+      },
+      "BackupRestoreSectionReport": {
+        "properties": {
+          "created": {
+            "type": "integer",
+            "title": "Created",
+            "default": 0
+          },
+          "updated": {
+            "type": "integer",
+            "title": "Updated",
+            "default": 0
+          },
+          "skipped": {
+            "type": "integer",
+            "title": "Skipped",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "BackupRestoreSectionReport"
+      },
       "BaseSkillBody": {
         "properties": {
           "name": {
@@ -8466,6 +8737,1027 @@
         ],
         "title": "ImportBody"
       },
+      "InstanceOrgCreateResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_personal": {
+            "type": "boolean",
+            "title": "Is Personal"
+          },
+          "password_ttl_days": {
+            "type": "integer",
+            "title": "Password Ttl Days"
+          },
+          "mfa_required": {
+            "type": "boolean",
+            "title": "Mfa Required"
+          },
+          "balance": {
+            "type": "string",
+            "title": "Balance"
+          },
+          "unlimited": {
+            "type": "boolean",
+            "title": "Unlimited"
+          },
+          "tariff": {
+            "$ref": "#/components/schemas/TariffPublic"
+          },
+          "sso": {
+            "$ref": "#/components/schemas/OrgSsoPublic"
+          },
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgUsageSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "public_base_url_set": {
+            "type": "boolean",
+            "title": "Public Base Url Set",
+            "default": false
+          },
+          "allow_public_links": {
+            "type": "boolean",
+            "title": "Allow Public Links"
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/UserPublic"
+            },
+            "type": "array",
+            "title": "Members"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_personal",
+          "password_ttl_days",
+          "mfa_required",
+          "balance",
+          "unlimited",
+          "tariff",
+          "sso",
+          "allow_public_links"
+        ],
+        "title": "InstanceOrgCreateResponse"
+      },
+      "InstanceOrgListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_personal": {
+            "type": "boolean",
+            "title": "Is Personal"
+          },
+          "password_ttl_days": {
+            "type": "integer",
+            "title": "Password Ttl Days"
+          },
+          "mfa_required": {
+            "type": "boolean",
+            "title": "Mfa Required"
+          },
+          "balance": {
+            "type": "string",
+            "title": "Balance"
+          },
+          "unlimited": {
+            "type": "boolean",
+            "title": "Unlimited"
+          },
+          "tariff": {
+            "$ref": "#/components/schemas/TariffPublic"
+          },
+          "sso": {
+            "$ref": "#/components/schemas/OrgSsoPublic"
+          },
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgUsageSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "public_base_url_set": {
+            "type": "boolean",
+            "title": "Public Base Url Set",
+            "default": false
+          },
+          "allow_public_links": {
+            "type": "boolean",
+            "title": "Allow Public Links"
+          },
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "default": false
+          },
+          "members": {
+            "items": {
+              "$ref": "#/components/schemas/UserPublic"
+            },
+            "type": "array",
+            "title": "Members"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_personal",
+          "password_ttl_days",
+          "mfa_required",
+          "balance",
+          "unlimited",
+          "tariff",
+          "sso",
+          "allow_public_links"
+        ],
+        "title": "InstanceOrgListItem"
+      },
+      "InstanceOrgListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InstanceOrgListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "hidden_count": {
+            "type": "integer",
+            "title": "Hidden Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "hidden_count"
+        ],
+        "title": "InstanceOrgListResponse"
+      },
+      "InstanceSettingsResponse": {
+        "properties": {
+          "allow_new_orgs": {
+            "type": "boolean",
+            "title": "Allow New Orgs"
+          },
+          "public_base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Base Url"
+          },
+          "smtp_host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Smtp Host"
+          },
+          "smtp_port": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Smtp Port"
+          },
+          "smtp_user": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Smtp User"
+          },
+          "smtp_configured": {
+            "type": "boolean",
+            "title": "Smtp Configured"
+          },
+          "smtp_password_configured": {
+            "type": "boolean",
+            "title": "Smtp Password Configured"
+          },
+          "smtp_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Smtp From"
+          },
+          "smtp_tls": {
+            "type": "boolean",
+            "title": "Smtp Tls"
+          },
+          "asr_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asr Model"
+          },
+          "diarization_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diarization Model"
+          },
+          "summarize_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summarize Model"
+          },
+          "asr_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Asr Models"
+          },
+          "diarization_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Diarization Models"
+          },
+          "summarize_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Summarize Models"
+          },
+          "dispatchable_pairs": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatchable Pairs"
+          },
+          "import_enabled": {
+            "type": "boolean",
+            "title": "Import Enabled"
+          },
+          "import_platforms": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Import Platforms"
+          },
+          "capture_enabled": {
+            "type": "boolean",
+            "title": "Capture Enabled"
+          },
+          "capture_connectors": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Capture Connectors"
+          },
+          "download_proxy_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Proxy Url"
+          },
+          "download_proxy_configured": {
+            "type": "boolean",
+            "title": "Download Proxy Configured"
+          },
+          "download_proxy_enabled": {
+            "type": "boolean",
+            "title": "Download Proxy Enabled"
+          },
+          "download_cookies_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Cookies Path"
+          },
+          "import_audio_bitrate_kbps": {
+            "type": "integer",
+            "title": "Import Audio Bitrate Kbps"
+          },
+          "import_max_concurrent": {
+            "type": "integer",
+            "title": "Import Max Concurrent"
+          },
+          "session_ttl_hours": {
+            "type": "integer",
+            "title": "Session Ttl Hours"
+          },
+          "task_history_retention_days": {
+            "type": "integer",
+            "title": "Task History Retention Days"
+          },
+          "date_time_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Time Format"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "user_agreement_text_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agreement Text En"
+          },
+          "user_agreement_text_ru": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agreement Text Ru"
+          },
+          "user_agreement_text_es": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agreement Text Es"
+          },
+          "user_agreement_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agreement Version"
+          },
+          "user_agreement_published": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agreement Published"
+          },
+          "personal_data_consent_text_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personal Data Consent Text En"
+          },
+          "personal_data_consent_text_ru": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personal Data Consent Text Ru"
+          },
+          "personal_data_consent_text_es": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personal Data Consent Text Es"
+          },
+          "personal_data_consent_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personal Data Consent Version"
+          },
+          "personal_data_consent_published": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Personal Data Consent Published"
+          },
+          "privacy_policy_text_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacy Policy Text En"
+          },
+          "privacy_policy_text_ru": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacy Policy Text Ru"
+          },
+          "privacy_policy_text_es": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacy Policy Text Es"
+          },
+          "privacy_policy_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacy Policy Version"
+          },
+          "privacy_policy_published": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privacy Policy Published"
+          },
+          "landing_footer_text_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Landing Footer Text En"
+          },
+          "landing_footer_text_ru": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Landing Footer Text Ru"
+          },
+          "landing_footer_text_es": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Landing Footer Text Es"
+          },
+          "landing_footer_published": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Landing Footer Published"
+          },
+          "rate_limit_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Enabled"
+          },
+          "rate_limit_login_email": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Login Email"
+          },
+          "rate_limit_login_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Login Ip"
+          },
+          "rate_limit_login_global": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Login Global"
+          },
+          "rate_limit_signup_email": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Signup Email"
+          },
+          "rate_limit_signup_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Signup Ip"
+          },
+          "rate_limit_signup_global": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Signup Global"
+          },
+          "rate_limit_reset_email": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Reset Email"
+          },
+          "rate_limit_reset_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Reset Ip"
+          },
+          "rate_limit_reset_global": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Reset Global"
+          },
+          "rate_limit_reset_confirm_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Reset Confirm Ip"
+          },
+          "rate_limit_reset_confirm_global": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Reset Confirm Global"
+          },
+          "rate_limit_setup_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Setup Ip"
+          },
+          "rate_limit_setup_global": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Setup Global"
+          },
+          "rate_limit_api_user": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Api User"
+          },
+          "rate_limit_api_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Api Ip"
+          },
+          "rate_limit_api_global": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Api Global"
+          },
+          "rate_limit_api_tasks_user": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Api Tasks User"
+          },
+          "rate_limit_api_tasks_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Api Tasks Ip"
+          },
+          "rate_limit_mcp_poll_user": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Mcp Poll User"
+          },
+          "rate_limit_oauth_register_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Oauth Register Ip"
+          },
+          "rate_limit_oauth_register_global": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Oauth Register Global"
+          },
+          "rate_limit_oauth_token_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Oauth Token Ip"
+          },
+          "rate_limit_oauth_token_global": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Oauth Token Global"
+          },
+          "rate_limit_public_link_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Public Link Ip"
+          },
+          "rate_limit_public_link_global": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Public Link Global"
+          },
+          "rate_limit_public_pin_ip": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Limit Public Pin Ip"
+          }
+        },
+        "type": "object",
+        "required": [
+          "allow_new_orgs",
+          "smtp_configured",
+          "smtp_password_configured",
+          "smtp_tls",
+          "import_enabled",
+          "capture_enabled",
+          "download_proxy_configured",
+          "download_proxy_enabled",
+          "import_audio_bitrate_kbps",
+          "import_max_concurrent",
+          "session_ttl_hours",
+          "task_history_retention_days"
+        ],
+        "title": "InstanceSettingsResponse"
+      },
+      "InstanceSummarizeModelsResponse": {
+        "properties": {
+          "summarize_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Summarize Models"
+          },
+          "default_summarize_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Summarize Model"
+          }
+        },
+        "type": "object",
+        "title": "InstanceSummarizeModelsResponse"
+      },
+      "InstanceTranscribeModelsResponse": {
+        "properties": {
+          "asr_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Asr Models"
+          },
+          "diarization_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Diarization Models"
+          },
+          "dispatchable_pairs": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dispatchable Pairs"
+          },
+          "default_asr_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Asr Model"
+          },
+          "default_diarization_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default Diarization Model"
+          }
+        },
+        "type": "object",
+        "title": "InstanceTranscribeModelsResponse"
+      },
       "InstanceUsageStatsResponse": {
         "properties": {
           "tasks_transcribe_success": {
@@ -8542,6 +9834,155 @@
         ],
         "title": "InstanceUsageStatsResponse"
       },
+      "LegalDocumentVersionDetailResponse": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "published": {
+            "type": "boolean",
+            "title": "Published"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "created_by_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Email"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "text_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text En"
+          },
+          "text_ru": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Ru"
+          },
+          "text_es": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text Es"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "published",
+          "created_at",
+          "key"
+        ],
+        "title": "LegalDocumentVersionDetailResponse"
+      },
+      "LegalDocumentVersionListResponse": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LegalDocumentVersionSummary"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "items"
+        ],
+        "title": "LegalDocumentVersionListResponse"
+      },
+      "LegalDocumentVersionSummary": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "published": {
+            "type": "boolean",
+            "title": "Published"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "created_by_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By User Id"
+          },
+          "created_by_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "published",
+          "created_at"
+        ],
+        "title": "LegalDocumentVersionSummary"
+      },
       "LoginBody": {
         "properties": {
           "email": {
@@ -8560,6 +10001,37 @@
           "password"
         ],
         "title": "LoginBody"
+      },
+      "LoginMfaRequiredResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "mfa_required",
+            "title": "Status",
+            "default": "mfa_required"
+          },
+          "challenge_id": {
+            "type": "string",
+            "title": "Challenge Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "challenge_id"
+        ],
+        "title": "LoginMfaRequiredResponse"
+      },
+      "LoginOkResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok",
+            "title": "Status",
+            "default": "ok"
+          }
+        },
+        "type": "object",
+        "title": "LoginOkResponse"
       },
       "MePatchBody": {
         "properties": {
@@ -8862,6 +10334,68 @@
         ],
         "title": "MfaRecoverBody"
       },
+      "MfaSetupConfirmResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "recovery_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Recovery Codes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recovery_codes"
+        ],
+        "title": "MfaSetupConfirmResponse"
+      },
+      "MfaSetupStartResponse": {
+        "properties": {
+          "secret": {
+            "type": "string",
+            "title": "Secret"
+          },
+          "otpauth_uri": {
+            "type": "string",
+            "title": "Otpauth Uri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "secret",
+          "otpauth_uri"
+        ],
+        "title": "MfaSetupStartResponse"
+      },
+      "MfaStatusResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required"
+          },
+          "enrollment_required": {
+            "type": "boolean",
+            "title": "Enrollment Required"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "required",
+          "enrollment_required"
+        ],
+        "title": "MfaStatusResponse"
+      },
       "MfaVerifyBody": {
         "properties": {
           "challenge_id": {
@@ -9028,6 +10562,60 @@
         "type": "object",
         "title": "OrgCaptureJitsiReplaceBody"
       },
+      "OrgCaptureJitsiResponse": {
+        "properties": {
+          "allowed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed"
+          },
+          "bot_display_name": {
+            "type": "string",
+            "title": "Bot Display Name",
+            "default": ""
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OrgJitsiHostPublic"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "workers": {
+            "items": {
+              "$ref": "#/components/schemas/OrgCaptureWorkerChoice"
+            },
+            "type": "array",
+            "title": "Workers"
+          }
+        },
+        "type": "object",
+        "title": "OrgCaptureJitsiResponse"
+      },
+      "OrgCaptureWorkerChoice": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "OrgCaptureWorkerChoice"
+      },
       "OrgDeleteBody": {
         "properties": {
           "confirm_name": {
@@ -9040,6 +10628,192 @@
           "confirm_name"
         ],
         "title": "OrgDeleteBody"
+      },
+      "OrgJitsiHostPublic": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "host": {
+            "type": "string",
+            "title": "Host"
+          },
+          "jwt_app_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jwt App Id"
+          },
+          "jwt_secret_configured": {
+            "type": "boolean",
+            "title": "Jwt Secret Configured",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "host"
+        ],
+        "title": "OrgJitsiHostPublic"
+      },
+      "OrgLedgerEntry": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "entry_type": {
+            "type": "string",
+            "title": "Entry Type"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          },
+          "usage_amount": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Amount"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "user_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Email"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
+          },
+          "actor_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Email"
+          },
+          "unlimited_skip": {
+            "type": "boolean",
+            "title": "Unlimited Skip"
+          },
+          "audio_sec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Sec"
+          },
+          "summary_chars": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Chars"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "entry_type",
+          "created_at",
+          "amount",
+          "unlimited_skip"
+        ],
+        "title": "OrgLedgerEntry"
+      },
+      "OrgLedgerResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OrgLedgerEntry"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total_spent": {
+            "type": "string",
+            "title": "Total Spent"
+          },
+          "total_topup": {
+            "type": "string",
+            "title": "Total Topup"
+          },
+          "net": {
+            "type": "string",
+            "title": "Net"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total_spent",
+          "total_topup",
+          "net"
+        ],
+        "title": "OrgLedgerResponse"
       },
       "OrgPatch": {
         "properties": {
@@ -9057,6 +10831,104 @@
         },
         "type": "object",
         "title": "OrgPatch"
+      },
+      "OrgPublicLinkItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "summary_id": {
+            "type": "string",
+            "title": "Summary Id"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "pin_required": {
+            "type": "boolean",
+            "title": "Pin Required"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "revoked": {
+            "type": "boolean",
+            "title": "Revoked"
+          },
+          "summary_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Title"
+          },
+          "owner_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Email"
+          },
+          "active": {
+            "type": "boolean",
+            "title": "Active"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "summary_id",
+          "pin_required",
+          "created_at",
+          "revoked",
+          "active"
+        ],
+        "title": "OrgPublicLinkItem"
+      },
+      "OrgPublicLinkListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/OrgPublicLinkItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "OrgPublicLinkListResponse"
       },
       "OrgPublicResponse": {
         "properties": {
@@ -10278,6 +12150,19 @@
         ],
         "title": "SetupBody"
       },
+      "SetupStatusResponse": {
+        "properties": {
+          "bootstrap_done": {
+            "type": "boolean",
+            "title": "Bootstrap Done"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bootstrap_done"
+        ],
+        "title": "SetupStatusResponse"
+      },
       "ShareBody": {
         "properties": {
           "object_type": {
@@ -10566,6 +12451,63 @@
         },
         "type": "object",
         "title": "SmtpTestSendBody"
+      },
+      "SmtpTestSendResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "to": {
+            "type": "string",
+            "title": "To"
+          }
+        },
+        "type": "object",
+        "required": [
+          "to"
+        ],
+        "title": "SmtpTestSendResponse"
+      },
+      "SsoInfoResponse": {
+        "properties": {
+          "org_id": {
+            "type": "string",
+            "title": "Org Id"
+          },
+          "org_name": {
+            "type": "string",
+            "title": "Org Name"
+          },
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "login_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "org_id",
+          "org_name",
+          "configured",
+          "enabled"
+        ],
+        "title": "SsoInfoResponse"
       },
       "SummarizeBody": {
         "properties": {
@@ -12443,6 +14385,356 @@
         "type": "object",
         "title": "WorkerDeleteBody"
       },
+      "WorkerDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "remediation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remediation"
+          },
+          "cleanup": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cleanup"
+          }
+        },
+        "type": "object",
+        "title": "WorkerDeleteResponse"
+      },
+      "WorkerEngineOption": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status"
+        ],
+        "title": "WorkerEngineOption"
+      },
+      "WorkerImpactResponse": {
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "worker": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Worker"
+          },
+          "blocking": {
+            "type": "boolean",
+            "title": "Blocking"
+          },
+          "can_remediate": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Can Remediate"
+          },
+          "remaining_transcribe_workers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Transcribe Workers"
+          },
+          "lost_model_pairs": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Lost Model Pairs"
+          },
+          "available_pairs": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Pairs"
+          },
+          "suggested_replacement": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Replacement"
+          },
+          "instance_defaults_broken": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance Defaults Broken"
+          },
+          "instance_defaults": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instance Defaults"
+          },
+          "affected_users": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Affected Users"
+          },
+          "affected_users_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Affected Users Count"
+          },
+          "affected_tasks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Affected Tasks"
+          },
+          "affected_tasks_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Affected Tasks Count"
+          },
+          "remaining_summarize_workers": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining Summarize Workers"
+          },
+          "last_enabled_worker": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Enabled Worker"
+          },
+          "lost_summarize_models": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lost Summarize Models"
+          },
+          "available_summarize_models": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Summarize Models"
+          },
+          "suggested_summarize_replacement": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Summarize Replacement"
+          },
+          "capture_jitsi_hosts": {
+            "items": {},
+            "type": "array",
+            "title": "Capture Jitsi Hosts"
+          },
+          "capture_jitsi_hosts_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Jitsi Hosts Count"
+          },
+          "capture_tasks_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Tasks Count"
+          },
+          "capture_losing_jitsi": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Losing Jitsi"
+          },
+          "available_capture_workers": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Available Capture Workers"
+          },
+          "suggested_capture_worker": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Capture Worker"
+          }
+        },
+        "type": "object",
+        "required": [
+          "worker",
+          "blocking"
+        ],
+        "title": "WorkerImpactResponse"
+      },
       "WorkerListItem": {
         "properties": {
           "id": {
@@ -12727,6 +15019,77 @@
           "base_url"
         ],
         "title": "WorkerProbeBody"
+      },
+      "WorkerProbeResponse": {
+        "properties": {
+          "authorized": {
+            "type": "boolean",
+            "title": "Authorized"
+          },
+          "health_status": {
+            "type": "integer",
+            "title": "Health Status"
+          },
+          "asr_models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WorkerEngineOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asr Models"
+          },
+          "diarization_models": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WorkerEngineOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diarization Models"
+          },
+          "connectors": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WorkerEngineOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connectors"
+          },
+          "summarize_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summarize Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "authorized",
+          "health_status"
+        ],
+        "title": "WorkerProbeResponse"
       },
       "WorkerPublicResponse": {
         "properties": {

@@ -21,7 +21,7 @@ from app.models import HiddenItem, Membership, Organization, Task, Tariff, User,
 from app.money import parse_money
 from app.presenters import org_public, tariff_public, user_public, worker_public
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
-from app.routers.auth import revoke_user_auth, seed_default_tariff
+from app.services.auth_helpers import revoke_user_auth, seed_default_tariff
 from app.routers.instance._body import (
     AgreementPreviewBody,
     BaseSkillBody,
@@ -60,9 +60,18 @@ from app.services.instance_helpers import (
 from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
+from app.schemas.common import OkStatusResponse
+from app.schemas.instance_orgs import (
+    InstanceOrgCreateResponse,
+    InstanceOrgListResponse,
+    OrgLedgerResponse,
+)
+from app.schemas.me import UserPublic
+from app.schemas.org_api import OrgPublicResponse
+from app.schemas.org_users import OrgUserResetPasswordResponse
 from app.timeutil import utcnow
 
-@router.post("/orgs/{org_id}/wallet")
+@router.post("/orgs/{org_id}/wallet", response_model=OrgPublicResponse)
 def wallet_delta(
     org_id: str,
     body: WalletBody,
@@ -80,18 +89,18 @@ def wallet_delta(
     org.balance = parse_money(Decimal(org.balance) + delta)
     org.updated_at = utcnow()
     write_audit(db, "wallet.delta", ctx, {"org_id": org.id, "delta": str(delta)})
-    return org_public(org)
-@router.get("/orgs")
+    return OrgPublicResponse.model_validate(org_public(org))
+@router.get("/orgs", response_model=InstanceOrgListResponse)
 def list_orgs(
     include_hidden: bool = False,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
     require_instance_admin(ctx)
-    return list_orgs_payload(ctx, db, include_hidden=include_hidden)
+    return InstanceOrgListResponse.model_validate(list_orgs_payload(ctx, db, include_hidden=include_hidden))
 
 
-@router.post("/orgs")
+@router.post("/orgs", response_model=InstanceOrgCreateResponse)
 def create_org(
     body: CreateOrgBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
@@ -137,10 +146,10 @@ def create_org(
     org.tariff = tariff
     payload = org_public(org)
     payload["members"] = [user_public(user, "org_admin")]
-    return payload
+    return InstanceOrgCreateResponse.model_validate(payload)
 
 
-@router.post("/orgs/{org_id}/delete")
+@router.post("/orgs/{org_id}/delete", response_model=OkStatusResponse)
 def delete_org(
     org_id: str,
     body: OrgDeleteBody,
@@ -162,10 +171,10 @@ def delete_org(
         {"org_id": org.id, "name": org.name, "is_personal": org.is_personal},
     )
     delete_organization(db, org)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/orgs/{org_id}/hide")
+@router.post("/orgs/{org_id}/hide", response_model=OkStatusResponse)
 def hide_org(
     org_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
@@ -175,10 +184,10 @@ def hide_org(
         ctx.raise_error(ErrorCode.not_found)
     if not is_hidden(db, ctx.user.id, "org", org.id):
         db.add(HiddenItem(id=new_id(), user_id=ctx.user.id, object_type="org", object_id=org.id))
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/orgs/{org_id}/unhide")
+@router.post("/orgs/{org_id}/unhide", response_model=OkStatusResponse)
 def unhide_org(
     org_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> dict:
@@ -195,10 +204,10 @@ def unhide_org(
     )
     if hidden:
         db.delete(hidden)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.get("/orgs/{org_id}/ledger")
+@router.get("/orgs/{org_id}/ledger", response_model=OrgLedgerResponse)
 def org_ledger_ep(
     org_id: str,
     from_day: str | None = Query(None, alias="from"),
@@ -216,17 +225,19 @@ def org_ledger_ep(
         start, end = parse_org_stats_range(from_day, to_day)
     except ValueError:
         ctx.raise_error(ErrorCode.validation_error)
-    return org_ledger(
-        db,
-        org_id,
-        start=start,
-        end=end,
-        user_id=(user_id or "").strip() or None,
-        kind=(kind or "").strip() or None,
+    return OrgLedgerResponse.model_validate(
+        org_ledger(
+            db,
+            org_id,
+            start=start,
+            end=end,
+            user_id=(user_id or "").strip() or None,
+            kind=(kind or "").strip() or None,
+        )
     )
 
 
-@router.post("/orgs/{org_id}/users/{user_id}/reset-password")
+@router.post("/orgs/{org_id}/users/{user_id}/reset-password", response_model=OrgUserResetPasswordResponse)
 def reset_org_admin_password(
     org_id: str,
     user_id: str,
@@ -250,10 +261,10 @@ def reset_org_admin_password(
     user.updated_at = utcnow()
     revoke_user_auth(db, user.id)
     write_audit(db, "user.password_reset", ctx, {"user_id": user.id, "org_id": org.id})
-    return {"status": "ok", "password": password}
+    return OrgUserResetPasswordResponse(password=password)
 
 
-@router.post("/orgs/{org_id}/users/{user_id}/reset-mfa")
+@router.post("/orgs/{org_id}/users/{user_id}/reset-mfa", response_model=UserPublic)
 def reset_org_user_mfa(
     org_id: str,
     user_id: str,
@@ -280,7 +291,7 @@ def reset_org_user_mfa(
     return user_public(user, membership.role)
 
 
-@router.patch("/orgs/{org_id}/users/{user_id}")
+@router.patch("/orgs/{org_id}/users/{user_id}", response_model=UserPublic)
 def patch_org_user_role(
     org_id: str,
     user_id: str,
@@ -310,10 +321,10 @@ def patch_org_user_role(
         {"user_id": user.id, "org_id": org.id, "role": body.role, "by": "instance_admin"},
     )
     settings = get_instance_settings(db)
-    return user_public(user, membership.role, instance_settings=settings)
+    return UserPublic.model_validate(user_public(user, membership.role, instance_settings=settings))
 
 
-@router.patch("/orgs/{org_id}/tariff")
+@router.patch("/orgs/{org_id}/tariff", response_model=OrgPublicResponse)
 def assign_org_tariff(
     org_id: str,
     body: OrgTariffBody,
@@ -330,4 +341,4 @@ def assign_org_tariff(
     write_audit(db, "org.tariff", ctx, {"org_id": org.id, "tariff_id": tariff.id})
     db.refresh(org)
     org.tariff = tariff
-    return org_public(org)
+    return OrgPublicResponse.model_validate(org_public(org))

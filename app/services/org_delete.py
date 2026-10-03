@@ -24,7 +24,7 @@ from app.models import (
     UsageEvent,
     User,
 )
-from app.routers.auth import revoke_user_auth
+from app.services.auth_helpers import revoke_user_auth
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 
 
