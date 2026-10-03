@@ -7,7 +7,7 @@ import { InlineRename } from '../components/InlineRename'
 import { EntityToolbar } from '../components/EntityToolbar'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
-import type { Skill } from '../types'
+import type { SchemaSkillListResponse, SchemaSkillPublicResponse } from '../openapi'
 import { fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { AppInputField } from '../components/app/AppFormControls'
@@ -19,7 +19,7 @@ import {
   EntityPage,
 } from '../components/app/EntityUi'
 
-function skillPath(skill: Skill): string {
+function skillPath(skill: SchemaSkillPublicResponse): string {
   if (skill.scope === 'base') return `/skills/base/${skill.id}`
   if (skill.scope === 'org') return `/org/skills/${skill.id}`
   return `/skills/self/${skill.id}`
@@ -30,7 +30,7 @@ export function SkillPage() {
   const { t } = useTranslation()
   const { me } = useAuth()
   const nav = useNavigate()
-  const [item, setItem] = useState<Skill | null>(null)
+  const [item, setItem] = useState<SchemaSkillPublicResponse | null>(null)
   const [name, setName] = useState('')
   const [draft, setDraft] = useState('')
   const [editing, setEditing] = useState(false)
@@ -54,8 +54,8 @@ export function SkillPage() {
   async function load() {
     if (!id) return
     const path = hasOrg ? '/skills' : '/skills/base'
-    const catalog = await api<{ items: Skill[] }>(path)
-    const next = catalog.items.find((s) => s.id === id)
+    const catalog = await api<SchemaSkillListResponse>(path)
+    const next = (catalog.items ?? []).find((s) => s.id === id)
     if (!next) {
       setItem(null)
       throw new Error(t('errors.not_found'))
@@ -79,7 +79,7 @@ export function SkillPage() {
     if (!item) return
     setBusy(true)
     try {
-      const next = await api<Skill>(skillPath(item), {
+      const next = await api<SchemaSkillPublicResponse>(skillPath(item), {
         method: 'PATCH',
         body: JSON.stringify({ name, body: draft }),
       })
@@ -102,7 +102,7 @@ export function SkillPage() {
 
   async function copy() {
     if (!item) return
-    const next = await api<Skill>(`/skills/${item.id}/copy`, { method: 'POST' })
+    const next = await api<SchemaSkillPublicResponse>(`/skills/${item.id}/copy`, { method: 'POST' })
     nav(`/app/skill/${next.id}`)
   }
 
@@ -110,7 +110,7 @@ export function SkillPage() {
     if (!item) return
     setBusy(true)
     try {
-      const next = await api<Skill>(skillPath(item), {
+      const next = await api<SchemaSkillPublicResponse>(skillPath(item), {
         method: 'PATCH',
         body: JSON.stringify({ name: nextName, body: item.body }),
       })

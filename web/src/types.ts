@@ -1,12 +1,16 @@
 import type {
+  SchemaCapturePlatformsResponse,
+  SchemaImportPlatformsResponse,
   SchemaInstanceUsageStatsResponse,
   SchemaMeResponse,
   SchemaOrgPublicResponse,
   SchemaOrgSsoAdminResponse,
+  SchemaSkillPublicResponse,
   SchemaTariffDeleteImpactResponse,
   SchemaTariffPublic,
   SchemaUsageStatsResponse,
   SchemaUserPublic,
+  SchemaUserTagBrief,
   SchemaWorkerListItem,
 } from './openapi/contracts'
 
@@ -181,11 +185,7 @@ export type OrgPublicLinkItem = {
   active: boolean
 }
 
-export type UserTag = {
-  id: string
-  name: string
-  usage_count?: number
-}
+export type UserTag = SchemaUserTagBrief
 
 export type LibraryObjectType = 'audio' | 'transcript' | 'summary'
 
@@ -288,19 +288,7 @@ export type Task = {
   audio_filename?: string | null
 }
 
-export type Skill = {
-  id: string
-  scope: string
-  org_id: string | null
-  owner_user_id: string | null
-  name: string
-  body: string
-  created_at: string
-  updated_at: string
-  catalog?: string
-  readonly?: boolean
-  share_kind?: string
-}
+export type Skill = SchemaSkillPublicResponse
 
 export type ApiToken = {
   id: string
@@ -440,12 +428,7 @@ export type PublicImportPlatform = {
   domains: string[]
 }
 
-export type ImportPlatformsResponse = {
-  enabled: boolean
-  platforms: PublicImportPlatform[]
-  download_proxy_required: boolean
-  download_proxy_available: boolean
-}
+export type ImportPlatformsResponse = SchemaImportPlatformsResponse
 
 export type CaptureConnector = {
   id: string
@@ -454,11 +437,7 @@ export type CaptureConnector = {
   status?: string
 }
 
-export type CapturePlatformsResponse = {
-  enabled: boolean
-  connectors: { id: string; label: string }[]
-  jitsi_hosts: string[]
-}
+export type CapturePlatformsResponse = SchemaCapturePlatformsResponse
 
 export type OrgCaptureJitsiHost = {
   id: string

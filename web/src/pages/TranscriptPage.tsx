@@ -12,7 +12,8 @@ import { ListRow } from '../components/ListRow'
 import { ShareDialog } from '../components/ShareDialog'
 import { loadSummarizeSkillIds, saveSummarizeSkillIds } from '../pipeline'
 import { libraryPath } from '../routes'
-import type { Skill, Summary, Task, Transcript } from '../types'
+import type { SchemaSkillListResponse, SchemaSkillPublicResponse } from '../openapi'
+import type { Summary, Task, Transcript } from '../types'
 import { UserTagsEditor } from '../components/UserTagsEditor'
 import { ShareBadges, fmtDate, showError } from '../util'
 import { utteranceDisplayText, utteranceStart, utteranceTimeLabel } from '../util/utteranceMedia'
@@ -34,7 +35,7 @@ import {
   EntityPage,
 } from '../components/app/EntityUi'
 
-function skillNamesForSummary(summary: Summary, skills: Skill[]): string {
+function skillNamesForSummary(summary: Summary, skills: SchemaSkillPublicResponse[]): string {
   const byId = new Map(skills.map((s) => [s.id, s.name]))
   const names = (summary.skill_ids || [])
     .map((sid) => byId.get(sid))
@@ -53,7 +54,7 @@ export function TranscriptPage() {
   const { me } = useAuth()
   const nav = useNavigate()
   const [item, setItem] = useState<Transcript | null>(null)
-  const [skills, setSkills] = useState<Skill[]>([])
+  const [skills, setSkills] = useState<NonNullable<SchemaSkillListResponse['items']>>([])
   const [picked, setPicked] = useState<Record<string, boolean>>({})
   const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
@@ -84,10 +85,10 @@ export function TranscriptPage() {
     if (!id) return
     const [tr, sk] = await Promise.all([
       api<Transcript>(`/transcripts/${id}`),
-      api<{ items: Skill[] }>('/skills'),
+      api<SchemaSkillListResponse>('/skills'),
     ])
     setItem(tr)
-    setSkills(sk.items)
+    setSkills(sk.items ?? [])
   }
 
   useEffect(() => {

@@ -107,3 +107,11 @@ def test_export_openapi_writes_health_path():
     assert deks.get("$ref", "").endswith("/DekListResponse")
     skills = schema["paths"]["/api/v1/skills"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
     assert skills.get("$ref", "").endswith("/SkillListResponse")
+    oauth_meta = schema["paths"]["/.well-known/oauth-authorization-server"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert oauth_meta.get("$ref", "").endswith("/OAuthAuthorizationServerMetadata")
+    oauth_token = schema["paths"]["/oauth/token"]["post"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert oauth_token.get("$ref", "").endswith("/OAuthTokenResponse")
+    assert "OAuthClientRegistrationResponse" in components
+    assert "/oauth/authorize" not in schema.get("paths", {})

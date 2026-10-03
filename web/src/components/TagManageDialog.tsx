@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ApiError, api } from '../api'
 import { normalizeUserTagName, userTagNameErrorKey } from '../constants/userTags'
-import type { UserTag } from '../types'
+import type { SchemaUserTagListResponse } from '../openapi'
 import { showError } from '../util'
 import { AppSubmitButton } from './app/AdminUi'
 import { Button } from '@/components/ui/button'
@@ -17,7 +17,7 @@ type Props = {
 
 export function TagManageDialog({ onClose, onUpdated }: Props) {
   const { t } = useTranslation()
-  const [items, setItems] = useState<UserTag[]>([])
+  const [items, setItems] = useState<NonNullable<SchemaUserTagListResponse['items']>>([])
   const [loading, setLoading] = useState(true)
   const [renameId, setRenameId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
@@ -27,8 +27,8 @@ export function TagManageDialog({ onClose, onUpdated }: Props) {
   async function load() {
     setLoading(true)
     try {
-      const r = await api<{ items: UserTag[] }>('/tags')
-      setItems(r.items)
+      const r = await api<SchemaUserTagListResponse>('/tags')
+      setItems(r.items ?? [])
     } catch (e) {
       showError(e)
     } finally {

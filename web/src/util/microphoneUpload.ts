@@ -9,11 +9,12 @@ import {
   transcribeRequest,
 } from '../pipeline'
 import { libraryPath } from '../routes'
-import type { Audio, Me, Task, UserTag } from '../types'
+import type { SchemaObjectTagsResponse, SchemaUserTagBrief } from '../openapi'
+import type { Audio, Me, Task } from '../types'
 import { showError } from '../util'
 
-export async function tagMicrophoneRecording(audioId: string): Promise<UserTag[]> {
-  const r = await api<{ tags: UserTag[] }>('/object-tags', {
+export async function tagMicrophoneRecording(audioId: string): Promise<SchemaUserTagBrief[]> {
+  const r = await api<SchemaObjectTagsResponse>('/object-tags', {
     method: 'PUT',
     body: JSON.stringify({
       object_type: 'audio',
@@ -21,7 +22,7 @@ export async function tagMicrophoneRecording(audioId: string): Promise<UserTag[]
       tags: [MIC_RECORDING_TAG],
     }),
   })
-  return r.tags
+  return r.tags ?? []
 }
 
 export type MicrophoneUploadProgress = {

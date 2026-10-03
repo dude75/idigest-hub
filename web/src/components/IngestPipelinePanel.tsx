@@ -4,7 +4,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { toneAnalyticsLabelKey } from '../toneAnalytics'
 import { loadPipeline, normalizePipeline, savePipeline, type IngestPipeline } from '../pipeline'
-import type { Skill } from '../types'
+import type { SchemaSkillListResponse } from '../openapi'
 import { showError } from '../util'
 import { AppCheckboxRow } from './app/AppFormControls'
 
@@ -18,11 +18,11 @@ export function IngestPipelinePanel() {
   const { t } = useTranslation()
   const { me } = useAuth()
   const [pipeline, setPipeline] = useState<IngestPipeline>(() => loadPipeline())
-  const [skills, setSkills] = useState<Skill[]>([])
+  const [skills, setSkills] = useState<NonNullable<SchemaSkillListResponse['items']>>([])
 
   useEffect(() => {
-    void api<{ items: Skill[] }>('/skills')
-      .then((r) => setSkills(r.items))
+    void api<SchemaSkillListResponse>('/skills')
+      .then((r) => setSkills(r.items ?? []))
       .catch(showError)
   }, [])
 

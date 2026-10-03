@@ -54,10 +54,24 @@ from app.services.oauth_pages import (
 )
 from app.services.oauth_scopes import scopes_to_string
 from app.services.sso import HUB_OAUTH_AUTH_MODE, begin_org_sso_login, sso_configured
+from app.schemas.oauth_api import (
+    OAuthAuthorizationServerMetadata,
+    OAuthClientRegistrationResponse,
+    OAuthErrorResponse,
+    OAuthJwksResponse,
+    OAuthProtectedResourceMetadata,
+    OAuthTokenResponse,
+)
 
 log = logging.getLogger("app")
 
-router = APIRouter(include_in_schema=False)
+_OAUTH_JSON_ERRORS: dict[int, dict[str, Any]] = {
+    400: {"model": OAuthErrorResponse},
+    404: {"model": OAuthErrorResponse},
+    503: {"model": OAuthErrorResponse},
+}
+
+router = APIRouter()
 
 HUB_AUTH_MODE = HUB_OAUTH_AUTH_MODE
 _OAUTH_ORG_ID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
@@ -76,45 +90,68 @@ def _oauth_rate_limited(exc: ApiError) -> JSONResponse:
     )
 
 
-@router.get("/.well-known/oauth-authorization-server")
-def well_known_authorization_server(db: Session = Depends(get_session, scope="function")) -> JSONResponse:
+@router.get(
+    "/.well-known/oauth-authorization-server",
+    response_model=OAuthAuthorizationServerMetadata,
+    responses=_OAUTH_JSON_ERRORS,
+    include_in_schema=True,
+)
+def well_known_authorization_server(
+    db: Session = Depends(get_session, scope="function"),
+) -> OAuthAuthorizationServerMetadata | JSONResponse:
     if not oauth_provider_enabled():
         return _oauth_disabled()
     metadata = authorization_server_metadata(db)
     if metadata is None:
         return JSONResponse(status_code=503, content={"error": "oauth_misconfigured"})
-    return JSONResponse(metadata)
+    return OAuthAuthorizationServerMetadata.model_validate(metadata)
 
 
-@router.get("/.well-known/jwks.json")
-def well_known_jwks() -> JSONResponse:
+@router.get(
+    "/.well-known/jwks.json",
+    response_model=OAuthJwksResponse,
+    responses={404: {"model": OAuthErrorResponse}},
+    include_in_schema=True,
+)
+def well_known_jwks() -> OAuthJwksResponse | JSONResponse:
     if not oauth_provider_enabled():
         return _oauth_disabled()
-    return JSONResponse(jwks_document())
+    return OAuthJwksResponse.model_validate(jwks_document())
 
 
-@router.get("/.well-known/oauth-protected-resource/mcp")
-def oauth_protected_resource_metadata(db: Session = Depends(get_session, scope="function")) -> JSONResponse:
+@router.get(
+    "/.well-known/oauth-protected-resource/mcp",
+    response_model=OAuthProtectedResourceMetadata,
+    responses={404: {"model": OAuthErrorResponse}},
+    include_in_schema=True,
+)
+def oauth_protected_resource_metadata(
+    db: Session = Depends(get_session, scope="function"),
+) -> OAuthProtectedResourceMetadata | JSONResponse:
     if not provider_ready(db):
         return JSONResponse(status_code=404, content={"error": "oauth_disabled"})
     resource = mcp_resource_url(db=db)
     issuer = public_base_url(db)
     assert resource and issuer
-    return JSONResponse(
-        {
-            "resource": resource,
-            "authorization_servers": [issuer],
-            "scopes_supported": sorted(SUPPORTED_SCOPES),
-            "bearer_methods_supported": ["header"],
-        }
+    return OAuthProtectedResourceMetadata(
+        resource=resource,
+        authorization_servers=[issuer],
+        scopes_supported=sorted(SUPPORTED_SCOPES),
+        bearer_methods_supported=["header"],
     )
 
 
-@router.post("/oauth/register")
+@router.post(
+    "/oauth/register",
+    status_code=201,
+    response_model=OAuthClientRegistrationResponse,
+    responses={400: {"model": OAuthErrorResponse}, 503: {"model": OAuthErrorResponse}},
+    include_in_schema=True,
+)
 async def oauth_dynamic_client_registration(
     request: Request,
     db: Session = Depends(get_session, scope="function"),
-) -> JSONResponse:
+) -> OAuthClientRegistrationResponse | JSONResponse:
     if not provider_ready(db):
         return JSONResponse(status_code=503, content={"error": "oauth_misconfigured"})
     try:
@@ -132,25 +169,23 @@ async def oauth_dynamic_client_registration(
         db.commit()
     except ValueError as exc:
         return JSONResponse(status_code=400, content={"error": str(exc)})
-    payload: dict[str, Any] = {
-        "client_id": client.client_id,
-        "client_name": client.client_name,
-        "redirect_uris": client.redirect_uris_json,
-        "grant_types": client.grant_types_json,
-        "response_types": client.response_types_json,
-        "token_endpoint_auth_method": client.token_endpoint_auth_method,
-        "client_id_issued_at": int(client.created_at.timestamp()),
-    }
-    if raw_secret:
-        payload["client_secret"] = raw_secret
-    return JSONResponse(status_code=201, content=payload)
+    return OAuthClientRegistrationResponse(
+        client_id=client.client_id,
+        client_name=client.client_name,
+        redirect_uris=client.redirect_uris_json,
+        grant_types=client.grant_types_json,
+        response_types=client.response_types_json,
+        token_endpoint_auth_method=client.token_endpoint_auth_method,
+        client_id_issued_at=int(client.created_at.timestamp()),
+        client_secret=raw_secret,
+    )
 
 
 def _authorize_query(request: Request) -> dict[str, str]:
     return {key: value for key, value in request.query_params.items()}
 
 
-@router.get("/oauth/authorize")
+@router.get("/oauth/authorize", include_in_schema=False)
 def oauth_authorize_get(
     request: Request,
     db: Session = Depends(get_session, scope="function"),
@@ -230,7 +265,7 @@ def _decode_oauth_params(raw: str) -> dict[str, str]:
     return {k: v[0] for k, v in parse_qs(decoded, keep_blank_values=True).items()}
 
 
-@router.post("/oauth/authorize")
+@router.post("/oauth/authorize", include_in_schema=False)
 def oauth_authorize_confirm(
     request: Request,
     oauth_params: str = Form(""),
@@ -452,7 +487,7 @@ def _begin_oauth_sso(
     )
 
 
-@router.get("/oauth/sso/start")
+@router.get("/oauth/sso/start", include_in_schema=False)
 def oauth_sso_start_get(
     request: Request,
     org_id: str = "",
@@ -474,7 +509,7 @@ def oauth_sso_start_get(
     return _begin_oauth_sso(request, db, org_id=org_id, oauth_params=oauth_params)
 
 
-@router.post("/oauth/sso")
+@router.post("/oauth/sso", include_in_schema=False)
 def oauth_sso_start_post(
     request: Request,
     org_id: str = Form(""),
@@ -496,7 +531,7 @@ def oauth_sso_start_post(
     return _begin_oauth_sso(request, db, org_id=org_id, oauth_params=oauth_params)
 
 
-@router.post("/oauth/login")
+@router.post("/oauth/login", include_in_schema=False)
 def oauth_login(
     request: Request,
     email: str = Form(""),
@@ -535,11 +570,16 @@ def oauth_login(
     return redirect
 
 
-@router.post("/oauth/token")
+@router.post(
+    "/oauth/token",
+    response_model=OAuthTokenResponse,
+    responses={400: {"model": OAuthErrorResponse}, 503: {"model": OAuthErrorResponse}},
+    include_in_schema=True,
+)
 async def oauth_token(
     request: Request,
     db: Session = Depends(get_session, scope="function"),
-) -> JSONResponse:
+) -> OAuthTokenResponse | JSONResponse:
     if not provider_ready(db):
         return JSONResponse(status_code=503, content={"error": "oauth_misconfigured"})
     try:
@@ -574,4 +614,4 @@ async def oauth_token(
     except ValueError as exc:
         db.rollback()
         return JSONResponse(status_code=400, content={"error": str(exc)})
-    return JSONResponse(result)
+    return OAuthTokenResponse.model_validate(result)

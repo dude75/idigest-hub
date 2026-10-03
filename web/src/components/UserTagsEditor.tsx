@@ -6,7 +6,8 @@ import {
   normalizeUserTagName,
   userTagNameErrorKey,
 } from '../constants/userTags'
-import type { LibraryObjectType, UserTag } from '../types'
+import type { SchemaObjectTagsResponse, SchemaUserTagListResponse, SchemaUserTagBrief } from '../openapi'
+import type { LibraryObjectType } from '../types'
 import { showError } from '../util'
 import { AppSelect } from './app/AppSelect'
 import { UserTagChipAssigned } from './UserTagChip'
@@ -16,15 +17,15 @@ import { Input } from '@/components/ui/input'
 type Props = {
   objectType: LibraryObjectType
   objectId: string
-  tags: UserTag[]
-  onChange: (tags: UserTag[]) => void
+  tags: SchemaUserTagBrief[]
+  onChange: (tags: SchemaUserTagBrief[]) => void
 }
 
 export function UserTagsEditor({ objectType, objectId, tags, onChange }: Props) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState('')
   const [pickId, setPickId] = useState('')
-  const [catalog, setCatalog] = useState<UserTag[]>([])
+  const [catalog, setCatalog] = useState<NonNullable<SchemaUserTagListResponse['items']>>([])
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -34,9 +35,9 @@ export function UserTagsEditor({ objectType, objectId, tags, onChange }: Props) 
 
   useEffect(() => {
     let stop = false
-    void api<{ items: UserTag[] }>('/tags')
+    void api<SchemaUserTagListResponse>('/tags')
       .then((r) => {
-        if (!stop) setCatalog(r.items)
+        if (!stop) setCatalog(r.items ?? [])
       })
       .catch(showError)
     return () => {
@@ -78,13 +79,13 @@ export function UserTagsEditor({ objectType, objectId, tags, onChange }: Props) 
     if (!cleaned) return
     setBusy(true)
     try {
-      const r = await api<{ tags: UserTag[] }>('/object-tags', {
+      const r = await api<SchemaObjectTagsResponse>('/object-tags', {
         method: 'PUT',
         body: JSON.stringify({ object_type: objectType, object_id: objectId, tags: cleaned }),
       })
-      onChange(r.tags)
-      const refreshed = await api<{ items: UserTag[] }>('/tags')
-      setCatalog(refreshed.items)
+      onChange(r.tags ?? [])
+      const refreshed = await api<SchemaUserTagListResponse>('/tags')
+      setCatalog(refreshed.items ?? [])
     } catch (e) {
       showError(e)
     } finally {

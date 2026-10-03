@@ -10,7 +10,7 @@ import { ListSection } from '../components/app/EntityUi'
 import { ListRow } from '../components/ListRow'
 import { StatCard, StatGrid } from '../components/StatCard'
 import { Tabs } from '../components/Tabs'
-import type { Skill } from '../types'
+import type { SchemaSkillListResponse, SchemaSkillPublicResponse } from '../openapi'
 import { fmtDate, formatInteger, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { AppInputField, AppPageSizeField } from '../components/app/AppFormControls'
@@ -21,11 +21,15 @@ const FILTERS = ['all', 'base', 'org', 'self', 'shared'] as const
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
 
-function skillBucket(skill: Skill): string {
+function skillBucket(skill: SchemaSkillPublicResponse): string {
   return skill.catalog || skill.scope
 }
 
-function skillScopeLabel(scope: string, catalog: string | undefined, t: (key: string) => string): string {
+function skillScopeLabel(
+  scope: string,
+  catalog: string | null | undefined,
+  t: (key: string) => string,
+): string {
   if (catalog === 'shared' || scope === 'shared') return t('skills.shared')
   if (scope === 'base') return t('skills.base')
   if (scope === 'org') return t('skills.org')
@@ -36,7 +40,7 @@ function skillScopeLabel(scope: string, catalog: string | undefined, t: (key: st
 export function SkillsPage() {
   const { t } = useTranslation()
   const { me } = useAuth()
-  const [allItems, setAllItems] = useState<Skill[]>([])
+  const [allItems, setAllItems] = useState<NonNullable<SchemaSkillListResponse['items']>>([])
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('all')
   const [name, setName] = useState('')
   const [body, setBody] = useState('')
@@ -49,8 +53,8 @@ export function SkillsPage() {
   const hasOrg = Boolean(me?.org)
 
   async function load() {
-    const r = await api<{ items: Skill[] }>('/skills')
-    setAllItems(r.items)
+    const r = await api<SchemaSkillListResponse>('/skills')
+    setAllItems(r.items ?? [])
   }
 
   useEffect(() => {

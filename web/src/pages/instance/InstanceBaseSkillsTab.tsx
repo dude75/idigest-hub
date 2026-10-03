@@ -7,7 +7,7 @@ import { AdminTablePager } from '../../components/app/AdminDataTable'
 import { ListSection } from '../../components/app/EntityUi'
 import { ListRow } from '../../components/ListRow'
 import { StatCard, StatGrid } from '../../components/StatCard'
-import type { Skill } from '../../types'
+import type { SchemaSkillListResponse } from '../../openapi'
 import { fmtDate, formatInteger, showError } from '../../util'
 import { Button } from '@/components/ui/button'
 import { AppInputField, AppPageSizeField } from '../../components/app/AppFormControls'
@@ -19,7 +19,7 @@ type PageSize = (typeof PAGE_SIZES)[number]
 
 export function InstanceBaseSkillsTab() {
   const { t } = useTranslation()
-  const [skills, setSkills] = useState<Skill[]>([])
+  const [skills, setSkills] = useState<NonNullable<SchemaSkillListResponse['items']>>([])
   const [sname, setSname] = useState('')
   const [sbody, setSbody] = useState('')
   const [formOpen, setFormOpen] = useState(false)
@@ -42,7 +42,7 @@ export function InstanceBaseSkillsTab() {
 
   async function load() {
     try {
-      setSkills((await api<{ items: Skill[] }>('/skills/base')).items)
+      setSkills((await api<SchemaSkillListResponse>('/skills/base')).items ?? [])
     } catch (e) {
       showError(e)
     }

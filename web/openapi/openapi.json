@@ -49,6 +49,226 @@
         ]
       }
     },
+    "/.well-known/oauth-authorization-server": {
+      "get": {
+        "summary": "Well Known Authorization Server",
+        "operationId": "well_known_authorization_server__well_known_oauth_authorization_server_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthAuthorizationServerMetadata"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/.well-known/jwks.json": {
+      "get": {
+        "summary": "Well Known Jwks",
+        "operationId": "well_known_jwks__well_known_jwks_json_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthJwksResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/.well-known/oauth-protected-resource/mcp": {
+      "get": {
+        "summary": "Oauth Protected Resource Metadata",
+        "operationId": "oauth_protected_resource_metadata__well_known_oauth_protected_resource_mcp_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthProtectedResourceMetadata"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/oauth/register": {
+      "post": {
+        "summary": "Oauth Dynamic Client Registration",
+        "operationId": "oauth_dynamic_client_registration_oauth_register_post",
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthClientRegistrationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/oauth/token": {
+      "post": {
+        "summary": "Oauth Token",
+        "operationId": "oauth_token_oauth_token_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthTokenResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/me": {
       "get": {
         "summary": "Me",
@@ -10618,6 +10838,240 @@
           "code"
         ],
         "title": "MfaVerifyBody"
+      },
+      "OAuthAuthorizationServerMetadata": {
+        "properties": {
+          "issuer": {
+            "type": "string",
+            "title": "Issuer"
+          },
+          "authorization_endpoint": {
+            "type": "string",
+            "title": "Authorization Endpoint"
+          },
+          "token_endpoint": {
+            "type": "string",
+            "title": "Token Endpoint"
+          },
+          "registration_endpoint": {
+            "type": "string",
+            "title": "Registration Endpoint"
+          },
+          "jwks_uri": {
+            "type": "string",
+            "title": "Jwks Uri"
+          },
+          "response_types_supported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Response Types Supported"
+          },
+          "grant_types_supported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Grant Types Supported"
+          },
+          "code_challenge_methods_supported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Code Challenge Methods Supported"
+          },
+          "token_endpoint_auth_methods_supported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Token Endpoint Auth Methods Supported"
+          },
+          "scopes_supported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scopes Supported"
+          }
+        },
+        "type": "object",
+        "required": [
+          "issuer",
+          "authorization_endpoint",
+          "token_endpoint",
+          "registration_endpoint",
+          "jwks_uri",
+          "response_types_supported",
+          "grant_types_supported",
+          "code_challenge_methods_supported",
+          "token_endpoint_auth_methods_supported",
+          "scopes_supported"
+        ],
+        "title": "OAuthAuthorizationServerMetadata"
+      },
+      "OAuthClientRegistrationResponse": {
+        "properties": {
+          "client_id": {
+            "type": "string",
+            "title": "Client Id"
+          },
+          "client_name": {
+            "type": "string",
+            "title": "Client Name"
+          },
+          "redirect_uris": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Redirect Uris"
+          },
+          "grant_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Grant Types"
+          },
+          "response_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Response Types"
+          },
+          "token_endpoint_auth_method": {
+            "type": "string",
+            "title": "Token Endpoint Auth Method"
+          },
+          "client_id_issued_at": {
+            "type": "integer",
+            "title": "Client Id Issued At"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Secret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "client_id",
+          "client_name",
+          "redirect_uris",
+          "grant_types",
+          "response_types",
+          "token_endpoint_auth_method",
+          "client_id_issued_at"
+        ],
+        "title": "OAuthClientRegistrationResponse"
+      },
+      "OAuthErrorResponse": {
+        "properties": {
+          "error": {
+            "type": "string",
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "title": "OAuthErrorResponse"
+      },
+      "OAuthJwksResponse": {
+        "properties": {
+          "keys": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Keys"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "OAuthJwksResponse"
+      },
+      "OAuthProtectedResourceMetadata": {
+        "properties": {
+          "resource": {
+            "type": "string",
+            "title": "Resource"
+          },
+          "authorization_servers": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Authorization Servers"
+          },
+          "scopes_supported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scopes Supported"
+          },
+          "bearer_methods_supported": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Bearer Methods Supported"
+          }
+        },
+        "type": "object",
+        "required": [
+          "resource",
+          "authorization_servers",
+          "scopes_supported",
+          "bearer_methods_supported"
+        ],
+        "title": "OAuthProtectedResourceMetadata"
+      },
+      "OAuthTokenResponse": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type",
+          "expires_in",
+          "refresh_token",
+          "scope"
+        ],
+        "title": "OAuthTokenResponse"
       },
       "ObjectTagsBody": {
         "properties": {

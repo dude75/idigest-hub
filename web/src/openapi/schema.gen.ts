@@ -38,6 +38,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/.well-known/oauth-authorization-server": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Well Known Authorization Server */
+        get: operations["well_known_authorization_server__well_known_oauth_authorization_server_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/.well-known/jwks.json": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Well Known Jwks */
+        get: operations["well_known_jwks__well_known_jwks_json_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/.well-known/oauth-protected-resource/mcp": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Oauth Protected Resource Metadata */
+        get: operations["oauth_protected_resource_metadata__well_known_oauth_protected_resource_mcp_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oauth Dynamic Client Registration */
+        post: operations["oauth_dynamic_client_registration_oauth_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/oauth/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oauth Token */
+        post: operations["oauth_token_oauth_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me": {
         parameters: {
             query?: never;
@@ -3150,6 +3235,86 @@ export interface components {
             /** Code */
             code: string;
         };
+        /** OAuthAuthorizationServerMetadata */
+        OAuthAuthorizationServerMetadata: {
+            /** Issuer */
+            issuer: string;
+            /** Authorization Endpoint */
+            authorization_endpoint: string;
+            /** Token Endpoint */
+            token_endpoint: string;
+            /** Registration Endpoint */
+            registration_endpoint: string;
+            /** Jwks Uri */
+            jwks_uri: string;
+            /** Response Types Supported */
+            response_types_supported: string[];
+            /** Grant Types Supported */
+            grant_types_supported: string[];
+            /** Code Challenge Methods Supported */
+            code_challenge_methods_supported: string[];
+            /** Token Endpoint Auth Methods Supported */
+            token_endpoint_auth_methods_supported: string[];
+            /** Scopes Supported */
+            scopes_supported: string[];
+        };
+        /** OAuthClientRegistrationResponse */
+        OAuthClientRegistrationResponse: {
+            /** Client Id */
+            client_id: string;
+            /** Client Name */
+            client_name: string;
+            /** Redirect Uris */
+            redirect_uris: string[];
+            /** Grant Types */
+            grant_types: string[];
+            /** Response Types */
+            response_types: string[];
+            /** Token Endpoint Auth Method */
+            token_endpoint_auth_method: string;
+            /** Client Id Issued At */
+            client_id_issued_at: number;
+            /** Client Secret */
+            client_secret?: string | null;
+        };
+        /** OAuthErrorResponse */
+        OAuthErrorResponse: {
+            /** Error */
+            error: string;
+        };
+        /** OAuthJwksResponse */
+        OAuthJwksResponse: {
+            /** Keys */
+            keys?: {
+                [key: string]: unknown;
+            }[];
+        } & {
+            [key: string]: unknown;
+        };
+        /** OAuthProtectedResourceMetadata */
+        OAuthProtectedResourceMetadata: {
+            /** Resource */
+            resource: string;
+            /** Authorization Servers */
+            authorization_servers: string[];
+            /** Scopes Supported */
+            scopes_supported: string[];
+            /** Bearer Methods Supported */
+            bearer_methods_supported: string[];
+        };
+        /** OAuthTokenResponse */
+        OAuthTokenResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Token Type */
+            token_type: string;
+            /** Expires In */
+            expires_in: number;
+            /** Refresh Token */
+            refresh_token: string;
+            /** Scope */
+            scope: string;
+        };
         /** ObjectTagsBody */
         ObjectTagsBody: {
             /** Object Type */
@@ -4816,6 +4981,187 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+        };
+    };
+    well_known_authorization_server__well_known_oauth_authorization_server_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthAuthorizationServerMetadata"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthErrorResponse"];
+                };
+            };
+        };
+    };
+    well_known_jwks__well_known_jwks_json_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthJwksResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthErrorResponse"];
+                };
+            };
+        };
+    };
+    oauth_protected_resource_metadata__well_known_oauth_protected_resource_mcp_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthProtectedResourceMetadata"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthErrorResponse"];
+                };
+            };
+        };
+    };
+    oauth_dynamic_client_registration_oauth_register_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthClientRegistrationResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthErrorResponse"];
+                };
+            };
+        };
+    };
+    oauth_token_oauth_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthTokenResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthErrorResponse"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthErrorResponse"];
                 };
             };
         };

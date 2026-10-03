@@ -31,6 +31,8 @@ export type {
   SchemaCapturePlatformsResponse,
   SchemaImportPlatformsResponse,
   SchemaUserTagListResponse,
+  SchemaUserTagBrief,
+  SchemaObjectTagsResponse,
   SchemaPublicSummaryResponse,
   SchemaAudioCreatedResponse,
   SchemaOkStatusResponse,

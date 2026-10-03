@@ -55,6 +55,14 @@ export type SchemaSkillPublicResponse = components['schemas']['SkillPublicRespon
 export type SchemaCapturePlatformsResponse = components['schemas']['CapturePlatformsResponse']
 export type SchemaImportPlatformsResponse = components['schemas']['ImportPlatformsResponse']
 export type SchemaUserTagListResponse = components['schemas']['UserTagListResponse']
+export type SchemaUserTagBrief = components['schemas']['UserTagBrief']
+export type SchemaObjectTagsResponse = components['schemas']['ObjectTagsResponse']
+
+/** OpenAPI-aligned aliases used across library/skills UI. */
+export type UserTag = SchemaUserTagBrief
+export type Skill = SchemaSkillPublicResponse
+export type ImportPlatformsResponse = SchemaImportPlatformsResponse
+export type CapturePlatformsResponse = SchemaCapturePlatformsResponse
 export type SchemaPublicSummaryResponse = components['schemas']['PublicSummaryResponse']
 export type SchemaAudioCreatedResponse = components['schemas']['AudioCreatedResponse']
 

@@ -2,22 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiUpload } from '../api'
-import type { SchemaOrgUserListResponse } from '../openapi'
+import type {
+  SchemaCapturePlatformsResponse,
+  SchemaImportPlatformsResponse,
+  SchemaOrgUserListResponse,
+  SchemaUserTagListResponse,
+} from '../openapi'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
 import { Button } from '@/components/ui/button'
 import { AppCheckboxRow, AppInputField, AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
 import { allOption, pageSizeOptions } from '../components/app/selectOptions'
-import type {
-  Audio,
-  CapturePlatformsResponse,
-  ImportPlatformsResponse,
-  Summary,
-  Task,
-  Transcript,
-  User,
-  UserTag,
-} from '../types'
+import type { Audio, Summary, Task, Transcript, User } from '../types'
 import { AppStackCard } from '../components/AdminSection'
 import { AdminTablePager } from '../components/app/AdminDataTable'
 import { AppHoverHint } from '../components/app/AppHoverHint'
@@ -74,10 +70,10 @@ export function LibraryPage() {
     video: boolean
   } | null>(null)
   const [importUrl, setImportUrl] = useState('')
-  const [importPlatforms, setImportPlatforms] = useState<ImportPlatformsResponse | null>(null)
+  const [importPlatforms, setImportPlatforms] = useState<SchemaImportPlatformsResponse | null>(null)
   const [capturePin, setCapturePin] = useState('')
-  const [capturePlatforms, setCapturePlatforms] = useState<CapturePlatformsResponse | null>(null)
-  const [userTags, setUserTags] = useState<UserTag[]>([])
+  const [capturePlatforms, setCapturePlatforms] = useState<SchemaCapturePlatformsResponse | null>(null)
+  const [userTags, setUserTags] = useState<NonNullable<SchemaUserTagListResponse['items']>>([])
   const [manageTagsOpen, setManageTagsOpen] = useState(false)
   const [recordOpen, setRecordOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -102,8 +98,8 @@ export function LibraryPage() {
 
   async function loadUserTags() {
     try {
-      const r = await api<{ items: UserTag[] }>('/tags')
-      setUserTags(r.items)
+      const r = await api<SchemaUserTagListResponse>('/tags')
+      setUserTags(r.items ?? [])
     } catch (e) {
       showError(e)
     }
@@ -202,7 +198,7 @@ export function LibraryPage() {
     let cancelled = false
     async function loadPlatforms() {
       try {
-        const data = await api<ImportPlatformsResponse>('/import/platforms')
+        const data = await api<SchemaImportPlatformsResponse>('/import/platforms')
         if (!cancelled) setImportPlatforms(data)
       } catch (e) {
         if (!cancelled) showError(e)
@@ -221,7 +217,7 @@ export function LibraryPage() {
     let cancelled = false
     async function loadCapturePlatforms() {
       try {
-        const data = await api<CapturePlatformsResponse>('/capture/platforms')
+        const data = await api<SchemaCapturePlatformsResponse>('/capture/platforms')
         if (!cancelled) setCapturePlatforms(data)
       } catch (e) {
         if (!cancelled) showError(e)
@@ -477,12 +473,12 @@ export function LibraryPage() {
             </Button>
           </AppHoverHint>
         </div>
-        {importEnabled && importPlatforms && (proxyBlocked || importPlatforms.platforms.length > 0) && (
+        {importEnabled && importPlatforms && (proxyBlocked || (importPlatforms.platforms ?? []).length > 0) && (
           <p className={proxyBlocked ? 'err library-ingest-hint' : 'muted library-ingest-hint'}>
             {proxyBlocked
               ? t('library.proxyUnavailable')
               : t('library.importHint', {
-                  platforms: importPlatforms.platforms.map((p) => p.label).join(' · '),
+                  platforms: (importPlatforms.platforms ?? []).map((p) => p.label).join(' · '),
                 })}
           </p>
         )}
