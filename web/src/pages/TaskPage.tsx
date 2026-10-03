@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
@@ -8,40 +8,11 @@ import { isOrgAdmin, useAuth } from '../auth'
 import { EntityDetailCard, EntityPage } from '../components/app/EntityUi'
 import { Button } from '@/components/ui/button'
 import { CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  endPipelineRun,
-  initialTaskFromNav,
-  type PipelineNavState,
-} from '../pipeline'
+import { endPipelineRun, initialTaskFromNav, type PipelineNavState } from '../pipeline'
 import { isTaskMissingWorkerForModels, isTaskWaitingOnWorkers, taskStageLabel } from '../taskStage'
+import { useTaskPoll } from '../hooks/useTaskPoll'
+import { redirectAfterTaskSuccess } from '../taskPoll'
 import { showError, taskErrorDetail, taskErrorMessage, taskIsRetriable, taskYoutubeClientsTried } from '../util'
-
-const POLL_MS = 1500
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms)
-  })
-}
-
-function followUpTaskId(task: Task): string | null {
-  const id = task.meta?.follow_up_task_id
-  return typeof id === 'string' && id.length > 0 ? id : null
-}
-
-function redirectAfterSuccess(task: Task, nav: ReturnType<typeof useNavigate>) {
-  if (task.summary_id) {
-    nav(`/app/summary/${task.summary_id}`, { replace: true })
-    return
-  }
-  if ((task.type === 'import' || task.type === 'capture') && task.audio_id) {
-    nav(`/app/audio/${task.audio_id}`, { replace: true })
-    return
-  }
-  if (task.transcript_id) {
-    nav(`/app/transcript/${task.transcript_id}`, { replace: true })
-  }
-}
 
 export function TaskPage() {
   const { id } = useParams<{ id: string }>()
@@ -50,50 +21,21 @@ export function TaskPage() {
   const { t } = useTranslation()
   const { me } = useAuth()
   const nav = useNavigate()
-  const [task, setTask] = useState<Task | null>(() => initialTaskFromNav(navState, id))
   const admin = isOrgAdmin(me)
+  const [pollGeneration, setPollGeneration] = useState(0)
 
-  useEffect(() => {
-    if (!id) return
-    let stop = false
-
-    async function waitForTask(taskId: string): Promise<Task | null> {
-      while (!stop) {
-        const next = await api<Task>(`/tasks/${taskId}`)
-        if (stop) return null
-        setTask(next)
-        if (next.status !== 'queued' && next.status !== 'running') return next
-        await sleep(POLL_MS)
-      }
-      return null
-    }
-
-    async function run() {
-      const taskId = id
-      if (!taskId) return
-      let current = await waitForTask(taskId)
-      if (!current || stop) return
-
-      while (current && current.status === 'success' && !stop) {
-        const nextId = followUpTaskId(current)
-        if (!nextId) break
-        current = await waitForTask(nextId)
-      }
-
-      if (!current || stop || current.status !== 'success') return
-
+  const { task, setTask } = useTaskPoll({
+    taskId: id,
+    enabled: Boolean(id),
+    initialTask: initialTaskFromNav(navState, id) ?? null,
+    followUpChain: true,
+    generation: pollGeneration,
+    errorToastId: 'task-poll',
+    onSuccess: (finished) => {
       endPipelineRun()
-      redirectAfterSuccess(current, nav)
-    }
-
-    void run().catch((e) => {
-      if (!stop) showError(e, { id: 'task-poll' })
-    })
-
-    return () => {
-      stop = true
-    }
-  }, [id, nav])
+      redirectAfterTaskSuccess(finished, nav)
+    },
+  })
 
   async function stopCapture() {
     if (!id) return
@@ -121,6 +63,7 @@ export function TaskPage() {
     try {
       const next = await api<Task>(`/tasks/${id}/retry`, { method: 'POST' })
       setTask(next)
+      setPollGeneration((g) => g + 1)
     } catch (e) {
       showError(e)
     }

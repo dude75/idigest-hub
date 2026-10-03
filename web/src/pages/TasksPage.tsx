@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
@@ -19,15 +19,10 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
 import { allOption, pageSizeOptions } from '../components/app/selectOptions'
+import { useTasksListPoll, type DoneStatusFilter } from '../hooks/useTasksListPoll'
 
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
-
-type TaskListResponse = {
-  active: Task[]
-  done: Task[]
-  done_total: number
-}
 
 function taskHref(task: Task): string {
   if (task.status === 'success' && (task.type === 'import' || task.type === 'capture') && task.audio_id) {
@@ -36,24 +31,6 @@ function taskHref(task: Task): string {
   if (task.status === 'success' && task.transcript_id) return `/app/transcript/${task.transcript_id}`
   if (task.status === 'success' && task.summary_id) return `/app/summary/${task.summary_id}`
   return `/app/task/${task.task_id}`
-}
-
-type DoneStatusFilter = '' | 'success' | 'error'
-
-function tasksPath(
-  orgId: string,
-  userId: string,
-  status: DoneStatusFilter,
-  doneOffset: number,
-  pageSize: PageSize,
-): string {
-  const q = new URLSearchParams()
-  if (orgId) q.set('org_id', orgId)
-  if (userId) q.set('user_id', userId)
-  if (status) q.set('status', status)
-  q.set('done_limit', String(pageSize))
-  q.set('done_offset', String(doneOffset))
-  return `/tasks?${q.toString()}`
 }
 
 function uniqueUsers(orgs: Org[], orgId: string): User[] {
@@ -73,9 +50,6 @@ function uniqueUsers(orgs: Org[], orgId: string): User[] {
 export function TasksPage() {
   const { t } = useTranslation()
   const { me } = useAuth()
-  const [active, setActive] = useState<Task[]>([])
-  const [done, setDone] = useState<Task[]>([])
-  const [doneTotal, setDoneTotal] = useState(0)
   const [pageSize, setPageSize] = useState<PageSize>(10)
   const [page, setPage] = useState(0)
   const [orgs, setOrgs] = useState<Org[]>([])
@@ -85,7 +59,6 @@ export function TasksPage() {
   const [statusFilter, setStatusFilter] = useState<DoneStatusFilter>('')
   const [confirmPurge, setConfirmPurge] = useState(false)
   const [purgeBusy, setPurgeBusy] = useState(false)
-  const fetchSeq = useRef(0)
   const instance = isInstanceAdmin(me)
   const admin = isOrgAdmin(me)
   const showOwner = instance || admin
@@ -97,25 +70,17 @@ export function TasksPage() {
     return [...orgUsers].sort((a, b) => a.email.localeCompare(b.email))
   }, [instance, orgs, orgId, orgUsers])
 
-  const doneOffset = page * pageSize
+  const { active, done, doneTotal, safePage, reload } = useTasksListPoll({
+    orgId,
+    userId,
+    statusFilter,
+    pageSize,
+    page,
+  })
+
   const pageCount = Math.max(1, Math.ceil(doneTotal / pageSize))
-  const safePage = Math.min(page, pageCount - 1)
   const from = doneTotal === 0 ? 0 : safePage * pageSize + 1
   const to = Math.min(doneTotal, (safePage + 1) * pageSize)
-
-  async function load(offset = doneOffset, size: PageSize = pageSize) {
-    const seq = ++fetchSeq.current
-    try {
-      const r = await api<TaskListResponse>(tasksPath(orgId, userId, statusFilter, offset, size))
-      if (seq !== fetchSeq.current) return
-      setActive(r.active)
-      setDone(r.done)
-      setDoneTotal(r.done_total)
-    } catch (e) {
-      if (seq !== fetchSeq.current) return
-      showError(e)
-    }
-  }
 
   useEffect(() => {
     if (!showFilters) return
@@ -139,39 +104,10 @@ export function TasksPage() {
     }
   }, [instance, showFilters])
 
-  useEffect(() => {
-    let stop = false
-    let timer = 0
-    const offset = safePage * pageSize
-
-    async function tick() {
-      if (stop) return
-      const seq = ++fetchSeq.current
-      try {
-        const r = await api<TaskListResponse>(tasksPath(orgId, userId, statusFilter, offset, pageSize))
-        if (stop || seq !== fetchSeq.current) return
-        setActive(r.active)
-        setDone(r.done)
-        setDoneTotal(r.done_total)
-        timer = window.setTimeout(() => { void tick() }, r.active.length > 0 ? 1500 : 8000)
-      } catch (e) {
-        if (!stop && seq === fetchSeq.current) {
-          showError(e, { id: 'tasks-poll' })
-          timer = window.setTimeout(() => { void tick() }, 8000)
-        }
-      }
-    }
-    void tick()
-    return () => {
-      stop = true
-      window.clearTimeout(timer)
-    }
-  }, [orgId, userId, statusFilter, pageSize, safePage])
-
   async function cancel(id: string) {
     try {
       await api(`/tasks/${id}`, { method: 'DELETE' })
-      await load()
+      await reload()
     } catch (e) {
       showError(e)
     }
@@ -180,7 +116,7 @@ export function TasksPage() {
   async function retry(id: string) {
     try {
       await api(`/tasks/${id}/retry`, { method: 'POST' })
-      await load()
+      await reload()
     } catch (e) {
       showError(e)
     }
@@ -197,7 +133,7 @@ export function TasksPage() {
       await api<{ deleted: number }>(suffix ? `/tasks/purge?${suffix}` : '/tasks/purge', { method: 'POST' })
       setConfirmPurge(false)
       setPage(0)
-      await load(0, pageSize)
+      await reload(0, pageSize)
     } catch (e) {
       showError(e)
     } finally {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
+import { useTaskPoll } from '../hooks/useTaskPoll'
 import { isOrgAdmin, useAuth } from '../auth'
 import { AudioPlayer, type AudioPlayerHandle } from '../components/AudioPlayer'
 import { InlineRename } from '../components/InlineRename'
@@ -114,31 +115,22 @@ export function TranscriptPage() {
     setPicked(initial)
   }, [skills])
 
-  useEffect(() => {
-    if (!pendingTaskId || !id) return
-    let cancelled = false
-    const interval = window.setInterval(() => {
-      void (async () => {
-        try {
-          const [tr, task] = await Promise.all([
-            api<Transcript>(`/transcripts/${id}`),
-            api<Task>(`/tasks/${pendingTaskId}`),
-          ])
-          if (cancelled) return
-          setItem(tr)
-          if (task.status === 'success' || task.status === 'failed') {
-            setPendingTaskId(null)
-          }
-        } catch {
+  useTaskPoll({
+    taskId: pendingTaskId ?? undefined,
+    enabled: Boolean(pendingTaskId && id),
+    pollMs: 3000,
+    onTask: () => {
+      if (!id) return
+      void api<Transcript>(`/transcripts/${id}`)
+        .then(setItem)
+        .catch(() => {
           /* ignore transient poll errors */
-        }
-      })()
-    }, 3000)
-    return () => {
-      cancelled = true
-      window.clearInterval(interval)
-    }
-  }, [pendingTaskId, id])
+        })
+    },
+    onTerminal: () => {
+      setPendingTaskId(null)
+    },
+  })
 
   function toggleSkill(skillId: string, checked: boolean) {
     setPicked((prev) => {
