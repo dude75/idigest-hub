@@ -1432,40 +1432,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/capture/platforms": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Capture Platforms */
-        get: operations["capture_platforms_api_v1_capture_platforms_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/import/platforms": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Import Platforms */
-        get: operations["import_platforms_api_v1_import_platforms_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/audios": {
         parameters: {
             query?: never;
@@ -1553,15 +1519,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/transcripts": {
+    "/api/v1/capture/platforms": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Transcripts */
-        get: operations["list_transcripts_api_v1_transcripts_get"];
+        /** Capture Platforms */
+        get: operations["capture_platforms_api_v1_capture_platforms_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1570,34 +1536,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/transcripts/{transcript_id}": {
+    "/api/v1/import/platforms": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Get Transcript */
-        get: operations["get_transcript_api_v1_transcripts__transcript_id__get"];
-        put?: never;
-        post?: never;
-        /** Delete Transcript */
-        delete: operations["delete_transcript_api_v1_transcripts__transcript_id__delete"];
-        options?: never;
-        head?: never;
-        /** Patch Transcript */
-        patch: operations["patch_transcript_api_v1_transcripts__transcript_id__patch"];
-        trace?: never;
-    };
-    "/api/v1/transcripts/{transcript_id}/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Export Transcript */
-        get: operations["export_transcript_api_v1_transcripts__transcript_id__export_get"];
+        /** Import Platforms */
+        get: operations["import_platforms_api_v1_import_platforms_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1606,7 +1553,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/transcripts/{transcript_id}/hide": {
+    "/api/v1/shares": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Shares */
+        get: operations["list_shares_api_v1_shares_get"];
+        put?: never;
+        /** Create Shares */
+        post: operations["create_shares_api_v1_shares_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/shares/{share_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -1615,26 +1580,9 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Hide Transcript */
-        post: operations["hide_transcript_api_v1_transcripts__transcript_id__hide_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/transcripts/{transcript_id}/unhide": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Unhide Transcript */
-        post: operations["unhide_transcript_api_v1_transcripts__transcript_id__unhide_post"];
-        delete?: never;
+        post?: never;
+        /** Delete Share */
+        delete: operations["delete_share_api_v1_shares__share_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1727,41 +1675,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/shares": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Shares */
-        get: operations["list_shares_api_v1_shares_get"];
-        put?: never;
-        /** Create Shares */
-        post: operations["create_shares_api_v1_shares_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/shares/{share_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Share */
-        delete: operations["delete_share_api_v1_shares__share_id__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/summaries/{summary_id}/public-link": {
         parameters: {
             query?: never;
@@ -1776,6 +1689,93 @@ export interface paths {
         post: operations["create_summary_public_link_api_v1_summaries__summary_id__public_link_post"];
         /** Delete Summary Public Link */
         delete: operations["delete_summary_public_link_api_v1_summaries__summary_id__public_link_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transcripts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Transcripts */
+        get: operations["list_transcripts_api_v1_transcripts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transcripts/{transcript_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Transcript */
+        get: operations["get_transcript_api_v1_transcripts__transcript_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Transcript */
+        delete: operations["delete_transcript_api_v1_transcripts__transcript_id__delete"];
+        options?: never;
+        head?: never;
+        /** Patch Transcript */
+        patch: operations["patch_transcript_api_v1_transcripts__transcript_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/transcripts/{transcript_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export Transcript */
+        get: operations["export_transcript_api_v1_transcripts__transcript_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transcripts/{transcript_id}/hide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hide Transcript */
+        post: operations["hide_transcript_api_v1_transcripts__transcript_id__hide_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transcripts/{transcript_id}/unhide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unhide Transcript */
+        post: operations["unhide_transcript_api_v1_transcripts__transcript_id__unhide_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2466,6 +2466,60 @@ export interface components {
             /** Tone Analytics Enabled */
             tone_analytics_enabled?: boolean | null;
         };
+        /** MeResponse */
+        MeResponse: {
+            user: components["schemas"]["UserPublic"];
+            org?: components["schemas"]["OrgPublicResponse"] | null;
+            /** Impersonating */
+            impersonating: boolean;
+            actor?: components["schemas"]["UserPublic"] | null;
+            /** Date Time Prefs */
+            date_time_prefs?: {
+                [key: string]: unknown;
+            };
+            /** Transcribe Prefs */
+            transcribe_prefs?: {
+                [key: string]: unknown;
+            };
+            /** Transcribe Models */
+            transcribe_models?: {
+                [key: string]: unknown;
+            };
+            /** Summarize Prefs */
+            summarize_prefs?: {
+                [key: string]: unknown;
+            };
+            /** Summarize Models */
+            summarize_models?: {
+                [key: string]: unknown;
+            };
+            /** Capture Prefs */
+            capture_prefs?: {
+                [key: string]: unknown;
+            };
+            /** Must Change Password */
+            must_change_password: boolean;
+            /** Mfa Enabled */
+            mfa_enabled: boolean;
+            /** Mfa Required */
+            mfa_required: boolean;
+            /** Mfa Enrollment Required */
+            mfa_enrollment_required: boolean;
+            /** User Agreement Required */
+            user_agreement_required: boolean;
+            /** User Agreement */
+            user_agreement?: {
+                [key: string]: unknown;
+            } | null;
+            /** User Agreement Version */
+            user_agreement_version?: number | null;
+            /** Legal Documents */
+            legal_documents?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Csrf Token */
+            csrf_token?: string | null;
+        };
         /** MfaConfirmBody */
         MfaConfirmBody: {
             /** Code */
@@ -2508,6 +2562,14 @@ export interface components {
             /** Target User Id */
             target_user_id?: string | null;
         };
+        /** OkStatusResponse */
+        OkStatusResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+        };
         /** OrgCaptureJitsiHostBody */
         OrgCaptureJitsiHostBody: {
             /** Id */
@@ -2541,6 +2603,33 @@ export interface components {
             /** Name */
             name?: string | null;
         };
+        /** OrgPublicResponse */
+        OrgPublicResponse: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Is Personal */
+            is_personal: boolean;
+            /** Password Ttl Days */
+            password_ttl_days: number;
+            /** Mfa Required */
+            mfa_required: boolean;
+            /** Balance */
+            balance: string;
+            /** Unlimited */
+            unlimited: boolean;
+            tariff: components["schemas"]["TariffPublic"];
+            sso: components["schemas"]["OrgSsoPublic"];
+            usage?: components["schemas"]["OrgUsageSummary"] | null;
+            /**
+             * Public Base Url Set
+             * @default false
+             */
+            public_base_url_set: boolean;
+            /** Allow Public Links */
+            allow_public_links: boolean;
+        };
         /** OrgSettingsPatch */
         OrgSettingsPatch: {
             /** Password Ttl Days */
@@ -2566,10 +2655,24 @@ export interface components {
             /** Enabled */
             enabled?: boolean | null;
         };
+        /** OrgSsoPublic */
+        OrgSsoPublic: {
+            /** Configured */
+            configured: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Login Url */
+            login_url?: string | null;
+        };
         /** OrgTariffBody */
         OrgTariffBody: {
             /** Tariff Id */
             tariff_id: string;
+        };
+        /** OrgUsageSummary */
+        OrgUsageSummary: {
+            /** Total Amount */
+            total_amount: string;
         };
         /** OrgUserRoleBody */
         OrgUserRoleBody: {
@@ -2772,6 +2875,16 @@ export interface components {
             object_id: string;
             /** To User Ids */
             to_user_ids: string[];
+        };
+        /** ShareCreateResponse */
+        ShareCreateResponse: {
+            /** Ids */
+            ids: string[];
+        };
+        /** ShareListResponse */
+        ShareListResponse: {
+            /** Items */
+            items: components["schemas"]["ShareRecordBrief"][];
         };
         /** ShareRecordBrief */
         ShareRecordBrief: {
@@ -3050,6 +3163,37 @@ export interface components {
         TariffDeleteBody: {
             remediation?: components["schemas"]["TariffRemediation"] | null;
         };
+        /** TariffPublic */
+        TariffPublic: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Unlimited */
+            unlimited: boolean;
+            /** Available On Signup */
+            available_on_signup: boolean;
+            /** Archived */
+            archived: boolean;
+            /** Price Per Audio Sec */
+            price_per_audio_sec: string;
+            /** Price Per Summarize Job */
+            price_per_summarize_job: string;
+            /** Price Per 1K Summary Chars */
+            price_per_1k_summary_chars: string;
+            /** Audio Retention Days */
+            audio_retention_days: number;
+            /** Api Enabled */
+            api_enabled: boolean;
+            /** Signup Credit */
+            signup_credit: string;
+            /** Max Upload Bytes */
+            max_upload_bytes: number;
+            /** Tone Analytics Enabled */
+            tone_analytics_enabled: boolean;
+            /** Org Count */
+            org_count?: number | null;
+        };
         /** TariffRemediation */
         TariffRemediation: {
             /** Tariff Id */
@@ -3261,6 +3405,53 @@ export interface components {
             source_id?: string | null;
             /** Items */
             items: components["schemas"]["TranscriptListItem"][];
+        };
+        /** UserPublic */
+        UserPublic: {
+            /** Id */
+            id: string;
+            /** Email */
+            email: string;
+            /** Locale */
+            locale: string;
+            /** Default Route */
+            default_route: string;
+            /** Date Time Format */
+            date_time_format?: string | null;
+            /** Timezone */
+            timezone?: string | null;
+            /** Asr Model */
+            asr_model?: string | null;
+            /** Diarization Model */
+            diarization_model?: string | null;
+            /** Tone Analytics Enabled */
+            tone_analytics_enabled: boolean;
+            /** Summarize Model */
+            summarize_model?: string | null;
+            /** Capture Bot Display Name */
+            capture_bot_display_name?: string | null;
+            /** Show Only My Items */
+            show_only_my_items: boolean;
+            /** Disabled */
+            disabled: boolean;
+            /** Must Change Password */
+            must_change_password: boolean;
+            /** Mfa Enabled */
+            mfa_enabled: boolean;
+            /** Mfa Configured */
+            mfa_configured?: boolean | null;
+            /** Is Instance Admin */
+            is_instance_admin: boolean;
+            /** Role */
+            role?: string | null;
+            /** Auth Provider */
+            auth_provider: string;
+            /** User Agreement Status */
+            user_agreement_status?: string | null;
+            /** Legal Documents Acceptance */
+            legal_documents_acceptance?: {
+                [key: string]: unknown;
+            }[] | null;
         };
         /** UserTagBrief */
         UserTagBrief: {
@@ -3992,9 +4183,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["MeResponse"];
                 };
             };
         };
@@ -5915,9 +6104,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgPublicResponse"];
                 };
             };
         };
@@ -5941,9 +6128,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgPublicResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6012,9 +6197,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgPublicResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6495,50 +6678,6 @@ export interface operations {
             };
         };
     };
-    capture_platforms_api_v1_capture_platforms_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
-    import_platforms_api_v1_import_platforms_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-        };
-    };
     list_audios_api_v1_audios_get: {
         parameters: {
             query?: {
@@ -6773,16 +6912,55 @@ export interface operations {
             };
         };
     };
-    list_transcripts_api_v1_transcripts_get: {
+    capture_platforms_api_v1_capture_platforms_get: {
         parameters: {
-            query?: {
-                include_hidden?: boolean;
-                tag?: string | null;
-                owner_user_id?: string | null;
-                q?: string | null;
-                group_by?: "source" | null;
-                limit?: number | null;
-                offset?: number;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    import_platforms_api_v1_import_platforms_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    list_shares_api_v1_shares_get: {
+        parameters: {
+            query: {
+                object_type: string;
+                object_id: string;
             };
             header?: never;
             path?: never;
@@ -6796,7 +6974,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TranscriptListResponse"];
+                    "application/json": components["schemas"]["ShareListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6810,82 +6988,16 @@ export interface operations {
             };
         };
     };
-    get_transcript_api_v1_transcripts__transcript_id__get: {
+    create_shares_api_v1_shares_post: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                transcript_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TranscriptDetailResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_transcript_api_v1_transcripts__transcript_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                transcript_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    patch_transcript_api_v1_transcripts__transcript_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                transcript_id: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["TitlePatch"];
+                "application/json": components["schemas"]["ShareBody"];
             };
         };
         responses: {
@@ -6895,9 +7007,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ShareCreateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6911,45 +7021,12 @@ export interface operations {
             };
         };
     };
-    export_transcript_api_v1_transcripts__transcript_id__export_get: {
-        parameters: {
-            query?: {
-                format?: string;
-            };
-            header?: never;
-            path: {
-                transcript_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    hide_transcript_api_v1_transcripts__transcript_id__hide_post: {
+    delete_share_api_v1_shares__share_id__delete: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                transcript_id: string;
+                share_id: string;
             };
             cookie?: never;
         };
@@ -6961,42 +7038,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    unhide_transcript_api_v1_transcripts__transcript_id__unhide_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                transcript_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -7247,108 +7289,6 @@ export interface operations {
             };
         };
     };
-    list_shares_api_v1_shares_get: {
-        parameters: {
-            query: {
-                object_type: string;
-                object_id: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_shares_api_v1_shares_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ShareBody"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_share_api_v1_shares__share_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                share_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     get_summary_public_link_api_v1_summaries__summary_id__public_link_get: {
         parameters: {
             query?: never;
@@ -7425,6 +7365,243 @@ export interface operations {
             header?: never;
             path: {
                 summary_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transcripts_api_v1_transcripts_get: {
+        parameters: {
+            query?: {
+                include_hidden?: boolean;
+                tag?: string | null;
+                owner_user_id?: string | null;
+                q?: string | null;
+                group_by?: "source" | null;
+                limit?: number | null;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_transcript_api_v1_transcripts__transcript_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transcript_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TranscriptDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_transcript_api_v1_transcripts__transcript_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transcript_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_transcript_api_v1_transcripts__transcript_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transcript_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TitlePatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_transcript_api_v1_transcripts__transcript_id__export_get: {
+        parameters: {
+            query?: {
+                format?: string;
+            };
+            header?: never;
+            path: {
+                transcript_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    hide_transcript_api_v1_transcripts__transcript_id__hide_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transcript_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unhide_transcript_api_v1_transcripts__transcript_id__unhide_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transcript_id: string;
             };
             cookie?: never;
         };

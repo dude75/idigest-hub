@@ -44,3 +44,11 @@ def test_export_openapi_writes_health_path():
         "schema"
     ]
     assert purge.get("$ref", "").endswith("/TaskPurgeResponse")
+    me = schema["paths"]["/api/v1/me"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert me.get("$ref", "").endswith("/MeResponse")
+    org = schema["paths"]["/api/v1/org"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert org.get("$ref", "").endswith("/OrgPublicResponse")
+    share_list = schema["paths"]["/api/v1/shares"]["get"]["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+    assert share_list.get("$ref", "").endswith("/ShareListResponse")

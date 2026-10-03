@@ -14,6 +14,7 @@ from app.deps import AuthContext, get_instance_settings, require_auth
 from app.errors import ErrorCode
 from app.models import Membership, Summary, SummaryPublicLink, Tariff, UsageEvent, User, new_id
 from app.presenters import org_public, user_public
+from app.schemas.org_api import OrgPublicResponse
 from app.routers.auth import revoke_user_auth
 from app.security import hash_password, random_password
 from app.services.access import guard_last_org_admin
@@ -104,11 +105,15 @@ def available_tariffs(db: Session = Depends(get_session, scope="function"), ctx:
     return {"items": [tariff_public(row) for row in rows]}
 
 
-@router.get("/org")
-def get_org(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.get("/org", response_model=OrgPublicResponse)
+def get_org(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> OrgPublicResponse:
     org, _ = ctx.require_org()
     total = db.scalar(select(func.coalesce(func.sum(UsageEvent.amount), 0)).where(UsageEvent.org_id == org.id))
-    return org_public(org, usage={"total_amount": str(total)}, public_base_url=_public_base_url(db))
+    return OrgPublicResponse.model_validate(
+        org_public(org, usage={"total_amount": str(total)}, public_base_url=_public_base_url(db))
+    )
 
 
 @router.get("/org/stats")
@@ -136,21 +141,21 @@ def org_stats(
     )
 
 
-@router.patch("/org")
+@router.patch("/org", response_model=OrgPublicResponse)
 def patch_org(
     body: OrgPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OrgPublicResponse:
     org, _ = ctx.require_org_admin()
     if body.name and body.name.strip():
         org.name = body.name.strip()
         org.updated_at = utcnow()
-    return org_public(org, public_base_url=_public_base_url(db))
+    return OrgPublicResponse.model_validate(org_public(org, public_base_url=_public_base_url(db)))
 
 
-@router.patch("/org/tariff")
+@router.patch("/org/tariff", response_model=OrgPublicResponse)
 def patch_org_tariff(
     body: OrgTariffBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OrgPublicResponse:
     org, _ = ctx.require_org_admin()
     tariff = db.get(Tariff, body.tariff_id)
     if tariff is None or tariff.archived_at is not None or not tariff.available_on_signup:
@@ -159,7 +164,7 @@ def patch_org_tariff(
     org.updated_at = utcnow()
     org.tariff = tariff
     write_audit(db, "org.tariff.self", ctx, {"tariff_id": tariff.id})
-    return org_public(org, public_base_url=_public_base_url(db))
+    return OrgPublicResponse.model_validate(org_public(org, public_base_url=_public_base_url(db)))
 
 
 @router.get("/org/capture/jitsi")

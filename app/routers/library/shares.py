@@ -61,6 +61,7 @@ from app.services.library_list import (
 )
 from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
+from app.schemas.shares import OkStatusResponse, ShareCreateResponse, ShareListResponse
 from app.schemas.library import (
     ShareBody,
     TitlePatch,
@@ -86,22 +87,22 @@ from app.services import library_helpers as lh
 from app.routers.library._router import router
 
 
-@router.get("/shares")
+@router.get("/shares", response_model=ShareListResponse)
 def list_shares(
     object_type: str,
     object_id: str,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> ShareListResponse:
     lh.require_share_owner(db, object_type, object_id, ctx)
     rows = outgoing_shares(db, object_type, object_id)
-    return {"items": lh.share_items(db, rows)}
+    return ShareListResponse(items=lh.share_items(db, rows))
 
 
-@router.post("/shares")
+@router.post("/shares", response_model=ShareCreateResponse)
 def create_shares(
     body: ShareBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> ShareCreateResponse:
     obj = lh.require_share_owner(db, body.object_type, body.object_id, ctx)
     org, _ = ctx.require_org()
     created = []
@@ -137,13 +138,13 @@ def create_shares(
                     from_user_id=ctx.user.id,
                     to_user_id=uid,
                 )
-    return {"ids": created}
+    return ShareCreateResponse(ids=created)
 
 
-@router.delete("/shares/{share_id}")
+@router.delete("/shares/{share_id}", response_model=OkStatusResponse)
 def delete_share(
     share_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Share, share_id)
     if row is None:
         ctx.raise_error(ErrorCode.not_found)
@@ -159,5 +160,5 @@ def delete_share(
                 to_user_id=row.to_user_id,
             )
     db.delete(row)
-    return {"status": "ok"}
+    return OkStatusResponse()
 

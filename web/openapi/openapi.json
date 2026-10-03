@@ -798,9 +798,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Me Api V1 Me Get"
+                  "$ref": "#/components/schemas/MeResponse"
                 }
               }
             }
@@ -3904,9 +3902,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Get Org Api V1 Org Get"
+                  "$ref": "#/components/schemas/OrgPublicResponse"
                 }
               }
             }
@@ -3940,9 +3936,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Patch Org Api V1 Org Patch"
+                  "$ref": "#/components/schemas/OrgPublicResponse"
                 }
               }
             }
@@ -4092,9 +4086,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Patch Org Tariff Api V1 Org Tariff Patch"
+                  "$ref": "#/components/schemas/OrgPublicResponse"
                 }
               }
             }
@@ -4781,62 +4773,6 @@
         ]
       }
     },
-    "/api/v1/capture/platforms": {
-      "get": {
-        "summary": "Capture Platforms",
-        "operationId": "capture_platforms_api_v1_capture_platforms_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Capture Platforms Api V1 Capture Platforms Get"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/import/platforms": {
-      "get": {
-        "summary": "Import Platforms",
-        "operationId": "import_platforms_api_v1_import_platforms_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Import Platforms Api V1 Import Platforms Get"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
     "/api/v1/audios": {
       "post": {
         "summary": "Upload Audio",
@@ -5256,134 +5192,19 @@
         ]
       }
     },
-    "/api/v1/transcripts": {
+    "/api/v1/capture/platforms": {
       "get": {
-        "summary": "List Transcripts",
-        "operationId": "list_transcripts_api_v1_transcripts_get",
-        "parameters": [
-          {
-            "name": "include_hidden",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false,
-              "title": "Include Hidden"
-            }
-          },
-          {
-            "name": "tag",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Tag"
-            }
-          },
-          {
-            "name": "owner_user_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Owner User Id"
-            }
-          },
-          {
-            "name": "q",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "maxLength": 200
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Q"
-            }
-          },
-          {
-            "name": "group_by",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "const": "source",
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Group By"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "integer",
-                  "maximum": 500,
-                  "minimum": 1
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Limit"
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0,
-              "title": "Offset"
-            }
-          }
-        ],
+        "summary": "Capture Platforms",
+        "operationId": "capture_platforms_api_v1_capture_platforms_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TranscriptListResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Capture Platforms Api V1 Capture Platforms Get"
                 }
               }
             }
@@ -5399,75 +5220,65 @@
         ]
       }
     },
-    "/api/v1/transcripts/{transcript_id}": {
+    "/api/v1/import/platforms": {
       "get": {
-        "summary": "Get Transcript",
-        "operationId": "get_transcript_api_v1_transcripts__transcript_id__get",
-        "parameters": [
-          {
-            "name": "transcript_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Transcript Id"
-            }
-          }
-        ],
+        "summary": "Import Platforms",
+        "operationId": "import_platforms_api_v1_import_platforms_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TranscriptDetailResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      },
-      "delete": {
-        "summary": "Delete Transcript",
-        "operationId": "delete_transcript_api_v1_transcripts__transcript_id__delete",
-        "parameters": [
-          {
-            "name": "transcript_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Transcript Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
                   "additionalProperties": true,
-                  "title": "Response Delete Transcript Api V1 Transcripts  Transcript Id  Delete"
+                  "type": "object",
+                  "title": "Response Import Platforms Api V1 Import Platforms Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/shares": {
+      "get": {
+        "summary": "List Shares",
+        "operationId": "list_shares_api_v1_shares_get",
+        "parameters": [
+          {
+            "name": "object_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Object Type"
+            }
+          },
+          {
+            "name": "object_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Object Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareListResponse"
                 }
               }
             }
@@ -5492,26 +5303,15 @@
           }
         ]
       },
-      "patch": {
-        "summary": "Patch Transcript",
-        "operationId": "patch_transcript_api_v1_transcripts__transcript_id__patch",
-        "parameters": [
-          {
-            "name": "transcript_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Transcript Id"
-            }
-          }
-        ],
+      "post": {
+        "summary": "Create Shares",
+        "operationId": "create_shares_api_v1_shares_post",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TitlePatch"
+                "$ref": "#/components/schemas/ShareBody"
               }
             }
           }
@@ -5522,9 +5322,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Transcript Api V1 Transcripts  Transcript Id  Patch"
+                  "$ref": "#/components/schemas/ShareCreateResponse"
                 }
               }
             }
@@ -5550,74 +5348,18 @@
         ]
       }
     },
-    "/api/v1/transcripts/{transcript_id}/export": {
-      "get": {
-        "summary": "Export Transcript",
-        "operationId": "export_transcript_api_v1_transcripts__transcript_id__export_get",
+    "/api/v1/shares/{share_id}": {
+      "delete": {
+        "summary": "Delete Share",
+        "operationId": "delete_share_api_v1_shares__share_id__delete",
         "parameters": [
           {
-            "name": "transcript_id",
+            "name": "share_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Transcript Id"
-            }
-          },
-          {
-            "name": "format",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "pattern": "^(txt|json)$",
-              "default": "txt",
-              "title": "Format"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/transcripts/{transcript_id}/hide": {
-      "post": {
-        "summary": "Hide Transcript",
-        "operationId": "hide_transcript_api_v1_transcripts__transcript_id__hide_post",
-        "parameters": [
-          {
-            "name": "transcript_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Transcript Id"
+              "title": "Share Id"
             }
           }
         ],
@@ -5627,58 +5369,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Hide Transcript Api V1 Transcripts  Transcript Id  Hide Post"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/transcripts/{transcript_id}/unhide": {
-      "post": {
-        "summary": "Unhide Transcript",
-        "operationId": "unhide_transcript_api_v1_transcripts__transcript_id__unhide_post",
-        "parameters": [
-          {
-            "name": "transcript_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Transcript Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Unhide Transcript Api V1 Transcripts  Transcript Id  Unhide Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -6152,159 +5843,6 @@
         ]
       }
     },
-    "/api/v1/shares": {
-      "get": {
-        "summary": "List Shares",
-        "operationId": "list_shares_api_v1_shares_get",
-        "parameters": [
-          {
-            "name": "object_type",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Object Type"
-            }
-          },
-          {
-            "name": "object_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Object Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Shares Api V1 Shares Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      },
-      "post": {
-        "summary": "Create Shares",
-        "operationId": "create_shares_api_v1_shares_post",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ShareBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Shares Api V1 Shares Post"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
-    "/api/v1/shares/{share_id}": {
-      "delete": {
-        "summary": "Delete Share",
-        "operationId": "delete_share_api_v1_shares__share_id__delete",
-        "parameters": [
-          {
-            "name": "share_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Share Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Share Api V1 Shares  Share Id  Delete"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          },
-          {
-            "SessionCookie": []
-          }
-        ]
-      }
-    },
     "/api/v1/summaries/{summary_id}/public-link": {
       "get": {
         "summary": "Get Summary Public Link",
@@ -6433,6 +5971,454 @@
                   "type": "object",
                   "additionalProperties": true,
                   "title": "Response Delete Summary Public Link Api V1 Summaries  Summary Id  Public Link Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/transcripts": {
+      "get": {
+        "summary": "List Transcripts",
+        "operationId": "list_transcripts_api_v1_transcripts_get",
+        "parameters": [
+          {
+            "name": "include_hidden",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Include Hidden"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tag"
+            }
+          },
+          {
+            "name": "owner_user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Owner User Id"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "source",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group By"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 500,
+                  "minimum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/transcripts/{transcript_id}": {
+      "get": {
+        "summary": "Get Transcript",
+        "operationId": "get_transcript_api_v1_transcripts__transcript_id__get",
+        "parameters": [
+          {
+            "name": "transcript_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Transcript Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranscriptDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Delete Transcript",
+        "operationId": "delete_transcript_api_v1_transcripts__transcript_id__delete",
+        "parameters": [
+          {
+            "name": "transcript_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Transcript Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Transcript Api V1 Transcripts  Transcript Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Patch Transcript",
+        "operationId": "patch_transcript_api_v1_transcripts__transcript_id__patch",
+        "parameters": [
+          {
+            "name": "transcript_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Transcript Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TitlePatch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Patch Transcript Api V1 Transcripts  Transcript Id  Patch"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/transcripts/{transcript_id}/export": {
+      "get": {
+        "summary": "Export Transcript",
+        "operationId": "export_transcript_api_v1_transcripts__transcript_id__export_get",
+        "parameters": [
+          {
+            "name": "transcript_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Transcript Id"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^(txt|json)$",
+              "default": "txt",
+              "title": "Format"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/transcripts/{transcript_id}/hide": {
+      "post": {
+        "summary": "Hide Transcript",
+        "operationId": "hide_transcript_api_v1_transcripts__transcript_id__hide_post",
+        "parameters": [
+          {
+            "name": "transcript_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Transcript Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Hide Transcript Api V1 Transcripts  Transcript Id  Hide Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/transcripts/{transcript_id}/unhide": {
+      "post": {
+        "summary": "Unhide Transcript",
+        "operationId": "unhide_transcript_api_v1_transcripts__transcript_id__unhide_post",
+        "parameters": [
+          {
+            "name": "transcript_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Transcript Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Unhide Transcript Api V1 Transcripts  Transcript Id  Unhide Post"
                 }
               }
             }
@@ -8656,6 +8642,147 @@
         "type": "object",
         "title": "MePatchBody"
       },
+      "MeResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserPublic"
+          },
+          "org": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgPublicResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "impersonating": {
+            "type": "boolean",
+            "title": "Impersonating"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserPublic"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "date_time_prefs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Date Time Prefs"
+          },
+          "transcribe_prefs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Transcribe Prefs"
+          },
+          "transcribe_models": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Transcribe Models"
+          },
+          "summarize_prefs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Summarize Prefs"
+          },
+          "summarize_models": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Summarize Models"
+          },
+          "capture_prefs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Capture Prefs"
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "title": "Must Change Password"
+          },
+          "mfa_enabled": {
+            "type": "boolean",
+            "title": "Mfa Enabled"
+          },
+          "mfa_required": {
+            "type": "boolean",
+            "title": "Mfa Required"
+          },
+          "mfa_enrollment_required": {
+            "type": "boolean",
+            "title": "Mfa Enrollment Required"
+          },
+          "user_agreement_required": {
+            "type": "boolean",
+            "title": "User Agreement Required"
+          },
+          "user_agreement": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agreement"
+          },
+          "user_agreement_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agreement Version"
+          },
+          "legal_documents": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Documents"
+          },
+          "csrf_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Csrf Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "impersonating",
+          "must_change_password",
+          "mfa_enabled",
+          "mfa_required",
+          "mfa_enrollment_required",
+          "user_agreement_required"
+        ],
+        "title": "MeResponse"
+      },
       "MfaConfirmBody": {
         "properties": {
           "code": {
@@ -8780,6 +8907,17 @@
         ],
         "title": "OffboardBody"
       },
+      "OkStatusResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          }
+        },
+        "type": "object",
+        "title": "OkStatusResponse"
+      },
       "OrgCaptureJitsiHostBody": {
         "properties": {
           "id": {
@@ -8885,6 +9023,77 @@
         "type": "object",
         "title": "OrgPatch"
       },
+      "OrgPublicResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "is_personal": {
+            "type": "boolean",
+            "title": "Is Personal"
+          },
+          "password_ttl_days": {
+            "type": "integer",
+            "title": "Password Ttl Days"
+          },
+          "mfa_required": {
+            "type": "boolean",
+            "title": "Mfa Required"
+          },
+          "balance": {
+            "type": "string",
+            "title": "Balance"
+          },
+          "unlimited": {
+            "type": "boolean",
+            "title": "Unlimited"
+          },
+          "tariff": {
+            "$ref": "#/components/schemas/TariffPublic"
+          },
+          "sso": {
+            "$ref": "#/components/schemas/OrgSsoPublic"
+          },
+          "usage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OrgUsageSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "public_base_url_set": {
+            "type": "boolean",
+            "title": "Public Base Url Set",
+            "default": false
+          },
+          "allow_public_links": {
+            "type": "boolean",
+            "title": "Allow Public Links"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_personal",
+          "password_ttl_days",
+          "mfa_required",
+          "balance",
+          "unlimited",
+          "tariff",
+          "sso",
+          "allow_public_links"
+        ],
+        "title": "OrgPublicResponse"
+      },
       "OrgSettingsPatch": {
         "properties": {
           "password_ttl_days": {
@@ -8979,6 +9188,35 @@
         "type": "object",
         "title": "OrgSsoPatch"
       },
+      "OrgSsoPublic": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "login_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "configured",
+          "enabled"
+        ],
+        "title": "OrgSsoPublic"
+      },
       "OrgTariffBody": {
         "properties": {
           "tariff_id": {
@@ -8991,6 +9229,19 @@
           "tariff_id"
         ],
         "title": "OrgTariffBody"
+      },
+      "OrgUsageSummary": {
+        "properties": {
+          "total_amount": {
+            "type": "string",
+            "title": "Total Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_amount"
+        ],
+        "title": "OrgUsageSummary"
       },
       "OrgUserRoleBody": {
         "properties": {
@@ -9907,6 +10158,38 @@
         ],
         "title": "ShareBody"
       },
+      "ShareCreateResponse": {
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "title": "ShareCreateResponse"
+      },
+      "ShareListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ShareRecordBrief"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ShareListResponse"
+      },
       "ShareRecordBrief": {
         "properties": {
           "id": {
@@ -10742,6 +11025,90 @@
         "type": "object",
         "title": "TariffDeleteBody"
       },
+      "TariffPublic": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "unlimited": {
+            "type": "boolean",
+            "title": "Unlimited"
+          },
+          "available_on_signup": {
+            "type": "boolean",
+            "title": "Available On Signup"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived"
+          },
+          "price_per_audio_sec": {
+            "type": "string",
+            "title": "Price Per Audio Sec"
+          },
+          "price_per_summarize_job": {
+            "type": "string",
+            "title": "Price Per Summarize Job"
+          },
+          "price_per_1k_summary_chars": {
+            "type": "string",
+            "title": "Price Per 1K Summary Chars"
+          },
+          "audio_retention_days": {
+            "type": "integer",
+            "title": "Audio Retention Days"
+          },
+          "api_enabled": {
+            "type": "boolean",
+            "title": "Api Enabled"
+          },
+          "signup_credit": {
+            "type": "string",
+            "title": "Signup Credit"
+          },
+          "max_upload_bytes": {
+            "type": "integer",
+            "title": "Max Upload Bytes"
+          },
+          "tone_analytics_enabled": {
+            "type": "boolean",
+            "title": "Tone Analytics Enabled"
+          },
+          "org_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "unlimited",
+          "available_on_signup",
+          "archived",
+          "price_per_audio_sec",
+          "price_per_summarize_job",
+          "price_per_1k_summary_chars",
+          "audio_retention_days",
+          "api_enabled",
+          "signup_credit",
+          "max_upload_bytes",
+          "tone_analytics_enabled"
+        ],
+        "title": "TariffPublic"
+      },
       "TariffRemediation": {
         "properties": {
           "tariff_id": {
@@ -11440,6 +11807,183 @@
           "items"
         ],
         "title": "TranscriptSourceGroup"
+      },
+      "UserPublic": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "locale": {
+            "type": "string",
+            "title": "Locale"
+          },
+          "default_route": {
+            "type": "string",
+            "title": "Default Route"
+          },
+          "date_time_format": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Time Format"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "asr_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asr Model"
+          },
+          "diarization_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Diarization Model"
+          },
+          "tone_analytics_enabled": {
+            "type": "boolean",
+            "title": "Tone Analytics Enabled"
+          },
+          "summarize_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summarize Model"
+          },
+          "capture_bot_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capture Bot Display Name"
+          },
+          "show_only_my_items": {
+            "type": "boolean",
+            "title": "Show Only My Items"
+          },
+          "disabled": {
+            "type": "boolean",
+            "title": "Disabled"
+          },
+          "must_change_password": {
+            "type": "boolean",
+            "title": "Must Change Password"
+          },
+          "mfa_enabled": {
+            "type": "boolean",
+            "title": "Mfa Enabled"
+          },
+          "mfa_configured": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mfa Configured"
+          },
+          "is_instance_admin": {
+            "type": "boolean",
+            "title": "Is Instance Admin"
+          },
+          "role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role"
+          },
+          "auth_provider": {
+            "type": "string",
+            "title": "Auth Provider"
+          },
+          "user_agreement_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Agreement Status"
+          },
+          "legal_documents_acceptance": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Documents Acceptance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "locale",
+          "default_route",
+          "tone_analytics_enabled",
+          "show_only_my_items",
+          "disabled",
+          "must_change_password",
+          "mfa_enabled",
+          "is_instance_admin",
+          "auth_provider"
+        ],
+        "title": "UserPublic"
       },
       "UserTagBrief": {
         "properties": {

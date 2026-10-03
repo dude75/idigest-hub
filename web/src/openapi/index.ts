@@ -8,6 +8,9 @@ export type { components, operations, paths } from './schema.gen'
 export type {
   AudioListResponse,
   LibraryListEnvelope,
+  SchemaMeResponse,
+  SchemaOrgPublicResponse,
+  SchemaShareListResponse,
   SchemaAudioDetailResponse,
   SchemaAudioListResponse,
   SchemaSummaryDetailResponse,

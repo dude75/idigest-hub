@@ -45,6 +45,8 @@ from app.models import (
     new_id,
 )
 from app.presenters import org_public, tariff_public, token_public, user_public
+from app.schemas.me import MeResponse
+from app.schemas.me import MeResponse
 from app.services.billing import signup_balance
 from app.security import (
     hash_password,
@@ -900,14 +902,14 @@ def _me_with_csrf(request: Request, response: Response, ctx: AuthContext, db: Se
     return payload
 
 
-@router.get("/me")
+@router.get("/me", response_model=MeResponse)
 def me(
     request: Request,
     response: Response,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
-    return _me_with_csrf(request, response, ctx, db)
+) -> MeResponse:
+    return MeResponse.model_validate(_me_with_csrf(request, response, ctx, db))
 
 
 @router.get("/me/backup")

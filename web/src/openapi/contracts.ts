@@ -17,6 +17,9 @@ export type SchemaAudioDetailResponse = components['schemas']['AudioDetailRespon
 export type SchemaTranscriptDetailResponse = components['schemas']['TranscriptDetailResponse']
 export type SchemaSummaryDetailResponse = components['schemas']['SummaryDetailResponse']
 export type SchemaTaskPurgeResponse = components['schemas']['TaskPurgeResponse']
+export type SchemaMeResponse = components['schemas']['MeResponse']
+export type SchemaOrgPublicResponse = components['schemas']['OrgPublicResponse']
+export type SchemaShareListResponse = components['schemas']['ShareListResponse']
 
 export type LibraryListEnvelope<T> = {
   items: T[]
