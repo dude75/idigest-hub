@@ -10,6 +10,9 @@ from app.db import get_session
 from app.deps import AuthContext, require_auth
 from app.errors import ApiError, ErrorCode
 from app.models import Audio, Summary, Transcript
+from app.schemas.common import OkStatusResponse
+from app.schemas.library import UserTagBrief
+from app.schemas.tags_api import ObjectTagsResponse, UserTagListResponse, UserTagPublicResponse
 from app.services.access import can_read_object
 from app.services.user_tags import (
     delete_user_tag,
@@ -43,49 +46,49 @@ def _readable_library_object(db: Session, ctx: AuthContext, object_type: str, ob
     return row
 
 
-@router.get("/tags")
+@router.get("/tags", response_model=UserTagListResponse)
 def get_tags(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> UserTagListResponse:
     ctx.require_org()
-    return {"items": list_user_tags(db, ctx.user.id)}
+    return UserTagListResponse(items=[UserTagBrief.model_validate(item) for item in list_user_tags(db, ctx.user.id)])
 
 
-@router.patch("/tags/{tag_id}")
+@router.patch("/tags/{tag_id}", response_model=UserTagPublicResponse)
 def patch_tag(
     tag_id: str,
     body: TagRenameBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> UserTagPublicResponse:
     ctx.require_org()
     try:
-        return rename_user_tag(db, ctx.user.id, tag_id, body.name)
+        return UserTagPublicResponse.model_validate(rename_user_tag(db, ctx.user.id, tag_id, body.name))
     except ApiError as exc:
         ctx.raise_error(exc.code, status_code=exc.status_code)
 
 
-@router.delete("/tags/{tag_id}")
+@router.delete("/tags/{tag_id}", response_model=OkStatusResponse)
 def remove_tag(
     tag_id: str,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OkStatusResponse:
     ctx.require_org()
     try:
         delete_user_tag(db, ctx.user.id, tag_id)
     except ApiError as exc:
         ctx.raise_error(exc.code, status_code=exc.status_code)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.put("/object-tags")
+@router.put("/object-tags", response_model=ObjectTagsResponse)
 def put_object_tags(
     body: ObjectTagsBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> ObjectTagsResponse:
     ctx.require_org()
     _readable_library_object(db, ctx, body.object_type, body.object_id)
     try:
@@ -98,4 +101,4 @@ def put_object_tags(
         )
     except ApiError as exc:
         ctx.raise_error(exc.code, status_code=exc.status_code)
-    return {"tags": tags}
+    return ObjectTagsResponse(tags=[UserTagBrief.model_validate(item) for item in tags])

@@ -95,3 +95,15 @@ def test_export_openapi_writes_health_path():
         "schema"
     ]
     assert pub_links.get("$ref", "").endswith("/OrgPublicLinkListResponse")
+    tariff_impact = schema["paths"]["/api/v1/tariffs/{tariff_id}/delete-impact"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert tariff_impact.get("$ref", "").endswith("/TariffDeleteImpactResponse")
+    capture_plat = schema["paths"]["/api/v1/capture/platforms"]["get"]["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+    assert capture_plat.get("$ref", "").endswith("/CapturePlatformsResponse")
+    deks = schema["paths"]["/api/v1/instance/crypto/deks"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert deks.get("$ref", "").endswith("/DekListResponse")
+    skills = schema["paths"]["/api/v1/skills"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert skills.get("$ref", "").endswith("/SkillListResponse")

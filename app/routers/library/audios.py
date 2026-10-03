@@ -61,11 +61,13 @@ from app.services.library_list import (
 )
 from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
+from app.schemas.common import OkStatusResponse
 from app.schemas.library import (
     ShareBody,
     TitlePatch,
     SummaryPatch,
     SummaryPublicLinkBody,
+    AudioCreatedResponse,
     AudioDetailResponse,
     AudioListItem,
     AudioListResponse,
@@ -86,14 +88,14 @@ from app.services import library_helpers as lh
 from app.routers.library._router import router
 
 
-@router.post("/audios")
+@router.post("/audios", response_model=AudioCreatedResponse)
 async def upload_audio(
     request: Request,
     file: UploadFile,
     from_microphone: bool = Form(False),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> AudioCreatedResponse:
     org, _ = ctx.require_org()
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     suffix = Path(file.filename or "").suffix.lower()
@@ -145,7 +147,7 @@ async def upload_audio(
     )
     db.add(row)
     db.flush()
-    return audio_public(row)
+    return AudioCreatedResponse.model_validate(audio_public(row))
 
 
 @router.get("/audios", response_model=AudioListResponse)
@@ -245,22 +247,22 @@ def audio_file(
     )
 
 
-@router.post("/audios/{audio_id}/hide")
+@router.post("/audios/{audio_id}/hide", response_model=OkStatusResponse)
 def hide_audio(
     audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Audio, audio_id)
     if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
     if not is_hidden(db, ctx.user.id, "audio", row.id):
         db.add(HiddenItem(id=new_id(), user_id=ctx.user.id, object_type="audio", object_id=row.id))
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/audios/{audio_id}/unhide")
+@router.post("/audios/{audio_id}/unhide", response_model=OkStatusResponse)
 def unhide_audio(
     audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Audio, audio_id)
     if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
@@ -273,13 +275,13 @@ def unhide_audio(
     )
     if hidden:
         db.delete(hidden)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.delete("/audios/{audio_id}")
+@router.delete("/audios/{audio_id}", response_model=OkStatusResponse)
 def delete_audio(
     audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Audio, audio_id)
     if row is None:
         ctx.raise_error(ErrorCode.not_found)
@@ -288,5 +290,5 @@ def delete_audio(
         ctx.raise_error(ErrorCode.not_found)
     write_audit(db, "audio.wipe", ctx, {"audio_id": row.id})
     hard_delete_audio(db, row)
-    return {"status": "ok"}
+    return OkStatusResponse()
 

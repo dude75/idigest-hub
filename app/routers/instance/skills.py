@@ -60,22 +60,26 @@ from app.services.instance_helpers import (
 from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
+from app.schemas.common import OkStatusResponse
+from app.schemas.skills_api import SkillListResponse, SkillPublicResponse
 from app.timeutil import utcnow
 
-@router.get("/skills/base")
-def list_base_skills(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.get("/skills/base", response_model=SkillListResponse)
+def list_base_skills(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> SkillListResponse:
     from app.models import Skill
     from app.presenters import skill_public
 
     require_instance_admin(ctx)
     rows = db.scalars(select(Skill).where(Skill.scope == "base").order_by(Skill.name)).all()
-    return {"items": [skill_public(row) for row in rows]}
+    return SkillListResponse(items=[SkillPublicResponse.model_validate(skill_public(row)) for row in rows])
 
 
-@router.post("/skills/base")
+@router.post("/skills/base", response_model=SkillPublicResponse)
 def create_base_skill(
     body: BaseSkillBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> SkillPublicResponse:
     from app.models import Skill
     from app.presenters import skill_public
 
@@ -91,16 +95,16 @@ def create_base_skill(
     )
     db.add(skill)
     db.flush()
-    return skill_public(skill)
+    return SkillPublicResponse.model_validate(skill_public(skill))
 
 
-@router.patch("/skills/base/{skill_id}")
+@router.patch("/skills/base/{skill_id}", response_model=SkillPublicResponse)
 def patch_base_skill(
     skill_id: str,
     body: BaseSkillBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> SkillPublicResponse:
     from app.models import Skill
     from app.presenters import skill_public
 
@@ -111,13 +115,13 @@ def patch_base_skill(
     skill.name = body.name.strip()
     skill.body = body.body
     skill.updated_at = utcnow()
-    return skill_public(skill)
+    return SkillPublicResponse.model_validate(skill_public(skill))
 
 
-@router.delete("/skills/base/{skill_id}")
+@router.delete("/skills/base/{skill_id}", response_model=OkStatusResponse)
 def delete_base_skill(
     skill_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     from app.models import Skill
 
     require_instance_admin(ctx)
@@ -125,4 +129,4 @@ def delete_base_skill(
     if skill is None or skill.scope != "base":
         ctx.raise_error(ErrorCode.not_found)
     db.delete(skill)
-    return {"status": "ok"}
+    return OkStatusResponse()

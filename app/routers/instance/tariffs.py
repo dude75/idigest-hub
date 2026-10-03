@@ -61,6 +61,7 @@ from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
 from app.schemas.org_api import TariffListResponse, TariffPublic
+from app.schemas.tariff_api import TariffDeleteImpactResponse, TariffDeleteResponse
 from app.timeutil import utcnow
 
 from app.constants import MAX_UPLOAD_BYTES_CAP
@@ -201,26 +202,26 @@ def unarchive_tariff(
     return TariffPublic.model_validate(tariff_public(tariff, org_count_for_tariff(db, tariff.id)))
 
 
-@router.get("/tariffs/{tariff_id}/delete-impact")
+@router.get("/tariffs/{tariff_id}/delete-impact", response_model=TariffDeleteImpactResponse)
 def tariff_delete_impact(
     tariff_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> TariffDeleteImpactResponse:
     from app.services.tariff_impact import compute_tariff_delete_impact
 
     require_instance_admin(ctx)
     tariff = db.get(Tariff, tariff_id)
     if tariff is None:
         ctx.raise_error(ErrorCode.not_found)
-    return compute_tariff_delete_impact(db, tariff)
+    return TariffDeleteImpactResponse.model_validate(compute_tariff_delete_impact(db, tariff))
 
 
-@router.delete("/tariffs/{tariff_id}")
+@router.delete("/tariffs/{tariff_id}", response_model=TariffDeleteResponse)
 def delete_tariff(
     tariff_id: str,
     body: TariffDeleteBody | None = Body(default=None),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TariffDeleteResponse:
     from app.services.tariff_impact import apply_tariff_remediation
 
     require_instance_admin(ctx)
@@ -251,4 +252,4 @@ def delete_tariff(
     payload: dict = {"status": "ok"}
     if remediation_result is not None:
         payload["remediation"] = remediation_result
-    return payload
+    return TariffDeleteResponse.model_validate(payload)

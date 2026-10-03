@@ -2554,9 +2554,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response List Base Skills Api V1 Skills Base Get"
+                  "$ref": "#/components/schemas/SkillListResponse"
                 }
               }
             }
@@ -2590,9 +2588,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Create Base Skill Api V1 Skills Base Post"
+                  "$ref": "#/components/schemas/SkillPublicResponse"
                 }
               }
             }
@@ -2649,9 +2645,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Base Skill Api V1 Skills Base  Skill Id  Patch"
+                  "$ref": "#/components/schemas/SkillPublicResponse"
                 }
               }
             }
@@ -2696,9 +2690,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Base Skill Api V1 Skills Base  Skill Id  Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -2944,9 +2936,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Tariff Api V1 Tariffs  Tariff Id  Delete"
+                  "$ref": "#/components/schemas/TariffDeleteResponse"
                 }
               }
             }
@@ -3087,9 +3077,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Tariff Delete Impact Api V1 Tariffs  Tariff Id  Delete Impact Get"
+                  "$ref": "#/components/schemas/TariffDeleteImpactResponse"
                 }
               }
             }
@@ -3552,9 +3540,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response List Deks Api V1 Instance Crypto Deks Get"
+                  "$ref": "#/components/schemas/DekListResponse"
                 }
               }
             }
@@ -3578,9 +3564,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Add Dek Api V1 Instance Crypto Deks Post"
+                  "$ref": "#/components/schemas/DekPublicResponse"
                 }
               }
             }
@@ -3606,9 +3590,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Start Reencrypt Api V1 Instance Crypto Reencrypt Post"
+                  "$ref": "#/components/schemas/EncryptionJobPublicResponse"
                 }
               }
             }
@@ -3634,9 +3616,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Reencrypt Latest Api V1 Instance Crypto Reencrypt Latest Get"
+                  "$ref": "#/components/schemas/EncryptionJobLatestResponse"
                 }
               }
             }
@@ -3673,9 +3653,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Reencrypt Status Api V1 Instance Crypto Reencrypt  Job Id  Get"
+                  "$ref": "#/components/schemas/EncryptionJobPublicResponse"
                 }
               }
             }
@@ -3722,9 +3700,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Cancel Reencrypt Api V1 Instance Crypto Reencrypt  Job Id  Cancel Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -4645,9 +4621,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Upload Audio Api V1 Audios Post"
+                  "$ref": "#/components/schemas/AudioCreatedResponse"
                 }
               }
             }
@@ -4863,9 +4837,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Audio Api V1 Audios  Audio Id  Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -4967,9 +4939,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Hide Audio Api V1 Audios  Audio Id  Hide Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -5016,9 +4986,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Unhide Audio Api V1 Audios  Audio Id  Unhide Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -5054,9 +5022,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Capture Platforms Api V1 Capture Platforms Get"
+                  "$ref": "#/components/schemas/CapturePlatformsResponse"
                 }
               }
             }
@@ -5082,9 +5048,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Import Platforms Api V1 Import Platforms Get"
+                  "$ref": "#/components/schemas/ImportPlatformsResponse"
                 }
               }
             }
@@ -5466,9 +5430,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Summary Api V1 Summaries  Summary Id  Patch"
+                  "$ref": "#/components/schemas/SummaryDetailResponse"
                 }
               }
             }
@@ -5513,9 +5475,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Summary Api V1 Summaries  Summary Id  Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -5618,9 +5578,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Hide Summary Api V1 Summaries  Summary Id  Hide Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -5667,9 +5625,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Unhide Summary Api V1 Summaries  Summary Id  Unhide Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -5716,9 +5672,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Summary Public Link Api V1 Summaries  Summary Id  Public Link Get"
+                  "$ref": "#/components/schemas/OwnerSummaryPublicLinkResponse"
                 }
               }
             }
@@ -5773,9 +5727,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Summary Public Link Api V1 Summaries  Summary Id  Public Link Post"
+                  "$ref": "#/components/schemas/OwnerSummaryPublicLinkCreateResponse"
                 }
               }
             }
@@ -5820,9 +5772,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Summary Public Link Api V1 Summaries  Summary Id  Public Link Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -6057,9 +6007,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Transcript Api V1 Transcripts  Transcript Id  Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -6114,9 +6062,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Transcript Api V1 Transcripts  Transcript Id  Patch"
+                  "$ref": "#/components/schemas/TranscriptListItem"
                 }
               }
             }
@@ -6219,9 +6165,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Hide Transcript Api V1 Transcripts  Transcript Id  Hide Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -6268,9 +6212,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Unhide Transcript Api V1 Transcripts  Transcript Id  Unhide Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -6306,9 +6248,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Get Tags Api V1 Tags Get"
+                  "$ref": "#/components/schemas/UserTagListResponse"
                 }
               }
             }
@@ -6355,9 +6295,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Tag Api V1 Tags  Tag Id  Patch"
+                  "$ref": "#/components/schemas/UserTagPublicResponse"
                 }
               }
             }
@@ -6402,9 +6340,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Remove Tag Api V1 Tags  Tag Id  Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -6450,9 +6386,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Put Object Tags Api V1 Object Tags Put"
+                  "$ref": "#/components/schemas/ObjectTagsResponse"
                 }
               }
             }
@@ -7071,9 +7005,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Catalog Api V1 Skills Get"
+                  "$ref": "#/components/schemas/SkillListResponse"
                 }
               }
             }
@@ -7119,9 +7051,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Create Self Api V1 Skills Self Post"
+                  "$ref": "#/components/schemas/SkillPublicResponse"
                 }
               }
             }
@@ -7178,9 +7108,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Self Api V1 Skills Self  Skill Id  Patch"
+                  "$ref": "#/components/schemas/SkillPublicResponse"
                 }
               }
             }
@@ -7225,9 +7153,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Self Api V1 Skills Self  Skill Id  Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -7273,9 +7199,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Create Org Skill Api V1 Org Skills Post"
+                  "$ref": "#/components/schemas/SkillPublicResponse"
                 }
               }
             }
@@ -7332,9 +7256,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Org Skill Api V1 Org Skills  Skill Id  Patch"
+                  "$ref": "#/components/schemas/SkillPublicResponse"
                 }
               }
             }
@@ -7379,9 +7301,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Delete Org Skill Api V1 Org Skills  Skill Id  Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -7473,9 +7393,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Copy Skill Api V1 Skills  Skill Id  Copy Post"
+                  "$ref": "#/components/schemas/SkillPublicResponse"
                 }
               }
             }
@@ -7511,9 +7429,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response List Public Legal Documents Api V1 Public Legal Documents Get"
+                  "$ref": "#/components/schemas/PublicLegalDocumentsResponse"
                 }
               }
             }
@@ -7550,9 +7466,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Public Legal Document Api V1 Public Legal Documents  Key  Get"
+                  "$ref": "#/components/schemas/PublicLegalDocumentDetailResponse"
                 }
               }
             }
@@ -7599,9 +7513,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Public Summary Api V1 Public Summary  Token  Get"
+                  "$ref": "#/components/schemas/PublicSummaryResponse"
                 }
               }
             }
@@ -7658,9 +7570,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Unlock Public Summary Api V1 Public Summary  Token  Unlock Post"
+                  "$ref": "#/components/schemas/PublicSummaryResponse"
                 }
               }
             }
@@ -7970,6 +7880,61 @@
           "created_at"
         ],
         "title": "ApiTokenPublic"
+      },
+      "AudioCreatedResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "org_id": {
+            "type": "string",
+            "title": "Org Id"
+          },
+          "owner_user_id": {
+            "type": "string",
+            "title": "Owner User Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "duration_sec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Sec"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "org_id",
+          "owner_user_id",
+          "filename",
+          "created_at"
+        ],
+        "title": "AudioCreatedResponse"
       },
       "AudioDetailResponse": {
         "properties": {
@@ -8598,6 +8563,34 @@
         ],
         "title": "CaptureBody"
       },
+      "CapturePlatformsResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "connectors": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Connectors"
+          },
+          "jitsi_hosts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Jitsi Hosts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "title": "CapturePlatformsResponse"
+      },
       "CreateOrgBody": {
         "properties": {
           "name": {
@@ -8668,6 +8661,185 @@
         ],
         "title": "CreateUserBody"
       },
+      "DekListResponse": {
+        "properties": {
+          "active_dek_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Dek Id"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DekPublicResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "running_job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Running Job Id"
+          },
+          "deks_pending_rewrap": {
+            "type": "integer",
+            "title": "Deks Pending Rewrap"
+          },
+          "hub_secret_prev_configured": {
+            "type": "boolean",
+            "title": "Hub Secret Prev Configured"
+          },
+          "reencrypt_available": {
+            "type": "boolean",
+            "title": "Reencrypt Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "deks_pending_rewrap",
+          "hub_secret_prev_configured",
+          "reencrypt_available"
+        ],
+        "title": "DekListResponse"
+      },
+      "DekPublicResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired At"
+          },
+          "usage_count": {
+            "type": "integer",
+            "title": "Usage Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "created_at",
+          "usage_count"
+        ],
+        "title": "DekPublicResponse"
+      },
+      "EncryptionJobLatestResponse": {
+        "properties": {
+          "job": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EncryptionJobPublicResponse"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "EncryptionJobLatestResponse"
+      },
+      "EncryptionJobPublicResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "target_dek_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Dek Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "progress": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Progress"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "created_at"
+        ],
+        "title": "EncryptionJobPublicResponse"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -8736,6 +8908,37 @@
           "url"
         ],
         "title": "ImportBody"
+      },
+      "ImportPlatformsResponse": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "platforms": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Platforms"
+          },
+          "download_proxy_required": {
+            "type": "boolean",
+            "title": "Download Proxy Required"
+          },
+          "download_proxy_available": {
+            "type": "boolean",
+            "title": "Download Proxy Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "download_proxy_required",
+          "download_proxy_available"
+        ],
+        "title": "ImportPlatformsResponse"
       },
       "InstanceOrgCreateResponse": {
         "properties": {
@@ -10441,6 +10644,19 @@
         ],
         "title": "ObjectTagsBody"
       },
+      "ObjectTagsResponse": {
+        "properties": {
+          "tags": {
+            "items": {
+              "$ref": "#/components/schemas/UserTagBrief"
+            },
+            "type": "array",
+            "title": "Tags"
+          }
+        },
+        "type": "object",
+        "title": "ObjectTagsResponse"
+      },
       "OffboardBody": {
         "properties": {
           "action": {
@@ -11274,6 +11490,89 @@
         ],
         "title": "OrgUserRoleBody"
       },
+      "OwnerSummaryPublicLinkCreateResponse": {
+        "properties": {
+          "link": {
+            "$ref": "#/components/schemas/OwnerSummaryPublicLinkItem"
+          }
+        },
+        "type": "object",
+        "required": [
+          "link"
+        ],
+        "title": "OwnerSummaryPublicLinkCreateResponse"
+      },
+      "OwnerSummaryPublicLinkItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "summary_id": {
+            "type": "string",
+            "title": "Summary Id"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "pin_required": {
+            "type": "boolean",
+            "title": "Pin Required"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "revoked": {
+            "type": "boolean",
+            "title": "Revoked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "summary_id",
+          "pin_required",
+          "created_at",
+          "revoked"
+        ],
+        "title": "OwnerSummaryPublicLinkItem"
+      },
+      "OwnerSummaryPublicLinkResponse": {
+        "properties": {
+          "link": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OwnerSummaryPublicLinkItem"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "OwnerSummaryPublicLinkResponse"
+      },
       "PasswordChangeBody": {
         "properties": {
           "current_password": {
@@ -11298,6 +11597,122 @@
           "new_password"
         ],
         "title": "PasswordChangeBody"
+      },
+      "PublicLegalDocumentDetailResponse": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "version",
+          "text"
+        ],
+        "title": "PublicLegalDocumentDetailResponse"
+      },
+      "PublicLegalDocumentItem": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "version",
+          "text"
+        ],
+        "title": "PublicLegalDocumentItem"
+      },
+      "PublicLegalDocumentsResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicLegalDocumentItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "footer_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Footer Text"
+          }
+        },
+        "type": "object",
+        "title": "PublicLegalDocumentsResponse"
+      },
+      "PublicSummaryResponse": {
+        "properties": {
+          "pin_required": {
+            "type": "boolean",
+            "title": "Pin Required"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "display_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Title"
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pin_required"
+        ],
+        "title": "PublicSummaryResponse"
       },
       "PublicUnlockBody": {
         "properties": {
@@ -12297,6 +12712,112 @@
         ],
         "title": "SkillBody"
       },
+      "SkillListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SkillPublicResponse"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "title": "SkillListResponse"
+      },
+      "SkillPublicResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "org_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id"
+          },
+          "owner_user_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner User Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "catalog": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Catalog"
+          },
+          "readonly": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Readonly"
+          },
+          "share_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Kind"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "scope",
+          "name",
+          "body",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SkillPublicResponse"
+      },
       "SmtpTestBody": {
         "properties": {
           "smtp_host": {
@@ -13084,6 +13605,24 @@
         ],
         "title": "TariffBody"
       },
+      "TariffChoice": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TariffChoice"
+      },
       "TariffCloneBody": {
         "properties": {
           "name": {
@@ -13112,6 +13651,110 @@
         },
         "type": "object",
         "title": "TariffDeleteBody"
+      },
+      "TariffDeleteImpactResponse": {
+        "properties": {
+          "tariff": {
+            "$ref": "#/components/schemas/TariffDeleteImpactTariff"
+          },
+          "last_tariff": {
+            "type": "boolean",
+            "title": "Last Tariff"
+          },
+          "org_count": {
+            "type": "integer",
+            "title": "Org Count"
+          },
+          "affected_orgs": {
+            "items": {
+              "$ref": "#/components/schemas/TariffChoice"
+            },
+            "type": "array",
+            "title": "Affected Orgs"
+          },
+          "available_tariffs": {
+            "items": {
+              "$ref": "#/components/schemas/TariffChoice"
+            },
+            "type": "array",
+            "title": "Available Tariffs"
+          },
+          "suggested_replacement": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TariffChoice"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "can_remediate": {
+            "type": "boolean",
+            "title": "Can Remediate"
+          },
+          "blocking": {
+            "type": "boolean",
+            "title": "Blocking"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tariff",
+          "last_tariff",
+          "org_count",
+          "can_remediate",
+          "blocking"
+        ],
+        "title": "TariffDeleteImpactResponse"
+      },
+      "TariffDeleteImpactTariff": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "archived": {
+            "type": "boolean",
+            "title": "Archived"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "archived"
+        ],
+        "title": "TariffDeleteImpactTariff"
+      },
+      "TariffDeleteResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "remediation": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remediation"
+          }
+        },
+        "type": "object",
+        "title": "TariffDeleteResponse"
       },
       "TariffListResponse": {
         "properties": {
@@ -14196,6 +14839,48 @@
           "name"
         ],
         "title": "UserTagBrief"
+      },
+      "UserTagListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UserTagBrief"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "title": "UserTagListResponse"
+      },
+      "UserTagPublicResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "usage_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Usage Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "UserTagPublicResponse"
       },
       "ValidationError": {
         "properties": {

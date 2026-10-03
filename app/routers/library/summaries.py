@@ -61,11 +61,15 @@ from app.services.library_list import (
 )
 from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
+from app.schemas.common import OkStatusResponse
 from app.schemas.library import (
     ShareBody,
     TitlePatch,
     SummaryPatch,
     SummaryPublicLinkBody,
+    OwnerSummaryPublicLinkCreateResponse,
+    OwnerSummaryPublicLinkItem,
+    OwnerSummaryPublicLinkResponse,
     AudioDetailResponse,
     AudioListItem,
     AudioListResponse,
@@ -188,22 +192,22 @@ def export_summary(
     )
 
 
-@router.post("/summaries/{summary_id}/hide")
+@router.post("/summaries/{summary_id}/hide", response_model=OkStatusResponse)
 def hide_summary(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Summary, summary_id)
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
     if not is_hidden(db, ctx.user.id, "summary", row.id):
         db.add(HiddenItem(id=new_id(), user_id=ctx.user.id, object_type="summary", object_id=row.id))
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/summaries/{summary_id}/unhide")
+@router.post("/summaries/{summary_id}/unhide", response_model=OkStatusResponse)
 def unhide_summary(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Summary, summary_id)
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
@@ -216,15 +220,16 @@ def unhide_summary(
     )
     if hidden:
         db.delete(hidden)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
-@router.patch("/summaries/{summary_id}")
+
+@router.patch("/summaries/{summary_id}", response_model=SummaryDetailResponse)
 def patch_summary(
     summary_id: str,
     body: SummaryPatch,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> SummaryDetailResponse:
     row = db.get(Summary, summary_id)
     if row is None:
         ctx.raise_error(ErrorCode.not_found)
@@ -252,19 +257,21 @@ def patch_summary(
         if source_transcript and source_transcript.source_audio_id
         else None
     )
-    return summary_public(
-        row,
-        body_text,
-        lh.share_badge(db, "summary", row.id, row.owner_user_id, ctx),
-        source_transcript=source_transcript,
-        source_filename=source_audio.original_filename if source_audio else None,
+    return SummaryDetailResponse.model_validate(
+        summary_public(
+            row,
+            body_text,
+            lh.share_badge(db, "summary", row.id, row.owner_user_id, ctx),
+            source_transcript=source_transcript,
+            source_filename=source_audio.original_filename if source_audio else None,
+        )
     )
 
 
-@router.delete("/summaries/{summary_id}")
+@router.delete("/summaries/{summary_id}", response_model=OkStatusResponse)
 def delete_summary(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Summary, summary_id)
     if row is None:
         ctx.raise_error(ErrorCode.not_found)
@@ -274,13 +281,13 @@ def delete_summary(
         ctx.raise_error(ErrorCode.not_found)
     write_audit(db, "summary.delete", ctx, {"summary_id": row.id})
     hard_delete_summary(db, row)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.get("/summaries/{summary_id}/public-link")
+@router.get("/summaries/{summary_id}/public-link", response_model=OwnerSummaryPublicLinkResponse)
 def get_summary_public_link(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OwnerSummaryPublicLinkResponse:
     row = db.get(Summary, summary_id)
     if row is None:
         ctx.raise_error(ErrorCode.not_found)
@@ -289,17 +296,19 @@ def get_summary_public_link(
 
     link = get_link_for_summary(db, row.id)
     if link is None:
-        return {"link": None}
-    return {"link": link_public_payload(link, db)}
+        return OwnerSummaryPublicLinkResponse(link=None)
+    return OwnerSummaryPublicLinkResponse(
+        link=OwnerSummaryPublicLinkItem.model_validate(link_public_payload(link, db))
+    )
 
 
-@router.post("/summaries/{summary_id}/public-link")
+@router.post("/summaries/{summary_id}/public-link", response_model=OwnerSummaryPublicLinkCreateResponse)
 def create_summary_public_link(
     summary_id: str,
     body: SummaryPublicLinkBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OwnerSummaryPublicLinkCreateResponse:
     org, _ = ctx.require_org()
     row = db.get(Summary, summary_id)
     if row is None:
@@ -325,13 +334,13 @@ def create_summary_public_link(
         {"summary_id": row.id, "link_id": link.id, "pin_required": link.pin_hash is not None},
     )
     payload = link_public_payload(link, db)
-    return {"link": payload}
+    return OwnerSummaryPublicLinkCreateResponse(link=OwnerSummaryPublicLinkItem.model_validate(payload))
 
 
-@router.delete("/summaries/{summary_id}/public-link")
+@router.delete("/summaries/{summary_id}/public-link", response_model=OkStatusResponse)
 def delete_summary_public_link(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Summary, summary_id)
     if row is None:
         ctx.raise_error(ErrorCode.not_found)
@@ -343,4 +352,4 @@ def delete_summary_public_link(
         ctx.raise_error(ErrorCode.not_found)
     revoke_link(db, link)
     write_audit(db, "summary.public_link.revoke", ctx, {"summary_id": row.id, "link_id": link.id})
-    return {"status": "ok"}
+    return OkStatusResponse()

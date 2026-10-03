@@ -61,6 +61,7 @@ from app.services.library_list import (
 )
 from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
+from app.schemas.common import OkStatusResponse
 from app.schemas.library import (
     ShareBody,
     TitlePatch,
@@ -205,22 +206,22 @@ def export_transcript(
     return attachment_response(utterances_to_text(utterances), f"{stem}.txt", "text/plain; charset=utf-8")
 
 
-@router.post("/transcripts/{transcript_id}/hide")
+@router.post("/transcripts/{transcript_id}/hide", response_model=OkStatusResponse)
 def hide_transcript(
     transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
     if not is_hidden(db, ctx.user.id, "transcript", row.id):
         db.add(HiddenItem(id=new_id(), user_id=ctx.user.id, object_type="transcript", object_id=row.id))
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/transcripts/{transcript_id}/unhide")
+@router.post("/transcripts/{transcript_id}/unhide", response_model=OkStatusResponse)
 def unhide_transcript(
     transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
@@ -233,13 +234,13 @@ def unhide_transcript(
     )
     if hidden:
         db.delete(hidden)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.delete("/transcripts/{transcript_id}")
+@router.delete("/transcripts/{transcript_id}", response_model=OkStatusResponse)
 def delete_transcript(
     transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     row = db.get(Transcript, transcript_id)
     if row is None:
         ctx.raise_error(ErrorCode.not_found)
@@ -248,15 +249,16 @@ def delete_transcript(
         ctx.raise_error(ErrorCode.not_found)
     write_audit(db, "transcript.wipe", ctx, {"transcript_id": row.id})
     hard_delete_transcript(db, row)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
-@router.patch("/transcripts/{transcript_id}")
+
+@router.patch("/transcripts/{transcript_id}", response_model=TranscriptListItem)
 def patch_transcript(
     transcript_id: str,
     body: TitlePatch,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TranscriptListItem:
     row = db.get(Transcript, transcript_id)
     if row is None:
         ctx.raise_error(ErrorCode.not_found)
@@ -267,9 +269,11 @@ def patch_transcript(
     row.title = body.title.strip()
     write_audit(db, "transcript.rename", ctx, {"transcript_id": row.id})
     source_audio = db.get(Audio, row.source_audio_id) if row.source_audio_id else None
-    return transcript_public(
-        row,
-        extra=lh.share_badge(db, "transcript", row.id, row.owner_user_id, ctx),
-        source_filename=source_audio.original_filename if source_audio else None,
+    return TranscriptListItem.model_validate(
+        transcript_public(
+            row,
+            extra=lh.share_badge(db, "transcript", row.id, row.owner_user_id, ctx),
+            source_filename=source_audio.original_filename if source_audio else None,
+        )
     )
 

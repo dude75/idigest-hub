@@ -12,6 +12,13 @@ from app.db import get_session
 from app.deps import AuthContext, get_instance_settings, require_auth
 from app.errors import ErrorCode
 from app.models import DataEncryptionKey, EncryptionJob, InstanceSettings
+from app.schemas.common import OkStatusResponse
+from app.schemas.crypto_api import (
+    DekListResponse,
+    DekPublicResponse,
+    EncryptionJobLatestResponse,
+    EncryptionJobPublicResponse,
+)
 from app.services.audit import write_audit
 from app.services.crypto_reencrypt import active_job_id, latest_job, request_cancel, start_reencrypt_job
 from app.timeutil import isoformat_utc, utcnow
@@ -36,24 +43,24 @@ def _job_public(job) -> dict:
     }
 
 
-@router.get("/instance/crypto/deks")
-def list_deks(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.get("/instance/crypto/deks", response_model=DekListResponse)
+def list_deks(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> DekListResponse:
     _admin(ctx)
     settings = get_instance_settings(db)
     rows = list(db.scalars(select(DataEncryptionKey).order_by(DataEncryptionKey.created_at.desc())).all())
     has_retiring = any(row.status == "retiring" for row in rows)
-    return {
-        "active_dek_id": settings.active_dek_id,
-        "items": [dek_public(row, usage_count=count_dek_usage(db, row.id)) for row in rows],
-        "running_job_id": active_job_id(),
-        "deks_pending_rewrap": count_deks_needing_rewrap(db),
-        "hub_secret_prev_configured": bool(get_settings().HUB_SECRET_PREV),
-        "reencrypt_available": has_retiring and active_job_id() is None,
-    }
+    return DekListResponse(
+        active_dek_id=settings.active_dek_id,
+        items=[DekPublicResponse.model_validate(dek_public(row, usage_count=count_dek_usage(db, row.id))) for row in rows],
+        running_job_id=active_job_id(),
+        deks_pending_rewrap=count_deks_needing_rewrap(db),
+        hub_secret_prev_configured=bool(get_settings().HUB_SECRET_PREV),
+        reencrypt_available=has_retiring and active_job_id() is None,
+    )
 
 
-@router.post("/instance/crypto/deks")
-def add_dek(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.post("/instance/crypto/deks", response_model=DekPublicResponse)
+def add_dek(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> DekPublicResponse:
     _admin(ctx)
     if active_job_id() is not None:
         ctx.raise_error(ErrorCode.conflict)
@@ -65,11 +72,13 @@ def add_dek(db: Session = Depends(get_session, scope="function"), ctx: AuthConte
     dek = create_dek(db, status="active")
     settings.active_dek_id = dek.id
     write_audit(db, "crypto.dek.create", ctx, {"dek_id": dek.id})
-    return dek_public(dek, usage_count=count_dek_usage(db, dek.id))
+    return DekPublicResponse.model_validate(dek_public(dek, usage_count=count_dek_usage(db, dek.id)))
 
 
-@router.post("/instance/crypto/reencrypt")
-def start_reencrypt(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.post("/instance/crypto/reencrypt", response_model=EncryptionJobPublicResponse)
+def start_reencrypt(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> EncryptionJobPublicResponse:
     _admin(ctx)
     if active_job_id() is not None:
         ctx.raise_error(ErrorCode.conflict)
@@ -77,33 +86,35 @@ def start_reencrypt(db: Session = Depends(get_session, scope="function"), ctx: A
     if job is None:
         ctx.raise_error(ErrorCode.validation_error)
     write_audit(db, "crypto.reencrypt.start", ctx, {"job_id": job.id, "target_dek_id": job.target_dek_id})
-    return _job_public(job)
+    return EncryptionJobPublicResponse.model_validate(_job_public(job))
 
 
-@router.get("/instance/crypto/reencrypt/latest")
-def reencrypt_latest(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.get("/instance/crypto/reencrypt/latest", response_model=EncryptionJobLatestResponse)
+def reencrypt_latest(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> EncryptionJobLatestResponse:
     _admin(ctx)
     job = latest_job(db)
     if job is None:
-        return {"job": None}
-    return {"job": _job_public(job)}
+        return EncryptionJobLatestResponse(job=None)
+    return EncryptionJobLatestResponse(job=EncryptionJobPublicResponse.model_validate(_job_public(job)))
 
 
-@router.get("/instance/crypto/reencrypt/{job_id}")
+@router.get("/instance/crypto/reencrypt/{job_id}", response_model=EncryptionJobPublicResponse)
 def reencrypt_status(
     job_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> EncryptionJobPublicResponse:
     _admin(ctx)
     job = db.get(EncryptionJob, job_id)
     if job is None:
         ctx.raise_error(ErrorCode.not_found)
-    return _job_public(job)
+    return EncryptionJobPublicResponse.model_validate(_job_public(job))
 
 
-@router.post("/instance/crypto/reencrypt/{job_id}/cancel")
+@router.post("/instance/crypto/reencrypt/{job_id}/cancel", response_model=OkStatusResponse)
 def cancel_reencrypt(
     job_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     _admin(ctx)
     job = db.get(EncryptionJob, job_id)
     if job is None:
@@ -112,6 +123,4 @@ def cancel_reencrypt(
         ctx.raise_error(ErrorCode.validation_error)
     request_cancel(job_id)
     write_audit(db, "crypto.reencrypt.cancel", ctx, {"job_id": job_id})
-    return {"status": "ok"}
-
-
+    return OkStatusResponse()

@@ -61,24 +61,7 @@ from app.services.library_list import (
 )
 from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
-from app.schemas.library import (
-    ShareBody,
-    TitlePatch,
-    SummaryPatch,
-    SummaryPublicLinkBody,
-    AudioDetailResponse,
-    AudioListItem,
-    AudioListResponse,
-    SummaryDetailResponse,
-    SummaryListItem,
-    SummaryListResponse,
-    SummarySourceGroup,
-    TranscriptDetailResponse,
-    TranscriptListItem,
-    TranscriptListResponse,
-    TranscriptSourceGroup,
-    _derived_audio_defaults,
-)
+from app.schemas.library import CapturePlatformsResponse, ImportPlatformsResponse
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
 from app.services import library_helpers as lh
@@ -86,11 +69,11 @@ from app.services import library_helpers as lh
 from app.routers.library._router import router
 
 
-@router.get("/capture/platforms")
+@router.get("/capture/platforms", response_model=CapturePlatformsResponse)
 def capture_platforms(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> CapturePlatformsResponse:
     org, _ = ctx.require_org()
     from app.deps import get_instance_settings
     from app.services.capture_meeting import normalize_host, org_jitsi_hosts_public
@@ -106,18 +89,18 @@ def capture_platforms(
             if host and host not in seen:
                 seen.add(host)
                 jitsi_hosts.append(host)
-    return {
-        "enabled": settings.capture_enabled,
-        "connectors": public_connectors(settings, db),
-        "jitsi_hosts": jitsi_hosts,
-    }
+    return CapturePlatformsResponse(
+        enabled=settings.capture_enabled,
+        connectors=public_connectors(settings, db),
+        jitsi_hosts=jitsi_hosts,
+    )
 
 
-@router.get("/import/platforms")
+@router.get("/import/platforms", response_model=ImportPlatformsResponse)
 def import_platforms(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> ImportPlatformsResponse:
     ctx.require_org()
     from app.deps import get_instance_settings
     from app.services.import_platforms import public_platforms
@@ -125,9 +108,9 @@ def import_platforms(
     from app.services.download_proxy_health import download_proxy_status
 
     settings = get_instance_settings(db)
-    return {
-        "enabled": settings.import_enabled,
-        "platforms": public_platforms(settings),
+    return ImportPlatformsResponse(
+        enabled=settings.import_enabled,
+        platforms=public_platforms(settings),
         **download_proxy_status(settings, db),
-    }
+    )
 

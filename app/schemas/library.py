@@ -148,6 +148,60 @@ class SummaryDetailResponse(SummaryListItem):
     body: str
 
 
+class AudioCreatedResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    org_id: str
+    owner_user_id: str
+    filename: str
+    source_url: str | None = None
+    duration_sec: float | None = None
+    created_at: str
+
+
+class OwnerSummaryPublicLinkItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    summary_id: str
+    url: str | None = None
+    expires_at: str | None = None
+    pin_required: bool
+    created_at: str
+    revoked: bool
+
+
+class OwnerSummaryPublicLinkResponse(BaseModel):
+    link: OwnerSummaryPublicLinkItem | None = None
+
+
+class OwnerSummaryPublicLinkCreateResponse(BaseModel):
+    link: OwnerSummaryPublicLinkItem
+
+
+class PlatformConnectorPublic(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    id: str
+    label: str | None = None
+
+
+class CapturePlatformsResponse(BaseModel):
+    enabled: bool
+    connectors: list[dict[str, Any]] = Field(default_factory=list)
+    jitsi_hosts: list[str] = Field(default_factory=list)
+
+
+class ImportPlatformsResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    enabled: bool
+    platforms: list[dict[str, Any]] = Field(default_factory=list)
+    download_proxy_required: bool
+    download_proxy_available: bool
+
+
 def _derived_audio_defaults() -> dict:
     return {
         "has_transcript": False,

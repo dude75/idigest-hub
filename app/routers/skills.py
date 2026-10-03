@@ -12,6 +12,8 @@ from app.deps import AuthContext, require_auth
 from app.errors import ErrorCode
 from app.models import Share, Skill, new_id
 from app.presenters import skill_public
+from app.schemas.common import OkStatusResponse
+from app.schemas.skills_api import SkillListResponse, SkillPublicResponse
 from app.services.access import is_shared_with
 from app.services.export import attachment_response
 from app.timeutil import utcnow
@@ -77,20 +79,22 @@ def _visible_skills(db: Session, ctx: AuthContext, scope: str | None) -> list[tu
     return items
 
 
-@router.get("/skills")
+@router.get("/skills", response_model=SkillListResponse)
 def catalog(
     scope: str | None = None,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> SkillListResponse:
     items = _visible_skills(db, ctx, scope)
-    return {"items": [skill_public(skill, extra) for skill, extra in items]}
+    return SkillListResponse(
+        items=[SkillPublicResponse.model_validate(skill_public(skill, extra)) for skill, extra in items]
+    )
 
 
-@router.post("/skills/self")
+@router.post("/skills/self", response_model=SkillPublicResponse)
 def create_self(
     body: SkillBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> SkillPublicResponse:
     org, _ = ctx.require_org()
     now = utcnow()
     skill = Skill(
@@ -105,40 +109,40 @@ def create_self(
     )
     db.add(skill)
     db.flush()
-    return skill_public(skill)
+    return SkillPublicResponse.model_validate(skill_public(skill))
 
 
-@router.patch("/skills/self/{skill_id}")
+@router.patch("/skills/self/{skill_id}", response_model=SkillPublicResponse)
 def patch_self(
     skill_id: str,
     body: SkillBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> SkillPublicResponse:
     skill = db.get(Skill, skill_id)
     if skill is None or skill.scope != "self" or skill.owner_user_id != ctx.user.id:
         ctx.raise_error(ErrorCode.not_found)
     skill.name = body.name.strip()
     skill.body = body.body
     skill.updated_at = utcnow()
-    return skill_public(skill)
+    return SkillPublicResponse.model_validate(skill_public(skill))
 
 
-@router.delete("/skills/self/{skill_id}")
+@router.delete("/skills/self/{skill_id}", response_model=OkStatusResponse)
 def delete_self(
     skill_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     skill = db.get(Skill, skill_id)
     if skill is None or skill.scope != "self" or skill.owner_user_id != ctx.user.id:
         ctx.raise_error(ErrorCode.not_found)
     db.delete(skill)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.post("/org/skills")
+@router.post("/org/skills", response_model=SkillPublicResponse)
 def create_org_skill(
     body: SkillBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> SkillPublicResponse:
     org, _ = ctx.require_org_admin()
     now = utcnow()
     skill = Skill(
@@ -152,16 +156,16 @@ def create_org_skill(
     )
     db.add(skill)
     db.flush()
-    return skill_public(skill)
+    return SkillPublicResponse.model_validate(skill_public(skill))
 
 
-@router.patch("/org/skills/{skill_id}")
+@router.patch("/org/skills/{skill_id}", response_model=SkillPublicResponse)
 def patch_org_skill(
     skill_id: str,
     body: SkillBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> SkillPublicResponse:
     org, _ = ctx.require_org_admin()
     skill = db.get(Skill, skill_id)
     if skill is None or skill.scope != "org" or skill.org_id != org.id:
@@ -169,19 +173,19 @@ def patch_org_skill(
     skill.name = body.name.strip()
     skill.body = body.body
     skill.updated_at = utcnow()
-    return skill_public(skill)
+    return SkillPublicResponse.model_validate(skill_public(skill))
 
 
-@router.delete("/org/skills/{skill_id}")
+@router.delete("/org/skills/{skill_id}", response_model=OkStatusResponse)
 def delete_org_skill(
     skill_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     org, _ = ctx.require_org_admin()
     skill = db.get(Skill, skill_id)
     if skill is None or skill.scope != "org" or skill.org_id != org.id:
         ctx.raise_error(ErrorCode.not_found)
     db.delete(skill)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
 @router.get("/skills/{skill_id}/export")
@@ -194,10 +198,10 @@ def export_skill(
     return attachment_response(skill.body, f"{skill.name}.md", "text/markdown; charset=utf-8")
 
 
-@router.post("/skills/{skill_id}/copy")
+@router.post("/skills/{skill_id}/copy", response_model=SkillPublicResponse)
 def copy_skill(
     skill_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> SkillPublicResponse:
     org, _ = ctx.require_org()
     skill = db.get(Skill, skill_id)
     if skill is None:
@@ -226,4 +230,4 @@ def copy_skill(
     )
     db.add(copy)
     db.flush()
-    return skill_public(copy)
+    return SkillPublicResponse.model_validate(skill_public(copy))

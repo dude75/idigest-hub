@@ -11,6 +11,12 @@ from app.db import get_session
 from app.errors import ApiError, ErrorCode
 from app.i18n import negotiate_locale
 from app.rate_limit import client_ip, enforce_public_link_view, enforce_public_pin_unlock, get_rate_limits
+from app.schemas.public_api import (
+    PublicLegalDocumentDetailResponse,
+    PublicLegalDocumentsResponse,
+    PublicLegalDocumentItem,
+    PublicSummaryResponse,
+)
 from app.services.audit import write_public_audit
 from app.deps import get_instance_settings
 from app.services.public_links import (
@@ -41,29 +47,25 @@ def _locale(request: Request) -> str:
     return negotiate_locale(request.headers.get("accept-language"))
 
 
-def _pin_required_payload() -> dict:
-    return {"pin_required": True}
-
-
-@router.get("/public/legal-documents")
+@router.get("/public/legal-documents", response_model=PublicLegalDocumentsResponse)
 def list_public_legal_documents(
     request: Request,
     db: Session = Depends(get_session, scope="function"),
-) -> dict:
+) -> PublicLegalDocumentsResponse:
     locale = _locale(request)
     settings = get_instance_settings(db)
-    return {
-        "items": public_legal_documents(settings, locale),
-        "footer_text": public_landing_footer_text(settings, locale),
-    }
+    return PublicLegalDocumentsResponse(
+        items=[PublicLegalDocumentItem.model_validate(item) for item in public_legal_documents(settings, locale)],
+        footer_text=public_landing_footer_text(settings, locale),
+    )
 
 
-@router.get("/public/legal-documents/{key}")
+@router.get("/public/legal-documents/{key}", response_model=PublicLegalDocumentDetailResponse)
 def get_public_legal_document(
     key: str,
     request: Request,
     db: Session = Depends(get_session, scope="function"),
-) -> dict:
+) -> PublicLegalDocumentDetailResponse:
     if key not in LEGAL_DOCUMENT_KEYS:
         raise ApiError(ErrorCode.not_found)
     locale = _locale(request)
@@ -71,19 +73,26 @@ def get_public_legal_document(
     if not document_active(settings, key) or not document_published(settings, key):
         raise ApiError(ErrorCode.not_found)
     spec = LEGAL_DOCUMENT_SPECS[key]
-    return {
-        "key": key,
-        "version": getattr(settings, spec["version"]),
-        "text": document_text(settings, key, locale),
-    }
+    return PublicLegalDocumentDetailResponse(
+        key=key,
+        version=getattr(settings, spec["version"]),
+        text=document_text(settings, key, locale),
+    )
 
 
-@router.get("/public/summary/{token}")
+def _public_summary_payload(*, pin_required: bool, summary=None, body_text: str | None = None) -> PublicSummaryResponse:
+    if pin_required:
+        return PublicSummaryResponse(pin_required=True)
+    assert summary is not None and body_text is not None
+    return PublicSummaryResponse(pin_required=False, **summary_guest_payload(summary, body_text))
+
+
+@router.get("/public/summary/{token}", response_model=PublicSummaryResponse, response_model_exclude_none=True)
 def get_public_summary(
     token: str,
     request: Request,
     db: Session = Depends(get_session, scope="function"),
-) -> dict:
+) -> PublicSummaryResponse:
     locale = _locale(request)
     enforce_public_link_view(client_ip(request), get_rate_limits(db), locale)
     resolved = resolve_link(db, token)
@@ -91,20 +100,20 @@ def get_public_summary(
         raise ApiError(ErrorCode.not_found)
     link, summary, org = resolved
     if link.pin_hash is not None and not unlock_cookie_valid(request, link):
-        return _pin_required_payload()
+        return _public_summary_payload(pin_required=True)
     body_text = decrypt_str(summary.body_encrypted, db)
     write_public_audit(db, "summary.public_link.view", org_id=org.id, payload={"summary_id": summary.id, "link_id": link.id})
-    return {"pin_required": False, **summary_guest_payload(summary, body_text)}
+    return _public_summary_payload(pin_required=False, summary=summary, body_text=body_text)
 
 
-@router.post("/public/summary/{token}/unlock")
+@router.post("/public/summary/{token}/unlock", response_model=PublicSummaryResponse, response_model_exclude_none=True)
 def unlock_public_summary(
     token: str,
     body: PublicUnlockBody,
     request: Request,
     response: Response,
     db: Session = Depends(get_session, scope="function"),
-) -> dict:
+) -> PublicSummaryResponse:
     locale = _locale(request)
     enforce_public_pin_unlock(client_ip(request), get_rate_limits(db), locale)
     resolved = resolve_link(db, token)
@@ -114,10 +123,10 @@ def unlock_public_summary(
     if link.pin_hash is None:
         body_text = decrypt_str(summary.body_encrypted, db)
         write_public_audit(db, "summary.public_link.view", org_id=org.id, payload={"summary_id": summary.id, "link_id": link.id})
-        return {"pin_required": False, **summary_guest_payload(summary, body_text)}
+        return _public_summary_payload(pin_required=False, summary=summary, body_text=body_text)
     if not verify_link_pin(link, body.pin):
         raise ApiError(ErrorCode.invalid_pin)
     set_unlock_cookie(response, link)
     body_text = decrypt_str(summary.body_encrypted, db)
     write_public_audit(db, "summary.public_link.view", org_id=org.id, payload={"summary_id": summary.id, "link_id": link.id})
-    return {"pin_required": False, **summary_guest_payload(summary, body_text)}
+    return _public_summary_payload(pin_required=False, summary=summary, body_text=body_text)
