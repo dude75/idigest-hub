@@ -11,6 +11,7 @@ export type LibraryListQuery = {
   includeHidden?: boolean
   tag?: string | null
   ownerUserId?: string
+  q?: string
   limit?: number
   offset?: number
 }
@@ -22,6 +23,7 @@ export function libraryListPath(tab: LibraryTab, query: LibraryListQuery): strin
   if (query.includeHidden) params.set('include_hidden', 'true')
   if (query.tag) params.set('tag', query.tag)
   if (query.ownerUserId) params.set('owner_user_id', query.ownerUserId)
+  if (query.q) params.set('q', query.q)
   if (query.limit != null) params.set('limit', String(query.limit))
   if (query.offset != null && query.offset > 0) params.set('offset', String(query.offset))
   const qs = params.toString()
@@ -55,7 +57,7 @@ export function filterLibraryItems<T extends { owner_user_id: string }>(
   })
 }
 
-/** Text search or source grouping needs the full visible set on the client. */
-export function libraryNeedsFullList(query: string, groupListBySource: boolean): boolean {
-  return query.trim() !== '' || groupListBySource
+/** Source grouping needs the full matching set on the client to build groups. */
+export function libraryNeedsFullList(groupListBySource: boolean): boolean {
+  return groupListBySource
 }

@@ -51,6 +51,7 @@ from app.services.storage import PayloadTooLarge, get_storage
 from app.services.upload_validation import InvalidAudioContent
 from app.services.library_list import (
     LIBRARY_LIST_MAX_LIMIT,
+    LIBRARY_SEARCH_MAX_LEN,
     batch_share_badges,
     count_hidden_library_rows,
     count_library_rows,
@@ -286,6 +287,7 @@ def _list_filter(
     include_hidden: bool,
     tag: str | None = None,
     owner_user_id: str | None = None,
+    q: str | None = None,
     *,
     limit: int | None = None,
     offset: int = 0,
@@ -298,6 +300,7 @@ def _list_filter(
         include_hidden,
         tag,
         owner_user_id=owner_user_id,
+        q=q,
         limit=limit,
         offset=offset,
     )
@@ -401,6 +404,7 @@ def list_audios(
     include_hidden: bool = False,
     tag: str | None = None,
     owner_user_id: str | None = None,
+    q: str | None = Query(None, max_length=LIBRARY_SEARCH_MAX_LEN),
     limit: int | None = Query(None, ge=1, le=LIBRARY_LIST_MAX_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
@@ -408,9 +412,11 @@ def list_audios(
 ) -> dict:
     owner = _library_owner_filter(ctx, owner_user_id)
     rows = _list_filter(
-        ctx, db, Audio, "audio", include_hidden, tag, owner, limit=limit, offset=offset
+        ctx, db, Audio, "audio", include_hidden, tag, owner, q, limit=limit, offset=offset
     )
-    total = count_library_rows(ctx, db, Audio, "audio", include_hidden, tag, owner_user_id=owner)
+    total = count_library_rows(
+        ctx, db, Audio, "audio", include_hidden, tag, owner_user_id=owner, q=q
+    )
     tag_map = batch_object_user_tags(db, ctx.user.id, "audio", [row.id for row in rows])
     badges = batch_share_badges(db, ctx, "audio", rows, user_tags_by_id=tag_map)
     derived = _audio_derived_info(db, ctx, [row.id for row in rows])
@@ -578,6 +584,7 @@ def list_transcripts(
     include_hidden: bool = False,
     tag: str | None = None,
     owner_user_id: str | None = None,
+    q: str | None = Query(None, max_length=LIBRARY_SEARCH_MAX_LEN),
     limit: int | None = Query(None, ge=1, le=LIBRARY_LIST_MAX_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
@@ -585,10 +592,10 @@ def list_transcripts(
 ) -> dict:
     owner = _library_owner_filter(ctx, owner_user_id)
     rows = _list_filter(
-        ctx, db, Transcript, "transcript", include_hidden, tag, owner, limit=limit, offset=offset
+        ctx, db, Transcript, "transcript", include_hidden, tag, owner, q, limit=limit, offset=offset
     )
     total = count_library_rows(
-        ctx, db, Transcript, "transcript", include_hidden, tag, owner_user_id=owner
+        ctx, db, Transcript, "transcript", include_hidden, tag, owner_user_id=owner, q=q
     )
     tag_map = batch_object_user_tags(db, ctx.user.id, "transcript", [row.id for row in rows])
     badges = batch_share_badges(db, ctx, "transcript", rows, user_tags_by_id=tag_map)
@@ -729,6 +736,7 @@ def list_summaries(
     include_hidden: bool = False,
     tag: str | None = None,
     owner_user_id: str | None = None,
+    q: str | None = Query(None, max_length=LIBRARY_SEARCH_MAX_LEN),
     limit: int | None = Query(None, ge=1, le=LIBRARY_LIST_MAX_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
@@ -736,9 +744,11 @@ def list_summaries(
 ) -> dict:
     owner = _library_owner_filter(ctx, owner_user_id)
     rows = _list_filter(
-        ctx, db, Summary, "summary", include_hidden, tag, owner, limit=limit, offset=offset
+        ctx, db, Summary, "summary", include_hidden, tag, owner, q, limit=limit, offset=offset
     )
-    total = count_library_rows(ctx, db, Summary, "summary", include_hidden, tag, owner_user_id=owner)
+    total = count_library_rows(
+        ctx, db, Summary, "summary", include_hidden, tag, owner_user_id=owner, q=q
+    )
     tag_map = batch_object_user_tags(db, ctx.user.id, "summary", [row.id for row in rows])
     badges = batch_share_badges(db, ctx, "summary", rows, user_tags_by_id=tag_map)
     transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})

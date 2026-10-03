@@ -5,15 +5,89 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import Any
 
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import and_, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.deps import AuthContext
-from app.models import HiddenItem, Share, User, UserTagLink
+from app.models import Audio, HiddenItem, Share, Summary, Transcript, User, UserTagLink
 from app.services.user_tags import resolve_user_tag
 
 
 LIBRARY_LIST_MAX_LIMIT = 500
+LIBRARY_SEARCH_MAX_LEN = 200
+
+
+def normalize_library_q(q: str | None) -> str | None:
+    if q is None:
+        return None
+    text = " ".join(q.strip().split())
+    if not text:
+        return None
+    if len(text) > LIBRARY_SEARCH_MAX_LEN:
+        text = text[:LIBRARY_SEARCH_MAX_LEN]
+    return text
+
+
+def _like_pattern(q: str) -> str:
+    escaped = q.casefold().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escaped}%"
+
+
+def _owner_email_matches(model, pattern: str) -> Any:
+    return exists(
+        select(1).where(
+            User.id == model.owner_user_id,
+            func.lower(User.email).like(pattern, escape="\\"),
+        )
+    )
+
+
+def library_search_filter(model: type, object_type: str, q: str | None) -> Any | None:
+    """Extra WHERE clause for list search, or None when q is empty."""
+    normalized = normalize_library_q(q)
+    if not normalized:
+        return None
+    pattern = _like_pattern(normalized)
+    like = lambda col: func.lower(col).like(pattern, escape="\\")
+
+    if object_type == "audio":
+        return or_(like(model.original_filename), _owner_email_matches(model, pattern))
+
+    if object_type == "transcript":
+        audio_name = exists(
+            select(1)
+            .select_from(Audio)
+            .where(
+                Audio.id == model.source_audio_id,
+                like(Audio.original_filename),
+            )
+        )
+        title_match = and_(model.title.is_not(None), like(model.title))
+        return or_(title_match, audio_name, _owner_email_matches(model, pattern))
+
+    if object_type == "summary":
+        transcript_match = exists(
+            select(1)
+            .select_from(Transcript)
+            .where(
+                Transcript.id == model.source_transcript_id,
+                or_(
+                    and_(Transcript.title.is_not(None), like(Transcript.title)),
+                    exists(
+                        select(1)
+                        .select_from(Audio)
+                        .where(
+                            Audio.id == Transcript.source_audio_id,
+                            like(Audio.original_filename),
+                        )
+                    ),
+                ),
+            )
+        )
+        title_match = and_(model.title.is_not(None), like(model.title))
+        return or_(title_match, transcript_match, _owner_email_matches(model, pattern))
+
+    return None
 
 
 def library_visibility_filters(
@@ -25,6 +99,7 @@ def library_visibility_filters(
     include_hidden: bool,
     tag: str | None,
     owner_user_id: str | None = None,
+    q: str | None = None,
 ) -> list[Any] | None:
     """WHERE clauses for visible library rows. None => empty list (unknown tag)."""
     org, membership = ctx.require_org()
@@ -62,6 +137,9 @@ def library_visibility_filters(
                 )
             )
         )
+    search = library_search_filter(model, object_type, q)
+    if search is not None:
+        filters.append(search)
     return filters
 
 
@@ -74,6 +152,7 @@ def list_library_rows(
     tag: str | None = None,
     *,
     owner_user_id: str | None = None,
+    q: str | None = None,
     limit: int | None = None,
     offset: int = 0,
 ) -> list[Any]:
@@ -85,6 +164,7 @@ def list_library_rows(
         include_hidden=include_hidden,
         tag=tag,
         owner_user_id=owner_user_id,
+        q=q,
     )
     if filters is None:
         return []
@@ -105,6 +185,7 @@ def count_library_rows(
     tag: str | None = None,
     *,
     owner_user_id: str | None = None,
+    q: str | None = None,
 ) -> int:
     filters = library_visibility_filters(
         ctx,
@@ -114,6 +195,7 @@ def count_library_rows(
         include_hidden=include_hidden,
         tag=tag,
         owner_user_id=owner_user_id,
+        q=q,
     )
     if filters is None:
         return 0

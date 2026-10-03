@@ -36,7 +36,8 @@ import { MicIcon } from 'lucide-react'
 import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, UserTagBadges, fmtDate, showError } from '../util'
 import { captureMeetingNeedsPin, shouldRouteImportUrlToCapture } from '../util/captureHost'
 import { uploadMicrophoneRecording } from '../util/microphoneUpload'
-import { filterLibraryItems, libraryNeedsFullList } from '../libraryList'
+import { libraryNeedsFullList } from '../libraryList'
+import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { useLibraryList } from '../hooks/useLibraryList'
 
 type SourceGroup<T> = {
@@ -106,7 +107,9 @@ export function LibraryPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const hasOrg = Boolean(me?.org)
   const showOwnerFilter = isOrgAdmin(me) || isInstanceAdmin(me)
-  const clientFilterMode = libraryNeedsFullList(query, groupListBySource)
+  const debouncedQuery = useDebouncedValue(query, 300)
+  const searchQ = debouncedQuery.trim() || undefined
+  const clientFilterMode = libraryNeedsFullList(groupListBySource)
   const serverOwnerId = showOwnerFilter && userId ? userId : undefined
 
   const { items, total: serverTotal, hiddenCount, reload } = useLibraryList({
@@ -114,6 +117,7 @@ export function LibraryPage() {
     includeHidden: hidden,
     tag: tagFilter || null,
     ownerUserId: serverOwnerId,
+    q: searchQ,
     limit: clientFilterMode ? undefined : pageSize,
     offset: clientFilterMode ? undefined : page * pageSize,
     enabled: hasOrg,
@@ -135,7 +139,7 @@ export function LibraryPage() {
 
   useEffect(() => {
     setPage(0)
-  }, [tab, hidden, tagFilter, query, userId, groupListBySource, pageSize])
+  }, [tab, hidden, tagFilter, debouncedQuery, userId, groupListBySource, pageSize])
 
   function setTagFilter(value: string) {
     const params = new URLSearchParams(searchParams)
@@ -166,28 +170,17 @@ export function LibraryPage() {
     }
   }, [hasOrg, showOwnerFilter])
 
-  const localOwnerFilter = clientFilterMode ? userId : ''
-
   const filteredAudios = useMemo(
-    () =>
-      tab === 'audio'
-        ? filterLibraryItems(items as Audio[], 'audio', query, localOwnerFilter)
-        : [],
-    [items, tab, query, localOwnerFilter],
+    () => (tab === 'audio' ? (items as Audio[]) : []),
+    [items, tab],
   )
   const filteredTranscripts = useMemo(
-    () =>
-      tab === 'transcripts'
-        ? filterLibraryItems(items as Transcript[], 'transcripts', query, localOwnerFilter)
-        : [],
-    [items, tab, query, localOwnerFilter],
+    () => (tab === 'transcripts' ? (items as Transcript[]) : []),
+    [items, tab],
   )
   const filteredSummaries = useMemo(
-    () =>
-      tab === 'summaries'
-        ? filterLibraryItems(items as Summary[], 'summaries', query, localOwnerFilter)
-        : [],
-    [items, tab, query, localOwnerFilter],
+    () => (tab === 'summaries' ? (items as Summary[]) : []),
+    [items, tab],
   )
   const transcriptGroups = useMemo(
     () => groupBySource(filteredTranscripts, (tr) => tr.source_audio_id),

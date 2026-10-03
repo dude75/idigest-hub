@@ -12,6 +12,7 @@ export type UseLibraryListOptions = {
   includeHidden: boolean
   tag: string | null
   ownerUserId?: string
+  q?: string
   limit?: number
   offset?: number
   enabled: boolean
@@ -23,6 +24,7 @@ export function useLibraryList(options: UseLibraryListOptions) {
     includeHidden,
     tag,
     ownerUserId,
+    q,
     limit,
     offset,
     enabled,
@@ -41,6 +43,7 @@ export function useLibraryList(options: UseLibraryListOptions) {
         includeHidden,
         tag,
         ownerUserId,
+        q,
         limit,
         offset,
       })
@@ -53,7 +56,7 @@ export function useLibraryList(options: UseLibraryListOptions) {
     } finally {
       setLoading(false)
     }
-  }, [tab, includeHidden, tag, ownerUserId, limit, offset, enabled])
+  }, [tab, includeHidden, tag, ownerUserId, q, limit, offset, enabled])
 
   useEffect(() => {
     void reload()

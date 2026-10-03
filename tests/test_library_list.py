@@ -103,6 +103,27 @@ def test_library_list_pagination_total_and_owner_filter(client):
     assert all(item["owner_user_id"] == member_id for item in by_owner.json()["items"])
 
 
+def test_library_list_search_q(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "u@example.com", "userpass12", tariff_id).status_code == 200
+    a = upload_audio(client, name="weekly-meeting.mp3")
+    assert a.status_code == 200, a.text
+    b = upload_audio(client, name="other-note.mp3")
+    assert b.status_code == 200, b.text
+
+    match = client.get("/api/v1/audios?q=weekly")
+    assert match.status_code == 200
+    ids = {item["id"] for item in match.json()["items"]}
+    assert a.json()["id"] in ids
+    assert b.json()["id"] not in ids
+    assert match.json()["total"] == 1
+
+    by_email = client.get("/api/v1/audios?q=u@example")
+    assert by_email.status_code == 200
+    assert len(by_email.json()["items"]) == 2
+
+
 def test_member_cannot_use_owner_user_id_filter(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

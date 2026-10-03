@@ -9,18 +9,18 @@ describe('libraryListPath', () => {
         includeHidden: true,
         tag: 'mic',
         ownerUserId: 'u1',
+        q: 'meet',
         limit: 10,
         offset: 20,
       }),
-    ).toBe('/audios?include_hidden=true&tag=mic&owner_user_id=u1&limit=10&offset=20')
+    ).toBe('/audios?include_hidden=true&tag=mic&owner_user_id=u1&q=meet&limit=10&offset=20')
   })
 })
 
 describe('libraryNeedsFullList', () => {
-  it('is true when searching or grouping', () => {
-    expect(libraryNeedsFullList('', false)).toBe(false)
-    expect(libraryNeedsFullList('  x ', false)).toBe(true)
-    expect(libraryNeedsFullList('', true)).toBe(true)
+  it('is true only when grouping by source', () => {
+    expect(libraryNeedsFullList(false)).toBe(false)
+    expect(libraryNeedsFullList(true)).toBe(true)
   })
 })
 
