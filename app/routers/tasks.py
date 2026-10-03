@@ -486,13 +486,13 @@ def list_tasks(
     )
 
 
-@router.get("/tasks/{task_id}")
+@router.get("/tasks/{task_id}", response_model=TaskListItem)
 async def get_task(
     task_id: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TaskListItem:
     task = db.get(Task, task_id)
     if task is None or not _can_see_task(ctx, task):
         ctx.raise_error(ErrorCode.not_found)
@@ -501,7 +501,9 @@ async def get_task(
     if task.status in {"queued", "running"} and should_schedule_capture_task_tick(task):
         refresh_health = task.type not in {"import", "capture"}
         schedule_locked_tick(background_tasks, task.id, refresh_health=refresh_health, wait=False)
-    return task_public(task, _task_list_extra(db, [task]).get(task.id))
+    return TaskListItem.model_validate(
+        task_public(task, _task_list_extra(db, [task]).get(task.id))
+    )
 
 
 def _validate_summarize_skills(ctx: AuthContext, db: Session, org: Organization, skill_ids: list[str]) -> None:

@@ -1,4 +1,4 @@
-"""Task API response models (GET /tasks)."""
+"""Task API response models (GET /tasks, GET /tasks/{task_id})."""
 
 from __future__ import annotations
 

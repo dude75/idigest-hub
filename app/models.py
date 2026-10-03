@@ -472,7 +472,10 @@ class Share(Base):
 
 class Task(Base):
     __tablename__ = "tasks"
-    __table_args__ = (Index("ix_tasks_org_status", "org_id", "status"),)
+    __table_args__ = (
+        Index("ix_tasks_org_status", "org_id", "status"),
+        Index("ix_tasks_org_status_updated", "org_id", "status", "updated_at"),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     type: Mapped[str] = mapped_column(String(32), nullable=False)

@@ -28,3 +28,7 @@ def test_export_openapi_writes_health_path():
     assert "total" in components["AudioListResponse"]["properties"]
     assert "TaskListResponse" in components
     assert "done_total" in components["TaskListResponse"]["properties"]
+    get_task = schema["paths"]["/api/v1/tasks/{task_id}"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert get_task.get("$ref", "").endswith("/TaskListItem")
