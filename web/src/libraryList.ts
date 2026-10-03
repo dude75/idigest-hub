@@ -1,11 +1,8 @@
+import type { LibraryListEnvelope } from './openapi/contracts'
 import type { LibraryTab } from './routes'
 import type { Audio, Summary, Transcript } from './types'
 
-export type LibraryListResponse<T> = {
-  items: T[]
-  total: number
-  hidden_count: number
-}
+export type LibraryListResponse<T> = LibraryListEnvelope<T>
 
 export type LibraryListQuery = {
   includeHidden?: boolean

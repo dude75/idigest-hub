@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
+import type { TaskListResponse } from '../openapi/contracts'
 import type { Task } from '../types'
 import { TASK_LIST_ACTIVE_POLL_MS, TASK_LIST_IDLE_POLL_MS } from '../taskPoll'
 import { showError } from '../util'
 
-export type TaskListResponse = {
-  active: Task[]
-  done: Task[]
-  done_total: number
-}
+export type { TaskListResponse }
 
 export type DoneStatusFilter = '' | 'success' | 'error'
 
