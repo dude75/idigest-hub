@@ -5,6 +5,7 @@ import { api } from '../api'
 import { useAuth } from '../auth'
 import { BackToLandingLink } from '../components/BackToLandingLink'
 import { LandingHeader } from '../components/LandingHeader'
+import type { SchemaPublicLegalDocumentDetailResponse } from '../openapi'
 import { LEGAL_DOCUMENT_I18N, legalDocKeyFromSlug, type PublicLegalDocument } from '../legalDocuments'
 import { MarkdownBody } from '../markdown'
 
@@ -23,8 +24,8 @@ export function LegalDocumentPage() {
     }
     setDoc(null)
     setMissing(false)
-    api<PublicLegalDocument>(`/public/legal-documents/${key}`)
-      .then(setDoc)
+    api<SchemaPublicLegalDocumentDetailResponse>(`/public/legal-documents/${key}`)
+      .then((r) => setDoc(r as PublicLegalDocument))
       .catch(() => setMissing(true))
   }, [key, i18n.language])
 

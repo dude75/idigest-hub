@@ -10,6 +10,7 @@ import { AuthPageShell } from '../components/AuthPageShell'
 import { LegalDocumentAcceptance } from '../components/LegalDocumentAcceptance'
 import { type LegalDocumentKey, type PublicLegalDocument } from '../legalDocuments'
 import { resolveAuthContinuationPath } from '../routes'
+import type { SchemaPublicLegalDocumentsResponse, SchemaTariffListResponse } from '../openapi'
 import type { Tariff } from '../types'
 import { showError } from '../util'
 import { AppSubmitButton } from '@/components/app/AdminUi'
@@ -33,11 +34,12 @@ export function SignupPage() {
 
   useEffect(() => {
     setTariffsLoading(true)
-    api<{ items: Tariff[] }>('/auth/signup-tariffs')
+    api<SchemaTariffListResponse>('/auth/signup-tariffs')
       .then((r) => {
-        setTariffs(r.items)
-        const match = r.items.find((item) => item.id === wanted)
-        setTariffId((match || r.items[0])?.id || '')
+        const items = r.items ?? []
+        setTariffs(items)
+        const match = items.find((item) => item.id === wanted)
+        setTariffId((match || items[0])?.id || '')
       })
       .catch(showError)
       .finally(() => setTariffsLoading(false))
@@ -45,8 +47,8 @@ export function SignupPage() {
 
   useEffect(() => {
     setLegalDocsLoading(true)
-    api<{ items: PublicLegalDocument[] }>('/public/legal-documents')
-      .then((r) => setLegalDocs(r.items))
+    api<SchemaPublicLegalDocumentsResponse>('/public/legal-documents')
+      .then((r) => setLegalDocs((r.items ?? []) as PublicLegalDocument[]))
       .catch(showError)
       .finally(() => setLegalDocsLoading(false))
   }, [i18n.language])

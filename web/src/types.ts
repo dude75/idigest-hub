@@ -4,8 +4,12 @@ import type {
   SchemaInstanceUsageStatsResponse,
   SchemaMeResponse,
   SchemaApiTokenPublic,
+  SchemaLegalDocumentVersionDetailResponse,
+  SchemaLegalDocumentVersionSummary,
+  SchemaOrgPublicLinkItem,
   SchemaOrgPublicResponse,
   SchemaOrgSsoAdminResponse,
+  SchemaOwnerSummaryPublicLinkItem,
   SchemaShareRecordBrief,
   SchemaSkillPublicResponse,
   SchemaTariffDeleteImpactResponse,
@@ -39,19 +43,10 @@ export type LegalDocumentAcceptance = {
   pending: boolean
 }
 
-export type LegalDocumentVersionSummary = {
-  version: number
-  published: boolean
-  created_at: string
-  created_by_user_id: string | null
-  created_by_email: string | null
-}
+export type LegalDocumentVersionSummary = SchemaLegalDocumentVersionSummary
 
-export type LegalDocumentVersionDetail = LegalDocumentVersionSummary & {
+export type LegalDocumentVersionDetail = SchemaLegalDocumentVersionDetailResponse & {
   key: 'user_agreement' | 'personal_data_consent' | 'privacy_policy'
-  text_en: string | null
-  text_ru: string | null
-  text_es: string | null
 }
 
 /** Tariff row from OpenAPI `TariffPublic`. */
@@ -161,27 +156,9 @@ export type Me = Omit<
 
 export type ShareRecord = SchemaShareRecordBrief
 
-export type SummaryPublicLink = {
-  id: string
-  summary_id: string
-  url: string | null
-  expires_at: string | null
-  pin_required: boolean
-  created_at: string
-  revoked?: boolean
-}
+export type SummaryPublicLink = SchemaOwnerSummaryPublicLinkItem
 
-export type OrgPublicLinkItem = {
-  id: string
-  summary_id: string
-  summary_title: string
-  owner_email: string
-  url: string | null
-  expires_at: string | null
-  pin_required: boolean
-  created_at: string
-  active: boolean
-}
+export type OrgPublicLinkItem = SchemaOrgPublicLinkItem
 
 export type UserTag = SchemaUserTagBrief
 

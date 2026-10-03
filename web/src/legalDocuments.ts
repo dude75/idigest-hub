@@ -1,3 +1,4 @@
+import type { SchemaPublicLegalDocumentItem } from './openapi/contracts'
 import type { InstanceSettings } from './types'
 
 export const LEGAL_DOCUMENT_KEYS = ['user_agreement', 'personal_data_consent', 'privacy_policy'] as const
@@ -193,8 +194,6 @@ export function legalDocPath(key: LegalDocumentKey): string {
   return `/legal/${LEGAL_DOCUMENT_SLUGS[key]}`
 }
 
-export type PublicLegalDocument = {
+export type PublicLegalDocument = Omit<SchemaPublicLegalDocumentItem, 'key'> & {
   key: LegalDocumentKey
-  version: number
-  text: string
 }

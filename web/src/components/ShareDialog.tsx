@@ -2,7 +2,12 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
-import type { SchemaOrgUserListResponse, SchemaShareListResponse } from '../openapi'
+import type {
+  SchemaOrgUserListResponse,
+  SchemaOwnerSummaryPublicLinkCreateResponse,
+  SchemaOwnerSummaryPublicLinkResponse,
+  SchemaShareListResponse,
+} from '../openapi'
 import { useAuth } from '../auth'
 import type { ShareRecord, SummaryPublicLink, User } from '../types'
 import { fmtDate, showError } from '../util'
@@ -58,8 +63,8 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
 
   async function loadPublicLink() {
     if (!showPublic) return
-    const r = await api<{ link: SummaryPublicLink | null }>(`/summaries/${objectId}/public-link`)
-    setPublicLink(r.link)
+    const r = await api<SchemaOwnerSummaryPublicLinkResponse>(`/summaries/${objectId}/public-link`)
+    setPublicLink(r.link ?? null)
   }
 
   useEffect(() => {
@@ -143,7 +148,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
     if (usePin && pin.trim().length < 4) return
     setPublicBusy(true)
     try {
-      const r = await api<{ link: SummaryPublicLink }>(`/summaries/${objectId}/public-link`, {
+      const r = await api<SchemaOwnerSummaryPublicLinkCreateResponse>(`/summaries/${objectId}/public-link`, {
         method: 'POST',
         body: JSON.stringify({
           expires_in_days: expiryDays,

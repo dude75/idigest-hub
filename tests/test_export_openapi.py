@@ -139,3 +139,19 @@ def test_export_openapi_writes_health_path():
     assert components["InstanceOrgListResponse"]["properties"]["items"]["items"]["$ref"].endswith(
         "/InstanceOrgListItem"
     )
+    signup_tariffs = schema["paths"]["/api/v1/auth/signup-tariffs"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert signup_tariffs.get("$ref", "").endswith("/TariffListResponse")
+    public_legal = schema["paths"]["/api/v1/public/legal-documents"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert public_legal.get("$ref", "").endswith("/PublicLegalDocumentsResponse")
+    legal_versions = schema["paths"]["/api/v1/instance/legal-documents/{key}/versions"]["get"]["responses"]["200"][
+        "content"
+    ]["application/json"]["schema"]
+    assert legal_versions.get("$ref", "").endswith("/LegalDocumentVersionListResponse")
+    org_pub_links = schema["paths"]["/api/v1/org/public-links"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert org_pub_links.get("$ref", "").endswith("/OrgPublicLinkListResponse")

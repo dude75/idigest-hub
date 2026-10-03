@@ -10,6 +10,10 @@ import {
   type LegalDocLocale,
   type LegalDocumentKey,
 } from '../../legalDocuments'
+import type {
+  SchemaLegalDocumentVersionDetailResponse,
+  SchemaLegalDocumentVersionListResponse,
+} from '../../openapi'
 import type { LegalDocumentVersionDetail, LegalDocumentVersionSummary } from '../../types'
 import { formatDateTime } from '../../util/datetimeFormat'
 import { showError } from '../../util'
@@ -43,11 +47,11 @@ export function LegalDocumentHistoryModal({ documentKey, onClose }: Props) {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    void api<{ items: LegalDocumentVersionSummary[] }>(
+    void api<SchemaLegalDocumentVersionListResponse>(
       `/instance/legal-documents/${documentKey}/versions`,
     )
       .then((data) => {
-        if (!cancelled) setItems(data.items)
+        if (!cancelled) setItems(data.items ?? [])
       })
       .catch(showError)
       .finally(() => {
@@ -61,10 +65,10 @@ export function LegalDocumentHistoryModal({ documentKey, onClose }: Props) {
   async function openVersion(version: number) {
     setDetailBusy(true)
     try {
-      const data = await api<LegalDocumentVersionDetail>(
+      const data = await api<SchemaLegalDocumentVersionDetailResponse>(
         `/instance/legal-documents/${documentKey}/versions/${version}`,
       )
-      setDetail(data)
+      setDetail(data as LegalDocumentVersionDetail)
     } catch (e) {
       showError(e)
     } finally {

@@ -2,13 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
+import type { SchemaPublicLegalDocumentsResponse } from '../openapi'
 import { LEGAL_DOCUMENT_I18N, legalDocPath, type PublicLegalDocument } from '../legalDocuments'
 import { MarkdownBody } from '../markdown'
-
-type LandingLegalPayload = {
-  items: PublicLegalDocument[]
-  footer_text: string | null
-}
 
 export function LandingFooter() {
   const { t, i18n } = useTranslation()
@@ -16,9 +12,9 @@ export function LandingFooter() {
   const [footerText, setFooterText] = useState<string | null>(null)
 
   useEffect(() => {
-    api<LandingLegalPayload>('/public/legal-documents')
+    api<SchemaPublicLegalDocumentsResponse>('/public/legal-documents')
       .then((r) => {
-        setDocs(r.items)
+        setDocs((r.items ?? []) as PublicLegalDocument[])
         setFooterText(r.footer_text?.trim() || null)
       })
       .catch(() => {

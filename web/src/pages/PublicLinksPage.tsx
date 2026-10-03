@@ -7,6 +7,7 @@ import { AdminPage } from '../components/AdminSection'
 import { AdminTablePager } from '../components/app/AdminDataTable'
 import { ListSection } from '../components/app/EntityUi'
 import { LIBRARY_DEFAULT } from '../routes'
+import type { SchemaOrgPublicLinkListResponse } from '../openapi'
 import type { OrgPublicLinkItem } from '../types'
 import { fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
@@ -105,8 +106,8 @@ export function PublicLinksPage() {
   const pagedLinks = sortedLinks.slice(safePage * pageSize, safePage * pageSize + pageSize)
 
   async function load() {
-    const r = await api<{ items: OrgPublicLinkItem[] }>('/org/public-links')
-    setLinks(r.items)
+    const r = await api<SchemaOrgPublicLinkListResponse>('/org/public-links')
+    setLinks(r.items ?? [])
   }
 
   useEffect(() => {

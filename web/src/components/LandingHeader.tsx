@@ -6,6 +6,7 @@ import { AppBrand } from './AppBrand'
 import { GitHubLink } from './GitHubLink'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { resolveAuthContinuationPath } from '../routes'
+import type { SchemaTariffListResponse } from '../openapi'
 import type { Tariff } from '../types'
 import { ButtonLink } from '@/components/ui/button-link'
 
@@ -16,8 +17,8 @@ export function LandingHeader() {
   const enterAppPath = me ? resolveAuthContinuationPath(me) : null
 
   useEffect(() => {
-    api<{ items: Tariff[] }>('/auth/signup-tariffs')
-      .then((r) => setTariffs(r.items))
+    api<SchemaTariffListResponse>('/auth/signup-tariffs')
+      .then((r) => setTariffs(r.items ?? []))
       .catch(() => setTariffs([]))
   }, [])
 

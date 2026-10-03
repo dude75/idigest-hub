@@ -8,6 +8,7 @@ import { LandingHeader } from '../components/LandingHeader'
 import { resolveAuthContinuationPath } from '../routes'
 import { arrangeTariffsForLanding } from '../landingTariffLayout'
 import { LandingTariffGrid } from '../components/LandingTariffGrid'
+import type { SchemaTariffListResponse } from '../openapi'
 import type { Tariff } from '../types'
 import { ButtonLink } from '@/components/ui/button-link'
 
@@ -25,8 +26,8 @@ export function LandingPage() {
   )
 
   useEffect(() => {
-    api<{ items: Tariff[] }>('/auth/signup-tariffs')
-      .then((r) => setTariffs(r.items))
+    api<SchemaTariffListResponse>('/auth/signup-tariffs')
+      .then((r) => setTariffs(r.items ?? []))
       .catch(() => setTariffs([]))
   }, [])
 
