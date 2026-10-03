@@ -107,7 +107,7 @@ async def list_workers(
 @router.get("/instance/transcribe-models", response_model=InstanceTranscribeModelsResponse)
 def list_transcribe_models(
     db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> InstanceTranscribeModelsResponse:
     from app.services.transcribe_models import aggregate_instance_models
 
     require_instance_admin(ctx)
@@ -119,7 +119,7 @@ def list_transcribe_models(
 @router.get("/instance/summarize-models", response_model=InstanceSummarizeModelsResponse)
 def list_summarize_models(
     db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> InstanceSummarizeModelsResponse:
     from app.services.summarize_models import aggregate_instance_summarize_models
 
     require_instance_admin(ctx)
@@ -133,7 +133,7 @@ async def probe_worker(
     body: WorkerProbeBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> WorkerProbeResponse:
     from app.services.transcribe_models import parse_worker_engines
     from app.services.workers import WorkerClientError, get_health_url, verify_worker_token
 

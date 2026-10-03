@@ -183,7 +183,7 @@ def patch_org_tariff(
 @router.get("/org/capture/jitsi", response_model=OrgCaptureJitsiResponse)
 def get_org_capture_jitsi(
     db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OrgCaptureJitsiResponse:
     org, _ = ctx.require_org_admin()
     from app.deps import get_instance_settings
     from app.services.capture_meeting import org_capture_worker_choices, org_jitsi_hosts_public
@@ -203,7 +203,7 @@ def replace_org_capture_jitsi(
     body: OrgCaptureJitsiReplaceBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OrgCaptureJitsiResponse:
     org, _ = ctx.require_org_admin()
     from app.deps import get_instance_settings
     from app.services.capture_meeting import org_jitsi_hosts_public, replace_org_jitsi_hosts
@@ -261,7 +261,7 @@ def patch_org_settings(
 @router.get("/org/public-links", response_model=OrgPublicLinkListResponse)
 def org_public_links(
     db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OrgPublicLinkListResponse:
     org, _ = ctx.require_org()
     from app.services.public_links import link_org_list_item, list_org_public_links
 

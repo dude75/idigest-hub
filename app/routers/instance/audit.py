@@ -75,7 +75,7 @@ def audit_log(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> AuditLogListResponse:
     require_instance_admin(ctx)
     try:
         start, end = parse_org_stats_range(from_day, to_day)

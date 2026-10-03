@@ -233,7 +233,7 @@ def get_legal_document_version_ep(
 @router.patch("/instance/settings", response_model=InstanceSettingsResponse)
 def patch_settings(
     body: SettingsPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> InstanceSettingsResponse:
     require_instance_admin(ctx)
     s = get_instance_settings(db)
     data = body.model_dump(exclude_unset=True)
@@ -371,7 +371,7 @@ def smtp_test_connection(
     body: SmtpTestBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OkStatusResponse:
     from app.services.mail import check_smtp_connection
 
     require_instance_admin(ctx)
@@ -388,7 +388,7 @@ def smtp_test_send(
     body: SmtpTestSendBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> SmtpTestSendResponse:
     from app.services.mail import send_smtp_message
 
     require_instance_admin(ctx)

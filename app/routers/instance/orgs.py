@@ -77,7 +77,7 @@ def wallet_delta(
     body: WalletBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OrgPublicResponse:
     require_instance_admin(ctx)
     org = db.get(Organization, org_id)
     if org is None:
@@ -95,7 +95,7 @@ def list_orgs(
     include_hidden: bool = False,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> InstanceOrgListResponse:
     require_instance_admin(ctx)
     return InstanceOrgListResponse.model_validate(list_orgs_payload(ctx, db, include_hidden=include_hidden))
 
@@ -103,7 +103,7 @@ def list_orgs(
 @router.post("/orgs", response_model=InstanceOrgCreateResponse)
 def create_org(
     body: CreateOrgBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> InstanceOrgCreateResponse:
     require_instance_admin(ctx)
     name = body.name.strip()
     if not name:
@@ -155,7 +155,7 @@ def delete_org(
     body: OrgDeleteBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OkStatusResponse:
     require_instance_admin(ctx)
     org = db.get(Organization, org_id)
     if org is None:
@@ -177,7 +177,7 @@ def delete_org(
 @router.post("/orgs/{org_id}/hide", response_model=OkStatusResponse)
 def hide_org(
     org_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     require_instance_admin(ctx)
     org = db.get(Organization, org_id)
     if org is None:
@@ -190,7 +190,7 @@ def hide_org(
 @router.post("/orgs/{org_id}/unhide", response_model=OkStatusResponse)
 def unhide_org(
     org_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     require_instance_admin(ctx)
     org = db.get(Organization, org_id)
     if org is None:
@@ -216,7 +216,7 @@ def org_ledger_ep(
     kind: str | None = None,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OrgLedgerResponse:
     require_instance_admin(ctx)
     org = db.get(Organization, org_id)
     if org is None:
@@ -243,7 +243,7 @@ def reset_org_admin_password(
     user_id: str,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OrgUserResetPasswordResponse:
     require_instance_admin(ctx)
     org = db.get(Organization, org_id)
     membership = db.scalar(
@@ -270,7 +270,7 @@ def reset_org_user_mfa(
     user_id: str,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> UserPublic:
     require_instance_admin(ctx)
     org = db.get(Organization, org_id)
     membership = db.scalar(
@@ -298,7 +298,7 @@ def patch_org_user_role(
     body: OrgUserRoleBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> UserPublic:
     require_instance_admin(ctx)
     org = db.get(Organization, org_id)
     membership = db.scalar(
@@ -330,7 +330,7 @@ def assign_org_tariff(
     body: OrgTariffBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> OrgPublicResponse:
     require_instance_admin(ctx)
     org = db.get(Organization, org_id)
     tariff = db.get(Tariff, body.tariff_id)
