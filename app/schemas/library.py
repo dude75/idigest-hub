@@ -65,8 +65,14 @@ class TranscriptListItem(LibraryShareFields):
     has_tone_analytics: bool = False
 
 
-class TranscriptListResponse(BaseModel):
+class TranscriptSourceGroup(BaseModel):
+    source_id: str | None = None
     items: list[TranscriptListItem]
+
+
+class TranscriptListResponse(BaseModel):
+    items: list[TranscriptListItem] = Field(default_factory=list)
+    groups: list[TranscriptSourceGroup] | None = None
     total: int
     hidden_count: int
 
@@ -85,8 +91,14 @@ class SummaryListItem(LibraryShareFields):
     created_at: str
 
 
-class SummaryListResponse(BaseModel):
+class SummarySourceGroup(BaseModel):
+    source_id: str | None = None
     items: list[SummaryListItem]
+
+
+class SummaryListResponse(BaseModel):
+    items: list[SummaryListItem] = Field(default_factory=list)
+    groups: list[SummarySourceGroup] | None = None
     total: int
     hidden_count: int
 

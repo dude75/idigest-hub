@@ -5323,6 +5323,23 @@
             }
           },
           {
+            "name": "group_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "source",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group By"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -5753,6 +5770,23 @@
                 }
               ],
               "title": "Q"
+            }
+          },
+          {
+            "name": "group_by",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "const": "source",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Group By"
             }
           },
           {
@@ -10180,6 +10214,20 @@
             "type": "array",
             "title": "Items"
           },
+          "groups": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SummarySourceGroup"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groups"
+          },
           "total": {
             "type": "integer",
             "title": "Total"
@@ -10191,7 +10239,6 @@
         },
         "type": "object",
         "required": [
-          "items",
           "total",
           "hidden_count"
         ],
@@ -10255,6 +10302,33 @@
         },
         "type": "object",
         "title": "SummaryPublicLinkBody"
+      },
+      "SummarySourceGroup": {
+        "properties": {
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "SummarySourceGroup"
       },
       "TagRenameBody": {
         "properties": {
@@ -10793,6 +10867,20 @@
             "type": "array",
             "title": "Items"
           },
+          "groups": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TranscriptSourceGroup"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Groups"
+          },
           "total": {
             "type": "integer",
             "title": "Total"
@@ -10804,11 +10892,37 @@
         },
         "type": "object",
         "required": [
-          "items",
           "total",
           "hidden_count"
         ],
         "title": "TranscriptListResponse"
+      },
+      "TranscriptSourceGroup": {
+        "properties": {
+          "source_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Id"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "TranscriptSourceGroup"
       },
       "UserTagBrief": {
         "properties": {

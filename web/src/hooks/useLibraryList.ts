@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api'
-import { libraryListPath, type LibraryListResponse } from '../libraryList'
+import {
+  libraryListPath,
+  type LibraryListResponse,
+  type LibrarySourceGroup,
+} from '../libraryList'
 import type { LibraryTab } from '../routes'
 import type { Audio, Summary, Transcript } from '../types'
 import { showError } from '../util'
@@ -13,9 +17,14 @@ export type UseLibraryListOptions = {
   tag: string | null
   ownerUserId?: string
   q?: string
+  groupBySource?: boolean
   limit?: number
   offset?: number
   enabled: boolean
+}
+
+type LibraryListApiResponse<T> = LibraryListResponse<T> & {
+  groups?: LibrarySourceGroup<T>[] | null
 }
 
 export function useLibraryList(options: UseLibraryListOptions) {
@@ -25,12 +34,16 @@ export function useLibraryList(options: UseLibraryListOptions) {
     tag,
     ownerUserId,
     q,
+    groupBySource,
     limit,
     offset,
     enabled,
   } = options
 
   const [items, setItems] = useState<LibraryListItem[]>([])
+  const [sourceGroups, setSourceGroups] = useState<LibrarySourceGroup<LibraryListItem>[] | null>(
+    null,
+  )
   const [total, setTotal] = useState(0)
   const [hiddenCount, setHiddenCount] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -44,11 +57,18 @@ export function useLibraryList(options: UseLibraryListOptions) {
         tag,
         ownerUserId,
         q,
+        groupBySource,
         limit,
         offset,
       })
-      const data = await api<LibraryListResponse<LibraryListItem>>(path)
-      setItems(data.items)
+      const data = await api<LibraryListApiResponse<LibraryListItem>>(path)
+      if (data.groups != null) {
+        setSourceGroups(data.groups)
+        setItems([])
+      } else {
+        setSourceGroups(null)
+        setItems(data.items)
+      }
       setTotal(typeof data.total === 'number' ? data.total : data.items.length)
       setHiddenCount(data.hidden_count ?? 0)
     } catch (e) {
@@ -56,11 +76,11 @@ export function useLibraryList(options: UseLibraryListOptions) {
     } finally {
       setLoading(false)
     }
-  }, [tab, includeHidden, tag, ownerUserId, q, limit, offset, enabled])
+  }, [tab, includeHidden, tag, ownerUserId, q, groupBySource, limit, offset, enabled])
 
   useEffect(() => {
     void reload()
   }, [reload])
 
-  return { items, total, hiddenCount, loading, reload }
+  return { items, total, hiddenCount, sourceGroups, loading, reload }
 }

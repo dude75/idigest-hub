@@ -143,6 +143,109 @@ def library_visibility_filters(
     return filters
 
 
+def _library_source_column(model: type, object_type: str):
+    if object_type == "transcript":
+        return model.source_audio_id
+    if object_type == "summary":
+        return model.source_transcript_id
+    raise ValueError(f"unsupported object_type for source grouping: {object_type}")
+
+
+def count_library_source_groups(
+    ctx: AuthContext,
+    db: Session,
+    model: type,
+    object_type: str,
+    include_hidden: bool,
+    tag: str | None = None,
+    *,
+    owner_user_id: str | None = None,
+    q: str | None = None,
+) -> int:
+    filters = library_visibility_filters(
+        ctx,
+        db,
+        model,
+        object_type,
+        include_hidden=include_hidden,
+        tag=tag,
+        owner_user_id=owner_user_id,
+        q=q,
+    )
+    if filters is None:
+        return 0
+    col = _library_source_column(model, object_type)
+    grouped = func.coalesce(col, "")
+    return int(
+        db.scalar(
+            select(func.count()).select_from(
+                select(grouped.label("gid"))
+                .select_from(model)
+                .where(*filters)
+                .group_by(col)
+                .subquery()
+            )
+        )
+        or 0
+    )
+
+
+def list_library_source_group_page(
+    ctx: AuthContext,
+    db: Session,
+    model: type,
+    object_type: str,
+    include_hidden: bool,
+    tag: str | None = None,
+    *,
+    owner_user_id: str | None = None,
+    q: str | None = None,
+    limit: int,
+    offset: int = 0,
+) -> tuple[list[str | None], list[Any]]:
+    """Return source ids for one page of groups (newest group first) and all rows in those groups."""
+    filters = library_visibility_filters(
+        ctx,
+        db,
+        model,
+        object_type,
+        include_hidden=include_hidden,
+        tag=tag,
+        owner_user_id=owner_user_id,
+        q=q,
+    )
+    if filters is None:
+        return [], []
+    col = _library_source_column(model, object_type)
+    group_stmt = (
+        select(col.label("source_id"), func.max(model.created_at).label("newest"))
+        .where(*filters)
+        .group_by(col)
+        .order_by(func.max(model.created_at).desc(), func.coalesce(col, "").asc())
+        .offset(offset)
+        .limit(limit)
+    )
+    group_rows = db.execute(group_stmt).all()
+    source_ids = [row.source_id for row in group_rows]
+    if not source_ids:
+        return [], []
+
+    id_filters: list[Any] = []
+    non_null = [sid for sid in source_ids if sid is not None]
+    if non_null:
+        id_filters.append(col.in_(non_null))
+    if any(sid is None for sid in source_ids):
+        id_filters.append(col.is_(None))
+    rows = list(
+        db.scalars(
+            select(model)
+            .where(*filters, or_(*id_filters))
+            .order_by(model.created_at.desc())
+        ).all()
+    )
+    return source_ids, rows
+
+
 def list_library_rows(
     ctx: AuthContext,
     db: Session,

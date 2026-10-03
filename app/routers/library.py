@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Form, Query, Request, UploadFile
 from pydantic import BaseModel, Field
@@ -55,7 +56,9 @@ from app.services.library_list import (
     batch_share_badges,
     count_hidden_library_rows,
     count_library_rows,
+    count_library_source_groups,
     list_library_rows,
+    list_library_source_group_page,
 )
 from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
@@ -64,8 +67,10 @@ from app.schemas.library import (
     AudioListResponse,
     SummaryListItem,
     SummaryListResponse,
+    SummarySourceGroup,
     TranscriptListItem,
     TranscriptListResponse,
+    TranscriptSourceGroup,
     _derived_audio_defaults,
 )
 from app.services.billing import upload_limit
@@ -582,45 +587,146 @@ def _summary_source_context(
     return transcript, source_filename
 
 
+def _transcript_list_items(
+    db: Session,
+    ctx: AuthContext,
+    rows: list[Transcript],
+) -> list[TranscriptListItem]:
+    if not rows:
+        return []
+    tag_map = batch_object_user_tags(db, ctx.user.id, "transcript", [row.id for row in rows])
+    badges = batch_share_badges(db, ctx, "transcript", rows, user_tags_by_id=tag_map)
+    filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
+    derived = _transcript_derived_info(db, ctx, [row.id for row in rows])
+    return [
+        TranscriptListItem.model_validate(
+            {
+                **transcript_public(
+                    row,
+                    extra=badges.get(row.id),
+                    source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
+                ),
+                **derived.get(row.id, {"has_summary": False}),
+                "has_tone_analytics": row.has_tone_analytics,
+            }
+        )
+        for row in rows
+    ]
+
+
+def _transcript_source_groups(
+    source_ids: list[str | None],
+    items: list[TranscriptListItem],
+) -> list[TranscriptSourceGroup]:
+    by_source: dict[str | None, list[TranscriptListItem]] = {}
+    for item in items:
+        by_source.setdefault(item.source_audio_id, []).append(item)
+    groups: list[TranscriptSourceGroup] = []
+    for sid in source_ids:
+        group_items = sorted(
+            by_source.get(sid, []),
+            key=lambda row: row.created_at,
+            reverse=True,
+        )
+        groups.append(TranscriptSourceGroup(source_id=sid, items=group_items))
+    return groups
+
+
+def _summary_list_items(
+    db: Session,
+    ctx: AuthContext,
+    rows: list[Summary],
+) -> list[SummaryListItem]:
+    if not rows:
+        return []
+    tag_map = batch_object_user_tags(db, ctx.user.id, "summary", [row.id for row in rows])
+    badges = batch_share_badges(db, ctx, "summary", rows, user_tags_by_id=tag_map)
+    transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})
+    audio_filenames = _audio_filenames(
+        db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
+    )
+    items: list[SummaryListItem] = []
+    for row in rows:
+        source_transcript, source_filename = _summary_source_context(row, transcripts, audio_filenames)
+        items.append(
+            SummaryListItem.model_validate(
+                summary_public(
+                    row,
+                    extra=badges.get(row.id),
+                    source_transcript=source_transcript,
+                    source_filename=source_filename,
+                )
+            )
+        )
+    return items
+
+
+def _summary_source_groups(
+    source_ids: list[str | None],
+    items: list[SummaryListItem],
+) -> list[SummarySourceGroup]:
+    by_source: dict[str | None, list[SummaryListItem]] = {}
+    for item in items:
+        by_source.setdefault(item.source_transcript_id, []).append(item)
+    groups: list[SummarySourceGroup] = []
+    for sid in source_ids:
+        group_items = sorted(
+            by_source.get(sid, []),
+            key=lambda row: row.created_at,
+            reverse=True,
+        )
+        groups.append(SummarySourceGroup(source_id=sid, items=group_items))
+    return groups
+
+
 @router.get("/transcripts", response_model=TranscriptListResponse)
 def list_transcripts(
     include_hidden: bool = False,
     tag: str | None = None,
     owner_user_id: str | None = None,
     q: str | None = Query(None, max_length=LIBRARY_SEARCH_MAX_LEN),
+    group_by: Literal["source"] | None = None,
     limit: int | None = Query(None, ge=1, le=LIBRARY_LIST_MAX_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_oauth_scope(SCOPE_TRANSCRIPTS_READ)),
 ) -> TranscriptListResponse:
     owner = _library_owner_filter(ctx, owner_user_id)
+    hidden_count = _count_hidden_for_user(ctx, db, Transcript, "transcript")
+    if group_by == "source":
+        page_limit = limit if limit is not None else 50
+        total = count_library_source_groups(
+            ctx, db, Transcript, "transcript", include_hidden, tag, owner_user_id=owner, q=q
+        )
+        source_ids, rows = list_library_source_group_page(
+            ctx,
+            db,
+            Transcript,
+            "transcript",
+            include_hidden,
+            tag,
+            owner_user_id=owner,
+            q=q,
+            limit=page_limit,
+            offset=offset,
+        )
+        items = _transcript_list_items(db, ctx, rows)
+        return TranscriptListResponse(
+            groups=_transcript_source_groups(source_ids, items),
+            total=total,
+            hidden_count=hidden_count,
+        )
+
     rows = _list_filter(
         ctx, db, Transcript, "transcript", include_hidden, tag, owner, q, limit=limit, offset=offset
     )
     total = count_library_rows(
         ctx, db, Transcript, "transcript", include_hidden, tag, owner_user_id=owner, q=q
     )
-    tag_map = batch_object_user_tags(db, ctx.user.id, "transcript", [row.id for row in rows])
-    badges = batch_share_badges(db, ctx, "transcript", rows, user_tags_by_id=tag_map)
-    filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
-    derived = _transcript_derived_info(db, ctx, [row.id for row in rows])
     return TranscriptListResponse(
-        items=[
-            TranscriptListItem.model_validate(
-                {
-                    **transcript_public(
-                        row,
-                        extra=badges.get(row.id),
-                        source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
-                    ),
-                    **derived.get(row.id, {"has_summary": False}),
-                    "has_tone_analytics": row.has_tone_analytics,
-                }
-            )
-            for row in rows
-        ],
+        items=_transcript_list_items(db, ctx, rows),
         total=total,
-        hidden_count=_count_hidden_for_user(ctx, db, Transcript, "transcript"),
+        hidden_count=hidden_count,
     )
 
 
@@ -742,41 +848,48 @@ def list_summaries(
     tag: str | None = None,
     owner_user_id: str | None = None,
     q: str | None = Query(None, max_length=LIBRARY_SEARCH_MAX_LEN),
+    group_by: Literal["source"] | None = None,
     limit: int | None = Query(None, ge=1, le=LIBRARY_LIST_MAX_LIMIT),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> SummaryListResponse:
     owner = _library_owner_filter(ctx, owner_user_id)
+    hidden_count = _count_hidden_for_user(ctx, db, Summary, "summary")
+    if group_by == "source":
+        page_limit = limit if limit is not None else 50
+        total = count_library_source_groups(
+            ctx, db, Summary, "summary", include_hidden, tag, owner_user_id=owner, q=q
+        )
+        source_ids, rows = list_library_source_group_page(
+            ctx,
+            db,
+            Summary,
+            "summary",
+            include_hidden,
+            tag,
+            owner_user_id=owner,
+            q=q,
+            limit=page_limit,
+            offset=offset,
+        )
+        items = _summary_list_items(db, ctx, rows)
+        return SummaryListResponse(
+            groups=_summary_source_groups(source_ids, items),
+            total=total,
+            hidden_count=hidden_count,
+        )
+
     rows = _list_filter(
         ctx, db, Summary, "summary", include_hidden, tag, owner, q, limit=limit, offset=offset
     )
     total = count_library_rows(
         ctx, db, Summary, "summary", include_hidden, tag, owner_user_id=owner, q=q
     )
-    tag_map = batch_object_user_tags(db, ctx.user.id, "summary", [row.id for row in rows])
-    badges = batch_share_badges(db, ctx, "summary", rows, user_tags_by_id=tag_map)
-    transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})
-    audio_filenames = _audio_filenames(
-        db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
-    )
-    items: list[SummaryListItem] = []
-    for row in rows:
-        source_transcript, source_filename = _summary_source_context(row, transcripts, audio_filenames)
-        items.append(
-            SummaryListItem.model_validate(
-                summary_public(
-                    row,
-                    extra=badges.get(row.id),
-                    source_transcript=source_transcript,
-                    source_filename=source_filename,
-                )
-            )
-        )
     return SummaryListResponse(
-        items=items,
+        items=_summary_list_items(db, ctx, rows),
         total=total,
-        hidden_count=_count_hidden_for_user(ctx, db, Summary, "summary"),
+        hidden_count=hidden_count,
     )
 
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterLibraryItems, libraryListPath, libraryNeedsFullList } from './libraryList'
+import { filterLibraryItems, libraryListPath, libraryServerSourceGrouping } from './libraryList'
 import type { Audio } from './types'
 
 describe('libraryListPath', () => {
@@ -17,10 +17,20 @@ describe('libraryListPath', () => {
   })
 })
 
-describe('libraryNeedsFullList', () => {
-  it('is true only when grouping by source', () => {
-    expect(libraryNeedsFullList(false)).toBe(false)
-    expect(libraryNeedsFullList(true)).toBe(true)
+describe('libraryServerSourceGrouping', () => {
+  it('is true for transcripts/summaries when grouping enabled', () => {
+    expect(libraryServerSourceGrouping('audio', true)).toBe(false)
+    expect(libraryServerSourceGrouping('transcripts', false)).toBe(false)
+    expect(libraryServerSourceGrouping('transcripts', true)).toBe(true)
+    expect(libraryServerSourceGrouping('summaries', true)).toBe(true)
+  })
+})
+
+describe('libraryListPath group_by', () => {
+  it('adds group_by=source when requested', () => {
+    expect(libraryListPath('transcripts', { groupBySource: true, limit: 10 })).toBe(
+      '/transcripts?group_by=source&limit=10',
+    )
   })
 })
 

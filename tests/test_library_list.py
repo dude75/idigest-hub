@@ -1,6 +1,33 @@
 """Library list SQL visibility and batched badges."""
 
-from tests.conftest import login_ready, setup_admin, signup, upload_audio, default_tariff_id, logout
+import json
+
+from tests.conftest import login_ready, me, open_db, setup_admin, signup, upload_audio, default_tariff_id, logout
+
+
+def _insert_transcript(org_id: str, user_id: str, audio_id: str | None) -> str:
+    from app.crypto import encrypt_str
+    from app.models import Transcript, new_id
+    from app.timeutil import utcnow
+
+    db = open_db()
+    try:
+        now = utcnow()
+        transcript_id = new_id()
+        db.add(
+            Transcript(
+                id=transcript_id,
+                org_id=org_id,
+                owner_user_id=user_id,
+                source_audio_id=audio_id,
+                utterances_encrypted=encrypt_str(json.dumps([{"speaker": "A", "start": 0, "end": 1, "text": "x"}]), db),
+                created_at=now,
+            )
+        )
+        db.commit()
+        return transcript_id
+    finally:
+        db.close()
 
 
 def test_library_list_hidden_count_without_double_scan(client):
@@ -122,6 +149,34 @@ def test_library_list_search_q(client):
     by_email = client.get("/api/v1/audios?q=u@example")
     assert by_email.status_code == 200
     assert len(by_email.json()["items"]) == 2
+
+
+def test_transcripts_group_by_source_pagination(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "u@example.com", "userpass12", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio_a = upload_audio(client, name="a.wav")
+    audio_b = upload_audio(client, name="b.wav")
+    assert audio_a.status_code == 200 and audio_b.status_code == 200
+    _insert_transcript(org_id, user_id, audio_a.json()["id"])
+    _insert_transcript(org_id, user_id, audio_a.json()["id"])
+    _insert_transcript(org_id, user_id, audio_b.json()["id"])
+
+    grouped = client.get("/api/v1/transcripts?group_by=source&limit=10")
+    assert grouped.status_code == 200, grouped.text
+    body = grouped.json()
+    assert body["items"] == []
+    assert body["total"] == 2
+    assert len(body["groups"]) == 2
+    sizes = sorted(len(g["items"]) for g in body["groups"])
+    assert sizes == [1, 2]
+
+    page = client.get("/api/v1/transcripts?group_by=source&limit=1&offset=0")
+    assert page.status_code == 200
+    assert page.json()["total"] == 2
+    assert len(page.json()["groups"]) == 1
 
 
 def test_member_cannot_use_owner_user_id_filter(client):

@@ -36,7 +36,7 @@ import { MicIcon } from 'lucide-react'
 import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, UserTagBadges, fmtDate, showError } from '../util'
 import { captureMeetingNeedsPin, shouldRouteImportUrlToCapture } from '../util/captureHost'
 import { uploadMicrophoneRecording } from '../util/microphoneUpload'
-import { libraryNeedsFullList } from '../libraryList'
+import { libraryServerSourceGrouping } from '../libraryList'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { useLibraryList } from '../hooks/useLibraryList'
 
@@ -48,31 +48,6 @@ type SourceGroup<T> = {
 
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
-
-function groupBySource<T extends { created_at: string }>(
-  items: T[],
-  sourceIdOf: (item: T) => string | null | undefined,
-): SourceGroup<T>[] {
-  const map = new Map<string, T[]>()
-  for (const item of items) {
-    const key = sourceIdOf(item) || ''
-    const list = map.get(key)
-    if (list) list.push(item)
-    else map.set(key, [item])
-  }
-  const groups: SourceGroup<T>[] = [...map.entries()].map(([key, grouped]) => ({
-    key: key || 'none',
-    sourceId: key || null,
-    items: [...grouped].sort((a, b) => b.created_at.localeCompare(a.created_at)),
-  }))
-  groups.sort((a, b) => {
-    const aDate = a.items[0]?.created_at || ''
-    const bDate = b.items[0]?.created_at || ''
-    if (aDate !== bDate) return bDate.localeCompare(aDate)
-    return a.key.localeCompare(b.key)
-  })
-  return groups
-}
 
 export function LibraryPage() {
   const { t } = useTranslation()
@@ -109,17 +84,18 @@ export function LibraryPage() {
   const showOwnerFilter = isOrgAdmin(me) || isInstanceAdmin(me)
   const debouncedQuery = useDebouncedValue(query, 300)
   const searchQ = debouncedQuery.trim() || undefined
-  const clientFilterMode = libraryNeedsFullList(groupListBySource)
+  const serverSourceGrouping = libraryServerSourceGrouping(tab, groupListBySource)
   const serverOwnerId = showOwnerFilter && userId ? userId : undefined
 
-  const { items, total: serverTotal, hiddenCount, reload } = useLibraryList({
+  const { items, total: serverTotal, hiddenCount, sourceGroups, reload } = useLibraryList({
     tab,
     includeHidden: hidden,
     tag: tagFilter || null,
     ownerUserId: serverOwnerId,
     q: searchQ,
-    limit: clientFilterMode ? undefined : pageSize,
-    offset: clientFilterMode ? undefined : page * pageSize,
+    groupBySource: serverSourceGrouping,
+    limit: pageSize,
+    offset: page * pageSize,
     enabled: hasOrg,
   })
 
@@ -182,40 +158,33 @@ export function LibraryPage() {
     () => (tab === 'summaries' ? (items as Summary[]) : []),
     [items, tab],
   )
-  const transcriptGroups = useMemo(
-    () => groupBySource(filteredTranscripts, (tr) => tr.source_audio_id),
-    [filteredTranscripts],
-  )
-  const summaryGroups = useMemo(
-    () => groupBySource(filteredSummaries, (s) => s.source_transcript_id),
-    [filteredSummaries],
-  )
+  const transcriptGroups = useMemo((): SourceGroup<Transcript>[] => {
+    if (tab !== 'transcripts' || !groupListBySource) return []
+    return (sourceGroups ?? []).map((g) => ({
+      key: g.source_id || 'none',
+      sourceId: g.source_id,
+      items: g.items as Transcript[],
+    }))
+  }, [tab, groupListBySource, sourceGroups])
+  const summaryGroups = useMemo((): SourceGroup<Summary>[] => {
+    if (tab !== 'summaries' || !groupListBySource) return []
+    return (sourceGroups ?? []).map((g) => ({
+      key: g.source_id || 'none',
+      sourceId: g.source_id,
+      items: g.items as Summary[],
+    }))
+  }, [tab, groupListBySource, sourceGroups])
 
-  const clientListTotal =
-    tab === 'audio'
-      ? filteredAudios.length
-      : tab === 'transcripts'
-        ? groupListBySource
-          ? transcriptGroups.length
-          : filteredTranscripts.length
-        : groupListBySource
-          ? summaryGroups.length
-          : filteredSummaries.length
-  const listTotal = clientFilterMode ? clientListTotal : serverTotal
+  const listTotal = serverTotal
   const pageCount = Math.max(1, Math.ceil(listTotal / pageSize))
   const safePage = Math.min(page, pageCount - 1)
-  const listOffset = safePage * pageSize
-  const listFrom = listTotal === 0 ? 0 : clientFilterMode ? listOffset + 1 : safePage * pageSize + 1
-  const listTo = clientFilterMode
-    ? Math.min(listTotal, listOffset + pageSize)
-    : Math.min(listTotal, (safePage + 1) * pageSize)
-  const slicePage = <T,>(rows: T[]) =>
-    clientFilterMode ? rows.slice(listOffset, listOffset + pageSize) : rows
-  const pagedAudios = slicePage(filteredAudios)
-  const pagedTranscripts = slicePage(filteredTranscripts)
-  const pagedTranscriptGroups = slicePage(transcriptGroups)
-  const pagedSummaries = slicePage(filteredSummaries)
-  const pagedSummaryGroups = slicePage(summaryGroups)
+  const listFrom = listTotal === 0 ? 0 : safePage * pageSize + 1
+  const listTo = Math.min(listTotal, (safePage + 1) * pageSize)
+  const pagedAudios = filteredAudios
+  const pagedTranscripts = filteredTranscripts
+  const pagedTranscriptGroups = transcriptGroups
+  const pagedSummaries = filteredSummaries
+  const pagedSummaryGroups = summaryGroups
 
   useEffect(() => {
     if (!sourceFilter) return

@@ -2857,7 +2857,9 @@ export interface components {
         /** SummaryListResponse */
         SummaryListResponse: {
             /** Items */
-            items: components["schemas"]["SummaryListItem"][];
+            items?: components["schemas"]["SummaryListItem"][];
+            /** Groups */
+            groups?: components["schemas"]["SummarySourceGroup"][] | null;
             /** Total */
             total: number;
             /** Hidden Count */
@@ -2879,6 +2881,13 @@ export interface components {
             expires_in_days: number | null;
             /** Pin */
             pin?: string | null;
+        };
+        /** SummarySourceGroup */
+        SummarySourceGroup: {
+            /** Source Id */
+            source_id?: string | null;
+            /** Items */
+            items: components["schemas"]["SummaryListItem"][];
         };
         /** TagRenameBody */
         TagRenameBody: {
@@ -3081,11 +3090,20 @@ export interface components {
         /** TranscriptListResponse */
         TranscriptListResponse: {
             /** Items */
-            items: components["schemas"]["TranscriptListItem"][];
+            items?: components["schemas"]["TranscriptListItem"][];
+            /** Groups */
+            groups?: components["schemas"]["TranscriptSourceGroup"][] | null;
             /** Total */
             total: number;
             /** Hidden Count */
             hidden_count: number;
+        };
+        /** TranscriptSourceGroup */
+        TranscriptSourceGroup: {
+            /** Source Id */
+            source_id?: string | null;
+            /** Items */
+            items: components["schemas"]["TranscriptListItem"][];
         };
         /** UserTagBrief */
         UserTagBrief: {
@@ -6607,6 +6625,7 @@ export interface operations {
                 tag?: string | null;
                 owner_user_id?: string | null;
                 q?: string | null;
+                group_by?: "source" | null;
                 limit?: number | null;
                 offset?: number;
             };
@@ -6845,6 +6864,7 @@ export interface operations {
                 tag?: string | null;
                 owner_user_id?: string | null;
                 q?: string | null;
+                group_by?: "source" | null;
                 limit?: number | null;
                 offset?: number;
             };
