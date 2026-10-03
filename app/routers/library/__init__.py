@@ -1,6 +1,6 @@
 """Library API router."""
 from app.routers.library._router import router
-from app.routers.library import routes  # noqa: F401
+from app.routers.library import audios, platforms, shares, summaries, transcripts  # noqa: F401
 
 from app.services import library_helpers as lh
 from app.services.video_extract import cleanup_extract_temp, video_upload_to_mp3_temp
