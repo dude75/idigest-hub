@@ -532,9 +532,9 @@ def test_oauth_sso_flow_returns_to_consent(client, monkeypatch):
     assert start.status_code == 200, start.text
     assert "keycloak.example/authorize" in start.text
 
-    monkeypatch.setattr("app.routers.auth._core.exchange_code", lambda **kwargs: {"id_token": "token"})
+    monkeypatch.setattr("app.routers.auth.session.exchange_code", lambda **kwargs: {"id_token": "token"})
     monkeypatch.setattr(
-        "app.routers.auth._core.validate_id_token",
+        "app.routers.auth.session.validate_id_token",
         lambda **kwargs: {"sub": "kc-oauth", "email": "sso-oauth@example.com"},
     )
     import html as html_module
@@ -581,9 +581,9 @@ def test_oauth_sso_callback_redirects_to_app_without_authorize_query(client, mon
     )
     logout(client)
 
-    monkeypatch.setattr("app.routers.auth._core.exchange_code", lambda **kwargs: {"id_token": "token"})
+    monkeypatch.setattr("app.routers.auth.session.exchange_code", lambda **kwargs: {"id_token": "token"})
     monkeypatch.setattr(
-        "app.routers.auth._core.validate_id_token",
+        "app.routers.auth.session.validate_id_token",
         lambda **kwargs: {"sub": "kc-plain", "email": "plain-sso@example.com"},
     )
     state, _nonce, _challenge = sso_service.make_oauth_state(org_id)

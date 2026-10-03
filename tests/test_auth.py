@@ -293,7 +293,7 @@ def test_password_reset_cooldown_skips_duplicate_email(client, monkeypatch):
     def _send_mail(_db, to_email, _subject, _body):
         sent.append(to_email)
 
-    monkeypatch.setattr("app.routers.auth._core.send_mail", _send_mail)
+    monkeypatch.setattr("app.routers.auth.session.send_mail", _send_mail)
 
     first = client.post("/api/v1/auth/password/reset/request", json={"email": ADMIN_EMAIL})
     assert first.status_code == 200

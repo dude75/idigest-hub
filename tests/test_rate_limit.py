@@ -67,7 +67,7 @@ def test_reset_request_rate_limit_by_email(client: TestClient, monkeypatch):
     )
     logout(client)
     reset_rate_limiter()
-    monkeypatch.setattr("app.routers.auth._core.send_mail", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("app.routers.auth.session.send_mail", lambda *_args, **_kwargs: None)
 
     for _ in range(2):
         response = client.post("/api/v1/auth/password/reset/request", json={"email": ADMIN_EMAIL})

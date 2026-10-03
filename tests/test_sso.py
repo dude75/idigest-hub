@@ -117,9 +117,9 @@ def test_sso_callback_provisions_member(client, monkeypatch):
 
     from app.services import sso as sso_service
 
-    monkeypatch.setattr("app.routers.auth._core.exchange_code", lambda **kwargs: {"id_token": "token"})
+    monkeypatch.setattr("app.routers.auth.session.exchange_code", lambda **kwargs: {"id_token": "token"})
     monkeypatch.setattr(
-        "app.routers.auth._core.validate_id_token",
+        "app.routers.auth.session.validate_id_token",
         lambda **kwargs: {"sub": "kc-1", "email": "newbie@example.com"},
     )
 
@@ -150,9 +150,9 @@ def test_sso_callback_merges_existing_member(client, monkeypatch):
 
     from app.services import sso as sso_service
 
-    monkeypatch.setattr("app.routers.auth._core.exchange_code", lambda **kwargs: {"id_token": "token"})
+    monkeypatch.setattr("app.routers.auth.session.exchange_code", lambda **kwargs: {"id_token": "token"})
     monkeypatch.setattr(
-        "app.routers.auth._core.validate_id_token",
+        "app.routers.auth.session.validate_id_token",
         lambda **kwargs: {"sub": "kc-member", "email": "member@example.com"},
     )
 
@@ -184,9 +184,9 @@ def test_sso_callback_disabled_user_redirects(client, monkeypatch):
 
     from app.services import sso as sso_service
 
-    monkeypatch.setattr("app.routers.auth._core.exchange_code", lambda **kwargs: {"id_token": "token"})
+    monkeypatch.setattr("app.routers.auth.session.exchange_code", lambda **kwargs: {"id_token": "token"})
     monkeypatch.setattr(
-        "app.routers.auth._core.validate_id_token",
+        "app.routers.auth.session.validate_id_token",
         lambda **kwargs: {"sub": "kc-member", "email": "member@example.com"},
     )
 
