@@ -6666,9 +6666,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Create Transcribe Api V1 Tasks Transcribe Post"
+                  "$ref": "#/components/schemas/TaskListItem"
                 }
               }
             }
@@ -6714,9 +6712,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Create Import Api V1 Tasks Import Post"
+                  "$ref": "#/components/schemas/TaskListItem"
                 }
               }
             }
@@ -6762,9 +6758,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Create Capture Api V1 Tasks Capture Post"
+                  "$ref": "#/components/schemas/TaskListItem"
                 }
               }
             }
@@ -6810,9 +6804,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Create Summarize Api V1 Tasks Summarize Post"
+                  "$ref": "#/components/schemas/TaskListItem"
                 }
               }
             }
@@ -7101,9 +7093,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Cancel Task Api V1 Tasks  Task Id  Delete"
+                  "$ref": "#/components/schemas/TaskListItem"
                 }
               }
             }
@@ -7150,9 +7140,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Stop Capture Task Api V1 Tasks  Task Id  Stop Post"
+                  "$ref": "#/components/schemas/TaskListItem"
                 }
               }
             }
@@ -7199,9 +7187,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Retry Task Api V1 Tasks  Task Id  Retry Post"
+                  "$ref": "#/components/schemas/TaskListItem"
                 }
               }
             }

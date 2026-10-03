@@ -271,59 +271,69 @@ def enqueue_transcribe_task(db: Session, ctx: AuthContext, body: TranscribeBody)
     return task
 
 
-@router.post("/tasks/transcribe", status_code=202)
+def _task_response_item(
+    db: Session,
+    task: Task,
+    extra: dict | None = None,
+) -> TaskListItem:
+    if extra is None:
+        extra = _task_list_extra(db, [task]).get(task.id)
+    return TaskListItem.model_validate(task_public(task, extra))
+
+
+@router.post("/tasks/transcribe", status_code=202, response_model=TaskListItem)
 async def create_transcribe(
     body: TranscribeBody,
     request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TaskListItem:
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     task = enqueue_transcribe_task(db, ctx, body)
     db.commit()
     schedule_locked_tick(background_tasks, task.id)
-    return task_public(task)
+    return _task_response_item(db, task)
 
 
-@router.post("/tasks/import", status_code=202)
+@router.post("/tasks/import", status_code=202, response_model=TaskListItem)
 async def create_import(
     body: ImportBody,
     request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TaskListItem:
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     task = enqueue_import_task(db, ctx, body)
     db.commit()
     schedule_locked_tick(background_tasks, task.id, refresh_health=False)
-    return task_public(task)
+    return _task_response_item(db, task)
 
 
-@router.post("/tasks/capture", status_code=202)
+@router.post("/tasks/capture", status_code=202, response_model=TaskListItem)
 async def create_capture(
     body: CaptureBody,
     request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TaskListItem:
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     task = enqueue_capture_task(db, ctx, body)
     db.commit()
     schedule_locked_tick(background_tasks, task.id, refresh_health=False)
-    return task_public(task)
+    return _task_response_item(db, task)
 
 
-@router.post("/tasks/summarize", status_code=202)
+@router.post("/tasks/summarize", status_code=202, response_model=TaskListItem)
 async def create_summarize(
     body: SummarizeBody,
     request: Request,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TaskListItem:
     org, _ = ctx.require_org()
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
     transcript = db.get(Transcript, body.transcript_id)
@@ -365,7 +375,7 @@ async def create_summarize(
     db.flush()
     db.commit()
     schedule_locked_tick(background_tasks, task.id)
-    return task_public(task)
+    return _task_response_item(db, task)
 
 
 def _list_tasks_filters(ctx: AuthContext, org_id: str | None, user_id: str | None) -> list:
@@ -476,12 +486,9 @@ def list_tasks(
     if active_rows and any(should_schedule_capture_task_tick(row) for row in active_rows):
         schedule_locked_tick(background_tasks, None, refresh_health=False, wait=False)
 
-    def _item(row: Task) -> TaskListItem:
-        return TaskListItem.model_validate(task_public(row, extras.get(row.id)))
-
     return TaskListResponse(
-        active=[_item(row) for row in active_rows],
-        done=[_item(row) for row in done_rows],
+        active=[_task_response_item(db, row, extras.get(row.id)) for row in active_rows],
+        done=[_task_response_item(db, row, extras.get(row.id)) for row in done_rows],
         done_total=done_total,
     )
 
@@ -501,9 +508,7 @@ async def get_task(
     if task.status in {"queued", "running"} and should_schedule_capture_task_tick(task):
         refresh_health = task.type not in {"import", "capture"}
         schedule_locked_tick(background_tasks, task.id, refresh_health=refresh_health, wait=False)
-    return TaskListItem.model_validate(
-        task_public(task, _task_list_extra(db, [task]).get(task.id))
-    )
+    return _task_response_item(db, task)
 
 
 def _validate_summarize_skills(ctx: AuthContext, db: Session, org: Organization, skill_ids: list[str]) -> None:
@@ -575,13 +580,13 @@ def _validate_task_source(ctx: AuthContext, db: Session, org: Organization, task
         return
 
 
-@router.post("/tasks/{task_id}/stop", status_code=202)
+@router.post("/tasks/{task_id}/stop", status_code=202, response_model=TaskListItem)
 async def stop_capture_task(
     task_id: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TaskListItem:
     task = db.get(Task, task_id)
     if task is None or not _can_see_task(ctx, task):
         ctx.raise_error(ErrorCode.not_found)
@@ -597,16 +602,16 @@ async def stop_capture_task(
     db.commit()
     if need_tick:
         schedule_locked_tick(background_tasks, task.id, refresh_health=False, wait=False)
-    return task_public(task)
+    return _task_response_item(db, task)
 
 
-@router.post("/tasks/{task_id}/retry", status_code=202)
+@router.post("/tasks/{task_id}/retry", status_code=202, response_model=TaskListItem)
 async def retry_task(
     task_id: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TaskListItem:
     task = db.get(Task, task_id)
     if task is None or not _can_see_task(ctx, task):
         ctx.raise_error(ErrorCode.not_found)
@@ -640,16 +645,16 @@ async def retry_task(
     db.flush()
     db.commit()
     schedule_locked_tick(background_tasks, task.id)
-    return task_public(task)
+    return _task_response_item(db, task)
 
 
-@router.delete("/tasks/{task_id}")
+@router.delete("/tasks/{task_id}", response_model=TaskListItem)
 async def cancel_task(
     task_id: str,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TaskListItem:
     task = db.get(Task, task_id)
     if task is None:
         ctx.raise_error(ErrorCode.not_found)
@@ -666,7 +671,7 @@ async def cancel_task(
         task.updated_at = utcnow()
         db.flush()
         db.commit()
-        return task_public(task)
+        return _task_response_item(db, task)
     if task.type == "capture":
         if task.status not in {"queued", "running"}:
             ctx.raise_error(ErrorCode.task_running)
@@ -680,10 +685,11 @@ async def cancel_task(
         db.commit()
         if need_tick:
             schedule_locked_tick(background_tasks, task.id, refresh_health=False, wait=False)
-        return task_public(task)
+        return _task_response_item(db, task)
     if task.status != "queued" or task.worker_task_id:
         ctx.raise_error(ErrorCode.task_running)
     task.status = "error"
     task.error_code = "canceled"
     task.updated_at = utcnow()
-    return task_public(task)
+    db.commit()
+    return _task_response_item(db, task)

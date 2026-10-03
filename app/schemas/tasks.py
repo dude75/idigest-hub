@@ -1,4 +1,4 @@
-"""Task API response models (GET /tasks, GET /tasks/{task_id})."""
+"""Task API response models for task list, poll, and mutate endpoints."""
 
 from __future__ import annotations
 

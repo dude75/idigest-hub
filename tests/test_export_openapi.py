@@ -32,3 +32,7 @@ def test_export_openapi_writes_health_path():
         "application/json"
     ]["schema"]
     assert get_task.get("$ref", "").endswith("/TaskListItem")
+    transcribe_202 = schema["paths"]["/api/v1/tasks/transcribe"]["post"]["responses"]["202"]["content"][
+        "application/json"
+    ]["schema"]
+    assert transcribe_202.get("$ref", "").endswith("/TaskListItem")
