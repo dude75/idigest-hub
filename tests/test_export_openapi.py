@@ -23,3 +23,6 @@ def test_export_openapi_writes_health_path():
     schema = json.loads(OUT.read_text(encoding="utf-8"))
     assert "/api/v1/health" in schema.get("paths", {})
     assert schema["paths"]["/api/v1/audios"]["get"]["parameters"]
+    components = schema.get("components", {}).get("schemas", {})
+    assert "AudioListResponse" in components
+    assert "total" in components["AudioListResponse"]["properties"]

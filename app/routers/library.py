@@ -59,6 +59,15 @@ from app.services.library_list import (
 )
 from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
+from app.schemas.library import (
+    AudioListItem,
+    AudioListResponse,
+    SummaryListItem,
+    SummaryListResponse,
+    TranscriptListItem,
+    TranscriptListResponse,
+    _derived_audio_defaults,
+)
 from app.services.billing import upload_limit
 from app.timeutil import utcnow
 
@@ -399,7 +408,7 @@ async def upload_audio(
     return audio_public(row)
 
 
-@router.get("/audios")
+@router.get("/audios", response_model=AudioListResponse)
 def list_audios(
     include_hidden: bool = False,
     tag: str | None = None,
@@ -409,7 +418,7 @@ def list_audios(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> AudioListResponse:
     owner = _library_owner_filter(ctx, owner_user_id)
     rows = _list_filter(
         ctx, db, Audio, "audio", include_hidden, tag, owner, q, limit=limit, offset=offset
@@ -420,25 +429,19 @@ def list_audios(
     tag_map = batch_object_user_tags(db, ctx.user.id, "audio", [row.id for row in rows])
     badges = batch_share_badges(db, ctx, "audio", rows, user_tags_by_id=tag_map)
     derived = _audio_derived_info(db, ctx, [row.id for row in rows])
-    return {
-        "items": [
-            {
-                **audio_public(row, badges.get(row.id)),
-                **derived.get(
-                    row.id,
-                    {
-                        "has_transcript": False,
-                        "has_summary": False,
-                        "transcript_id": None,
-                        "summary_transcript_id": None,
-                    },
-                ),
-            }
+    return AudioListResponse(
+        items=[
+            AudioListItem.model_validate(
+                {
+                    **audio_public(row, badges.get(row.id)),
+                    **derived.get(row.id, _derived_audio_defaults()),
+                }
+            )
             for row in rows
         ],
-        "total": total,
-        "hidden_count": _count_hidden_for_user(ctx, db, Audio, "audio"),
-    }
+        total=total,
+        hidden_count=_count_hidden_for_user(ctx, db, Audio, "audio"),
+    )
 
 
 @router.get("/audios/{audio_id}")
@@ -579,7 +582,7 @@ def _summary_source_context(
     return transcript, source_filename
 
 
-@router.get("/transcripts")
+@router.get("/transcripts", response_model=TranscriptListResponse)
 def list_transcripts(
     include_hidden: bool = False,
     tag: str | None = None,
@@ -589,7 +592,7 @@ def list_transcripts(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_oauth_scope(SCOPE_TRANSCRIPTS_READ)),
-) -> dict:
+) -> TranscriptListResponse:
     owner = _library_owner_filter(ctx, owner_user_id)
     rows = _list_filter(
         ctx, db, Transcript, "transcript", include_hidden, tag, owner, q, limit=limit, offset=offset
@@ -601,22 +604,24 @@ def list_transcripts(
     badges = batch_share_badges(db, ctx, "transcript", rows, user_tags_by_id=tag_map)
     filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
     derived = _transcript_derived_info(db, ctx, [row.id for row in rows])
-    return {
-        "items": [
-            {
-                **transcript_public(
-                    row,
-                    extra=badges.get(row.id),
-                    source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
-                ),
-                **derived.get(row.id, {"has_summary": False}),
-                "has_tone_analytics": row.has_tone_analytics,
-            }
+    return TranscriptListResponse(
+        items=[
+            TranscriptListItem.model_validate(
+                {
+                    **transcript_public(
+                        row,
+                        extra=badges.get(row.id),
+                        source_filename=filenames.get(row.source_audio_id) if row.source_audio_id else None,
+                    ),
+                    **derived.get(row.id, {"has_summary": False}),
+                    "has_tone_analytics": row.has_tone_analytics,
+                }
+            )
             for row in rows
         ],
-        "total": total,
-        "hidden_count": _count_hidden_for_user(ctx, db, Transcript, "transcript"),
-    }
+        total=total,
+        hidden_count=_count_hidden_for_user(ctx, db, Transcript, "transcript"),
+    )
 
 
 @router.get("/transcripts/{transcript_id}")
@@ -731,7 +736,7 @@ def delete_transcript(
     return {"status": "ok"}
 
 
-@router.get("/summaries")
+@router.get("/summaries", response_model=SummaryListResponse)
 def list_summaries(
     include_hidden: bool = False,
     tag: str | None = None,
@@ -741,7 +746,7 @@ def list_summaries(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> SummaryListResponse:
     owner = _library_owner_filter(ctx, owner_user_id)
     rows = _list_filter(
         ctx, db, Summary, "summary", include_hidden, tag, owner, q, limit=limit, offset=offset
@@ -755,22 +760,24 @@ def list_summaries(
     audio_filenames = _audio_filenames(
         db, {tr.source_audio_id for tr in transcripts.values() if tr.source_audio_id}
     )
-    items = []
+    items: list[SummaryListItem] = []
     for row in rows:
         source_transcript, source_filename = _summary_source_context(row, transcripts, audio_filenames)
         items.append(
-            summary_public(
-                row,
-                extra=badges.get(row.id),
-                source_transcript=source_transcript,
-                source_filename=source_filename,
+            SummaryListItem.model_validate(
+                summary_public(
+                    row,
+                    extra=badges.get(row.id),
+                    source_transcript=source_transcript,
+                    source_filename=source_filename,
+                )
             )
         )
-    return {
-        "items": items,
-        "total": total,
-        "hidden_count": _count_hidden_for_user(ctx, db, Summary, "summary"),
-    }
+    return SummaryListResponse(
+        items=items,
+        total=total,
+        hidden_count=_count_hidden_for_user(ctx, db, Summary, "summary"),
+    )
 
 
 @router.get("/summaries/{summary_id}")

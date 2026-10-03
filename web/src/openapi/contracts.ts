@@ -1,10 +1,16 @@
 /**
- * API response envelopes aligned with hub presenters.
- * OpenAPI still marks many routes as generic objects; keep canonical shapes here
- * until routers declare response_model.
+ * Library/task list types for the UI.
+ *
+ * OpenAPI now exposes `AudioListResponse` and siblings from backend Pydantic models.
+ * These aliases keep `types.ts` domain models (ShareBadge, etc.) on list pages.
  */
 
+import type { components } from './schema.gen'
 import type { Audio, Summary, Task, Transcript } from '../types'
+
+export type SchemaAudioListResponse = components['schemas']['AudioListResponse']
+export type SchemaTranscriptListResponse = components['schemas']['TranscriptListResponse']
+export type SchemaSummaryListResponse = components['schemas']['SummaryListResponse']
 
 export type LibraryListEnvelope<T> = {
   items: T[]

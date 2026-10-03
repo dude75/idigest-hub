@@ -2214,6 +2214,65 @@ export interface components {
              */
             text: string;
         };
+        /** AudioListItem */
+        AudioListItem: {
+            /**
+             * Hidden
+             * @default false
+             */
+            hidden: boolean;
+            /** Owner Email */
+            owner_email?: string | null;
+            /** User Tags */
+            user_tags?: components["schemas"]["UserTagBrief"][];
+            /** Share Kind */
+            share_kind?: string | null;
+            /** Shared By */
+            shared_by?: string | null;
+            /** Shared With */
+            shared_with?: string[] | null;
+            /** Shares */
+            shares?: components["schemas"]["ShareRecordBrief"][] | null;
+            /** Share Id */
+            share_id?: string | null;
+            /** Id */
+            id: string;
+            /** Org Id */
+            org_id: string;
+            /** Owner User Id */
+            owner_user_id: string;
+            /** Filename */
+            filename: string;
+            /** Source Url */
+            source_url?: string | null;
+            /** Duration Sec */
+            duration_sec?: number | null;
+            /** Created At */
+            created_at: string;
+            /**
+             * Has Transcript
+             * @default false
+             */
+            has_transcript: boolean;
+            /**
+             * Has Summary
+             * @default false
+             */
+            has_summary: boolean;
+            /** Transcript Id */
+            transcript_id?: string | null;
+            /** Summary Transcript Id */
+            summary_transcript_id?: string | null;
+        };
+        /** AudioListResponse */
+        AudioListResponse: {
+            /** Items */
+            items: components["schemas"]["AudioListItem"][];
+            /** Total */
+            total: number;
+            /** Hidden Count */
+            hidden_count: number;
+        };
         /** BaseSkillBody */
         BaseSkillBody: {
             /** Name */
@@ -2671,6 +2730,15 @@ export interface components {
             /** To User Ids */
             to_user_ids: string[];
         };
+        /** ShareRecordBrief */
+        ShareRecordBrief: {
+            /** Id */
+            id: string;
+            /** To User Id */
+            to_user_id: string;
+            /** Email */
+            email: string;
+        };
         /** SignupBody */
         SignupBody: {
             /**
@@ -2738,6 +2806,62 @@ export interface components {
             transcript_id: string;
             /** Skill Ids */
             skill_ids: string[];
+        };
+        /** SummaryListItem */
+        SummaryListItem: {
+            /**
+             * Hidden
+             * @default false
+             */
+            hidden: boolean;
+            /** Owner Email */
+            owner_email?: string | null;
+            /** User Tags */
+            user_tags?: components["schemas"]["UserTagBrief"][];
+            /** Share Kind */
+            share_kind?: string | null;
+            /** Shared By */
+            shared_by?: string | null;
+            /** Shared With */
+            shared_with?: string[] | null;
+            /** Shares */
+            shares?: components["schemas"]["ShareRecordBrief"][] | null;
+            /** Share Id */
+            share_id?: string | null;
+            /** Id */
+            id: string;
+            /** Org Id */
+            org_id: string;
+            /** Owner User Id */
+            owner_user_id: string;
+            /** Source Transcript Id */
+            source_transcript_id?: string | null;
+            /** Source Transcript Title */
+            source_transcript_title?: string | null;
+            /** Source Audio Id */
+            source_audio_id?: string | null;
+            /** Skill Ids */
+            skill_ids?: string[];
+            /** Title */
+            title?: string | null;
+            /** Display Title */
+            display_title: string;
+            /**
+             * Edited
+             * @default false
+             */
+            edited: boolean;
+            /** Created At */
+            created_at: string;
+        };
+        /** SummaryListResponse */
+        SummaryListResponse: {
+            /** Items */
+            items: components["schemas"]["SummaryListItem"][];
+            /** Total */
+            total: number;
+            /** Hidden Count */
+            hidden_count: number;
         };
         /** SummaryPatch */
         SummaryPatch: {
@@ -2853,6 +2977,72 @@ export interface components {
              * @default false
              */
             tone: boolean;
+        };
+        /** TranscriptListItem */
+        TranscriptListItem: {
+            /**
+             * Hidden
+             * @default false
+             */
+            hidden: boolean;
+            /** Owner Email */
+            owner_email?: string | null;
+            /** User Tags */
+            user_tags?: components["schemas"]["UserTagBrief"][];
+            /** Share Kind */
+            share_kind?: string | null;
+            /** Shared By */
+            shared_by?: string | null;
+            /** Shared With */
+            shared_with?: string[] | null;
+            /** Shares */
+            shares?: components["schemas"]["ShareRecordBrief"][] | null;
+            /** Share Id */
+            share_id?: string | null;
+            /** Id */
+            id: string;
+            /** Org Id */
+            org_id: string;
+            /** Owner User Id */
+            owner_user_id: string;
+            /** Source Audio Id */
+            source_audio_id?: string | null;
+            /** Source Filename */
+            source_filename?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Display Title */
+            display_title: string;
+            /** Created At */
+            created_at: string;
+            /**
+             * Has Summary
+             * @default false
+             */
+            has_summary: boolean;
+            /**
+             * Has Tone Analytics
+             * @default false
+             */
+            has_tone_analytics: boolean;
+        };
+        /** TranscriptListResponse */
+        TranscriptListResponse: {
+            /** Items */
+            items: components["schemas"]["TranscriptListItem"][];
+            /** Total */
+            total: number;
+            /** Hidden Count */
+            hidden_count: number;
+        };
+        /** UserTagBrief */
+        UserTagBrief: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Usage Count */
+            usage_count?: number | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -6144,9 +6334,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AudioListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6382,9 +6570,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TranscriptListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6622,9 +6808,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SummaryListResponse"];
                 };
             };
             /** @description Validation Error */
