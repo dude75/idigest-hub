@@ -50,8 +50,10 @@ from app.services.audit import write_audit
 from app.services.storage import PayloadTooLarge, get_storage
 from app.services.upload_validation import InvalidAudioContent
 from app.services.library_list import (
+    LIBRARY_LIST_MAX_LIMIT,
     batch_share_badges,
     count_hidden_library_rows,
+    count_library_rows,
     list_library_rows,
 )
 from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
@@ -268,6 +270,14 @@ def _count_hidden_for_user(ctx: AuthContext, db: Session, model, object_type: st
     return count_hidden_library_rows(ctx, db, model, object_type)
 
 
+def _library_owner_filter(ctx: AuthContext, owner_user_id: str | None) -> str | None:
+    if not owner_user_id or not owner_user_id.strip():
+        return None
+    if not ctx.is_org_admin and not ctx.is_instance_admin:
+        ctx.raise_error(ErrorCode.forbidden)
+    return owner_user_id.strip()
+
+
 def _list_filter(
     ctx: AuthContext,
     db: Session,
@@ -275,8 +285,22 @@ def _list_filter(
     object_type: str,
     include_hidden: bool,
     tag: str | None = None,
+    owner_user_id: str | None = None,
+    *,
+    limit: int | None = None,
+    offset: int = 0,
 ):
-    return list_library_rows(ctx, db, model, object_type, include_hidden, tag)
+    return list_library_rows(
+        ctx,
+        db,
+        model,
+        object_type,
+        include_hidden,
+        tag,
+        owner_user_id=owner_user_id,
+        limit=limit,
+        offset=offset,
+    )
 
 
 def _upload_as_video(suffix: str, file: UploadFile) -> bool:
@@ -376,10 +400,17 @@ async def upload_audio(
 def list_audios(
     include_hidden: bool = False,
     tag: str | None = None,
+    owner_user_id: str | None = None,
+    limit: int | None = Query(None, ge=1, le=LIBRARY_LIST_MAX_LIMIT),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
-    rows = _list_filter(ctx, db, Audio, "audio", include_hidden, tag)
+    owner = _library_owner_filter(ctx, owner_user_id)
+    rows = _list_filter(
+        ctx, db, Audio, "audio", include_hidden, tag, owner, limit=limit, offset=offset
+    )
+    total = count_library_rows(ctx, db, Audio, "audio", include_hidden, tag, owner_user_id=owner)
     tag_map = batch_object_user_tags(db, ctx.user.id, "audio", [row.id for row in rows])
     badges = batch_share_badges(db, ctx, "audio", rows, user_tags_by_id=tag_map)
     derived = _audio_derived_info(db, ctx, [row.id for row in rows])
@@ -399,6 +430,7 @@ def list_audios(
             }
             for row in rows
         ],
+        "total": total,
         "hidden_count": _count_hidden_for_user(ctx, db, Audio, "audio"),
     }
 
@@ -545,10 +577,19 @@ def _summary_source_context(
 def list_transcripts(
     include_hidden: bool = False,
     tag: str | None = None,
+    owner_user_id: str | None = None,
+    limit: int | None = Query(None, ge=1, le=LIBRARY_LIST_MAX_LIMIT),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_oauth_scope(SCOPE_TRANSCRIPTS_READ)),
 ) -> dict:
-    rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden, tag)
+    owner = _library_owner_filter(ctx, owner_user_id)
+    rows = _list_filter(
+        ctx, db, Transcript, "transcript", include_hidden, tag, owner, limit=limit, offset=offset
+    )
+    total = count_library_rows(
+        ctx, db, Transcript, "transcript", include_hidden, tag, owner_user_id=owner
+    )
     tag_map = batch_object_user_tags(db, ctx.user.id, "transcript", [row.id for row in rows])
     badges = batch_share_badges(db, ctx, "transcript", rows, user_tags_by_id=tag_map)
     filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
@@ -566,6 +607,7 @@ def list_transcripts(
             }
             for row in rows
         ],
+        "total": total,
         "hidden_count": _count_hidden_for_user(ctx, db, Transcript, "transcript"),
     }
 
@@ -686,10 +728,17 @@ def delete_transcript(
 def list_summaries(
     include_hidden: bool = False,
     tag: str | None = None,
+    owner_user_id: str | None = None,
+    limit: int | None = Query(None, ge=1, le=LIBRARY_LIST_MAX_LIMIT),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> dict:
-    rows = _list_filter(ctx, db, Summary, "summary", include_hidden, tag)
+    owner = _library_owner_filter(ctx, owner_user_id)
+    rows = _list_filter(
+        ctx, db, Summary, "summary", include_hidden, tag, owner, limit=limit, offset=offset
+    )
+    total = count_library_rows(ctx, db, Summary, "summary", include_hidden, tag, owner_user_id=owner)
     tag_map = batch_object_user_tags(db, ctx.user.id, "summary", [row.id for row in rows])
     badges = batch_share_badges(db, ctx, "summary", rows, user_tags_by_id=tag_map)
     transcripts = _transcripts_by_id(db, {row.source_transcript_id for row in rows})
@@ -709,6 +758,7 @@ def list_summaries(
         )
     return {
         "items": items,
+        "total": total,
         "hidden_count": _count_hidden_for_user(ctx, db, Summary, "summary"),
     }
 

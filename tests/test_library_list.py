@@ -65,3 +65,54 @@ def test_member_sees_shared_audio_in_list(client):
     assert audio_id in ids
     shared_row = next(item for item in after_share.json()["items"] if item["id"] == audio_id)
     assert shared_row.get("share_kind") == "incoming"
+
+
+def test_library_list_pagination_total_and_owner_filter(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    member = client.post(
+        "/api/v1/org/users",
+        json={"email": "mem@example.com", "password": "mempass123", "role": "org_member"},
+    )
+    assert member.status_code == 200, member.text
+    member_id = member.json()["id"]
+
+    logout(client)
+    login_ready(client, "mem@example.com", "mempass123")
+    assert upload_audio(client).status_code == 200
+    assert upload_audio(client).status_code == 200
+
+    logout(client)
+    login_ready(client, "lead@example.com", "leadpass1")
+    assert upload_audio(client).status_code == 200
+
+    all_rows = client.get("/api/v1/audios")
+    assert all_rows.status_code == 200
+    assert all_rows.json()["total"] == 3
+
+    page = client.get("/api/v1/audios?limit=2&offset=0")
+    assert page.status_code == 200
+    body = page.json()
+    assert len(body["items"]) == 2
+    assert body["total"] == 3
+
+    by_owner = client.get(f"/api/v1/audios?owner_user_id={member_id}")
+    assert by_owner.status_code == 200
+    assert by_owner.json()["total"] == 2
+    assert all(item["owner_user_id"] == member_id for item in by_owner.json()["items"])
+
+
+def test_member_cannot_use_owner_user_id_filter(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    member = client.post(
+        "/api/v1/org/users",
+        json={"email": "solo@example.com", "password": "solopass12", "role": "org_member"},
+    )
+    assert member.status_code == 200, member.text
+    logout(client)
+    login_ready(client, "solo@example.com", "solopass12")
+    denied = client.get("/api/v1/audios?owner_user_id=any-id")
+    assert denied.status_code == 403

@@ -36,6 +36,8 @@ import { MicIcon } from 'lucide-react'
 import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, UserTagBadges, fmtDate, showError } from '../util'
 import { captureMeetingNeedsPin, shouldRouteImportUrlToCapture } from '../util/captureHost'
 import { uploadMicrophoneRecording } from '../util/microphoneUpload'
+import { filterLibraryItems, libraryNeedsFullList } from '../libraryList'
+import { useLibraryList } from '../hooks/useLibraryList'
 
 type SourceGroup<T> = {
   key: string
@@ -45,33 +47,6 @@ type SourceGroup<T> = {
 
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
-
-function librarySearchHaystack(tab: LibraryTab, item: Audio | Transcript | Summary): string {
-  if (tab === 'audio') {
-    const a = item as Audio
-    return [a.filename, a.owner_email || ''].join(' ').toLowerCase()
-  }
-  if (tab === 'transcripts') {
-    const tr = item as Transcript
-    return [tr.display_title, tr.title, tr.source_filename, tr.owner_email].filter(Boolean).join(' ').toLowerCase()
-  }
-  const s = item as Summary
-  return [s.display_title, s.title, s.source_transcript_title, s.owner_email].filter(Boolean).join(' ').toLowerCase()
-}
-
-function filterLibraryItems<T extends { owner_user_id: string }>(
-  items: T[],
-  tab: LibraryTab,
-  query: string,
-  userId: string,
-): T[] {
-  const q = query.trim().toLowerCase()
-  return items.filter((item) => {
-    if (userId && item.owner_user_id !== userId) return false
-    if (!q) return true
-    return librarySearchHaystack(tab, item as unknown as Audio | Transcript | Summary).includes(q)
-  })
-}
 
 function groupBySource<T extends { created_at: string }>(
   items: T[],
@@ -108,10 +83,6 @@ export function LibraryPage() {
   const tagFilter = searchParams.get('tag') || ''
   const tab: LibraryTab = isLibraryTab(tabParam) ? tabParam : LIBRARY_FIRST_TAB
   const [hidden, setHidden] = useState(false)
-  const [hiddenCount, setHiddenCount] = useState(0)
-  const [audios, setAudios] = useState<Audio[]>([])
-  const [transcripts, setTranscripts] = useState<Transcript[]>([])
-  const [summaries, setSummaries] = useState<Summary[]>([])
   const [query, setQuery] = useState('')
   const [userId, setUserId] = useState('')
   const [orgUsers, setOrgUsers] = useState<User[]>([])
@@ -135,14 +106,18 @@ export function LibraryPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const hasOrg = Boolean(me?.org)
   const showOwnerFilter = isOrgAdmin(me) || isInstanceAdmin(me)
+  const clientFilterMode = libraryNeedsFullList(query, groupListBySource)
+  const serverOwnerId = showOwnerFilter && userId ? userId : undefined
 
-  function libraryListQuery() {
-    const params = new URLSearchParams()
-    if (hidden) params.set('include_hidden', 'true')
-    if (tagFilter) params.set('tag', tagFilter)
-    const qs = params.toString()
-    return qs ? `?${qs}` : ''
-  }
+  const { items, total: serverTotal, hiddenCount, reload } = useLibraryList({
+    tab,
+    includeHidden: hidden,
+    tag: tagFilter || null,
+    ownerUserId: serverOwnerId,
+    limit: clientFilterMode ? undefined : pageSize,
+    offset: clientFilterMode ? undefined : page * pageSize,
+    enabled: hasOrg,
+  })
 
   async function loadUserTags() {
     try {
@@ -152,32 +127,6 @@ export function LibraryPage() {
       showError(e)
     }
   }
-
-  async function load(activeTab: LibraryTab = tab) {
-    try {
-      const q = libraryListQuery()
-      if (activeTab === 'audio') {
-        const r = await api<{ items: Audio[]; hidden_count: number }>(`/audios${q}`)
-        setAudios(r.items)
-        setHiddenCount(r.hidden_count ?? 0)
-      } else if (activeTab === 'transcripts') {
-        const r = await api<{ items: Transcript[]; hidden_count: number }>(`/transcripts${q}`)
-        setTranscripts(r.items)
-        setHiddenCount(r.hidden_count ?? 0)
-      } else {
-        const r = await api<{ items: Summary[]; hidden_count: number }>(`/summaries${q}`)
-        setSummaries(r.items)
-        setHiddenCount(r.hidden_count ?? 0)
-      }
-    } catch (e) {
-      showError(e)
-    }
-  }
-
-  useEffect(() => {
-    if (!hasOrg) return
-    void load()
-  }, [tab, hidden, tagFilter, hasOrg])
 
   useEffect(() => {
     if (!hasOrg) return
@@ -217,17 +166,28 @@ export function LibraryPage() {
     }
   }, [hasOrg, showOwnerFilter])
 
+  const localOwnerFilter = clientFilterMode ? userId : ''
+
   const filteredAudios = useMemo(
-    () => filterLibraryItems(audios, 'audio', query, userId),
-    [audios, query, userId],
+    () =>
+      tab === 'audio'
+        ? filterLibraryItems(items as Audio[], 'audio', query, localOwnerFilter)
+        : [],
+    [items, tab, query, localOwnerFilter],
   )
   const filteredTranscripts = useMemo(
-    () => filterLibraryItems(transcripts, 'transcripts', query, userId),
-    [transcripts, query, userId],
+    () =>
+      tab === 'transcripts'
+        ? filterLibraryItems(items as Transcript[], 'transcripts', query, localOwnerFilter)
+        : [],
+    [items, tab, query, localOwnerFilter],
   )
   const filteredSummaries = useMemo(
-    () => filterLibraryItems(summaries, 'summaries', query, userId),
-    [summaries, query, userId],
+    () =>
+      tab === 'summaries'
+        ? filterLibraryItems(items as Summary[], 'summaries', query, localOwnerFilter)
+        : [],
+    [items, tab, query, localOwnerFilter],
   )
   const transcriptGroups = useMemo(
     () => groupBySource(filteredTranscripts, (tr) => tr.source_audio_id),
@@ -238,7 +198,7 @@ export function LibraryPage() {
     [filteredSummaries],
   )
 
-  const listTotal =
+  const clientListTotal =
     tab === 'audio'
       ? filteredAudios.length
       : tab === 'transcripts'
@@ -248,16 +208,21 @@ export function LibraryPage() {
         : groupListBySource
           ? summaryGroups.length
           : filteredSummaries.length
+  const listTotal = clientFilterMode ? clientListTotal : serverTotal
   const pageCount = Math.max(1, Math.ceil(listTotal / pageSize))
   const safePage = Math.min(page, pageCount - 1)
   const listOffset = safePage * pageSize
-  const listFrom = listTotal === 0 ? 0 : listOffset + 1
-  const listTo = Math.min(listTotal, listOffset + pageSize)
-  const pagedAudios = filteredAudios.slice(listOffset, listOffset + pageSize)
-  const pagedTranscripts = filteredTranscripts.slice(listOffset, listOffset + pageSize)
-  const pagedTranscriptGroups = transcriptGroups.slice(listOffset, listOffset + pageSize)
-  const pagedSummaries = filteredSummaries.slice(listOffset, listOffset + pageSize)
-  const pagedSummaryGroups = summaryGroups.slice(listOffset, listOffset + pageSize)
+  const listFrom = listTotal === 0 ? 0 : clientFilterMode ? listOffset + 1 : safePage * pageSize + 1
+  const listTo = clientFilterMode
+    ? Math.min(listTotal, listOffset + pageSize)
+    : Math.min(listTotal, (safePage + 1) * pageSize)
+  const slicePage = <T,>(rows: T[]) =>
+    clientFilterMode ? rows.slice(listOffset, listOffset + pageSize) : rows
+  const pagedAudios = slicePage(filteredAudios)
+  const pagedTranscripts = slicePage(filteredTranscripts)
+  const pagedTranscriptGroups = slicePage(transcriptGroups)
+  const pagedSummaries = slicePage(filteredSummaries)
+  const pagedSummaryGroups = slicePage(summaryGroups)
 
   useEffect(() => {
     if (!sourceFilter) return
@@ -267,7 +232,7 @@ export function LibraryPage() {
     el.classList.add('group-highlight')
     const timer = window.setTimeout(() => el.classList.remove('group-highlight'), 2500)
     return () => window.clearTimeout(timer)
-  }, [sourceFilter, tab, audios, transcripts, summaries])
+  }, [sourceFilter, tab, items])
 
   useEffect(() => {
     if (!hasOrg) return
@@ -389,8 +354,7 @@ export function LibraryPage() {
       }
       endPipelineRun()
       nav(libraryPath('audio'))
-      setAudios((prev) => [item, ...prev.filter((a) => a.id !== item.id)])
-      await load('audio')
+      await reload()
     } catch (e) {
       showError(e)
     } finally {
@@ -842,7 +806,7 @@ export function LibraryPage() {
           onClose={() => setManageTagsOpen(false)}
           onUpdated={() => {
             void loadUserTags()
-            void load()
+            void reload()
           }}
         />
       ) : null}
@@ -859,9 +823,8 @@ export function LibraryPage() {
               nav,
               {
                 onProgress: (p) => setUploadProgress({ ...p, video: true }),
-                afterUpload: async (item) => {
-                  setAudios((prev) => [item, ...prev.filter((a) => a.id !== item.id)])
-                  await load('audio')
+                afterUpload: async () => {
+                  await reload()
                 },
               },
               me,

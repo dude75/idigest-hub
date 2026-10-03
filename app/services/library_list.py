@@ -13,6 +13,9 @@ from app.models import HiddenItem, Share, User, UserTagLink
 from app.services.user_tags import resolve_user_tag
 
 
+LIBRARY_LIST_MAX_LIMIT = 500
+
+
 def library_visibility_filters(
     ctx: AuthContext,
     db: Session,
@@ -21,6 +24,7 @@ def library_visibility_filters(
     *,
     include_hidden: bool,
     tag: str | None,
+    owner_user_id: str | None = None,
 ) -> list[Any] | None:
     """WHERE clauses for visible library rows. None => empty list (unknown tag)."""
     org, membership = ctx.require_org()
@@ -34,6 +38,8 @@ def library_visibility_filters(
             )
         )
         filters.append(or_(model.owner_user_id == ctx.user.id, incoming_share))
+    if owner_user_id:
+        filters.append(model.owner_user_id == owner_user_id)
     if not include_hidden:
         hidden_row = exists(
             select(1).where(
@@ -67,11 +73,18 @@ def list_library_rows(
     include_hidden: bool,
     tag: str | None = None,
     *,
+    owner_user_id: str | None = None,
     limit: int | None = None,
     offset: int = 0,
 ) -> list[Any]:
     filters = library_visibility_filters(
-        ctx, db, model, object_type, include_hidden=include_hidden, tag=tag
+        ctx,
+        db,
+        model,
+        object_type,
+        include_hidden=include_hidden,
+        tag=tag,
+        owner_user_id=owner_user_id,
     )
     if filters is None:
         return []
@@ -90,9 +103,17 @@ def count_library_rows(
     object_type: str,
     include_hidden: bool,
     tag: str | None = None,
+    *,
+    owner_user_id: str | None = None,
 ) -> int:
     filters = library_visibility_filters(
-        ctx, db, model, object_type, include_hidden=include_hidden, tag=tag
+        ctx,
+        db,
+        model,
+        object_type,
+        include_hidden=include_hidden,
+        tag=tag,
+        owner_user_id=owner_user_id,
     )
     if filters is None:
         return 0
