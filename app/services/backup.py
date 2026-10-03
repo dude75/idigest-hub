@@ -46,7 +46,7 @@ def build_backup(
     }
 
     if include_transcripts:
-        from app.routers.library import _audio_filenames, _list_filter
+        from app.services.library_helpers import audio_filenames as _audio_filenames, list_filter as _list_filter
 
         rows = _list_filter(ctx, db, Transcript, "transcript", include_hidden=True)
         filenames = _audio_filenames(db, {row.source_audio_id for row in rows})
@@ -70,11 +70,11 @@ def build_backup(
         manifest["transcript_count"] = len(rows)
 
     if include_summaries:
-        from app.routers.library import (
-            _audio_filenames,
-            _list_filter,
-            _summary_source_context,
-            _transcripts_by_id,
+        from app.services.library_helpers import (
+            audio_filenames as _audio_filenames,
+            list_filter as _list_filter,
+            summary_source_context as _summary_source_context,
+            transcripts_by_id as _transcripts_by_id,
         )
 
         rows = _list_filter(ctx, db, Summary, "summary", include_hidden=True)

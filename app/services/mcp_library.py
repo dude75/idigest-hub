@@ -14,14 +14,14 @@ from app.crypto import decrypt_str, encrypt_str
 from app.deps import AuthContext, get_instance_settings
 from app.models import Audio, Skill, Summary, Task, Transcript, new_id
 from app.presenters import audio_public, skill_public, summary_public, task_public, transcript_public
-from app.routers.library import (
-    _audio_derived_info,
-    _audio_filenames,
-    _list_filter,
-    _share_badge,
-    _summary_source_context,
-    _transcript_derived_info,
-    _transcripts_by_id,
+from app.services.library_helpers import (
+    audio_derived_info as _audio_derived_info,
+    audio_filenames as _audio_filenames,
+    list_filter as _list_filter,
+    share_badge as _share_badge,
+    summary_source_context as _summary_source_context,
+    transcript_derived_info as _transcript_derived_info,
+    transcripts_by_id as _transcripts_by_id,
 )
 from app.services.library_list import batch_share_badges, list_library_rows
 from app.routers.skills import _can_read_skill, _visible_skills

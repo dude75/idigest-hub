@@ -7,6 +7,26 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ShareBody(BaseModel):
+    object_type: str
+    object_id: str
+    to_user_ids: list[str]
+
+
+class TitlePatch(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+
+
+class SummaryPatch(BaseModel):
+    body: str | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=255)
+
+
+class SummaryPublicLinkBody(BaseModel):
+    expires_in_days: int | None = Field(default=7)
+    pin: str | None = None
+
+
 class UserTagBrief(BaseModel):
     model_config = ConfigDict(extra="ignore")
 

@@ -41,8 +41,8 @@ def test_upload_video_extracts_mp3(client, tmp_path):
     def _fake_extract(file, *, suffix: str, max_bytes: int) -> Path:
         return fake_mp3
 
-    with patch("app.routers.library.video_upload_to_mp3_temp", side_effect=_fake_extract):
-        with patch("app.routers.library.cleanup_extract_temp"):
+    with patch("app.services.library_helpers.video_upload_to_mp3_temp", side_effect=_fake_extract):
+        with patch("app.services.library_helpers.cleanup_extract_temp"):
             response = client.post(
                 "/api/v1/audios",
                 files={"file": ("talk.mp4", BytesIO(b"\x00" * 64), "video/mp4")},
@@ -58,7 +58,7 @@ def test_upload_video_extract_failure(client):
     from app.services.video_extract import VideoExtractError
 
     with patch(
-        "app.routers.library.video_upload_to_mp3_temp",
+        "app.services.library_helpers.video_upload_to_mp3_temp",
         side_effect=VideoExtractError("no_audio"),
     ):
         response = client.post(
@@ -84,8 +84,8 @@ def test_upload_microphone_extracts_mp3(client, tmp_path):
     def _fake_extract(file, *, suffix: str, max_bytes: int) -> Path:
         return fake_mp3
 
-    with patch("app.routers.library.video_upload_to_mp3_temp", side_effect=_fake_extract):
-        with patch("app.routers.library.cleanup_extract_temp"):
+    with patch("app.services.library_helpers.video_upload_to_mp3_temp", side_effect=_fake_extract):
+        with patch("app.services.library_helpers.cleanup_extract_temp"):
             response = client.post(
                 "/api/v1/audios",
                 data={"from_microphone": "true"},
