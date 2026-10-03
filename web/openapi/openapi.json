@@ -5030,9 +5030,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Audio Api V1 Audios  Audio Id  Get"
+                  "$ref": "#/components/schemas/AudioDetailResponse"
                 }
               }
             }
@@ -5422,9 +5420,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Transcript Api V1 Transcripts  Transcript Id  Get"
+                  "$ref": "#/components/schemas/TranscriptDetailResponse"
                 }
               }
             }
@@ -5872,9 +5868,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Summary Api V1 Summaries  Summary Id  Get"
+                  "$ref": "#/components/schemas/SummaryDetailResponse"
                 }
               }
             }
@@ -6890,9 +6884,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Purge Task History Api V1 Tasks Purge Post"
+                  "$ref": "#/components/schemas/TaskPurgeResponse"
                 }
               }
             }
@@ -7953,6 +7945,157 @@
         },
         "type": "object",
         "title": "AgreementPreviewBody"
+      },
+      "AudioDetailResponse": {
+        "properties": {
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "default": false
+          },
+          "owner_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Email"
+          },
+          "user_tags": {
+            "items": {
+              "$ref": "#/components/schemas/UserTagBrief"
+            },
+            "type": "array",
+            "title": "User Tags"
+          },
+          "share_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Kind"
+          },
+          "shared_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared By"
+          },
+          "shared_with": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared With"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ShareRecordBrief"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          },
+          "share_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Id"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "org_id": {
+            "type": "string",
+            "title": "Org Id"
+          },
+          "owner_user_id": {
+            "type": "string",
+            "title": "Owner User Id"
+          },
+          "filename": {
+            "type": "string",
+            "title": "Filename"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "duration_sec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Sec"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "transcripts": {
+            "items": {
+              "$ref": "#/components/schemas/TranscriptListItem"
+            },
+            "type": "array",
+            "title": "Transcripts"
+          },
+          "can_transcribe": {
+            "type": "boolean",
+            "title": "Can Transcribe",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "org_id",
+          "owner_user_id",
+          "filename",
+          "created_at"
+        ],
+        "title": "AudioDetailResponse"
       },
       "AudioListItem": {
         "properties": {
@@ -10016,6 +10159,184 @@
         ],
         "title": "SummarizeBody"
       },
+      "SummaryDetailResponse": {
+        "properties": {
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "default": false
+          },
+          "owner_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Email"
+          },
+          "user_tags": {
+            "items": {
+              "$ref": "#/components/schemas/UserTagBrief"
+            },
+            "type": "array",
+            "title": "User Tags"
+          },
+          "share_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Kind"
+          },
+          "shared_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared By"
+          },
+          "shared_with": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared With"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ShareRecordBrief"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          },
+          "share_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Id"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "org_id": {
+            "type": "string",
+            "title": "Org Id"
+          },
+          "owner_user_id": {
+            "type": "string",
+            "title": "Owner User Id"
+          },
+          "source_transcript_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Transcript Id"
+          },
+          "source_transcript_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Transcript Title"
+          },
+          "source_audio_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Audio Id"
+          },
+          "skill_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skill Ids"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "display_title": {
+            "type": "string",
+            "title": "Display Title"
+          },
+          "edited": {
+            "type": "boolean",
+            "title": "Edited",
+            "default": false
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "org_id",
+          "owner_user_id",
+          "display_title",
+          "created_at",
+          "body"
+        ],
+        "title": "SummaryDetailResponse"
+      },
       "SummaryListItem": {
         "properties": {
           "hidden": {
@@ -10616,6 +10937,19 @@
         ],
         "title": "TaskListResponse"
       },
+      "TaskPurgeResponse": {
+        "properties": {
+          "deleted": {
+            "type": "integer",
+            "title": "Deleted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "deleted"
+        ],
+        "title": "TaskPurgeResponse"
+      },
       "TitlePatch": {
         "properties": {
           "title": {
@@ -10681,6 +11015,205 @@
           "audio_id"
         ],
         "title": "TranscribeBody"
+      },
+      "TranscriptDetailResponse": {
+        "properties": {
+          "hidden": {
+            "type": "boolean",
+            "title": "Hidden",
+            "default": false
+          },
+          "owner_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Email"
+          },
+          "user_tags": {
+            "items": {
+              "$ref": "#/components/schemas/UserTagBrief"
+            },
+            "type": "array",
+            "title": "User Tags"
+          },
+          "share_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Kind"
+          },
+          "shared_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared By"
+          },
+          "shared_with": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared With"
+          },
+          "shares": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ShareRecordBrief"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shares"
+          },
+          "share_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Id"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "org_id": {
+            "type": "string",
+            "title": "Org Id"
+          },
+          "owner_user_id": {
+            "type": "string",
+            "title": "Owner User Id"
+          },
+          "source_audio_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Audio Id"
+          },
+          "source_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Filename"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "display_title": {
+            "type": "string",
+            "title": "Display Title"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "has_summary": {
+            "type": "boolean",
+            "title": "Has Summary",
+            "default": false
+          },
+          "has_tone_analytics": {
+            "type": "boolean",
+            "title": "Has Tone Analytics",
+            "default": false
+          },
+          "utterances": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Utterances"
+          },
+          "summaries": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryListItem"
+            },
+            "type": "array",
+            "title": "Summaries"
+          },
+          "call_summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Call Summary"
+          },
+          "tone_layers": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tone Layers"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "org_id",
+          "owner_user_id",
+          "display_title",
+          "created_at"
+        ],
+        "title": "TranscriptDetailResponse"
       },
       "TranscriptListItem": {
         "properties": {

@@ -36,3 +36,11 @@ def test_export_openapi_writes_health_path():
         "application/json"
     ]["schema"]
     assert transcribe_202.get("$ref", "").endswith("/TaskListItem")
+    audio_detail = schema["paths"]["/api/v1/audios/{audio_id}"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]
+    assert audio_detail.get("$ref", "").endswith("/AudioDetailResponse")
+    purge = schema["paths"]["/api/v1/tasks/purge"]["post"]["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+    assert purge.get("$ref", "").endswith("/TaskPurgeResponse")

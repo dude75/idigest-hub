@@ -13,6 +13,10 @@ export type SchemaTranscriptListResponse = components['schemas']['TranscriptList
 export type SchemaSummaryListResponse = components['schemas']['SummaryListResponse']
 export type SchemaTaskListResponse = components['schemas']['TaskListResponse']
 export type SchemaTaskListItem = components['schemas']['TaskListItem']
+export type SchemaAudioDetailResponse = components['schemas']['AudioDetailResponse']
+export type SchemaTranscriptDetailResponse = components['schemas']['TranscriptDetailResponse']
+export type SchemaSummaryDetailResponse = components['schemas']['SummaryDetailResponse']
+export type SchemaTaskPurgeResponse = components['schemas']['TaskPurgeResponse']
 
 export type LibraryListEnvelope<T> = {
   items: T[]

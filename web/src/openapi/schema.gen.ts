@@ -2214,6 +2214,49 @@ export interface components {
              */
             text: string;
         };
+        /** AudioDetailResponse */
+        AudioDetailResponse: {
+            /**
+             * Hidden
+             * @default false
+             */
+            hidden: boolean;
+            /** Owner Email */
+            owner_email?: string | null;
+            /** User Tags */
+            user_tags?: components["schemas"]["UserTagBrief"][];
+            /** Share Kind */
+            share_kind?: string | null;
+            /** Shared By */
+            shared_by?: string | null;
+            /** Shared With */
+            shared_with?: string[] | null;
+            /** Shares */
+            shares?: components["schemas"]["ShareRecordBrief"][] | null;
+            /** Share Id */
+            share_id?: string | null;
+            /** Id */
+            id: string;
+            /** Org Id */
+            org_id: string;
+            /** Owner User Id */
+            owner_user_id: string;
+            /** Filename */
+            filename: string;
+            /** Source Url */
+            source_url?: string | null;
+            /** Duration Sec */
+            duration_sec?: number | null;
+            /** Created At */
+            created_at: string;
+            /** Transcripts */
+            transcripts?: components["schemas"]["TranscriptListItem"][];
+            /**
+             * Can Transcribe
+             * @default false
+             */
+            can_transcribe: boolean;
+        };
         /** AudioListItem */
         AudioListItem: {
             /**
@@ -2807,6 +2850,55 @@ export interface components {
             /** Skill Ids */
             skill_ids: string[];
         };
+        /** SummaryDetailResponse */
+        SummaryDetailResponse: {
+            /**
+             * Hidden
+             * @default false
+             */
+            hidden: boolean;
+            /** Owner Email */
+            owner_email?: string | null;
+            /** User Tags */
+            user_tags?: components["schemas"]["UserTagBrief"][];
+            /** Share Kind */
+            share_kind?: string | null;
+            /** Shared By */
+            shared_by?: string | null;
+            /** Shared With */
+            shared_with?: string[] | null;
+            /** Shares */
+            shares?: components["schemas"]["ShareRecordBrief"][] | null;
+            /** Share Id */
+            share_id?: string | null;
+            /** Id */
+            id: string;
+            /** Org Id */
+            org_id: string;
+            /** Owner User Id */
+            owner_user_id: string;
+            /** Source Transcript Id */
+            source_transcript_id?: string | null;
+            /** Source Transcript Title */
+            source_transcript_title?: string | null;
+            /** Source Audio Id */
+            source_audio_id?: string | null;
+            /** Skill Ids */
+            skill_ids?: string[];
+            /** Title */
+            title?: string | null;
+            /** Display Title */
+            display_title: string;
+            /**
+             * Edited
+             * @default false
+             */
+            edited: boolean;
+            /** Created At */
+            created_at: string;
+            /** Body */
+            body: string;
+        };
         /** SummaryListItem */
         SummaryListItem: {
             /**
@@ -3015,6 +3107,11 @@ export interface components {
             /** Done Total */
             done_total: number;
         };
+        /** TaskPurgeResponse */
+        TaskPurgeResponse: {
+            /** Deleted */
+            deleted: number;
+        };
         /** TitlePatch */
         TitlePatch: {
             /** Title */
@@ -3038,6 +3135,66 @@ export interface components {
              * @default false
              */
             tone: boolean;
+        };
+        /** TranscriptDetailResponse */
+        TranscriptDetailResponse: {
+            /**
+             * Hidden
+             * @default false
+             */
+            hidden: boolean;
+            /** Owner Email */
+            owner_email?: string | null;
+            /** User Tags */
+            user_tags?: components["schemas"]["UserTagBrief"][];
+            /** Share Kind */
+            share_kind?: string | null;
+            /** Shared By */
+            shared_by?: string | null;
+            /** Shared With */
+            shared_with?: string[] | null;
+            /** Shares */
+            shares?: components["schemas"]["ShareRecordBrief"][] | null;
+            /** Share Id */
+            share_id?: string | null;
+            /** Id */
+            id: string;
+            /** Org Id */
+            org_id: string;
+            /** Owner User Id */
+            owner_user_id: string;
+            /** Source Audio Id */
+            source_audio_id?: string | null;
+            /** Source Filename */
+            source_filename?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Display Title */
+            display_title: string;
+            /** Created At */
+            created_at: string;
+            /**
+             * Has Summary
+             * @default false
+             */
+            has_summary: boolean;
+            /**
+             * Has Tone Analytics
+             * @default false
+             */
+            has_tone_analytics: boolean;
+            /** Utterances */
+            utterances?: {
+                [key: string]: unknown;
+            }[];
+            /** Summaries */
+            summaries?: components["schemas"]["SummaryListItem"][];
+            /** Call Summary */
+            call_summary?: {
+                [key: string]: unknown;
+            } | null;
+            /** Tone Layers */
+            tone_layers?: unknown[] | null;
         };
         /** TranscriptListItem */
         TranscriptListItem: {
@@ -6470,9 +6627,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["AudioDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6672,9 +6827,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TranscriptDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6911,9 +7064,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["SummaryDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -7579,9 +7730,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TaskPurgeResponse"];
                 };
             };
             /** @description Validation Error */

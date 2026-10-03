@@ -1,6 +1,8 @@
-"""Library list API response models (GET /audios, /transcripts, /summaries)."""
+"""Library list and detail API response models."""
 
 from __future__ import annotations
+
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -101,6 +103,29 @@ class SummaryListResponse(BaseModel):
     groups: list[SummarySourceGroup] | None = None
     total: int
     hidden_count: int
+
+
+class AudioDetailResponse(LibraryShareFields):
+    id: str
+    org_id: str
+    owner_user_id: str
+    filename: str
+    source_url: str | None = None
+    duration_sec: float | None = None
+    created_at: str
+    transcripts: list[TranscriptListItem] = Field(default_factory=list)
+    can_transcribe: bool = False
+
+
+class TranscriptDetailResponse(TranscriptListItem):
+    utterances: list[dict[str, Any]] = Field(default_factory=list)
+    summaries: list[SummaryListItem] = Field(default_factory=list)
+    call_summary: dict[str, Any] | None = None
+    tone_layers: list[Any] | None = None
+
+
+class SummaryDetailResponse(SummaryListItem):
+    body: str
 
 
 def _derived_audio_defaults() -> dict:

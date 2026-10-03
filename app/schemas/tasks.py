@@ -37,3 +37,7 @@ class TaskListResponse(BaseModel):
     active: list[TaskListItem]
     done: list[TaskListItem]
     done_total: int
+
+
+class TaskPurgeResponse(BaseModel):
+    deleted: int

@@ -63,11 +63,14 @@ from app.services.library_list import (
 from app.services.user_tags import batch_object_user_tags, object_user_tags, resolve_user_tag
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
 from app.schemas.library import (
+    AudioDetailResponse,
     AudioListItem,
     AudioListResponse,
+    SummaryDetailResponse,
     SummaryListItem,
     SummaryListResponse,
     SummarySourceGroup,
+    TranscriptDetailResponse,
     TranscriptListItem,
     TranscriptListResponse,
     TranscriptSourceGroup,
@@ -449,10 +452,10 @@ def list_audios(
     )
 
 
-@router.get("/audios/{audio_id}")
+@router.get("/audios/{audio_id}", response_model=AudioDetailResponse)
 def get_audio(
     audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> AudioDetailResponse:
     row = db.get(Audio, audio_id)
     if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
@@ -471,18 +474,21 @@ def get_audio(
     derived = _transcript_derived_info(db, ctx, [item.id for item in visible_transcripts])
     payload = audio_public(row, _share_badge(db, "audio", row.id, row.owner_user_id, ctx))
     payload["transcripts"] = [
-        {
-            **transcript_public(
-                item,
-                extra=_share_badge(db, "transcript", item.id, item.owner_user_id, ctx),
-                source_filename=row.original_filename,
-            ),
-            **derived.get(item.id, {"has_summary": False}),
-        }
+        TranscriptListItem.model_validate(
+            {
+                **transcript_public(
+                    item,
+                    extra=_share_badge(db, "transcript", item.id, item.owner_user_id, ctx),
+                    source_filename=row.original_filename,
+                ),
+                **derived.get(item.id, {"has_summary": False}),
+                "has_tone_analytics": item.has_tone_analytics,
+            }
+        )
         for item in visible_transcripts
     ]
     payload["can_transcribe"] = get_storage().exists(row.storage_path)
-    return payload
+    return AudioDetailResponse.model_validate(payload)
 
 
 @router.get("/audios/{audio_id}/file")
@@ -730,12 +736,12 @@ def list_transcripts(
     )
 
 
-@router.get("/transcripts/{transcript_id}")
+@router.get("/transcripts/{transcript_id}", response_model=TranscriptDetailResponse)
 def get_transcript(
     transcript_id: str,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_oauth_scope(SCOPE_TRANSCRIPTS_READ)),
-) -> dict:
+) -> TranscriptDetailResponse:
     row = db.get(Transcript, transcript_id)
     if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
@@ -755,11 +761,13 @@ def get_transcript(
         source_filename=source_audio.original_filename if source_audio else None,
     )
     payload["summaries"] = [
-        summary_public(
-            item,
-            extra=_share_badge(db, "summary", item.id, item.owner_user_id, ctx),
-            source_transcript=row,
-            source_filename=source_audio.original_filename if source_audio else None,
+        SummaryListItem.model_validate(
+            summary_public(
+                item,
+                extra=_share_badge(db, "summary", item.id, item.owner_user_id, ctx),
+                source_transcript=row,
+                source_filename=source_audio.original_filename if source_audio else None,
+            )
         )
         for item in summaries
         if (
@@ -768,7 +776,7 @@ def get_transcript(
         )
         and not is_hidden(db, ctx.user.id, "summary", item.id)
     ]
-    return payload
+    return TranscriptDetailResponse.model_validate(payload)
 
 
 @router.get("/transcripts/{transcript_id}/export")
@@ -893,10 +901,10 @@ def list_summaries(
     )
 
 
-@router.get("/summaries/{summary_id}")
+@router.get("/summaries/{summary_id}", response_model=SummaryDetailResponse)
 def get_summary(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> SummaryDetailResponse:
     row = db.get(Summary, summary_id)
     if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
         ctx.raise_error(ErrorCode.not_found)
@@ -907,12 +915,14 @@ def get_summary(
         if source_transcript and source_transcript.source_audio_id
         else None
     )
-    return summary_public(
-        row,
-        body,
-        _share_badge(db, "summary", row.id, row.owner_user_id, ctx),
-        source_transcript=source_transcript,
-        source_filename=source_audio.original_filename if source_audio else None,
+    return SummaryDetailResponse.model_validate(
+        summary_public(
+            row,
+            body,
+            _share_badge(db, "summary", row.id, row.owner_user_id, ctx),
+            source_transcript=source_transcript,
+            source_filename=source_audio.original_filename if source_audio else None,
+        )
     )
 
 

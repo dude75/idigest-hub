@@ -14,7 +14,7 @@ from app.deps import AuthContext, get_instance_settings, require_auth
 from app.errors import ErrorCode
 from app.models import Audio, Organization, Skill, Task, Transcript, new_id
 from app.presenters import task_public
-from app.schemas.tasks import TaskListItem, TaskListResponse
+from app.schemas.tasks import TaskListItem, TaskListResponse, TaskPurgeResponse
 from app.services.access import can_use_audio, can_use_transcript
 from app.services.billing import assert_can_accept_task, snapshot_fields
 from app.rate_limit import enforce_write_limits, get_rate_limits
@@ -410,14 +410,14 @@ def _purge_status_param(status: str | None, ctx: AuthContext) -> str | None:
     return raw
 
 
-@router.post("/tasks/purge")
+@router.post("/tasks/purge", response_model=TaskPurgeResponse)
 def purge_task_history(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
     org_id: str | None = None,
     user_id: str | None = None,
     status: str | None = None,
-) -> dict:
+) -> TaskPurgeResponse:
     if not ctx.is_instance_admin:
         ctx.raise_error(ErrorCode.forbidden)
     status_filter = _purge_status_param(status, ctx)
@@ -440,7 +440,7 @@ def purge_task_history(
         },
     )
     db.commit()
-    return {"deleted": deleted}
+    return TaskPurgeResponse(deleted=deleted)
 
 
 @router.get("/tasks", response_model=TaskListResponse)
