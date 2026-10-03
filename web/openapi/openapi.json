@@ -6975,9 +6975,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Tasks Api V1 Tasks Get"
+                  "$ref": "#/components/schemas/TaskListResponse"
                 }
               }
             }
@@ -10377,6 +10375,188 @@
           "tariff_id"
         ],
         "title": "TariffRemediation"
+      },
+      "TaskErrorBrief": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "title": "TaskErrorBrief"
+      },
+      "TaskListItem": {
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "title": "Task Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "meta": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Meta"
+          },
+          "max_upload_bytes": {
+            "type": "integer",
+            "title": "Max Upload Bytes"
+          },
+          "transcript_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Transcript Id"
+          },
+          "summary_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary Id"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskErrorBrief"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "org_id": {
+            "type": "string",
+            "title": "Org Id"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "audio_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Id"
+          },
+          "source_transcript_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Transcript Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At"
+          },
+          "owner_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Email"
+          },
+          "org_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Name"
+          },
+          "audio_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Filename"
+          }
+        },
+        "type": "object",
+        "required": [
+          "task_id",
+          "type",
+          "status",
+          "max_upload_bytes",
+          "org_id",
+          "user_id",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TaskListItem"
+      },
+      "TaskListResponse": {
+        "properties": {
+          "active": {
+            "items": {
+              "$ref": "#/components/schemas/TaskListItem"
+            },
+            "type": "array",
+            "title": "Active"
+          },
+          "done": {
+            "items": {
+              "$ref": "#/components/schemas/TaskListItem"
+            },
+            "type": "array",
+            "title": "Done"
+          },
+          "done_total": {
+            "type": "integer",
+            "title": "Done Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active",
+          "done",
+          "done_total"
+        ],
+        "title": "TaskListResponse"
       },
       "TitlePatch": {
         "properties": {

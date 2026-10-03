@@ -11,6 +11,7 @@ import type { Audio, Summary, Task, Transcript } from '../types'
 export type SchemaAudioListResponse = components['schemas']['AudioListResponse']
 export type SchemaTranscriptListResponse = components['schemas']['TranscriptListResponse']
 export type SchemaSummaryListResponse = components['schemas']['SummaryListResponse']
+export type SchemaTaskListResponse = components['schemas']['TaskListResponse']
 
 export type LibraryListEnvelope<T> = {
   items: T[]

@@ -10,6 +10,7 @@ export type {
   LibraryListEnvelope,
   SchemaAudioListResponse,
   SchemaSummaryListResponse,
+  SchemaTaskListResponse,
   SchemaTranscriptListResponse,
   SummaryListResponse,
   TaskListResponse,

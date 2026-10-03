@@ -26,3 +26,5 @@ def test_export_openapi_writes_health_path():
     components = schema.get("components", {}).get("schemas", {})
     assert "AudioListResponse" in components
     assert "total" in components["AudioListResponse"]["properties"]
+    assert "TaskListResponse" in components
+    assert "done_total" in components["TaskListResponse"]["properties"]

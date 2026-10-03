@@ -14,6 +14,7 @@ from app.deps import AuthContext, get_instance_settings, require_auth
 from app.errors import ErrorCode
 from app.models import Audio, Organization, Skill, Task, Transcript, new_id
 from app.presenters import task_public
+from app.schemas.tasks import TaskListItem, TaskListResponse
 from app.services.access import can_use_audio, can_use_transcript
 from app.services.billing import assert_can_accept_task, snapshot_fields
 from app.rate_limit import enforce_write_limits, get_rate_limits
@@ -432,7 +433,7 @@ def purge_task_history(
     return {"deleted": deleted}
 
 
-@router.get("/tasks")
+@router.get("/tasks", response_model=TaskListResponse)
 def list_tasks(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
@@ -442,7 +443,7 @@ def list_tasks(
     status: str | None = None,
     done_limit: int = Query(10, ge=1, le=100),
     done_offset: int = Query(0, ge=0),
-) -> dict:
+) -> TaskListResponse:
     filters = _list_tasks_filters(ctx, org_id, user_id)
     done_status = _done_status_filters(status, ctx)
     base = select(Task)
@@ -474,11 +475,15 @@ def list_tasks(
 
     if active_rows and any(should_schedule_capture_task_tick(row) for row in active_rows):
         schedule_locked_tick(background_tasks, None, refresh_health=False, wait=False)
-    return {
-        "active": [task_public(row, extras.get(row.id)) for row in active_rows],
-        "done": [task_public(row, extras.get(row.id)) for row in done_rows],
-        "done_total": done_total,
-    }
+
+    def _item(row: Task) -> TaskListItem:
+        return TaskListItem.model_validate(task_public(row, extras.get(row.id)))
+
+    return TaskListResponse(
+        active=[_item(row) for row in active_rows],
+        done=[_item(row) for row in done_rows],
+        done_total=done_total,
+    )
 
 
 @router.get("/tasks/{task_id}")

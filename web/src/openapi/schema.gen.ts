@@ -2954,6 +2954,58 @@ export interface components {
             /** Tariff Id */
             tariff_id: string;
         };
+        /** TaskErrorBrief */
+        TaskErrorBrief: {
+            /** Code */
+            code: string;
+        };
+        /** TaskListItem */
+        TaskListItem: {
+            /** Task Id */
+            task_id: string;
+            /** Type */
+            type: string;
+            /** Status */
+            status: string;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            };
+            /** Max Upload Bytes */
+            max_upload_bytes: number;
+            /** Transcript Id */
+            transcript_id?: string | null;
+            /** Summary Id */
+            summary_id?: string | null;
+            error?: components["schemas"]["TaskErrorBrief"] | null;
+            /** Org Id */
+            org_id: string;
+            /** User Id */
+            user_id: string;
+            /** Audio Id */
+            audio_id?: string | null;
+            /** Source Transcript Id */
+            source_transcript_id?: string | null;
+            /** Created At */
+            created_at: string;
+            /** Updated At */
+            updated_at: string;
+            /** Owner Email */
+            owner_email?: string | null;
+            /** Org Name */
+            org_name?: string | null;
+            /** Audio Filename */
+            audio_filename?: string | null;
+        };
+        /** TaskListResponse */
+        TaskListResponse: {
+            /** Active */
+            active: components["schemas"]["TaskListItem"][];
+            /** Done */
+            done: components["schemas"]["TaskListItem"][];
+            /** Done Total */
+            done_total: number;
+        };
         /** TitlePatch */
         TitlePatch: {
             /** Title */
@@ -7552,9 +7604,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TaskListResponse"];
                 };
             };
             /** @description Validation Error */
