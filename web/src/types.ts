@@ -1,4 +1,10 @@
-import type { SchemaOrgSsoAdminResponse, SchemaUserPublic } from './openapi/contracts'
+import type {
+  SchemaInstanceUsageStatsResponse,
+  SchemaOrgSsoAdminResponse,
+  SchemaUsageStatsResponse,
+  SchemaUserPublic,
+  SchemaWorkerListItem,
+} from './openapi/contracts'
 
 export type Locale = 'en' | 'ru' | 'es'
 
@@ -329,24 +335,8 @@ export type ApiToken = {
   token?: string
 }
 
-export type Worker = {
-  id: string
-  type: string
-  name: string
-  base_url: string
-  weight: number
-  enabled: boolean
-  last_health: Record<string, unknown> | null
-  last_seen_version: string | null
-  last_health_at: string | null
-  asr_models: string[]
-  diarization_models: string[]
-  capture_connectors: string[]
-  /** Loaded LLM id/name from isummarize GET /health (when exposed). */
-  summarize_model?: string | null
-  /** Hub dispatch gate (transcribe engines loaded, summarize /ready, capture connectors). */
-  dispatch_available?: boolean
-}
+/** Instance worker row from OpenAPI `WorkerListItem` / `WorkerPublicResponse`. */
+export type Worker = SchemaWorkerListItem
 
 export type WorkersTypeSummary = {
   total: number
@@ -596,11 +586,7 @@ export type OrgStatsDay = {
   amount: string
 }
 
-export type OrgStats = JobStats & {
-  summary_chars: number
-  total_amount: string
-  days: OrgStatsDay[]
-}
+export type OrgStats = SchemaUsageStatsResponse
 
 export type DownloadProxyStatus = 'up' | 'down' | 'na'
 
@@ -612,12 +598,7 @@ export type InstanceSnapshot = {
   download_proxy_status: DownloadProxyStatus
 }
 
-export type InstanceStats = JobStats &
-  InstanceSnapshot & {
-    usage_total: string
-    summary_chars: number
-    days: OrgStatsDay[]
-  }
+export type InstanceStats = SchemaInstanceUsageStatsResponse
 
 export type AuditLogEntry = {
   id: string

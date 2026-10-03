@@ -3620,9 +3620,92 @@ export interface components {
             capture_connectors?: string[] | null;
             remediation?: components["schemas"]["WorkerRemediation"] | null;
         };
+        /** WorkerCapacitySummary */
+        WorkerCapacitySummary: {
+            /** Max */
+            max: number;
+            /** Active */
+            active: number;
+            /** Available */
+            available: number;
+        };
         /** WorkerDeleteBody */
         WorkerDeleteBody: {
             remediation?: components["schemas"]["WorkerRemediation"] | null;
+        };
+        /** WorkerListItem */
+        WorkerListItem: {
+            /** Id */
+            id: string;
+            /** Type */
+            type: string;
+            /** Name */
+            name: string;
+            /** Base Url */
+            base_url: string;
+            /** Weight */
+            weight: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Last Health */
+            last_health?: {
+                [key: string]: unknown;
+            } | null;
+            /** Last Seen Version */
+            last_seen_version?: string | null;
+            /** Last Health At */
+            last_health_at?: string | null;
+            /** Asr Models */
+            asr_models?: string[];
+            /** Diarization Models */
+            diarization_models?: string[];
+            /** Capture Connectors */
+            capture_connectors?: string[];
+            /** Summarize Model */
+            summarize_model?: string | null;
+            /** Dispatch Available */
+            dispatch_available: boolean;
+        };
+        /** WorkerListResponse */
+        WorkerListResponse: {
+            /** Items */
+            items: components["schemas"]["WorkerListItem"][];
+            summary: components["schemas"]["WorkersListSummary"];
+        };
+        /** WorkerMutateResponse */
+        WorkerMutateResponse: {
+            /** Id */
+            id: string;
+            /** Type */
+            type: string;
+            /** Name */
+            name: string;
+            /** Base Url */
+            base_url: string;
+            /** Weight */
+            weight: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Last Health */
+            last_health?: {
+                [key: string]: unknown;
+            } | null;
+            /** Last Seen Version */
+            last_seen_version?: string | null;
+            /** Last Health At */
+            last_health_at?: string | null;
+            /** Asr Models */
+            asr_models?: string[];
+            /** Diarization Models */
+            diarization_models?: string[];
+            /** Capture Connectors */
+            capture_connectors?: string[];
+            /** Summarize Model */
+            summarize_model?: string | null;
+            /** Remediation */
+            remediation?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** WorkerProbeBody */
         WorkerProbeBody: {
@@ -3635,6 +3718,37 @@ export interface components {
             /** Worker Id */
             worker_id?: string | null;
         };
+        /** WorkerPublicResponse */
+        WorkerPublicResponse: {
+            /** Id */
+            id: string;
+            /** Type */
+            type: string;
+            /** Name */
+            name: string;
+            /** Base Url */
+            base_url: string;
+            /** Weight */
+            weight: number;
+            /** Enabled */
+            enabled: boolean;
+            /** Last Health */
+            last_health?: {
+                [key: string]: unknown;
+            } | null;
+            /** Last Seen Version */
+            last_seen_version?: string | null;
+            /** Last Health At */
+            last_health_at?: string | null;
+            /** Asr Models */
+            asr_models?: string[];
+            /** Diarization Models */
+            diarization_models?: string[];
+            /** Capture Connectors */
+            capture_connectors?: string[];
+            /** Summarize Model */
+            summarize_model?: string | null;
+        };
         /** WorkerRemediation */
         WorkerRemediation: {
             /** Asr Model */
@@ -3645,6 +3759,40 @@ export interface components {
             summarize_model?: string | null;
             /** Capture Worker Id */
             capture_worker_id?: string | null;
+        };
+        /** WorkersByTypeSummary */
+        WorkersByTypeSummary: {
+            transcribe: components["schemas"]["WorkersTypeSummary"];
+            summarize: components["schemas"]["WorkersTypeSummary"];
+            capture: components["schemas"]["WorkersTypeSummary"];
+        };
+        /** WorkersHubLimits */
+        WorkersHubLimits: {
+            /** Import Max Concurrent */
+            import_max_concurrent: number;
+        };
+        /** WorkersListSummary */
+        WorkersListSummary: {
+            /** Total */
+            total: number;
+            /** Enabled */
+            enabled: number;
+            /** Available */
+            available: number;
+            by_type: components["schemas"]["WorkersByTypeSummary"];
+            hub_limits: components["schemas"]["WorkersHubLimits"];
+            capture_capacity: components["schemas"]["WorkerCapacitySummary"];
+            transcribe_capacity: components["schemas"]["WorkerCapacitySummary"];
+            summarize_capacity: components["schemas"]["WorkerCapacitySummary"];
+        };
+        /** WorkersTypeSummary */
+        WorkersTypeSummary: {
+            /** Total */
+            total: number;
+            /** Enabled */
+            enabled: number;
+            /** Available */
+            available: number;
         };
     };
     responses: never;
@@ -4676,9 +4824,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4707,9 +4853,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
         };
@@ -5474,9 +5618,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TariffListResponse"];
                 };
             };
         };
@@ -5500,9 +5642,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TariffPublic"];
                 };
             };
             /** @description Validation Error */
@@ -5537,9 +5677,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TariffPublic"];
                 };
             };
             /** @description Validation Error */
@@ -5611,9 +5749,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TariffPublic"];
                 };
             };
             /** @description Validation Error */
@@ -5644,9 +5780,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TariffPublic"];
                 };
             };
             /** @description Validation Error */
@@ -5677,9 +5811,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TariffPublic"];
                 };
             };
             /** @description Validation Error */
@@ -5746,9 +5878,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WorkerListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5781,9 +5911,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WorkerPublicResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5934,9 +6062,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["WorkerMutateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6443,9 +6569,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OkStatusResponse"];
                 };
             };
             /** @description Validation Error */

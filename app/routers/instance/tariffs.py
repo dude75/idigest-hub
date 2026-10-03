@@ -60,6 +60,7 @@ from app.services.instance_helpers import (
 from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
+from app.schemas.org_api import TariffListResponse, TariffPublic
 from app.timeutil import utcnow
 
 from app.constants import MAX_UPLOAD_BYTES_CAP
@@ -83,18 +84,22 @@ def apply_tariff(tariff: Tariff, body: TariffBody, ctx: AuthContext) -> None:
     tariff.updated_at = utcnow()
 
 
-@router.get("/tariffs")
-def list_tariffs(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.get("/tariffs", response_model=TariffListResponse)
+def list_tariffs(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> TariffListResponse:
     require_instance_admin(ctx)
     seed_default_tariff(db)
     rows = db.scalars(select(Tariff).order_by(Tariff.created_at)).all()
-    return {"items": [tariff_public(row, org_count_for_tariff(db, row.id)) for row in rows]}
+    return TariffListResponse(
+        items=[TariffPublic.model_validate(tariff_public(row, org_count_for_tariff(db, row.id))) for row in rows]
+    )
 
 
-@router.post("/tariffs")
+@router.post("/tariffs", response_model=TariffPublic)
 def create_tariff(
     body: TariffBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> TariffPublic:
     require_instance_admin(ctx)
     now = utcnow()
     tariff = Tariff(
@@ -110,16 +115,16 @@ def create_tariff(
     db.add(tariff)
     db.flush()
     write_audit(db, "tariff.create", ctx, {"tariff_id": tariff.id})
-    return tariff_public(tariff, 0)
+    return TariffPublic.model_validate(tariff_public(tariff, 0))
 
 
-@router.post("/tariffs/{tariff_id}/clone")
+@router.post("/tariffs/{tariff_id}/clone", response_model=TariffPublic)
 def clone_tariff(
     tariff_id: str,
     body: TariffCloneBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TariffPublic:
     require_instance_admin(ctx)
     source = db.get(Tariff, tariff_id)
     if source is None:
@@ -148,29 +153,29 @@ def clone_tariff(
     db.add(tariff)
     db.flush()
     write_audit(db, "tariff.clone", ctx, {"tariff_id": tariff.id, "source_tariff_id": source.id})
-    return tariff_public(tariff, 0)
+    return TariffPublic.model_validate(tariff_public(tariff, 0))
 
 
-@router.patch("/tariffs/{tariff_id}")
+@router.patch("/tariffs/{tariff_id}", response_model=TariffPublic)
 def patch_tariff(
     tariff_id: str,
     body: TariffBody,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> TariffPublic:
     require_instance_admin(ctx)
     tariff = db.get(Tariff, tariff_id)
     if tariff is None:
         ctx.raise_error(ErrorCode.not_found)
     apply_tariff(tariff, body, ctx)
     write_audit(db, "tariff.update", ctx, {"tariff_id": tariff.id})
-    return tariff_public(tariff, org_count_for_tariff(db, tariff.id))
+    return TariffPublic.model_validate(tariff_public(tariff, org_count_for_tariff(db, tariff.id)))
 
 
-@router.post("/tariffs/{tariff_id}/archive")
+@router.post("/tariffs/{tariff_id}/archive", response_model=TariffPublic)
 def archive_tariff(
     tariff_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> TariffPublic:
     require_instance_admin(ctx)
     tariff = db.get(Tariff, tariff_id)
     if tariff is None:
@@ -179,13 +184,13 @@ def archive_tariff(
     tariff.available_on_signup = False
     tariff.updated_at = utcnow()
     write_audit(db, "tariff.archive", ctx, {"tariff_id": tariff.id})
-    return tariff_public(tariff, org_count_for_tariff(db, tariff.id))
+    return TariffPublic.model_validate(tariff_public(tariff, org_count_for_tariff(db, tariff.id)))
 
 
-@router.post("/tariffs/{tariff_id}/unarchive")
+@router.post("/tariffs/{tariff_id}/unarchive", response_model=TariffPublic)
 def unarchive_tariff(
     tariff_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> TariffPublic:
     require_instance_admin(ctx)
     tariff = db.get(Tariff, tariff_id)
     if tariff is None:
@@ -193,7 +198,7 @@ def unarchive_tariff(
     tariff.archived_at = None
     tariff.updated_at = utcnow()
     write_audit(db, "tariff.unarchive", ctx, {"tariff_id": tariff.id})
-    return tariff_public(tariff, org_count_for_tariff(db, tariff.id))
+    return TariffPublic.model_validate(tariff_public(tariff, org_count_for_tariff(db, tariff.id)))
 
 
 @router.get("/tariffs/{tariff_id}/delete-impact")

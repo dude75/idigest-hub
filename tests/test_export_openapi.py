@@ -72,3 +72,7 @@ def test_export_openapi_writes_health_path():
     assert inst_stats.get("$ref", "").endswith("/InstanceUsageStatsResponse")
     org_sso = schema["paths"]["/api/v1/org/sso"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
     assert org_sso.get("$ref", "").endswith("/OrgSsoAdminResponse")
+    workers = schema["paths"]["/api/v1/workers"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert workers.get("$ref", "").endswith("/WorkerListResponse")
+    inst_tariffs = schema["paths"]["/api/v1/tariffs"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert inst_tariffs.get("$ref", "").endswith("/TariffListResponse")

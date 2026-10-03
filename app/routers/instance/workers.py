@@ -60,15 +60,16 @@ from app.services.instance_helpers import (
 from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
+from app.schemas.workers import WorkerListResponse, WorkerMutateResponse, WorkerPublicResponse
 from app.timeutil import utcnow
 
-@router.get("/workers")
+@router.get("/workers", response_model=WorkerListResponse)
 async def list_workers(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
     probe: bool = Query(True, description="Probe worker /health (set false for cached snapshot)"),
     refresh: bool = Query(False, description="Re-probe all enabled nodes, not only stale"),
-) -> dict:
+) -> WorkerListResponse:
     require_instance_admin(ctx)
     rows = list(db.scalars(select(WorkerNode).order_by(WorkerNode.created_at)).all())
     from app.services.capture_platforms import allowed_connectors
@@ -86,11 +87,12 @@ async def list_workers(
 
     settings = get_instance_settings(db)
     capture_connectors = allowed_connectors(settings)
-    return workers_list_payload(
+    payload = workers_list_payload(
         rows,
         capture_connectors=capture_connectors,
         import_max_concurrent=normalize_import_max_concurrent(settings.import_max_concurrent),
     )
+    return WorkerListResponse.model_validate(payload)
 
 
 @router.get("/instance/transcribe-models")
@@ -168,10 +170,10 @@ async def probe_worker(
     return payload
 
 
-@router.post("/workers")
+@router.post("/workers", response_model=WorkerPublicResponse)
 async def create_worker(
     body: WorkerBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> WorkerPublicResponse:
     from app.services.dispatcher import refresh_node_health
     from app.services.workers import WorkerClientError, verify_worker_token
 
@@ -210,17 +212,17 @@ async def create_worker(
     if body.type == "capture":
         await refresh_node_health(db, node)
         apply_capture_worker_models(node, body, probe_health=node.last_health, ctx=ctx)
-    return worker_public(node)
+    return WorkerPublicResponse.model_validate(worker_public(node))
 
 
-@router.patch("/workers/{worker_id}")
+@router.patch("/workers/{worker_id}", response_model=WorkerMutateResponse)
 async def patch_worker(
     worker_id: str,
     body: WorkerBody,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> WorkerMutateResponse:
     from app.services.dispatcher import refresh_node_health
     from app.services.workers import WorkerClientError, verify_worker_token
 
@@ -282,7 +284,7 @@ async def patch_worker(
     payload = worker_public(node)
     if remediation_result is not None:
         payload["remediation"] = remediation_result
-    return payload
+    return WorkerMutateResponse.model_validate(payload)
 
 
 @router.get("/workers/{worker_id}/delete-impact")

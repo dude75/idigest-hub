@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
+import type { SchemaWorkerListResponse } from '../../openapi'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
 import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
 import { jsonDirty } from '../../util/formDirty'
@@ -65,7 +66,7 @@ export function InstanceWorkersTab() {
     if (refresh) qs.set('refresh', 'true')
     const path = qs.size ? `/workers?${qs.toString()}` : '/workers'
     try {
-      const result = await api<{ items: Worker[]; summary: WorkersListSummary }>(path)
+      const result = await api<SchemaWorkerListResponse>(path)
       setWorkers(result.items)
       setWorkersSummary(result.summary)
     } catch (e) {

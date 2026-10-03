@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '../../api'
+import type { SchemaTariffListResponse } from '../../openapi'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
 import {
   AdminDataTable,
@@ -64,7 +65,7 @@ export function InstanceTariffsTab() {
 
   async function load() {
     try {
-      setTariffs((await api<{ items: Tariff[] }>('/tariffs')).items)
+      setTariffs((await api<SchemaTariffListResponse>('/tariffs')).items as Tariff[])
     } catch (e) {
       showError(e)
     }

@@ -1579,9 +1579,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Impersonate Api V1 Impersonate Post"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -1615,9 +1613,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Stop Impersonate Api V1 Impersonate Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -2816,9 +2812,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response List Tariffs Api V1 Tariffs Get"
+                  "$ref": "#/components/schemas/TariffListResponse"
                 }
               }
             }
@@ -2852,9 +2846,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Create Tariff Api V1 Tariffs Post"
+                  "$ref": "#/components/schemas/TariffPublic"
                 }
               }
             }
@@ -2911,9 +2903,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Clone Tariff Api V1 Tariffs  Tariff Id  Clone Post"
+                  "$ref": "#/components/schemas/TariffPublic"
                 }
               }
             }
@@ -2970,9 +2960,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Tariff Api V1 Tariffs  Tariff Id  Patch"
+                  "$ref": "#/components/schemas/TariffPublic"
                 }
               }
             }
@@ -3083,9 +3071,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Archive Tariff Api V1 Tariffs  Tariff Id  Archive Post"
+                  "$ref": "#/components/schemas/TariffPublic"
                 }
               }
             }
@@ -3132,9 +3118,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Unarchive Tariff Api V1 Tariffs  Tariff Id  Unarchive Post"
+                  "$ref": "#/components/schemas/TariffPublic"
                 }
               }
             }
@@ -3245,9 +3229,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Workers Api V1 Workers Get"
+                  "$ref": "#/components/schemas/WorkerListResponse"
                 }
               }
             }
@@ -3291,9 +3273,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Worker Api V1 Workers Post"
+                  "$ref": "#/components/schemas/WorkerPublicResponse"
                 }
               }
             }
@@ -3454,9 +3434,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Patch Worker Api V1 Workers  Worker Id  Patch"
+                  "$ref": "#/components/schemas/WorkerMutateResponse"
                 }
               }
             }
@@ -4275,9 +4253,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Revoke Org Public Link Api V1 Org Public Links  Link Id  Delete"
+                  "$ref": "#/components/schemas/OkStatusResponse"
                 }
               }
             }
@@ -12428,6 +12404,29 @@
         ],
         "title": "WorkerBody"
       },
+      "WorkerCapacitySummary": {
+        "properties": {
+          "max": {
+            "type": "integer",
+            "title": "Max"
+          },
+          "active": {
+            "type": "integer",
+            "title": "Active"
+          },
+          "available": {
+            "type": "integer",
+            "title": "Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "max",
+          "active",
+          "available"
+        ],
+        "title": "WorkerCapacitySummary"
+      },
       "WorkerDeleteBody": {
         "properties": {
           "remediation": {
@@ -12443,6 +12442,251 @@
         },
         "type": "object",
         "title": "WorkerDeleteBody"
+      },
+      "WorkerListItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "base_url": {
+            "type": "string",
+            "title": "Base Url"
+          },
+          "weight": {
+            "type": "integer",
+            "title": "Weight"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "last_health": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Health"
+          },
+          "last_seen_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen Version"
+          },
+          "last_health_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Health At"
+          },
+          "asr_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Asr Models"
+          },
+          "diarization_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Diarization Models"
+          },
+          "capture_connectors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capture Connectors"
+          },
+          "summarize_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summarize Model"
+          },
+          "dispatch_available": {
+            "type": "boolean",
+            "title": "Dispatch Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "name",
+          "base_url",
+          "weight",
+          "enabled",
+          "dispatch_available"
+        ],
+        "title": "WorkerListItem"
+      },
+      "WorkerListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/WorkerListItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/WorkersListSummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "summary"
+        ],
+        "title": "WorkerListResponse"
+      },
+      "WorkerMutateResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "base_url": {
+            "type": "string",
+            "title": "Base Url"
+          },
+          "weight": {
+            "type": "integer",
+            "title": "Weight"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "last_health": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Health"
+          },
+          "last_seen_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen Version"
+          },
+          "last_health_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Health At"
+          },
+          "asr_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Asr Models"
+          },
+          "diarization_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Diarization Models"
+          },
+          "capture_connectors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capture Connectors"
+          },
+          "summarize_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summarize Model"
+          },
+          "remediation": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remediation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "name",
+          "base_url",
+          "weight",
+          "enabled"
+        ],
+        "title": "WorkerMutateResponse"
       },
       "WorkerProbeBody": {
         "properties": {
@@ -12483,6 +12727,110 @@
           "base_url"
         ],
         "title": "WorkerProbeBody"
+      },
+      "WorkerPublicResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "base_url": {
+            "type": "string",
+            "title": "Base Url"
+          },
+          "weight": {
+            "type": "integer",
+            "title": "Weight"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "last_health": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Health"
+          },
+          "last_seen_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen Version"
+          },
+          "last_health_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Health At"
+          },
+          "asr_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Asr Models"
+          },
+          "diarization_models": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Diarization Models"
+          },
+          "capture_connectors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Capture Connectors"
+          },
+          "summarize_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summarize Model"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "name",
+          "base_url",
+          "weight",
+          "enabled"
+        ],
+        "title": "WorkerPublicResponse"
       },
       "WorkerRemediation": {
         "properties": {
@@ -12533,6 +12881,105 @@
         },
         "type": "object",
         "title": "WorkerRemediation"
+      },
+      "WorkersByTypeSummary": {
+        "properties": {
+          "transcribe": {
+            "$ref": "#/components/schemas/WorkersTypeSummary"
+          },
+          "summarize": {
+            "$ref": "#/components/schemas/WorkersTypeSummary"
+          },
+          "capture": {
+            "$ref": "#/components/schemas/WorkersTypeSummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "transcribe",
+          "summarize",
+          "capture"
+        ],
+        "title": "WorkersByTypeSummary"
+      },
+      "WorkersHubLimits": {
+        "properties": {
+          "import_max_concurrent": {
+            "type": "integer",
+            "title": "Import Max Concurrent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "import_max_concurrent"
+        ],
+        "title": "WorkersHubLimits"
+      },
+      "WorkersListSummary": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "enabled": {
+            "type": "integer",
+            "title": "Enabled"
+          },
+          "available": {
+            "type": "integer",
+            "title": "Available"
+          },
+          "by_type": {
+            "$ref": "#/components/schemas/WorkersByTypeSummary"
+          },
+          "hub_limits": {
+            "$ref": "#/components/schemas/WorkersHubLimits"
+          },
+          "capture_capacity": {
+            "$ref": "#/components/schemas/WorkerCapacitySummary"
+          },
+          "transcribe_capacity": {
+            "$ref": "#/components/schemas/WorkerCapacitySummary"
+          },
+          "summarize_capacity": {
+            "$ref": "#/components/schemas/WorkerCapacitySummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "enabled",
+          "available",
+          "by_type",
+          "hub_limits",
+          "capture_capacity",
+          "transcribe_capacity",
+          "summarize_capacity"
+        ],
+        "title": "WorkersListSummary"
+      },
+      "WorkersTypeSummary": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "enabled": {
+            "type": "integer",
+            "title": "Enabled"
+          },
+          "available": {
+            "type": "integer",
+            "title": "Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "enabled",
+          "available"
+        ],
+        "title": "WorkersTypeSummary"
       }
     },
     "securitySchemes": {

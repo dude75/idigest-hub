@@ -60,6 +60,7 @@ from app.services.instance_helpers import (
 from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
+from app.schemas.common import OkStatusResponse
 from app.timeutil import utcnow
 
 
@@ -71,10 +72,10 @@ def actor_is_org_admin(db: Session, ctx: AuthContext) -> tuple[Organization, Mem
     return org, membership
 
 
-@router.post("/impersonate")
+@router.post("/impersonate", response_model=OkStatusResponse)
 def impersonate(
     body: ImpersonateBody, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     if ctx.session is None or ctx.impersonating:
         ctx.raise_error(ErrorCode.forbidden)
     org_scope: str | None = None
@@ -97,17 +98,17 @@ def impersonate(
             ctx.raise_error(ErrorCode.not_found)
     ctx.session.impersonate_user_id = target.id
     write_audit(db, "impersonate.start", ctx, {"user_id": target.id}, on_behalf_of=target.id)
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
-@router.delete("/impersonate")
+@router.delete("/impersonate", response_model=OkStatusResponse)
 def stop_impersonate(
     db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     if ctx.session is None:
         ctx.raise_error(ErrorCode.forbidden)
     if not ctx.actor.is_instance_admin and actor_is_org_admin(db, ctx) is None:
         ctx.raise_error(ErrorCode.forbidden)
     write_audit(db, "impersonate.stop", ctx)
     ctx.session.impersonate_user_id = None
-    return {"status": "ok"}
+    return OkStatusResponse()

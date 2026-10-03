@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
+from app.schemas.common import OkStatusResponse
 from app.schemas.library import ShareRecordBrief
 
 
@@ -15,5 +16,4 @@ class ShareCreateResponse(BaseModel):
     ids: list[str]
 
 
-class OkStatusResponse(BaseModel):
-    status: str = "ok"
+__all__ = ["OkStatusResponse", "ShareCreateResponse", "ShareListResponse"]

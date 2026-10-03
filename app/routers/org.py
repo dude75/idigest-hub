@@ -16,6 +16,7 @@ from app.models import Membership, Summary, SummaryPublicLink, Tariff, UsageEven
 from app.presenters import org_public, user_public
 from app.schemas.me import UserPublic
 from app.schemas.org_api import OrgPublicResponse, OrgSsoAdminResponse, TariffListResponse
+from app.schemas.common import OkStatusResponse
 from app.schemas.stats import UsageStatsResponse
 from app.schemas.org_users import (
     OffboardStatusResponse,
@@ -278,10 +279,10 @@ def org_public_links(
     return {"items": items}
 
 
-@router.delete("/org/public-links/{link_id}")
+@router.delete("/org/public-links/{link_id}", response_model=OkStatusResponse)
 def revoke_org_public_link(
     link_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OkStatusResponse:
     org, _ = ctx.require_org()
     link = db.get(SummaryPublicLink, link_id)
     if link is None or link.org_id != org.id:
@@ -304,7 +305,7 @@ def revoke_org_public_link(
             "by": "org_admin" if ctx.is_org_admin else "owner",
         },
     )
-    return {"status": "ok"}
+    return OkStatusResponse()
 
 
 @router.get("/org/sso", response_model=OrgSsoAdminResponse)
