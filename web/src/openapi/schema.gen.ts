@@ -2435,6 +2435,36 @@ export interface components {
              */
             tone: boolean;
         };
+        /** InstanceUsageStatsResponse */
+        InstanceUsageStatsResponse: {
+            /** Tasks Transcribe Success */
+            tasks_transcribe_success: number;
+            /** Tasks Summarize Success */
+            tasks_summarize_success: number;
+            /** Audio Transcribed Sec */
+            audio_transcribed_sec: number;
+            /** Summary Chars */
+            summary_chars: number;
+            /** Total Amount */
+            total_amount: string;
+            /** Days */
+            days: components["schemas"]["UsageStatsDay"][];
+            /** Orgs */
+            orgs: number;
+            /** Users */
+            users: number;
+            /** Tasks Queued */
+            tasks_queued: number;
+            /** Tasks Running */
+            tasks_running: number;
+            /**
+             * Download Proxy Status
+             * @enum {string}
+             */
+            download_proxy_status: "up" | "down" | "na";
+            /** Usage Total */
+            usage_total: string;
+        };
         /** LoginBody */
         LoginBody: {
             /**
@@ -2646,6 +2676,27 @@ export interface components {
             mfa_required?: boolean | null;
             /** Allow Public Links */
             allow_public_links?: boolean | null;
+        };
+        /** OrgSsoAdminResponse */
+        OrgSsoAdminResponse: {
+            /** Configured */
+            configured: boolean;
+            /** Enabled */
+            enabled: boolean;
+            /** Login Url */
+            login_url?: string | null;
+            /** Org Id */
+            org_id: string;
+            /** Public Base Url Set */
+            public_base_url_set: boolean;
+            /** Callback Url */
+            callback_url?: string | null;
+            /** Issuer */
+            issuer?: string | null;
+            /** Client Id */
+            client_id?: string | null;
+            /** Has Client Secret */
+            has_client_secret: boolean;
         };
         /** OrgSsoPatch */
         OrgSsoPatch: {
@@ -3433,6 +3484,36 @@ export interface components {
             source_id?: string | null;
             /** Items */
             items: components["schemas"]["TranscriptListItem"][];
+        };
+        /** UsageStatsDay */
+        UsageStatsDay: {
+            /** Date */
+            date: string;
+            /** Tasks Transcribe Success */
+            tasks_transcribe_success: number;
+            /** Tasks Summarize Success */
+            tasks_summarize_success: number;
+            /** Audio Transcribed Sec */
+            audio_transcribed_sec: number;
+            /** Summary Chars */
+            summary_chars: number;
+            /** Amount */
+            amount: string;
+        };
+        /** UsageStatsResponse */
+        UsageStatsResponse: {
+            /** Tasks Transcribe Success */
+            tasks_transcribe_success: number;
+            /** Tasks Summarize Success */
+            tasks_summarize_success: number;
+            /** Audio Transcribed Sec */
+            audio_transcribed_sec: number;
+            /** Summary Chars */
+            summary_chars: number;
+            /** Total Amount */
+            total_amount: string;
+            /** Days */
+            days: components["schemas"]["UsageStatsDay"][];
         };
         /** UserPublic */
         UserPublic: {
@@ -4562,9 +4643,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["InstanceUsageStatsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6188,9 +6267,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["UsageStatsResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6313,9 +6390,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgPublicResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6399,9 +6474,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgSsoAdminResponse"];
                 };
             };
         };
@@ -6425,9 +6498,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["OrgSsoAdminResponse"];
                 };
             };
             /** @description Validation Error */

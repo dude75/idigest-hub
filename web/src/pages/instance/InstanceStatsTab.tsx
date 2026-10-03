@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
-import type { InstanceSnapshot, InstanceStats, Org } from '../../types'
+import type { SchemaInstanceUsageStatsResponse } from '../../openapi'
+import type { InstanceSnapshot, Org } from '../../types'
 import { StatsDaysView } from '../../components/StatsDaysView'
 import { defaultFilterRange } from '../../util/date'
 import { AdminPage } from '../../components/AdminSection'
@@ -13,7 +14,7 @@ import { formatInteger, showError } from '../../util'
 export function InstanceStatsTab() {
   const { t } = useTranslation()
   const [snapshot, setSnapshot] = useState<InstanceSnapshot | null>(null)
-  const [stats, setStats] = useState<InstanceStats | null>(null)
+  const [stats, setStats] = useState<SchemaInstanceUsageStatsResponse | null>(null)
   const [statsOrgs, setStatsOrgs] = useState<Org[]>([])
   const [fromDay, setFromDay] = useState(() => defaultFilterRange().from)
   const [toDay, setToDay] = useState(() => defaultFilterRange().to)
@@ -45,7 +46,7 @@ export function InstanceStatsTab() {
     let cancelled = false
     async function loadSnapshot() {
       try {
-        const r = await api<InstanceStats>('/instance/stats')
+        const r = await api<SchemaInstanceUsageStatsResponse>('/instance/stats')
         if (cancelled) return
         setSnapshot({
           orgs: r.orgs,
@@ -67,7 +68,7 @@ export function InstanceStatsTab() {
   }, [])
 
   useEffect(() => {
-    api<InstanceStats>(`/instance/stats${statsQuery}`)
+    api<SchemaInstanceUsageStatsResponse>(`/instance/stats${statsQuery}`)
       .then(setStats)
       .catch(showError)
   }, [statsQuery])

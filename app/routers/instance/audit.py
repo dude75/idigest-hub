@@ -60,6 +60,7 @@ from app.services.instance_helpers import (
 from app.services.instance_orgs import list_orgs_payload
 from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
 from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
+from app.schemas.stats import InstanceUsageStatsResponse
 from app.timeutil import utcnow
 
 @router.get("/instance/audit")
@@ -133,7 +134,7 @@ def audit_log_export(
     return attachment_response(content, filename, "text/csv; charset=utf-8")
 
 
-@router.get("/instance/stats")
+@router.get("/instance/stats", response_model=InstanceUsageStatsResponse)
 def stats(
     from_day: str | None = Query(None, alias="from"),
     to_day: str | None = Query(None, alias="to"),
@@ -142,7 +143,7 @@ def stats(
     kind: str | None = None,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> InstanceUsageStatsResponse:
     require_instance_admin(ctx)
     try:
         start, end = parse_org_stats_range(from_day, to_day)
@@ -167,12 +168,14 @@ def stats(
     from app.services.download_proxy_health import download_proxy_card_status
 
     settings = get_instance_settings(db)
-    return {
-        "orgs": orgs,
-        "users": users,
-        "tasks_queued": queued,
-        "tasks_running": running,
-        "download_proxy_status": download_proxy_card_status(settings, db),
-        **usage,
-        "usage_total": usage["total_amount"],
-    }
+    return InstanceUsageStatsResponse.model_validate(
+        {
+            "orgs": orgs,
+            "users": users,
+            "tasks_queued": queued,
+            "tasks_running": running,
+            "download_proxy_status": download_proxy_card_status(settings, db),
+            **usage,
+            "usage_total": usage["total_amount"],
+        }
+    )

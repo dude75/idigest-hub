@@ -4,7 +4,7 @@ import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { useOrgUsers } from '../hooks/useOrgUsers'
 import { LIBRARY_DEFAULT } from '../routes'
-import type { OrgStats } from '../types'
+import type { SchemaUsageStatsResponse } from '../openapi'
 import { StatsDaysView } from '../components/StatsDaysView'
 import { StatsFiltersPanel } from '../components/StatsFiltersPanel'
 import { AdminPage } from '../components/AdminSection'
@@ -14,7 +14,7 @@ import { showError } from '../util'
 
 export function StatsPage() {
   const { me } = useAuth()
-  const [stats, setStats] = useState<OrgStats | null>(null)
+  const [stats, setStats] = useState<SchemaUsageStatsResponse | null>(null)
   const [fromDay, setFromDay] = useState(() => defaultFilterRange().from)
   const [toDay, setToDay] = useState(() => defaultFilterRange().to)
   const [userId, setUserId] = useState('')
@@ -35,7 +35,7 @@ export function StatsPage() {
 
   useEffect(() => {
     if (!hasOrg || !admin) return
-    api<OrgStats>(`/org/stats${query}`)
+    api<SchemaUsageStatsResponse>(`/org/stats${query}`)
       .then(setStats)
       .catch(showError)
   }, [hasOrg, admin, query])

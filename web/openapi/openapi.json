@@ -1533,9 +1533,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Stats Api V1 Instance Stats Get"
+                  "$ref": "#/components/schemas/InstanceUsageStatsResponse"
                 }
               }
             }
@@ -4036,9 +4034,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Org Stats Api V1 Org Stats Get"
+                  "$ref": "#/components/schemas/UsageStatsResponse"
                 }
               }
             }
@@ -4204,9 +4200,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Patch Org Settings Api V1 Org Settings Patch"
+                  "$ref": "#/components/schemas/OrgPublicResponse"
                 }
               }
             }
@@ -4319,9 +4313,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Get Org Sso Api V1 Org Sso Get"
+                  "$ref": "#/components/schemas/OrgSsoAdminResponse"
                 }
               }
             }
@@ -4355,9 +4347,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Patch Org Sso Api V1 Org Sso Patch"
+                  "$ref": "#/components/schemas/OrgSsoAdminResponse"
                 }
               }
             }
@@ -8500,6 +8490,82 @@
         ],
         "title": "ImportBody"
       },
+      "InstanceUsageStatsResponse": {
+        "properties": {
+          "tasks_transcribe_success": {
+            "type": "integer",
+            "title": "Tasks Transcribe Success"
+          },
+          "tasks_summarize_success": {
+            "type": "integer",
+            "title": "Tasks Summarize Success"
+          },
+          "audio_transcribed_sec": {
+            "type": "number",
+            "title": "Audio Transcribed Sec"
+          },
+          "summary_chars": {
+            "type": "integer",
+            "title": "Summary Chars"
+          },
+          "total_amount": {
+            "type": "string",
+            "title": "Total Amount"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/UsageStatsDay"
+            },
+            "type": "array",
+            "title": "Days"
+          },
+          "orgs": {
+            "type": "integer",
+            "title": "Orgs"
+          },
+          "users": {
+            "type": "integer",
+            "title": "Users"
+          },
+          "tasks_queued": {
+            "type": "integer",
+            "title": "Tasks Queued"
+          },
+          "tasks_running": {
+            "type": "integer",
+            "title": "Tasks Running"
+          },
+          "download_proxy_status": {
+            "type": "string",
+            "enum": [
+              "up",
+              "down",
+              "na"
+            ],
+            "title": "Download Proxy Status"
+          },
+          "usage_total": {
+            "type": "string",
+            "title": "Usage Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tasks_transcribe_success",
+          "tasks_summarize_success",
+          "audio_transcribed_sec",
+          "summary_chars",
+          "total_amount",
+          "days",
+          "orgs",
+          "users",
+          "tasks_queued",
+          "tasks_running",
+          "download_proxy_status",
+          "usage_total"
+        ],
+        "title": "InstanceUsageStatsResponse"
+      },
       "LoginBody": {
         "properties": {
           "email": {
@@ -9125,6 +9191,83 @@
         },
         "type": "object",
         "title": "OrgSettingsPatch"
+      },
+      "OrgSsoAdminResponse": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "login_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Login Url"
+          },
+          "org_id": {
+            "type": "string",
+            "title": "Org Id"
+          },
+          "public_base_url_set": {
+            "type": "boolean",
+            "title": "Public Base Url Set"
+          },
+          "callback_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Callback Url"
+          },
+          "issuer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuer"
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "has_client_secret": {
+            "type": "boolean",
+            "title": "Has Client Secret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "configured",
+          "enabled",
+          "org_id",
+          "public_base_url_set",
+          "has_client_secret"
+        ],
+        "title": "OrgSsoAdminResponse"
       },
       "OrgSsoPatch": {
         "properties": {
@@ -11850,6 +11993,85 @@
           "items"
         ],
         "title": "TranscriptSourceGroup"
+      },
+      "UsageStatsDay": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "title": "Date"
+          },
+          "tasks_transcribe_success": {
+            "type": "integer",
+            "title": "Tasks Transcribe Success"
+          },
+          "tasks_summarize_success": {
+            "type": "integer",
+            "title": "Tasks Summarize Success"
+          },
+          "audio_transcribed_sec": {
+            "type": "number",
+            "title": "Audio Transcribed Sec"
+          },
+          "summary_chars": {
+            "type": "integer",
+            "title": "Summary Chars"
+          },
+          "amount": {
+            "type": "string",
+            "title": "Amount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "date",
+          "tasks_transcribe_success",
+          "tasks_summarize_success",
+          "audio_transcribed_sec",
+          "summary_chars",
+          "amount"
+        ],
+        "title": "UsageStatsDay"
+      },
+      "UsageStatsResponse": {
+        "properties": {
+          "tasks_transcribe_success": {
+            "type": "integer",
+            "title": "Tasks Transcribe Success"
+          },
+          "tasks_summarize_success": {
+            "type": "integer",
+            "title": "Tasks Summarize Success"
+          },
+          "audio_transcribed_sec": {
+            "type": "number",
+            "title": "Audio Transcribed Sec"
+          },
+          "summary_chars": {
+            "type": "integer",
+            "title": "Summary Chars"
+          },
+          "total_amount": {
+            "type": "string",
+            "title": "Total Amount"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/UsageStatsDay"
+            },
+            "type": "array",
+            "title": "Days"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tasks_transcribe_success",
+          "tasks_summarize_success",
+          "audio_transcribed_sec",
+          "summary_chars",
+          "total_amount",
+          "days"
+        ],
+        "title": "UsageStatsResponse"
       },
       "UserPublic": {
         "properties": {

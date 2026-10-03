@@ -62,3 +62,13 @@ def test_export_openapi_writes_health_path():
         "application/json"
     ]["schema"]
     assert avail.get("$ref", "").endswith("/TariffListResponse")
+    org_stats = schema["paths"]["/api/v1/org/stats"]["get"]["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+    assert org_stats.get("$ref", "").endswith("/UsageStatsResponse")
+    inst_stats = schema["paths"]["/api/v1/instance/stats"]["get"]["responses"]["200"]["content"]["application/json"][
+        "schema"
+    ]
+    assert inst_stats.get("$ref", "").endswith("/InstanceUsageStatsResponse")
+    org_sso = schema["paths"]["/api/v1/org/sso"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert org_sso.get("$ref", "").endswith("/OrgSsoAdminResponse")

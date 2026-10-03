@@ -1,4 +1,4 @@
-import type { SchemaUserPublic } from './openapi/contracts'
+import type { SchemaOrgSsoAdminResponse, SchemaUserPublic } from './openapi/contracts'
 
 export type Locale = 'en' | 'ru' | 'es'
 
@@ -81,14 +81,8 @@ export type OrgSso = {
   login_url: string | null
 }
 
-export type OrgSsoAdmin = OrgSso & {
-  org_id: string
-  callback_url: string | null
-  public_base_url_set: boolean
-  issuer: string | null
-  client_id: string | null
-  has_client_secret: boolean
-}
+/** Org SSO admin panel shape from OpenAPI `OrgSsoAdminResponse`. */
+export type OrgSsoAdmin = SchemaOrgSsoAdminResponse
 
 export type Org = {
   id: string

@@ -15,6 +15,20 @@ class OrgSsoPublic(BaseModel):
     login_url: str | None = None
 
 
+class OrgSsoAdminResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    configured: bool
+    enabled: bool
+    login_url: str | None = None
+    org_id: str
+    public_base_url_set: bool
+    callback_url: str | None = None
+    issuer: str | None = None
+    client_id: str | None = None
+    has_client_secret: bool
+
+
 class TariffPublic(BaseModel):
     model_config = ConfigDict(extra="ignore")
 

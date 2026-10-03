@@ -6,6 +6,7 @@ import type {
   SchemaOrgPublicResponse,
   SchemaOrgUserListResponse,
   SchemaOrgUserResetPasswordResponse,
+  SchemaOrgSsoAdminResponse,
   SchemaTariffListResponse,
 } from '../openapi'
 import { isOrgAdmin, useAuth } from '../auth'
@@ -16,7 +17,7 @@ import { StatCard, StatGrid } from '../components/StatCard'
 import { TariffDetails } from '../components/TariffDetails'
 import { UserStatusBadges } from '../components/UserAgreementBadge'
 import { LIBRARY_DEFAULT } from '../routes'
-import type { Org, OrgCaptureJitsiHost, OrgCaptureWorkerChoice, OrgSsoAdmin, Tariff, User } from '../types'
+import type { Org, OrgCaptureJitsiHost, OrgCaptureWorkerChoice, Tariff, User } from '../types'
 import { normalizeJitsiHostInput } from '../util/captureHost'
 import { formatDecimal, formatInteger, showError, WalletLabel } from '../util'
 import { canAdminResetMemberMfa } from '../mfa'
@@ -69,7 +70,7 @@ export function OrgPage() {
   const [mfaResetOk, setMfaResetOk] = useState<string | null>(null)
   const [mfaResetUser, setMfaResetUser] = useState<User | null>(null)
   const [mfaResetBusy, setMfaResetBusy] = useState(false)
-  const [sso, setSso] = useState<OrgSsoAdmin | null>(null)
+  const [sso, setSso] = useState<SchemaOrgSsoAdminResponse | null>(null)
   const [ssoIssuer, setSsoIssuer] = useState('')
   const [ssoClientId, setSsoClientId] = useState('')
   const [ssoClientSecret, setSsoClientSecret] = useState('')
@@ -102,7 +103,7 @@ export function OrgPage() {
       Promise<SchemaOrgPublicResponse>,
       Promise<SchemaOrgUserListResponse>,
       Promise<SchemaTariffListResponse>,
-      Promise<OrgSsoAdmin> | Promise<null>,
+      Promise<SchemaOrgSsoAdminResponse> | Promise<null>,
       Promise<{
         allowed: boolean
         bot_display_name?: string
@@ -113,7 +114,7 @@ export function OrgPage() {
       api<SchemaOrgPublicResponse>('/org'),
       api<SchemaOrgUserListResponse>('/org/users'),
       api<SchemaTariffListResponse>('/org/available-tariffs'),
-      admin && hasOrg ? api<OrgSsoAdmin>('/org/sso') : Promise.resolve(null),
+      admin && hasOrg ? api<SchemaOrgSsoAdminResponse>('/org/sso') : Promise.resolve(null),
       admin && hasOrg
         ? api<{
             allowed: boolean

@@ -15,7 +15,8 @@ from app.errors import ErrorCode
 from app.models import Membership, Summary, SummaryPublicLink, Tariff, UsageEvent, User, new_id
 from app.presenters import org_public, user_public
 from app.schemas.me import UserPublic
-from app.schemas.org_api import OrgPublicResponse, TariffListResponse
+from app.schemas.org_api import OrgPublicResponse, OrgSsoAdminResponse, TariffListResponse
+from app.schemas.stats import UsageStatsResponse
 from app.schemas.org_users import (
     OffboardStatusResponse,
     OrgUserListResponse,
@@ -124,7 +125,7 @@ def get_org(
     )
 
 
-@router.get("/org/stats")
+@router.get("/org/stats", response_model=UsageStatsResponse)
 def org_stats(
     from_day: str | None = Query(None, alias="from"),
     to_day: str | None = Query(None, alias="to"),
@@ -132,14 +133,14 @@ def org_stats(
     kind: str | None = None,
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
-) -> dict:
+) -> UsageStatsResponse:
     org, _ = ctx.require_org_admin()
     try:
         start, end = parse_org_stats_range(from_day, to_day)
     except ValueError:
         ctx.raise_error(ErrorCode.validation_error)
     effective_user_id = (user_id or "").strip() or None
-    return org_usage_stats(
+    payload = org_usage_stats(
         db,
         org.id,
         start=start,
@@ -147,6 +148,7 @@ def org_stats(
         user_id=effective_user_id,
         kind=(kind or "").strip() or None,
     )
+    return UsageStatsResponse.model_validate(payload)
 
 
 @router.patch("/org", response_model=OrgPublicResponse)
@@ -230,10 +232,10 @@ def replace_org_capture_jitsi(
     }
 
 
-@router.patch("/org/settings")
+@router.patch("/org/settings", response_model=OrgPublicResponse)
 def patch_org_settings(
     body: OrgSettingsPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OrgPublicResponse:
     org, _ = ctx.require_org_admin()
     if body.password_ttl_days is not None:
         if body.password_ttl_days < 0:
@@ -250,7 +252,7 @@ def patch_org_settings(
         org.allow_public_links = body.allow_public_links
         org.updated_at = utcnow()
         write_audit(db, "org.public_links_policy", ctx, {"allow_public_links": org.allow_public_links})
-    return org_public(org, public_base_url=_public_base_url(db))
+    return OrgPublicResponse.model_validate(org_public(org, public_base_url=_public_base_url(db)))
 
 
 @router.get("/org/public-links")
@@ -305,16 +307,18 @@ def revoke_org_public_link(
     return {"status": "ok"}
 
 
-@router.get("/org/sso")
-def get_org_sso(db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)) -> dict:
+@router.get("/org/sso", response_model=OrgSsoAdminResponse)
+def get_org_sso(
+    db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> OrgSsoAdminResponse:
     org, _ = ctx.require_org_admin()
-    return org_sso_admin_public(org, public_base_url=_public_base_url(db))
+    return OrgSsoAdminResponse.model_validate(org_sso_admin_public(org, public_base_url=_public_base_url(db)))
 
 
-@router.patch("/org/sso")
+@router.patch("/org/sso", response_model=OrgSsoAdminResponse)
 def patch_org_sso(
     body: OrgSsoPatch, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
-) -> dict:
+) -> OrgSsoAdminResponse:
     org, _ = ctx.require_org_admin()
     if body.issuer is not None:
         org.sso_issuer = body.issuer.strip() or None
@@ -351,7 +355,7 @@ def patch_org_sso(
             "login_url": sso_login_url(public_base, org.id),
         },
     )
-    return org_sso_admin_public(org, public_base_url=public_base)
+    return OrgSsoAdminResponse.model_validate(org_sso_admin_public(org, public_base_url=public_base))
 
 
 @router.get("/org/users", response_model=OrgUserListResponse)
