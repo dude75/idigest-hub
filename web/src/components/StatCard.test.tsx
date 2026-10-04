@@ -13,12 +13,7 @@ describe('StatCard', () => {
     expect(screen.getByText('2')).toBeInTheDocument()
   })
 
-  it('renders unit badge when provided', () => {
-    render(<StatCard label="Growth" value="12" unit="+12%" />)
-    expect(screen.getByText('+12%')).toBeInTheDocument()
-  })
-
-  it('shows footer lines for title and footer props', () => {
+  it('shows footer inline and keeps title for hover hint only', () => {
     render(
       <StatCard
         label="Age"
@@ -28,7 +23,7 @@ describe('StatCard', () => {
       />,
     )
     expect(screen.getByText('Trending up')).toBeInTheDocument()
-    expect(screen.getByText('2026-03-01 12:00')).toBeInTheDocument()
+    expect(screen.queryByText('2026-03-01 12:00')).not.toBeInTheDocument()
   })
 
   it('applies proxy tone class on value', () => {

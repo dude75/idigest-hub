@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
 import type { SchemaWorkerListResponse } from '../../openapi'
@@ -96,8 +96,11 @@ export function InstanceWorkersTab() {
   const transcribeHubCapacity = useMemo(() => typeHubWorkerCapacity(workers, 'transcribe'), [workers])
   const summarizeHubCapacity = useMemo(() => typeHubWorkerCapacity(workers, 'summarize'), [workers])
 
-  const availableDetailTitle = useMemo(() => {
+  const availableDetailHint = useMemo((): ReactNode | undefined => {
     const lines: string[] = []
+    if (summary.enabled > 0) {
+      lines.push(t('instance.workersAvailableOfEnabled', { enabled: formatInteger(summary.enabled) }))
+    }
     if (transcribeHubCapacity) {
       lines.push(
         `${t('task.type.transcribe')}: ${formatInteger(transcribeHubCapacity.available)} / ${formatInteger(transcribeHubCapacity.max)}`,
@@ -126,8 +129,23 @@ export function InstanceWorkersTab() {
         }),
       )
     }
-    return lines.length ? lines.join('\n') : undefined
-  }, [summary.byType, summary.hubLimits, summary.captureCapacity, summarizeHubCapacity, transcribeHubCapacity, t])
+    if (!lines.length) return undefined
+    return (
+      <ul className="m-0 list-inside list-disc space-y-1 text-sm">
+        {lines.map((line) => (
+          <li key={line}>{line}</li>
+        ))}
+      </ul>
+    )
+  }, [
+    summary.byType,
+    summary.enabled,
+    summary.hubLimits,
+    summary.captureCapacity,
+    summarizeHubCapacity,
+    transcribeHubCapacity,
+    t,
+  ])
 
   const probeAsr = useMemo(() => selectableEngines(probe?.asr_models), [probe])
   const probeDiar = useMemo(() => selectableEngines(probe?.diarization_models), [probe])
@@ -324,12 +342,7 @@ export function InstanceWorkersTab() {
         <StatCard
           label={t('instance.workersAvailable')}
           value={formatInteger(summary.available)}
-          unit={
-            summary.enabled > 0
-              ? t('instance.workersAvailableOfEnabled', { enabled: formatInteger(summary.enabled) })
-              : undefined
-          }
-          title={availableDetailTitle}
+          title={availableDetailHint}
           tone="transcribe"
         />
         <StatCard label={t('instance.workersHealthy')} value={formatInteger(summary.healthy)} tone="summarize" />
@@ -339,18 +352,28 @@ export function InstanceWorkersTab() {
             <StatCard
               label={t('instance.workersCaptureCapacityLabel')}
               value={formatInteger(summary.captureCapacity.available)}
-              unit={t('instance.workersCaptureCapacityOfMax', {
-                max: formatInteger(summary.captureCapacity.max),
-              })}
-              title={t('instance.workersCaptureCapacityHint')}
+              title={
+                <div className="space-y-2 text-sm">
+                  <p>
+                    {t('instance.workersCaptureCapacityOfMax', {
+                      max: formatInteger(summary.captureCapacity.max),
+                    })}
+                  </p>
+                  <p>{t('instance.workersCaptureCapacityHint')}</p>
+                </div>
+              }
               tone="ops"
             />
           ) : (
             <StatCard
               label={t('instance.workersCaptureCapacityLabel')}
               value="—"
-              unit={t('instance.workerCapacityUnknown')}
-              title={t('instance.workersCaptureCapacityHint')}
+              title={
+                <div className="space-y-2 text-sm">
+                  <p>{t('instance.workerCapacityUnknown')}</p>
+                  <p>{t('instance.workersCaptureCapacityHint')}</p>
+                </div>
+              }
               tone="ops"
             />
           )

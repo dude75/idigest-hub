@@ -31,14 +31,12 @@ export function StatsSummaryGrid({
         label={t('stats.statTranscribe')}
         title={t(`${tooltipPrefix}.transcribeDone`)}
         value={formatInteger(tasksTranscribe)}
-        unit={t('stats.tasksUnit')}
         tone="transcribe"
       />
       <StatCard
         label={t('stats.statSummarize')}
         title={t(`${tooltipPrefix}.summarizeDone`)}
         value={formatInteger(tasksSummarize)}
-        unit={t('stats.tasksUnit')}
         tone="summarize"
       />
       <StatCard
