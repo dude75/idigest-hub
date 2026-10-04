@@ -4,7 +4,7 @@ import { api, ApiError } from './api'
 import { setDateTimePrefs } from './util/datetimeFormat'
 import { showError } from './util'
 import { resolveLoginPath, type DefaultRoute } from './routes'
-import type { SchemaMeResponse } from './openapi'
+import type { SchemaMeResponse, SchemaOrgPublicResponse } from './openapi'
 import type { Locale, Me } from './types'
 
 type AuthState = {
@@ -13,6 +13,8 @@ type AuthState = {
   bootstrapError: unknown
   me: Me | null
   refresh: () => Promise<Me | null>
+  /** Refresh org balance/unlimited in session (e.g. after a billed task completes). */
+  refreshOrgWallet: () => Promise<void>
   setLocale: (locale: Locale) => Promise<void>
   setDefaultRoute: (route: DefaultRoute) => Promise<void>
   setDateTimeFormat: (format: string | null) => Promise<void>
@@ -59,6 +61,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw err
     }
   }, [i18n])
+
+  const refreshOrgWallet = useCallback(async () => {
+    try {
+      const org = await api<SchemaOrgPublicResponse>('/org')
+      setMe((prev) => {
+        if (!prev?.org) return prev
+        return {
+          ...prev,
+          org: {
+            ...prev.org,
+            balance: org.balance,
+            unlimited: org.unlimited,
+            usage: org.usage ?? prev.org.usage,
+            tariff: org.tariff,
+          },
+        }
+      })
+    } catch {
+      /* background refresh; avoid toast noise */
+    }
+  }, [])
 
   useEffect(() => {
     refresh()
@@ -136,13 +159,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       bootstrapError,
       me,
       refresh,
+      refreshOrgWallet,
       setLocale,
       setDefaultRoute,
       setDateTimeFormat,
       setTimezone,
       logout,
     }),
-    [ready, bootstrapDone, bootstrapError, me, refresh, setLocale, setDefaultRoute, setDateTimeFormat, setTimezone, logout],
+    [
+      ready,
+      bootstrapDone,
+      bootstrapError,
+      me,
+      refresh,
+      refreshOrgWallet,
+      setLocale,
+      setDefaultRoute,
+      setDateTimeFormat,
+      setTimezone,
+      logout,
+    ],
   )
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>

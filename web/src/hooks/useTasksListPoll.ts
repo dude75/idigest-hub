@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../auth'
 import { api } from '../api'
 import type { TaskListResponse } from '../openapi/contracts'
 import type { Task } from '../types'
@@ -48,6 +49,11 @@ export function useTasksListPoll(options: UseTasksListPollOptions) {
     errorToastId = 'tasks-poll',
   } = options
 
+  const { refreshOrgWallet } = useAuth()
+  const refreshOrgWalletRef = useRef(refreshOrgWallet)
+  refreshOrgWalletRef.current = refreshOrgWallet
+  const prevActiveIdsRef = useRef<Set<string>>(new Set())
+
   const [active, setActive] = useState<Task[]>([])
   const [done, setDone] = useState<Task[]>([])
   const [doneTotal, setDoneTotal] = useState(0)
@@ -85,6 +91,14 @@ export function useTasksListPoll(options: UseTasksListPollOptions) {
           tasksListPath(orgId, userId, statusFilter, offset, pageSize),
         )
         if (stop || seq !== fetchSeq.current) return
+        const nextActiveIds = new Set(r.active.map((task) => task.task_id))
+        for (const taskId of prevActiveIdsRef.current) {
+          if (!nextActiveIds.has(taskId)) {
+            void refreshOrgWalletRef.current()
+            break
+          }
+        }
+        prevActiveIdsRef.current = nextActiveIds
         setActive(r.active)
         setDone(r.done)
         setDoneTotal(r.done_total)

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useAuth } from '../auth'
 import { api } from '../api'
 import type { Task } from '../types'
 import {
@@ -40,6 +41,10 @@ export function useTaskPoll(options: UseTaskPollOptions) {
     generation = 0,
   } = options
 
+  const { refreshOrgWallet } = useAuth()
+  const refreshOrgWalletRef = useRef(refreshOrgWallet)
+  refreshOrgWalletRef.current = refreshOrgWallet
+
   const [task, setTask] = useState<Task | null>(initialTask)
   const onTaskRef = useRef(onTask)
   const onTerminalRef = useRef(onTerminal)
@@ -65,6 +70,9 @@ export function useTaskPoll(options: UseTaskPollOptions) {
           onTaskRef.current?.(next)
           if (!isActiveTaskStatus(next.status)) {
             onTerminalRef.current?.(next)
+            if (next.status === 'success') {
+              void refreshOrgWalletRef.current()
+            }
             return next
           }
           await sleep(pollMs)
