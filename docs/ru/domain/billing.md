@@ -1,6 +1,6 @@
 # Биллинг и тарифы
 
-Деньги хранятся как `Numeric(12,2)`; списания **округляются вниз до центов** (`app/money.py`).
+Деньги хранятся как `Numeric(12,2)`; списания **округляются вниз до центов** (`app/money.py`). Если расчётная сумма положительна, но после округления получается `0.00`, списывается **минимум 0.01** (`usage_charge_amount`).
 
 ## Поля тарифа
 
@@ -10,8 +10,7 @@
 | `available_on_signup` | Показывается при signup и разрешён для самостоятельной смены тарифа org |
 | `archived_at` | Не null = архивирован; скрыт из signup, нельзя назначить новым org |
 | `price_per_audio_sec` | Transcribe: длительность × ставка |
-| `price_per_summarize_job` | Фиксированная плата за успешный summarize |
-| `price_per_1k_summary_chars` | За 1000 символов **выходного** summary (округление вверх) |
+| `price_per_1k_summary_chars` | Summarize: за 1000 символов **выходного** summary (округление вверх) |
 | `signup_credit` | Начальный кошелёк при signup (игнорируется при unlimited) |
 | `max_upload_bytes` | Лимит загрузки (глобально не выше 1 GiB) |
 | `audio_retention_days` | `0` = хранить вечно; иначе purge job удаляет старое audio |
@@ -45,7 +44,6 @@ Instance admin удаляет тарифы в **Instance → Tariffs** (или `
 ```
 snap_unlimited
 snap_price_per_audio_sec
-snap_price_per_summarize_job
 snap_price_per_1k_summary_chars
 snap_max_upload_bytes
 snap_asr_model          # только transcribe, переопределение пользователя или default инстанса
@@ -60,7 +58,7 @@ Transcribe и summarize при создании разрешают модели 
 ### Transcribe
 
 ```
-amount = floor_to_cents(audio_duration_sec × snap_price_per_audio_sec)
+amount = usage_charge_amount(audio_duration_sec × snap_price_per_audio_sec)
 ```
 
 Длительность берётся из meta результата воркера `audio_duration_sec`. Также backfill `audios.duration_sec`, если отсутствует.
@@ -68,10 +66,8 @@ amount = floor_to_cents(audio_duration_sec × snap_price_per_audio_sec)
 ### Summarize
 
 ```
-job = floor_to_cents(snap_price_per_summarize_job)
 units = ceil(len(summary_text) / 1000)   # 0 если пусто
-text = floor_to_cents(units × snap_price_per_1k_summary_chars)
-amount = job + text
+amount = usage_charge_amount(units × snap_price_per_1k_summary_chars)
 ```
 
 ## События использования

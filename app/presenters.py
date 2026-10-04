@@ -19,7 +19,7 @@ from app.models import (
     User,
     WorkerNode,
 )
-from app.money import money_str
+from app.money import money_str, rate_str
 from app.services.mfa import totp_configured
 from app.services.sso import org_sso_public
 from app.timeutil import isoformat_utc
@@ -67,9 +67,8 @@ def tariff_public(tariff: Tariff, org_count: int | None = None) -> dict[str, Any
         "unlimited": tariff.unlimited,
         "available_on_signup": tariff.available_on_signup,
         "archived": tariff.archived_at is not None,
-        "price_per_audio_sec": str(tariff.price_per_audio_sec),
-        "price_per_summarize_job": str(tariff.price_per_summarize_job),
-        "price_per_1k_summary_chars": str(tariff.price_per_1k_summary_chars),
+        "price_per_audio_sec": rate_str(Decimal(tariff.price_per_audio_sec)),
+        "price_per_1k_summary_chars": rate_str(Decimal(tariff.price_per_1k_summary_chars)),
         "audio_retention_days": tariff.audio_retention_days,
         "api_enabled": tariff.api_enabled,
         "signup_credit": money_str(Decimal(tariff.signup_credit)),

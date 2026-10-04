@@ -73,7 +73,6 @@ def apply_tariff(tariff: Tariff, body: TariffBody, ctx: AuthContext) -> None:
     tariff.unlimited = body.unlimited
     tariff.available_on_signup = body.available_on_signup and tariff.archived_at is None
     tariff.price_per_audio_sec = Decimal(body.price_per_audio_sec)
-    tariff.price_per_summarize_job = parse_money(body.price_per_summarize_job)
     tariff.price_per_1k_summary_chars = Decimal(body.price_per_1k_summary_chars)
     if body.audio_retention_days < 0:
         ctx.raise_error(ErrorCode.validation_error)
@@ -141,7 +140,6 @@ def clone_tariff(
         available_on_signup=source.available_on_signup,
         archived_at=None,
         price_per_audio_sec=source.price_per_audio_sec,
-        price_per_summarize_job=source.price_per_summarize_job,
         price_per_1k_summary_chars=source.price_per_1k_summary_chars,
         audio_retention_days=source.audio_retention_days,
         api_enabled=source.api_enabled,

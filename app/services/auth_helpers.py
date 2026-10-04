@@ -34,7 +34,6 @@ def seed_default_tariff(db: Session) -> Tariff:
         available_on_signup=True,
         archived_at=None,
         price_per_audio_sec=Decimal("0"),
-        price_per_summarize_job=Decimal("0"),
         price_per_1k_summary_chars=Decimal("0"),
         audio_retention_days=0,
         api_enabled=True,

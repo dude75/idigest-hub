@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { landingTariffSubtitleKey } from '../landingTariffLayout'
 import type { Tariff } from '../types'
-import { formatBytes } from '../util'
+import { formatBytes, formatDecimal, formatRate } from '../util'
 
 export { landingTariffSubtitleKey }
 
@@ -11,13 +11,6 @@ type Props = {
   popular?: boolean
   subtitleKey: 'regular' | 'standard' | 'expert'
   to: string
-}
-
-function formatMoney(value: string): string {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return value
-  if (Number.isInteger(n)) return String(n)
-  return n.toFixed(4).replace(/\.?0+$/, '')
 }
 
 function estimateAudioMinutes(tariff: Tariff): number | null {
@@ -42,7 +35,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
       ? t('landing.retention', { days: tariff.audio_retention_days })
       : t('landing.retentionForever'),
   )
-  if (Number(tariff.price_per_summarize_job) > 0 || Number(tariff.price_per_1k_summary_chars) > 0) {
+  if (Number(tariff.price_per_1k_summary_chars) > 0) {
     features.push(t('landing.tariffFeatureSummaries'))
   }
   if (tariff.unlimited) features.push(t('landing.tariffFeatureUnlimited'))
@@ -74,7 +67,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
             </div>
             {hasOverage && (
               <p className="landing-pricing-quota-note">
-                {t('landing.tariffOverageAudio', { price: formatMoney(tariff.price_per_audio_sec) })}
+                {t('landing.tariffOverageAudio', { price: formatRate(tariff.price_per_audio_sec) })}
               </p>
             )}
           </>
@@ -82,11 +75,11 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
           <>
             <div className="landing-pricing-quota-main">
               <span className="landing-pricing-icon" aria-hidden="true">⚡</span>
-              <span>{t('landing.tariffQuotaCredit', { amount: formatMoney(tariff.signup_credit) })}</span>
+              <span>{t('landing.tariffQuotaCredit', { amount: formatDecimal(tariff.signup_credit) })}</span>
             </div>
             {hasOverage && (
               <p className="landing-pricing-quota-note">
-                {t('landing.tariffOverageAudio', { price: formatMoney(tariff.price_per_audio_sec) })}
+                {t('landing.tariffOverageAudio', { price: formatRate(tariff.price_per_audio_sec) })}
               </p>
             )}
           </>
@@ -97,7 +90,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
             </div>
             {hasOverage && (
               <p className="landing-pricing-quota-note">
-                {t('landing.priceAudio', { price: formatMoney(tariff.price_per_audio_sec) })}
+                {t('landing.priceAudio', { price: formatRate(tariff.price_per_audio_sec) })}
               </p>
             )}
           </>

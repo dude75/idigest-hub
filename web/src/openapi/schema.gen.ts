@@ -4159,11 +4159,6 @@ export interface components {
              */
             price_per_audio_sec: string;
             /**
-             * Price Per Summarize Job
-             * @default 0
-             */
-            price_per_summarize_job: string;
-            /**
              * Price Per 1K Summary Chars
              * @default 0
              */
@@ -4267,8 +4262,6 @@ export interface components {
             archived: boolean;
             /** Price Per Audio Sec */
             price_per_audio_sec: string;
-            /** Price Per Summarize Job */
-            price_per_summarize_job: string;
             /** Price Per 1K Summary Chars */
             price_per_1k_summary_chars: string;
             /** Audio Retention Days */

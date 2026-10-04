@@ -38,7 +38,6 @@ class TariffPublic(BaseModel):
     available_on_signup: bool
     archived: bool
     price_per_audio_sec: str
-    price_per_summarize_job: str
     price_per_1k_summary_chars: str
     audio_retention_days: int
     api_enabled: bool

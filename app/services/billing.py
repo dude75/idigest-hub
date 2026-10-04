@@ -11,7 +11,7 @@ from app.deps import AuthContext
 from app.errors import ApiError, ErrorCode
 from app.i18n import t
 from app.models import Organization, Tariff, Task, UsageEvent, new_id
-from app.money import floor_to_cents
+from app.money import floor_to_cents, usage_charge_amount
 from app.timeutil import utcnow
 
 
@@ -40,7 +40,6 @@ def snapshot_fields(
     return {
         "snap_unlimited": tariff.unlimited,
         "snap_price_per_audio_sec": tariff.price_per_audio_sec,
-        "snap_price_per_summarize_job": tariff.price_per_summarize_job,
         "snap_price_per_1k_summary_chars": tariff.price_per_1k_summary_chars,
         "snap_max_upload_bytes": upload_limit(tariff),
         "snap_asr_model": asr_model,
@@ -52,7 +51,7 @@ def snapshot_fields(
 
 def transcribe_amount(task: Task, audio_duration_sec: float) -> Decimal:
     raw = Decimal(str(audio_duration_sec)) * Decimal(task.snap_price_per_audio_sec)
-    return floor_to_cents(raw)
+    return usage_charge_amount(raw)
 
 
 def summary_char_units(length: int) -> int:
@@ -62,10 +61,9 @@ def summary_char_units(length: int) -> int:
 
 
 def summarize_amount(task: Task, body: str) -> Decimal:
-    job = floor_to_cents(Decimal(task.snap_price_per_summarize_job))
     units = summary_char_units(len(body))
-    text = floor_to_cents(Decimal(units) * Decimal(task.snap_price_per_1k_summary_chars))
-    return job + text
+    raw = Decimal(units) * Decimal(task.snap_price_per_1k_summary_chars)
+    return usage_charge_amount(raw)
 
 
 def signup_balance(tariff: Tariff) -> Decimal:

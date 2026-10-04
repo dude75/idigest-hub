@@ -43,7 +43,6 @@ export const emptyTariff = {
   unlimited: false,
   available_on_signup: false,
   price_per_audio_sec: '0',
-  price_per_summarize_job: '0',
   price_per_1k_summary_chars: '0',
   audio_retention_days: 0,
   api_enabled: true,

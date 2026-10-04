@@ -36,6 +36,14 @@ export function formatDecimal(value: string | number, fractionDigits = 2, locale
   }).format(n)
 }
 
+/** Tariff rate strings: trim trailing zeros (0.01 not 0.010000). */
+export function formatRate(value: string | number): string {
+  const n = typeof value === 'string' ? Number.parseFloat(value) : value
+  if (!Number.isFinite(n)) return String(value)
+  if (Number.isInteger(n)) return String(n)
+  return n.toFixed(6).replace(/\.?0+$/, '')
+}
+
 export function fmtMediaTime(sec: number): string {
   const total = Math.max(0, Math.floor(Number(sec) || 0))
   const h = Math.floor(total / 3600)

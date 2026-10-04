@@ -1,8 +1,10 @@
 import json
+from decimal import Decimal
 from types import SimpleNamespace
 
 from app.constants import MAX_UPLOAD_BYTES_CAP
-from app.services.billing import upload_limit
+from app.money import rate_str, usage_charge_amount
+from app.services.billing import transcribe_amount, upload_limit
 from tests.conftest import (
     SAMPLE_WAV_BYTES,
     ADMIN_EMAIL,
@@ -27,6 +29,24 @@ def test_upload_limit_caps_at_one_gib():
     assert upload_limit(tariff) == MAX_UPLOAD_BYTES_CAP
 
 
+def test_rate_str_trims_trailing_zeros():
+    assert rate_str(Decimal("0.010000")) == "0.01"
+    assert rate_str(Decimal("2.500000")) == "2.5"
+    assert rate_str(Decimal("0.000100")) == "0.0001"
+
+
+def test_usage_charge_amount_floors_and_minimum_cent():
+    assert usage_charge_amount(Decimal("0")) == Decimal("0.00")
+    assert usage_charge_amount(Decimal("0.001")) == Decimal("0.01")
+    assert usage_charge_amount(Decimal("1.239")) == Decimal("1.23")
+
+
+def test_transcribe_amount_applies_minimum_cent():
+    task = SimpleNamespace(snap_price_per_audio_sec=Decimal("0.000100"))
+    assert transcribe_amount(task, 10.0) == Decimal("0.01")
+    assert transcribe_amount(task, 0.0) == Decimal("0.00")
+
+
 def test_unlimited_tariff_does_not_debit_but_records_usage(client, fake_workers):
     setup_admin(client)
     tariff_id = default_tariff_id(client)
@@ -37,7 +57,6 @@ def test_unlimited_tariff_does_not_debit_but_records_usage(client, fake_workers)
             "unlimited": True,
             "available_on_signup": True,
             "price_per_audio_sec": "1.000000",
-            "price_per_summarize_job": "0",
             "price_per_1k_summary_chars": "0",
             "audio_retention_days": 0,
             "api_enabled": True,
@@ -104,6 +123,24 @@ def test_started_task_can_drive_balance_negative_and_returns_result(client, fake
     transcript = client.get(f"/api/v1/transcripts/{task['transcript_id']}")
     assert transcript.status_code == 200, transcript.text
     assert transcript.json()["utterances"]
+
+
+def test_low_rate_transcribe_charges_minimum_cent(client, fake_workers):
+    setup_admin(client)
+    paid = create_tariff(client, name="Micro", price_per_audio_sec="0.000100", signup_credit="1.00")
+    worker = add_worker(client)
+    seed_node_health(worker["id"])
+    logout(client)
+    assert signup(client, "micro@example.com", "micropass1", paid["id"]).status_code == 200
+    audio = upload_audio(client)
+    fake_workers.transcribe_mode = "success"
+    fake_workers.audio_duration_sec = 10.0
+    created = client.post("/api/v1/tasks/transcribe", json={"audio_id": audio.json()["id"]})
+    assert created.status_code == 202, created.text
+    wait_task(client, created.json()["task_id"], status="success")
+    org = client.get("/api/v1/org").json()
+    assert org["balance"] == "0.99"
+    assert org["usage"]["total_amount"] == "0.01"
 
 
 def test_charge_uses_snapshot_prices_after_tariff_change(client, fake_workers):
@@ -268,7 +305,7 @@ def test_clone_tariff_copies_settings(client):
     assert body["name"] == "Cloned"
     assert body["id"] != base["id"]
     assert body["archived"] is False
-    assert body["price_per_audio_sec"] == "2.500000"
+    assert body["price_per_audio_sec"] == "2.5"
     assert body["audio_retention_days"] == 14
     assert body["tone_analytics_enabled"] is True
     assert body["api_enabled"] is False
@@ -280,20 +317,19 @@ def test_clone_tariff_copies_settings(client):
 
 def test_signup_credit_sets_org_balance(client):
     setup_admin(client)
-    paid = create_tariff(client, name="Trial", price_per_audio_sec="0", price_per_summarize_job="0", signup_credit="12.50")
+    paid = create_tariff(client, name="Trial", price_per_audio_sec="0", signup_credit="12.50")
     logout(client)
     assert signup(client, "trial@example.com", "trialpass", paid["id"]).status_code == 200
     org = client.get("/api/v1/org").json()
     assert org["balance"] == "12.50"
 
 
-def test_summarize_charges_job_plus_1k_chars(client, fake_workers):
+def test_summarize_charges_1k_chars(client, fake_workers):
     setup_admin(client)
     paid = create_tariff(
         client,
         name="LLM",
         price_per_audio_sec="0",
-        price_per_summarize_job="1.00",
         price_per_1k_summary_chars="2.000000",
         signup_credit="20.00",
     )
@@ -319,10 +355,10 @@ def test_summarize_charges_job_plus_1k_chars(client, fake_workers):
     assert summary.status_code == 202, summary.text
     wait_task(client, summary.json()["task_id"], status="success")
     org = client.get("/api/v1/org").json()
-    assert org["balance"] == "15.00"
+    assert org["balance"] == "16.00"
     stats = client.get("/api/v1/org/stats").json()
     assert stats["summary_chars"] == 1001
-    assert stats["total_amount"] == "5.00"
+    assert stats["total_amount"] == "4.00"
 
 
 def test_api_tokens_blocked_not_deleted_when_tariff_disables_api(client):

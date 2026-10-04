@@ -74,7 +74,6 @@ def test_list_active_import_tasks_with_many_done(client, monkeypatch):
                     updated_at=now,
                     snap_unlimited=True,
                     snap_price_per_audio_sec=0,
-                    snap_price_per_summarize_job=0,
                     snap_price_per_1k_summary_chars=0,
                     snap_max_upload_bytes=1,
                 )

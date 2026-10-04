@@ -1,6 +1,6 @@
 # Billing and tariffs
 
-Money is stored as `Numeric(12,2)`; charges are **floored to cents** (`app/money.py`).
+Money is stored as `Numeric(12,2)`; charges are **floored to cents** (`app/money.py`). If the raw amount is positive but floors to `0.00`, the charge is **at least 0.01** (`usage_charge_amount`).
 
 ## Tariff fields
 
@@ -10,8 +10,7 @@ Money is stored as `Numeric(12,2)`; charges are **floored to cents** (`app/money
 | `available_on_signup` | Shown on signup and allowed for org self-service tariff change |
 | `archived_at` | Non-null = archived; hidden from signup, cannot assign to new orgs |
 | `price_per_audio_sec` | Transcribe: duration × rate |
-| `price_per_summarize_job` | Flat fee per successful summarize |
-| `price_per_1k_summary_chars` | Per 1000 characters of **output** summary (rounded up) |
+| `price_per_1k_summary_chars` | Summarize: per 1000 characters of **output** summary (rounded up) |
 | `signup_credit` | Initial wallet on signup (ignored when unlimited) |
 | `max_upload_bytes` | Upload cap (capped globally at 1 GiB) |
 | `audio_retention_days` | `0` = keep forever; else purge job deletes old audio |
@@ -45,7 +44,6 @@ When a task is created, current tariff limits/prices are copied to the task row:
 ```
 snap_unlimited
 snap_price_per_audio_sec
-snap_price_per_summarize_job
 snap_price_per_1k_summary_chars
 snap_max_upload_bytes
 snap_asr_model          # transcribe only, user override or instance default
@@ -60,7 +58,7 @@ Transcribe and summarize resolve models at creation (user profile → instance s
 ### Transcribe
 
 ```
-amount = floor_to_cents(audio_duration_sec × snap_price_per_audio_sec)
+amount = usage_charge_amount(audio_duration_sec × snap_price_per_audio_sec)
 ```
 
 Duration comes from worker result meta `audio_duration_sec`. Also backfills `audios.duration_sec` if missing.
@@ -68,10 +66,8 @@ Duration comes from worker result meta `audio_duration_sec`. Also backfills `aud
 ### Summarize
 
 ```
-job = floor_to_cents(snap_price_per_summarize_job)
 units = ceil(len(summary_text) / 1000)   # 0 if empty
-text = floor_to_cents(units × snap_price_per_1k_summary_chars)
-amount = job + text
+amount = usage_charge_amount(units × snap_price_per_1k_summary_chars)
 ```
 
 ## Usage events

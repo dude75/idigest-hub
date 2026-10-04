@@ -50,7 +50,6 @@ class TariffBody(BaseModel):
     unlimited: bool = False
     available_on_signup: bool = False
     price_per_audio_sec: str = "0"
-    price_per_summarize_job: str = "0"
     price_per_1k_summary_chars: str = "0"
     audio_retention_days: int = 0
     api_enabled: bool = True

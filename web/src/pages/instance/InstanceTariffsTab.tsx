@@ -24,7 +24,7 @@ import { TariffImpactModal } from './TariffImpactModal'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import { TariffDetails } from '../../components/TariffDetails'
 import type { Tariff } from '../../types'
-import { formatBytes, formatDecimal, formatInteger, showError } from '../../util'
+import { formatBytes, formatInteger, formatRate, showError } from '../../util'
 import { emptyTariff, MAX_UPLOAD } from './constants'
 import { Button } from '@/components/ui/button'
 import { AdminFormActions, AdminMetaRow, AdminRowActions, AppSubmitButton, HubBadge } from '../../components/app/AdminUi'
@@ -40,7 +40,6 @@ function formToPreviewTariff(tform: typeof emptyTariff, id: string, archived: bo
     available_on_signup: tform.available_on_signup,
     archived,
     price_per_audio_sec: tform.price_per_audio_sec,
-    price_per_summarize_job: tform.price_per_summarize_job,
     price_per_1k_summary_chars: tform.price_per_1k_summary_chars,
     audio_retention_days: tform.audio_retention_days,
     api_enabled: tform.api_enabled,
@@ -92,7 +91,6 @@ export function InstanceTariffsTab() {
         unlimited: editingTariff.unlimited,
         available_on_signup: editingTariff.available_on_signup,
         price_per_audio_sec: editingTariff.price_per_audio_sec,
-        price_per_summarize_job: editingTariff.price_per_summarize_job,
         price_per_1k_summary_chars: editingTariff.price_per_1k_summary_chars,
         audio_retention_days: editingTariff.audio_retention_days,
         api_enabled: editingTariff.api_enabled,
@@ -126,7 +124,6 @@ export function InstanceTariffsTab() {
       unlimited: tr.unlimited,
       available_on_signup: tr.available_on_signup,
       price_per_audio_sec: tr.price_per_audio_sec,
-      price_per_summarize_job: tr.price_per_summarize_job,
       price_per_1k_summary_chars: tr.price_per_1k_summary_chars,
       audio_retention_days: tr.audio_retention_days,
       api_enabled: tr.api_enabled,
@@ -256,13 +253,6 @@ export function InstanceTariffsTab() {
               onChange={(e) => setTform({ ...tform, price_per_audio_sec: e.target.value })}
             />
             <AppInputField
-              label={t('instance.priceJob')}
-              htmlFor="tariff-price-job"
-              value={tform.price_per_summarize_job}
-              disabled={saveBusy}
-              onChange={(e) => setTform({ ...tform, price_per_summarize_job: e.target.value })}
-            />
-            <AppInputField
               label={t('instance.priceText')}
               htmlFor="tariff-price-text"
               value={tform.price_per_1k_summary_chars}
@@ -372,8 +362,7 @@ export function InstanceTariffsTab() {
                     )}
                   </TableCell>
                   <TableCell className={cn(adminTableCellMuted, 'tabular-nums')}>
-                    {formatDecimal(tr.price_per_audio_sec)} / {formatDecimal(tr.price_per_summarize_job)} /{' '}
-                    {formatDecimal(tr.price_per_1k_summary_chars)}
+                    {formatRate(tr.price_per_audio_sec)} / {formatRate(tr.price_per_1k_summary_chars)}
                     {' · '}
                     {formatBytes(tr.max_upload_bytes)}
                   </TableCell>
