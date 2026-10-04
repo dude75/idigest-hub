@@ -40,6 +40,14 @@ export function isTaskProcessingOnWorker(task: Task): boolean {
   return stage === 'running' || stage == null
 }
 
+/** Matches DELETE /tasks/{id} rules in the API. */
+export function canCancelTask(task: Task): boolean {
+  if (task.type === 'import' || task.type === 'capture') {
+    return task.status === 'queued' || task.status === 'running'
+  }
+  return task.status === 'queued'
+}
+
 export function taskStageLabelKey(task: Task): string | null {
   if (task.type === 'import') {
     const stage = typeof task.meta?.stage === 'string' ? task.meta.stage : task.status

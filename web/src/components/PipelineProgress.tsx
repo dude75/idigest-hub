@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { activePipeline, loadPipelineRun, type IngestPipeline } from '../pipeline'
+import { loadPipelineRun, pipelineForProgress, type IngestPipeline } from '../pipeline'
 import { isTaskProcessingOnWorker, isTaskWaitingOnWorkers } from '../taskStage'
 import type { Task } from '../types'
 
@@ -62,15 +62,22 @@ export function pipelineStepStatus(
   return 'pending'
 }
 
-export function shouldShowPipelineProgress(steps: PipelineStep[], inPipelineRun: boolean): boolean {
+export function shouldShowPipelineProgress(
+  steps: PipelineStep[],
+  inPipelineRun: boolean,
+  task: Task | null = null,
+): boolean {
   if (steps.length === 0) return false
-  if (steps.length <= 1 && !inPipelineRun) return false
+  if (steps.length <= 1 && !inPipelineRun) {
+    return Boolean(task && (task.status === 'queued' || task.status === 'running'))
+  }
   return true
 }
 
 export function PipelineProgress({ task }: { task: Task | null }) {
   const { t } = useTranslation()
-  const pipeline = activePipeline()
+  const inPipelineRun = loadPipelineRun() !== null
+  const pipeline = pipelineForProgress(task)
   const [showImport, setShowImport] = useState(
     () => task?.type === 'import' || task?.type === 'capture',
   )
@@ -80,9 +87,8 @@ export function PipelineProgress({ task }: { task: Task | null }) {
   }, [task?.type])
 
   const steps = buildPipelineSteps(pipeline, showImport, task)
-  const inPipelineRun = loadPipelineRun() !== null
 
-  if (!shouldShowPipelineProgress(steps, inPipelineRun)) return null
+  if (!shouldShowPipelineProgress(steps, inPipelineRun, task)) return null
 
   return (
     <ol className="pipeline-progress" aria-label={t('task.pipeline.title')}>

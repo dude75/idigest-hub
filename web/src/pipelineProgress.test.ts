@@ -59,14 +59,24 @@ describe('shouldShowPipelineProgress', () => {
     expect(shouldShowPipelineProgress(steps, true)).toBe(true)
   })
 
-  it('hides a single transcribe step outside a pipeline run', () => {
+  it('hides a single transcribe step outside a pipeline run when idle', () => {
     const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false)
-    expect(shouldShowPipelineProgress(steps, false)).toBe(false)
+    expect(shouldShowPipelineProgress(steps, false, null)).toBe(false)
   })
 
-  it('shows multi-step pipelines even outside a run', () => {
+  it('shows a single active transcribe step outside a pipeline run', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false)
+    expect(shouldShowPipelineProgress(steps, false, transcribeTask('queued'))).toBe(true)
+  })
+
+  it('shows multi-step task pipelines outside a run while active', () => {
     const steps = buildPipelineSteps({ transcribe: true, skillIds: ['s1'] }, true)
-    expect(shouldShowPipelineProgress(steps, false)).toBe(true)
+    expect(shouldShowPipelineProgress(steps, false, transcribeTask('queued'))).toBe(true)
+  })
+
+  it('does not show phantom summarize when task has no skill_ids', () => {
+    const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false, transcribeTask('queued'))
+    expect(steps.map((s) => s.id)).toEqual(['transcribe'])
   })
 })
 

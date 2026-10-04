@@ -109,6 +109,38 @@ export function activePipeline(): IngestPipeline {
   return loadPipelineRun() ?? loadPipeline()
 }
 
+function readTaskSkillIds(task: Task): string[] {
+  if (!Array.isArray(task.skill_ids)) return []
+  return task.skill_ids.filter((id): id is string => typeof id === 'string' && id.length > 0)
+}
+
+/** Pipeline steps for task poll UI — from session run or the task record, not library defaults. */
+export function pipelineForTask(task: Task | null): IngestPipeline {
+  if (!task) return { ...DEFAULT_PIPELINE }
+
+  if (task.type === 'summarize') {
+    const skillIds = readTaskSkillIds(task)
+    return { transcribe: false, skillIds }
+  }
+
+  if (task.type === 'transcribe') {
+    return { transcribe: true, skillIds: readTaskSkillIds(task) }
+  }
+
+  if (task.type === 'import' || task.type === 'capture') {
+    if (task.meta?.pipeline_transcribe !== true) {
+      return { transcribe: false, skillIds: [] }
+    }
+    return { transcribe: true, skillIds: readTaskSkillIds(task) }
+  }
+
+  return { ...DEFAULT_PIPELINE }
+}
+
+export function pipelineForProgress(task: Task | null): IngestPipeline {
+  return loadPipelineRun() ?? pipelineForTask(task)
+}
+
 export function pipelineShouldTranscribe(pipeline: IngestPipeline = loadPipeline()): boolean {
   return pipeline.transcribe
 }

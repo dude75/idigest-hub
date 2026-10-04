@@ -31,6 +31,7 @@ class TaskListItem(BaseModel):
     owner_email: str | None = None
     org_name: str | None = None
     audio_filename: str | None = None
+    skill_ids: list[str] = Field(default_factory=list)
 
 
 class TaskListResponse(BaseModel):

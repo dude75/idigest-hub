@@ -14451,6 +14451,14 @@
               }
             ],
             "title": "Audio Filename"
+          },
+          "skill_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skill Ids",
+            "default": []
           }
         },
         "type": "object",

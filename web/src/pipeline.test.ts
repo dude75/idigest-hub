@@ -7,6 +7,7 @@ import {
   importRequest,
   initialTaskFromNav,
   loadPipelineRun,
+  pipelineForTask,
   pipelineNavState,
 } from './pipeline'
 
@@ -96,5 +97,37 @@ describe('initialTaskFromNav', () => {
   it('returns null when route param is missing', () => {
     const task = sampleTask('task-42')
     expect(initialTaskFromNav({ pipeline: { transcribe: true, skillIds: [] }, task }, undefined)).toBeNull()
+  })
+})
+
+function task(partial: Partial<Task> & Pick<Task, 'type' | 'status'>): Task {
+  return {
+    task_id: 't1',
+    meta: {},
+    transcript_id: null,
+    summary_id: null,
+    error: null,
+    ...partial,
+  } as Task
+}
+
+describe('pipelineForTask', () => {
+  it('uses task skill_ids for transcribe, not library defaults', () => {
+    expect(pipelineForTask(task({ type: 'transcribe', status: 'queued', skill_ids: [] }))).toEqual({
+      transcribe: true,
+      skillIds: [],
+    })
+    expect(pipelineForTask(task({ type: 'transcribe', status: 'queued', skill_ids: ['s1'] }))).toEqual({
+      transcribe: true,
+      skillIds: ['s1'],
+    })
+  })
+
+  it('respects ingest pipeline_transcribe flag', () => {
+    expect(
+      pipelineForTask(
+        task({ type: 'import', status: 'running', meta: { pipeline_transcribe: false }, skill_ids: ['s1'] }),
+      ),
+    ).toEqual({ transcribe: false, skillIds: [] })
   })
 })

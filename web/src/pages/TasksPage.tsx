@@ -6,10 +6,11 @@ import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import type { Org, Task, User } from '../types'
 import { AdminPage, AppStackCard } from '../components/AdminSection'
 import { ListSection } from '../components/app/EntityUi'
-import { AdminRowActions, HubBadge } from '../components/app/AdminUi'
+import { AdminRowActions, AppSubmitButton, HubBadge } from '../components/app/AdminUi'
 import { AdminTablePager } from '../components/app/AdminDataTable'
 import { ListRow } from '../components/ListRow'
 import {
+  canCancelTask,
   isTaskMissingWorkerForModels,
   isTaskWaitingOnWorkers,
   taskStatusBadgeLabel,
@@ -144,7 +145,7 @@ export function TasksPage() {
 
   function row(task: Task) {
     const canManage = admin || task.user_id === me?.user.id
-    const canCancel = task.status === 'queued' && canManage
+    const canCancel = canCancelTask(task) && canManage
     const canRetry = taskIsRetriable(task) && canManage
     const typeLabel = t(`task.type.${task.type}`, { defaultValue: task.type })
     const label = task.audio_filename || typeLabel
@@ -179,9 +180,9 @@ export function TasksPage() {
           <AdminRowActions>
             <HubBadge tone={taskStatusBadgeTone(task)}>{taskStatusBadgeLabel(task, t)}</HubBadge>
             {canCancel ? (
-              <Button type="button" size="sm" variant="outline" onClick={() => void cancel(task.task_id)}>
+              <AppSubmitButton size="sm" ready onClick={() => void cancel(task.task_id)}>
                 {t('task.cancel')}
-              </Button>
+              </AppSubmitButton>
             ) : null}
             {canRetry ? (
               <Button type="button" size="sm" variant="outline" onClick={() => void retry(task.task_id)}>

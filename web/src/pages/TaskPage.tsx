@@ -6,10 +6,16 @@ import type { Task } from '../types'
 import { PipelineProgress } from '../components/PipelineProgress'
 import { isOrgAdmin, useAuth } from '../auth'
 import { EntityDetailCard, EntityPage } from '../components/app/EntityUi'
+import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Button } from '@/components/ui/button'
 import { CardHeader, CardTitle } from '@/components/ui/card'
 import { endPipelineRun, initialTaskFromNav, type PipelineNavState } from '../pipeline'
-import { isTaskMissingWorkerForModels, isTaskWaitingOnWorkers, taskStageLabel } from '../taskStage'
+import {
+  canCancelTask,
+  isTaskMissingWorkerForModels,
+  isTaskWaitingOnWorkers,
+  taskStageLabel,
+} from '../taskStage'
 import { useTaskPoll } from '../hooks/useTaskPoll'
 import { redirectAfterTaskSuccess } from '../taskPoll'
 import { showError, taskErrorDetail, taskErrorMessage, taskIsRetriable, taskYoutubeClientsTried } from '../util'
@@ -82,6 +88,8 @@ export function TaskPage() {
   const message = task ? taskErrorMessage(task, t) : null
   const detail = task ? taskErrorDetail(task) : null
   const clientsTried = task ? taskYoutubeClientsTried(task) : null
+  const canManage = Boolean(task && (admin || task.user_id === me?.user.id))
+  const cancelReady = Boolean(task && canCancelTask(task))
 
   return (
     <EntityPage backTo="/app/tasks">
@@ -90,7 +98,7 @@ export function TaskPage() {
           <PipelineProgress task={task} />
           <CardTitle className="text-lg leading-snug">{taskHeading()}</CardTitle>
         </CardHeader>
-        {task && isTaskWaitingOnWorkers(task) ? (
+        {task && isTaskWaitingOnWorkers(task) && cancelReady ? (
           <p className="muted task-wait-hint">{t('task.workerStage.waitHint')}</p>
         ) : null}
         {task && isTaskMissingWorkerForModels(task) ? (
@@ -128,8 +136,10 @@ export function TaskPage() {
           task.meta?.stage !== 'downloading' ? (
             <Button type="button" onClick={() => void stopCapture()}>{t('task.captureStop')}</Button>
           ) : null}
-          {task && (task.status === 'queued' || task.status === 'running') ? (
-            <Button type="button" variant="outline" onClick={() => void cancel()}>{t('task.cancel')}</Button>
+          {task && canManage && cancelReady ? (
+            <AppSubmitButton ready onClick={() => void cancel()}>
+              {t('task.cancel')}
+            </AppSubmitButton>
           ) : null}
           {task && taskIsRetriable(task) && (admin || task.user_id === me?.user.id) ? (
             <Button type="button" onClick={() => void retry()}>{t('task.retry')}</Button>

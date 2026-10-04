@@ -258,6 +258,7 @@ def task_public(task: Task, extra: dict[str, Any] | None = None) -> dict[str, An
         "source_transcript_id": task.transcript_id,
         "created_at": isoformat_utc(task.created_at),
         "updated_at": isoformat_utc(task.updated_at),
+        "skill_ids": list(task.skill_ids_json or []),
     }
     if task.status == "error" and task.error_code:
         body["error"] = {"code": task.error_code}

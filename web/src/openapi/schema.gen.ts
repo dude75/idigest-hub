@@ -4324,6 +4324,8 @@ export interface components {
             org_name?: string | null;
             /** Audio Filename */
             audio_filename?: string | null;
+            /** Skill Ids */
+            skill_ids?: string[];
         };
         /** TaskListResponse */
         TaskListResponse: {

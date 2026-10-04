@@ -261,6 +261,7 @@ export type Task = {
   owner_email?: string | null
   org_name?: string | null
   audio_filename?: string | null
+  skill_ids?: string[]
 }
 
 export type Skill = SchemaSkillPublicResponse

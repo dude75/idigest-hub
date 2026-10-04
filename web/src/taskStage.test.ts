@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Task } from './types'
 import {
+  canCancelTask,
   isTaskWaitingOnWorkers,
   taskStageLabelKey,
   taskStatusBadgeTone,
@@ -44,5 +45,21 @@ describe('taskStage', () => {
     expect(isTaskWaitingOnWorkers(stuck)).toBe(false)
     expect(taskStageLabelKey(stuck)).toBe('task.workerStage.no_matching_worker')
     expect(taskStatusBadgeTone(stuck)).toBe('warning')
+  })
+
+  it('allows cancel while hub-queued transcribe waits for a worker', () => {
+    const waiting = task({ type: 'transcribe', status: 'queued', meta: { stage: 'queued' } })
+    expect(canCancelTask(waiting)).toBe(true)
+  })
+
+  it('disallows cancel once transcribe is running on a worker', () => {
+    const onWorker = task({ type: 'transcribe', status: 'running', meta: { stage: 'queued' } })
+    expect(canCancelTask(onWorker)).toBe(false)
+    expect(canCancelTask(task({ type: 'transcribe', status: 'running', meta: { stage: 'running' } }))).toBe(false)
+  })
+
+  it('allows cancel for active import and capture tasks', () => {
+    expect(canCancelTask(task({ type: 'import', status: 'running', meta: {} }))).toBe(true)
+    expect(canCancelTask(task({ type: 'capture', status: 'queued', meta: {} }))).toBe(true)
   })
 })
