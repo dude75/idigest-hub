@@ -199,13 +199,13 @@ def test_member_delete_preserves_org_usage_events(client):
     logout(client)
     login_ready(client, "lead@example.com", "leadpass1")
     usage_total = client.get("/api/v1/org").json()["usage"]["total_amount"]
-    assert usage_total == "50.00"
+    assert usage_total == "50.000"
 
     with open_db() as db:
         events = list(
             db.scalars(select(UsageEvent).where(UsageEvent.org_id == org_id)).all()
         )
         assert len(events) == 2
-        assert sum(Decimal(str(e.amount)) for e in events) == Decimal("50.00")
+        assert sum(Decimal(str(e.amount)) for e in events) == Decimal("50.000")
         assert sum(1 for e in events if e.user_id is None) == 1
         assert sum(1 for e in events if e.user_id == lead_id) == 1

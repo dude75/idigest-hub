@@ -32,7 +32,7 @@ def test_signup_creates_org_named_local_part(client):
     assert payload["user"]["role"] == "org_admin"
     assert payload["user"]["email"] == "alice@example.com"
     assert payload["org"]["name"] == "alice"
-    assert payload["org"]["balance"] == "0.00"
+    assert payload["org"]["balance"] == "0.000"
 
 
 def test_signup_disabled_when_allow_new_orgs_false(client):

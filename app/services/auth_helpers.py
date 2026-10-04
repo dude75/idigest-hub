@@ -37,7 +37,7 @@ def seed_default_tariff(db: Session) -> Tariff:
         price_per_1k_summary_chars=Decimal("0"),
         audio_retention_days=0,
         api_enabled=True,
-        signup_credit=Decimal("0.00"),
+        signup_credit=Decimal("0.000"),
         max_upload_bytes=MAX_UPLOAD_BYTES_CAP,
         created_at=now,
         updated_at=now,

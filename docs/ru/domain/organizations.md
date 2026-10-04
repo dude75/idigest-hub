@@ -43,7 +43,7 @@ Instance admin может скрыть org из списка (`POST /orgs/{id}/h
 | `password_ttl_days` | org_admin | `0` = отключено; принудительная периодическая смена пароля |
 | `mfa_required` | org_admin | При `true` local-auth участники должны настроить TOTP 2FA; несовместимо с SSO |
 | `allow_public_links` | org_admin | При `false` отключает гостевые URL на summary |
-| `balance` | instance_admin (кошелёк) | Decimal(12,2), при списании округляется вниз до центов |
+| `balance` | instance_admin (кошелёк) | Decimal(12,3), при списании округляется вниз до тысячных |
 
 GET `/org` возвращает org + вложенный tariff + итог использования (`sum(usage_events.amount)`).
 

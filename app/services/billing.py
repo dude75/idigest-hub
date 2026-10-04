@@ -11,7 +11,7 @@ from app.deps import AuthContext
 from app.errors import ApiError, ErrorCode
 from app.i18n import t
 from app.models import Organization, Tariff, Task, UsageEvent, new_id
-from app.money import floor_to_cents, usage_charge_amount
+from app.money import floor_money, usage_charge_amount
 from app.timeutil import utcnow
 
 
@@ -68,8 +68,8 @@ def summarize_amount(task: Task, body: str) -> Decimal:
 
 def signup_balance(tariff: Tariff) -> Decimal:
     if tariff.unlimited:
-        return Decimal("0.00")
-    return floor_to_cents(Decimal(tariff.signup_credit))
+        return Decimal("0.000")
+    return floor_money(Decimal(tariff.signup_credit))
 
 
 def org_api_enabled(org: Organization | None) -> bool:
@@ -91,7 +91,7 @@ def apply_success_charge(
         return
     skip = bool(task.snap_unlimited)
     if not skip:
-        org.balance = floor_to_cents(Decimal(org.balance) - amount)
+        org.balance = floor_money(Decimal(org.balance) - amount)
         org.updated_at = utcnow()
     db.add(
         UsageEvent(

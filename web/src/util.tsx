@@ -27,7 +27,14 @@ export function formatInteger(value: number, locale = i18n.language): string {
   return new Intl.NumberFormat(locale).format(n)
 }
 
-export function formatDecimal(value: string | number, fractionDigits = 2, locale = i18n.language): string {
+/** Wallet and billing amounts (3 decimal places). */
+export const MONEY_FRACTION_DIGITS = 3
+
+export function formatDecimal(
+  value: string | number,
+  fractionDigits = MONEY_FRACTION_DIGITS,
+  locale = i18n.language,
+): string {
   const n = typeof value === 'string' ? Number.parseFloat(value) : value
   if (!Number.isFinite(n)) return String(value)
   return new Intl.NumberFormat(locale, {

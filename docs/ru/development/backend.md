@@ -95,7 +95,7 @@ Server strings: `app/locales/{en,ru,es}.json`. Client strings: `web/src/locales/
 
 ## Money
 
-Всегда используйте `floor_to_cents` из `app/money.py` для операций с wallet.
+Всегда используйте `floor_money` из `app/money.py` для операций с wallet.
 
 ## Добавление endpoint
 

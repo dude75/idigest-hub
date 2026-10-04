@@ -88,7 +88,7 @@ def usage_stats(
     summarize_done = 0
     audio_sec = 0.0
     summary_chars = 0
-    total = Decimal("0.00")
+    total = Decimal("0.000")
     by_day: dict[str, dict] = {}
 
     for event in rows:
@@ -108,7 +108,7 @@ def usage_stats(
                 "tasks_summarize_success": 0,
                 "audio_transcribed_sec": 0.0,
                 "summary_chars": 0,
-                "amount": Decimal("0.00"),
+                "amount": Decimal("0.000"),
             },
         )
         if event.kind == "transcribe":
@@ -180,9 +180,9 @@ def org_ledger(
 ) -> dict:
     entries: list[dict] = []
     user_cache: dict[str, str | None] = {}
-    total_spent = Decimal("0.00")
-    total_topup = Decimal("0.00")
-    net = Decimal("0.00")
+    total_spent = Decimal("0.000")
+    total_topup = Decimal("0.000")
+    net = Decimal("0.000")
 
     usage_filters = [UsageEvent.org_id == org_id]
     if start is not None:
@@ -199,7 +199,7 @@ def org_ledger(
             user = db.get(User, event.user_id)
             user_cache[event.user_id] = user.email if user else None
         usage_amount = Decimal(event.amount)
-        impact = Decimal("0.00") if event.unlimited_skip else -usage_amount
+        impact = Decimal("0.000") if event.unlimited_skip else -usage_amount
         total_spent += -impact
         net += impact
         entries.append(

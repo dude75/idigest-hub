@@ -35,16 +35,17 @@ def test_rate_str_trims_trailing_zeros():
     assert rate_str(Decimal("0.000100")) == "0.0001"
 
 
-def test_usage_charge_amount_floors_and_minimum_cent():
-    assert usage_charge_amount(Decimal("0")) == Decimal("0.00")
-    assert usage_charge_amount(Decimal("0.001")) == Decimal("0.01")
-    assert usage_charge_amount(Decimal("1.239")) == Decimal("1.23")
+def test_usage_charge_amount_floors_and_minimum_thousandth():
+    assert usage_charge_amount(Decimal("0")) == Decimal("0.000")
+    assert usage_charge_amount(Decimal("0.0001")) == Decimal("0.001")
+    assert usage_charge_amount(Decimal("0.001")) == Decimal("0.001")
+    assert usage_charge_amount(Decimal("1.2399")) == Decimal("1.239")
 
 
-def test_transcribe_amount_applies_minimum_cent():
+def test_transcribe_amount_applies_minimum_thousandth():
     task = SimpleNamespace(snap_price_per_audio_sec=Decimal("0.000100"))
-    assert transcribe_amount(task, 10.0) == Decimal("0.01")
-    assert transcribe_amount(task, 0.0) == Decimal("0.00")
+    assert transcribe_amount(task, 10.0) == Decimal("0.001")
+    assert transcribe_amount(task, 0.0) == Decimal("0.000")
 
 
 def test_unlimited_tariff_does_not_debit_but_records_usage(client, fake_workers):
@@ -78,7 +79,7 @@ def test_unlimited_tariff_does_not_debit_but_records_usage(client, fake_workers)
     org = client.get("/api/v1/org")
     assert org.status_code == 200, org.text
     body = org.json()
-    assert body["balance"] == "0.00"
+    assert body["balance"] == "0.000"
     assert body["unlimited"] is True
     assert "usage" in body
     assert body["usage"]["total_amount"] != "0"
@@ -125,7 +126,7 @@ def test_started_task_can_drive_balance_negative_and_returns_result(client, fake
     assert transcript.json()["utterances"]
 
 
-def test_low_rate_transcribe_charges_minimum_cent(client, fake_workers):
+def test_low_rate_transcribe_charges_sub_cent_amount(client, fake_workers):
     setup_admin(client)
     paid = create_tariff(client, name="Micro", price_per_audio_sec="0.000100", signup_credit="1.00")
     worker = add_worker(client)
@@ -139,8 +140,8 @@ def test_low_rate_transcribe_charges_minimum_cent(client, fake_workers):
     assert created.status_code == 202, created.text
     wait_task(client, created.json()["task_id"], status="success")
     org = client.get("/api/v1/org").json()
-    assert org["balance"] == "0.99"
-    assert org["usage"]["total_amount"] == "0.01"
+    assert org["balance"] == "0.999"
+    assert org["usage"]["total_amount"] == "0.001"
 
 
 def test_charge_uses_snapshot_prices_after_tariff_change(client, fake_workers):
@@ -173,7 +174,7 @@ def test_charge_uses_snapshot_prices_after_tariff_change(client, fake_workers):
     fake_workers.audio_duration_sec = 2.0
     wait_task(client, task_id, status="success")
     org = client.get("/api/v1/org").json()
-    assert org["balance"] == "98.00"
+    assert org["balance"] == "98.000"
     assert org["tariff"]["id"] == expensive["id"]
 
 
@@ -321,7 +322,7 @@ def test_signup_credit_sets_org_balance(client):
     logout(client)
     assert signup(client, "trial@example.com", "trialpass", paid["id"]).status_code == 200
     org = client.get("/api/v1/org").json()
-    assert org["balance"] == "12.50"
+    assert org["balance"] == "12.500"
 
 
 def test_summarize_charges_1k_chars(client, fake_workers):
@@ -355,10 +356,10 @@ def test_summarize_charges_1k_chars(client, fake_workers):
     assert summary.status_code == 202, summary.text
     wait_task(client, summary.json()["task_id"], status="success")
     org = client.get("/api/v1/org").json()
-    assert org["balance"] == "16.00"
+    assert org["balance"] == "16.000"
     stats = client.get("/api/v1/org/stats").json()
     assert stats["summary_chars"] == 1001
-    assert stats["total_amount"] == "4.00"
+    assert stats["total_amount"] == "4.000"
 
 
 def test_api_tokens_blocked_not_deleted_when_tariff_disables_api(client):

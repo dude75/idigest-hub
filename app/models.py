@@ -1,4 +1,4 @@
-"""Модели БД (ТЗ §11). UUID как строки, деньги Numeric(12,2), без deleted_at."""
+"""Модели БД (ТЗ §11). UUID как строки, деньги Numeric(12,3), без deleted_at."""
 
 from __future__ import annotations
 
@@ -192,7 +192,7 @@ class Organization(Base):
     tariff_id: Mapped[str] = mapped_column(String(36), ForeignKey("tariffs.id"), nullable=False, index=True)
     password_ttl_days: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     mfa_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    balance: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    balance: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False, default=Decimal("0.000"))
     sso_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     sso_issuer: Mapped[str | None] = mapped_column(String(512))
     sso_client_id: Mapped[str | None] = mapped_column(String(255))
@@ -286,7 +286,7 @@ class Tariff(Base):
     price_per_1k_summary_chars: Mapped[Decimal] = mapped_column(Numeric(12, 6), nullable=False, default=Decimal("0"))
     audio_retention_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     api_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    signup_credit: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=Decimal("0.00"))
+    signup_credit: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False, default=Decimal("0.000"))
     max_upload_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
     tone_analytics_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -523,7 +523,7 @@ class UsageEvent(Base):
     kind: Mapped[str] = mapped_column(String(32), nullable=False)
     audio_sec: Mapped[float | None] = mapped_column()
     summary_chars: Mapped[int | None] = mapped_column(Integer)
-    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 3), nullable=False)
     unlimited_skip: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 

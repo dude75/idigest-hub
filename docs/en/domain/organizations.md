@@ -43,7 +43,7 @@ Instance admin can also hide orgs from their list (`POST /orgs/{id}/hide`, `/unh
 | `password_ttl_days` | org_admin | `0` = disabled; forces periodic password change |
 | `mfa_required` | org_admin | When `true`, local-auth members must enroll TOTP 2FA; incompatible with SSO |
 | `allow_public_links` | org_admin | When `false`, disables public summary guest URLs for the org |
-| `balance` | instance_admin (wallet) | Decimal(12,2), floored to cents on charge |
+| `balance` | instance_admin (wallet) | Decimal(12,3), floored to thousandths on charge |
 
 GET `/org` returns org + embedded tariff + usage total (`sum(usage_events.amount)`).
 

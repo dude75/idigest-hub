@@ -1,6 +1,6 @@
 # Billing and tariffs
 
-Money is stored as `Numeric(12,2)`; charges are **floored to cents** (`app/money.py`). If the raw amount is positive but floors to `0.00`, the charge is **at least 0.01** (`usage_charge_amount`).
+Money is stored as `Numeric(12,3)`; charges are **floored to thousandths** (`app/money.py`). If the raw amount is positive but floors to `0.000`, the charge is **at least 0.001** (`usage_charge_amount`).
 
 ## Tariff fields
 

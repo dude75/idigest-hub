@@ -300,8 +300,8 @@ def test_wipe_source_while_queued_cancels_without_charge(client):
     assert later.json()["status"] == "error"
     assert later.json()["error"]["code"] == "canceled"
     org = client.get("/api/v1/org").json()
-    assert org["balance"] == "0.00"
-    assert org["usage"]["total_amount"] in {"0", "0.00"}
+    assert org["balance"] == "0.000"
+    assert org["usage"]["total_amount"] in {"0", "0.000"}
 
 
 def test_wipe_source_while_running_charges_but_skips_library(client, fake_workers):
