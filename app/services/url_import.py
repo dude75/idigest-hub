@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlparse
 
+from app.constants import ALLOWED_AUDIO_SUFFIXES
 from app.services.export import safe_filename
 from app.services.import_platforms import (
     DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
@@ -22,6 +23,8 @@ from app.services.import_platforms import (
     catalog_platform_for_host,
     host_from_url,
 )
+from app.services.upload_validation import sniff_audio_suffix
+from app.services.video_extract import VideoExtractError, media_file_to_mp3
 
 log = logging.getLogger("app.import")
 
@@ -300,16 +303,62 @@ def _reject_import_over_size_limit(
         )
 
 
+def _sniff_file_suffix(path: Path) -> str | None:
+    try:
+        header = path.read_bytes()[:12]
+    except OSError:
+        return None
+    if len(header) < 4:
+        return None
+    return sniff_audio_suffix(header)
+
+
 def _pick_import_source(tmpdir: Path) -> Path:
     files = [p for p in tmpdir.iterdir() if p.is_file()]
     if not files:
         raise UrlImportError("download_failed")
+    sniffed: list[tuple[Path, str]] = []
+    for path in files:
+        suffix = _sniff_file_suffix(path)
+        if suffix:
+            sniffed.append((path, suffix))
+    if sniffed:
+        mp3 = [path for path, suffix in sniffed if suffix == ".mp3"]
+        pool = mp3 or [path for path, _ in sniffed]
+        return max(pool, key=lambda p: p.stat().st_size)
     audio = [p for p in files if p.suffix.lower() in _IMPORT_AUDIO_SUFFIXES]
     if audio:
         mp3 = [p for p in audio if p.suffix.lower() == ".mp3"]
         pool = mp3 or audio
         return max(pool, key=lambda p: p.stat().st_size)
     return max(files, key=lambda p: p.stat().st_size)
+
+
+def _finalize_import_artifact(
+    source: Path,
+    tmpdir: Path,
+    *,
+    title: str | None,
+    max_audio_bitrate_kbps: int,
+) -> tuple[Path, str, str]:
+    """Return (path, storage suffix, download filename) matching file content."""
+    sniffed = _sniff_file_suffix(source)
+    stem = safe_filename(title if isinstance(title, str) and title.strip() else source.stem)
+
+    if sniffed == ".mp3":
+        return source, ".mp3", f"{stem}.mp3"
+    if sniffed in ALLOWED_AUDIO_SUFFIXES:
+        return source, sniffed, f"{stem}{sniffed}"
+
+    dest = tmpdir / "normalized.mp3"
+    try:
+        media_file_to_mp3(source, dest, bitrate_kbps=max_audio_bitrate_kbps)
+    except VideoExtractError as exc:
+        raise UrlImportError(
+            "invalid_file",
+            meta={"reason": str(exc), "error_detail": _error_detail(exc)},
+        ) from exc
+    return dest, ".mp3", f"{stem}.mp3"
 
 
 def _ydl_opts(
@@ -858,10 +907,14 @@ def download_audio(
     )
 
     title = meta.get("title")
-    stem = safe_filename(title if isinstance(title, str) and title.strip() else source.stem)
-    filename = f"{stem}.mp3"
-
-    if on_progress:
+    sniffed_before = _sniff_file_suffix(source)
+    storage_path, suffix, filename = _finalize_import_artifact(
+        source,
+        tmpdir,
+        title=title if isinstance(title, str) else None,
+        max_audio_bitrate_kbps=max_audio_bitrate_kbps,
+    )
+    if sniffed_before != ".mp3" and suffix == ".mp3" and on_progress:
         on_progress(
             "converting",
             {
@@ -872,8 +925,8 @@ def download_audio(
         )
 
     return ImportResult(
-        source_path=source,
-        suffix=".mp3",
+        source_path=storage_path,
+        suffix=suffix,
         original_filename=filename,
         title=title if isinstance(title, str) else None,
         duration_sec=meta.get("duration_sec"),

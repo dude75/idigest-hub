@@ -109,18 +109,24 @@ def _run_extract(source: Path, dest: Path, *, bitrate_kbps: int, timeout: float)
     validate_audio_header(".mp3", header)
 
 
-def _extract_sync(source: Path, mp3_path: Path) -> None:
+def media_file_to_mp3(
+    source: Path,
+    dest: Path,
+    *,
+    bitrate_kbps: int = 0,
+) -> None:
+    """Extract/normalize any media file with an audio stream to MP3 on disk."""
     timeout = _ffmpeg_timeout_sec()
+    kbps = bitrate_kbps if bitrate_kbps > 0 else DEFAULT_IMPORT_AUDIO_BITRATE_KBPS
     try:
         _run_probe(source, timeout=timeout)
-        _run_extract(
-            source,
-            mp3_path,
-            bitrate_kbps=DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
-            timeout=timeout,
-        )
+        _run_extract(source, dest, bitrate_kbps=kbps, timeout=timeout)
     except FileNotFoundError as exc:
         raise VideoExtractError("ffmpeg_missing") from exc
+
+
+def _extract_sync(source: Path, mp3_path: Path) -> None:
+    media_file_to_mp3(source, mp3_path)
 
 
 async def video_upload_to_mp3_temp(

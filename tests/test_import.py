@@ -611,6 +611,49 @@ def test_pick_import_source_prefers_largest_mp3(tmp_path):
     assert picked == large
 
 
+def test_pick_import_source_prefers_valid_webm_over_fake_mp3(tmp_path):
+    from app.services.url_import import _pick_import_source
+
+    fake_mp3 = tmp_path / "clip.mp3"
+    fake_mp3.write_bytes(b"not-really-mp3" + b"\x00" * 4096)
+    webm = tmp_path / "clip.webm"
+    webm.write_bytes(b"\x1a\x45\xdf\xa3" + b"\x00" * 512)
+
+    picked = _pick_import_source(tmp_path)
+    assert picked == webm
+
+
+def test_finalize_import_artifact_keeps_webm_without_reencode(tmp_path):
+    from app.services.url_import import _finalize_import_artifact
+
+    source = tmp_path / "clip.webm"
+    source.write_bytes(b"\x1a\x45\xdf\xa3" + b"\x00" * 512)
+    path, suffix, name = _finalize_import_artifact(
+        source,
+        tmp_path,
+        title="My Video",
+        max_audio_bitrate_kbps=128,
+    )
+    assert path == source
+    assert suffix == ".webm"
+    assert name == "My Video.webm"
+
+
+def test_finalize_import_artifact_sniffs_mp3_extension(tmp_path):
+    from app.services.url_import import _finalize_import_artifact
+
+    source = tmp_path / "clip.mp3"
+    source.write_bytes(b"ID3" + b"\x00" * 128)
+    path, suffix, name = _finalize_import_artifact(
+        source,
+        tmp_path,
+        title=None,
+        max_audio_bitrate_kbps=128,
+    )
+    assert suffix == ".mp3"
+    assert name.endswith(".mp3")
+
+
 def test_download_audio_payload_too_large_uses_largest_artifact(monkeypatch):
     from pathlib import Path
 
