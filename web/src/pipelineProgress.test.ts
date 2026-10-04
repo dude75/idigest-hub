@@ -41,11 +41,21 @@ describe('buildPipelineSteps', () => {
     const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false)
     expect(steps.map((s) => s.id)).toEqual(['transcribe'])
   })
+
+  it('builds summarize-only steps from transcript page', () => {
+    const steps = buildPipelineSteps({ transcribe: false, skillIds: ['s1'] }, false)
+    expect(steps.map((s) => s.id)).toEqual(['summarize'])
+  })
 })
 
 describe('shouldShowPipelineProgress', () => {
   it('shows a single transcribe step during an active pipeline run', () => {
     const steps = buildPipelineSteps({ transcribe: true, skillIds: [] }, false)
+    expect(shouldShowPipelineProgress(steps, true)).toBe(true)
+  })
+
+  it('shows a single summarize step during an active pipeline run', () => {
+    const steps = buildPipelineSteps({ transcribe: false, skillIds: ['s1'] }, false)
     expect(shouldShowPipelineProgress(steps, true)).toBe(true)
   })
 

@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
-import { useTaskPoll } from '../hooks/useTaskPoll'
 import { isOrgAdmin, useAuth } from '../auth'
 import { AudioPlayer, type AudioPlayerHandle } from '../components/AudioPlayer'
 import { InlineRename } from '../components/InlineRename'
@@ -10,7 +9,12 @@ import { ConfirmDialog } from '../components/ConfirmDialog'
 import { EntityHint, EntityToolbar } from '../components/EntityToolbar'
 import { ListRow } from '../components/ListRow'
 import { ShareDialog } from '../components/ShareDialog'
-import { loadSummarizeSkillIds, saveSummarizeSkillIds } from '../pipeline'
+import {
+  beginSummarizePipelineRun,
+  loadSummarizeSkillIds,
+  pipelineNavState,
+  saveSummarizeSkillIds,
+} from '../pipeline'
 import { libraryPath } from '../routes'
 import type { SchemaSkillListResponse, SchemaSkillPublicResponse } from '../openapi'
 import type { Summary, Task, Transcript } from '../types'
@@ -60,7 +64,6 @@ export function TranscriptPage() {
   const [share, setShare] = useState(false)
   const [confirmWipe, setConfirmWipe] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [pendingTaskId, setPendingTaskId] = useState<string | null>(null)
   const [openText, setOpenText] = useState(false)
   const [seekOnClick, setSeekOnClick] = useState(false)
   const [showToneOnUtterances, setShowToneOnUtterances] = useState(() => {
@@ -94,7 +97,6 @@ export function TranscriptPage() {
   useEffect(() => {
     setOpenText(false)
     setSeekOnClick(false)
-    setPendingTaskId(null)
     pickedInit.current = false
     setPicked({})
     load()
@@ -116,23 +118,6 @@ export function TranscriptPage() {
     setPicked(initial)
   }, [skills])
 
-  useTaskPoll({
-    taskId: pendingTaskId ?? undefined,
-    enabled: Boolean(pendingTaskId && id),
-    pollMs: 3000,
-    onTask: () => {
-      if (!id) return
-      void api<Transcript>(`/transcripts/${id}`)
-        .then(setItem)
-        .catch(() => {
-          /* ignore transient poll errors */
-        })
-    },
-    onTerminal: () => {
-      setPendingTaskId(null)
-    },
-  })
-
   function toggleSkill(skillId: string, checked: boolean) {
     setPicked((prev) => {
       const next = { ...prev, [skillId]: checked }
@@ -147,11 +132,12 @@ export function TranscriptPage() {
     if (skill_ids.length === 0) return
     setBusy(true)
     try {
+      const pipeline = beginSummarizePipelineRun(skill_ids)
       const task = await api<Task>('/tasks/summarize', {
         method: 'POST',
         body: JSON.stringify({ transcript_id: id, skill_ids }),
       })
-      setPendingTaskId(task.task_id)
+      nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
     } catch (e) {
       showError(e)
     } finally {
@@ -428,12 +414,6 @@ export function TranscriptPage() {
               >
                 {t('transcript.summarize')}
               </Button>
-              {pendingTaskId && (
-                <p className="muted transcript-summaries-pending">
-                  {t('transcript.summarizePending')}{' '}
-                  <Link to={`/app/task/${pendingTaskId}`}>{t('transcript.summarizePendingLink')}</Link>
-                </p>
-              )}
             </div>
             <div className="transcript-summaries-results border-t pt-3">
               <h3 className="mb-2 text-sm font-medium">{t('transcript.summariesCount', { count: (item.summaries || []).length })}</h3>

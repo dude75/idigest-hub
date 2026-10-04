@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import type { Task } from './types'
 import {
   beginPipelineRun,
+  beginSummarizePipelineRun,
   endPipelineRun,
   importRequest,
   initialTaskFromNav,
+  loadPipelineRun,
   pipelineNavState,
 } from './pipeline'
 
@@ -40,6 +42,18 @@ describe('importRequest', () => {
     expect(importRequest('https://example.com/v', { transcribe: false, skillIds: [] })).toEqual({
       url: 'https://example.com/v',
     })
+  })
+})
+
+describe('beginSummarizePipelineRun', () => {
+  beforeEach(() => {
+    endPipelineRun()
+  })
+
+  it('stores summarize-only pipeline in session', () => {
+    const run = beginSummarizePipelineRun(['skill-1', ''])
+    expect(run).toEqual({ transcribe: false, skillIds: ['skill-1'] })
+    expect(loadPipelineRun()).toEqual(run)
   })
 })
 

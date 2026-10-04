@@ -77,6 +77,16 @@ export function beginPipelineRun(pipeline: IngestPipeline = loadPipeline()): Ing
   return run
 }
 
+/** Summarize-only run from transcript page (not persisted in library pipeline settings). */
+export function beginSummarizePipelineRun(skillIds: string[]): IngestPipeline {
+  const run: IngestPipeline = {
+    transcribe: false,
+    skillIds: skillIds.filter((id) => id.length > 0),
+  }
+  sessionStorage.setItem(RUN_KEY, JSON.stringify(run))
+  return run
+}
+
 export function loadPipelineRun(): IngestPipeline | null {
   try {
     const raw = sessionStorage.getItem(RUN_KEY)
@@ -110,7 +120,9 @@ export function pipelineShouldSummarize(pipeline: IngestPipeline): boolean {
 export type PipelineNavState = { pipeline: IngestPipeline; task?: Task }
 
 export function pipelineNavState(pipeline: IngestPipeline, task?: Task): PipelineNavState {
-  const run = loadPipelineRun() ?? normalizePipeline(pipeline)
+  const run =
+    loadPipelineRun() ??
+    (pipeline.skillIds.length > 0 && !pipeline.transcribe ? pipeline : normalizePipeline(pipeline))
   return { pipeline: run, task }
 }
 
