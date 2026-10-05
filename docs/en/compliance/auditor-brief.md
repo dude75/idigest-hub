@@ -90,6 +90,7 @@ Full matrix: [§ Shared responsibility](#shared-responsibility-matrix).
 | RBAC | Three roles + object ownership/shares | [Roles and access](../domain/roles-and-access.md) |
 | Impersonation | Instance admin only; admin powers disabled while impersonating; audited | `app/deps.py`, `app/routers/instance.py` |
 | Bootstrap gate | One-time `/setup` with `INSTANCE_BOOTSTRAP_TOKEN` | `app/routers/auth.py`, `.env.example` |
+| Emergency instance admin reset | Documented offline CLI (`scripts/reset_instance_admin_password.py`, `--confirm`); requires host/DB access and `.env` secrets; writes `audit_log` (`source: cli`) | [Troubleshooting](../operations/troubleshooting.md), `scripts/reset_instance_admin_password.py` |
 | Metrics endpoint | Bearer `METRICS_TOKEN` required | `app/metrics_auth.py`, tests: `tests/test_prometheus.py` |
 
 **Local-user MFA:** TOTP 2FA (opt-in in profile; org may require when SSO off). SSO users rely on IdP MFA.

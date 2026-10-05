@@ -31,6 +31,7 @@ COPY version.txt ./
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY app ./app
+COPY scripts ./scripts
 COPY --from=web /web/dist ./web/dist
 
 RUN groupadd --gid 1001 app \

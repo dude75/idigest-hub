@@ -10,6 +10,7 @@ Extended from [README — Typical errors](../../../README.md#typical-errors).
 | `setup_already_done` | Admin exists | Use login |
 | `signup_disabled` | `allow_new_orgs=false` or no signup tariffs | Instance → Settings / Tariffs |
 | `invalid_credentials` | Wrong password or disabled user | Reset or admin enable |
+| Forgot **instance admin** password | No other admin, SMTP recovery unavailable | Break-glass on host with `.env` + DB: `python scripts/reset_instance_admin_password.py --confirm` (see `--email`, `--clear-mfa`, `--enable`) |
 | `recovery_disabled` | SMTP not configured | Instance → Settings SMTP |
 | `must_change_password` | Forced reset or TTL expired | Change password via UI/API |
 

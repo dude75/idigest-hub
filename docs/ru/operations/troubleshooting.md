@@ -10,6 +10,7 @@
 | `setup_already_done` | Админ уже существует | Используйте login |
 | `signup_disabled` | `allow_new_orgs=false` или нет signup tariffs | Instance → Settings / Tariffs |
 | `invalid_credentials` | Неверный пароль или отключённый user | Reset или enable через admin |
+| Забыт пароль **instance admin** | Нет другого админа, SMTP не помогает | Break-glass: на хосте с доступом к `.env` и БД — `python scripts/reset_instance_admin_password.py --confirm` (см. `--email`, `--clear-mfa`, `--enable`) |
 | `recovery_disabled` | SMTP не настроен | Instance → Settings SMTP |
 | `must_change_password` | Принудительный reset или истёк TTL | Смените пароль через UI/API |
 

@@ -90,6 +90,7 @@
 | RBAC | Три роли + ownership/shares | [Роли и доступ](../domain/roles-and-access.md) |
 | Impersonation | Только instance admin; admin powers отключены при impersonation; аудит | `app/deps.py`, `app/routers/instance.py` |
 | Bootstrap gate | Одноразовый `/setup` с `INSTANCE_BOOTSTRAP_TOKEN` | `app/routers/auth.py`, `.env.example` |
+| Emergency instance admin reset | Документированный offline CLI (`scripts/reset_instance_admin_password.py`, `--confirm`); нужны доступ к хосту/БД и секреты `.env`; запись в `audit_log` (`source: cli`) | [Troubleshooting](../operations/troubleshooting.md), `scripts/reset_instance_admin_password.py` |
 | Metrics endpoint | Bearer `METRICS_TOKEN` обязателен | `app/metrics_auth.py`, tests: `tests/test_prometheus.py` |
 
 **MFA локальных пользователей:** TOTP 2FA (opt-in в профиле; org может требовать при выключенном SSO). SSO — MFA на IdP.
