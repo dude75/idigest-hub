@@ -143,15 +143,13 @@ export function LandingPage() {
         </div>
       </section>
 
-      {sortedTariffs.length > 0 && (
-        <section className="landing-section landing-section-alt landing-pricing" id="pricing">
-          <div className="landing-section-head landing-section-head-center">
-            <h2>{t('landing.tariffsTitle')}</h2>
-            <p className="muted">{t('landing.tariffsLead')}</p>
-          </div>
-          <LandingTariffGrid tariffs={sortedTariffs} popularTariffId={popularTariffId} />
-        </section>
-      )}
+      <section className="landing-section landing-section-alt landing-pricing" id="pricing">
+        <div className="landing-section-head landing-section-head-center">
+          <h2>{t('landing.tariffsTitle')}</h2>
+          <p className="muted">{t('landing.tariffsLead')}</p>
+        </div>
+        <LandingTariffGrid tariffs={sortedTariffs} popularTariffId={popularTariffId} />
+      </section>
 
       <section className="landing-section" id="faq">
         <div className="landing-section-head landing-section-head-full">

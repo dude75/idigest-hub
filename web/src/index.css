@@ -2560,7 +2560,7 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 .landing-pricing-carousel {
   display: grid;
   gap: 1rem;
-  max-width: 56rem;
+  max-width: 74rem;
   margin: 0 auto;
 }
 .landing-pricing-controls {
@@ -2599,6 +2599,8 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 }
 .landing-pricing-grid[data-visible="1"] { grid-template-columns: minmax(0, 1fr); max-width: 18rem; margin: 0 auto; }
 .landing-pricing-grid[data-visible="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 37rem; margin: 0 auto; }
+.landing-pricing-grid[data-visible="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 56rem; margin: 0 auto; }
+.landing-pricing-grid[data-visible="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 74rem; margin: 0 auto; }
 .landing-pricing-card {
   position: relative;
   display: flex;
@@ -2621,6 +2623,12 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 }
 .landing-pricing-card:hover * {
   text-decoration: none;
+}
+.landing-pricing-card-oss {
+  border-color: #cbd5e1;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 0%, rgba(15, 23, 42, 0.04) 0%, transparent 55%),
+    #fff;
 }
 .landing-pricing-card-popular {
   border-color: #fb923c;
@@ -2720,6 +2728,10 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 }
 .landing-pricing-card:hover .landing-pricing-btn { filter: brightness(1.05); }
 .landing-pricing-btn-popular { background: #f97316; }
+.landing-pricing-btn-oss {
+  background: #0f172a;
+  gap: 0.4rem;
+}
 .landing-tariff-grid { margin-top: 0; }
 .landing-faq {
   display: grid;
@@ -2913,7 +2925,9 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
   .landing-audience-grid { grid-template-columns: 1fr; }
   .landing-pricing-grid,
   .landing-pricing-grid[data-visible="1"],
-  .landing-pricing-grid[data-visible="2"] {
+  .landing-pricing-grid[data-visible="2"],
+  .landing-pricing-grid[data-visible="3"],
+  .landing-pricing-grid[data-visible="4"] {
     grid-template-columns: 1fr;
     max-width: 22rem;
   }

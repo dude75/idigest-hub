@@ -6,6 +6,7 @@ import {
   LandingTariffCard,
   landingTariffSubtitleKey,
 } from './LandingTariffCard'
+import { LandingOpenSourceTariffCard } from './LandingOpenSourceTariffCard'
 
 const PAGE_SIZE = 3
 
@@ -28,7 +29,8 @@ export function LandingTariffGrid({ tariffs, popularTariffId }: Props) {
 
   return (
     <div className="landing-pricing-carousel">
-      <div className="landing-pricing-grid" data-visible={visible.length}>
+      <div className="landing-pricing-grid" data-visible={1 + visible.length}>
+        <LandingOpenSourceTariffCard />
         {visible.map((tr, offset) => {
           const index = start + offset
           return (
