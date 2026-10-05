@@ -123,11 +123,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     _prepare_import_path()
-    from app.db import SessionLocal, get_engine, init_database
+    from app import db as hub_db
 
-    init_database(get_engine())
-    assert SessionLocal is not None
-    with SessionLocal() as db:
+    hub_db.init_database(hub_db.get_engine())
+    assert hub_db.SessionLocal is not None
+    with hub_db.SessionLocal() as db:
         email, plain = reset_instance_admin_password(
             db,
             password=args.password,
