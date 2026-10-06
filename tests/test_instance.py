@@ -209,15 +209,15 @@ def test_instance_org_ledger_shows_charges_and_wallet_topups(client, fake_worker
     ledger = client.get(f"/api/v1/orgs/{org_id}/ledger")
     assert ledger.status_code == 200, ledger.text
     body = ledger.json()
-    assert body["total_topup"] == "25.00"
-    assert body["total_spent"] == "12.00"
+    assert body["total_topup"] == "25.000"
+    assert body["total_spent"] == "12.000"
     types = {item["entry_type"] for item in body["items"]}
     assert types == {"charge", "wallet"}
     charge = next(item for item in body["items"] if item["entry_type"] == "charge")
     assert charge["kind"] == "transcribe"
     assert charge["user_email"] == "ledger@example.com"
     topup = next(item for item in body["items"] if item["entry_type"] == "wallet")
-    assert topup["amount"] == "5.00"
+    assert topup["amount"] == "5.000"
     assert topup["actor_email"] == ADMIN_EMAIL
 
 
