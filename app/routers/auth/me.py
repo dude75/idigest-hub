@@ -1,46 +1,26 @@
 from __future__ import annotations
 
-from datetime import timedelta
-from urllib.parse import urlencode
-
-from fastapi import APIRouter, Depends, Query, Request, Response, UploadFile
-from fastapi.responses import RedirectResponse
-from sqlalchemy import delete, func, select
+from fastapi import Depends, Query, Request, Response, UploadFile
 from sqlalchemy.orm import Session
 
-from app.constants import COOKIE_NAME
-from app.cookies import clear_auth_cookies, issue_auth_cookies, oauth_embedded_session_samesite
+from app.cookies import clear_auth_cookies
 from app.db import get_session
-from app.deps import AuthContext, abort, get_instance_settings, locale_from_request, optional_auth, require_auth, session_ttl_sec_from_db
+from app.deps import AuthContext, get_instance_settings, require_auth
 from app.errors import ErrorCode
-from app.models import (
-    ApiToken,
-    InstanceSettings,
-    Membership,
-    Organization,
-    PasswordResetToken,
-    Session as AuthSession,
-    Tariff,
-    User,
-    new_id,
-)
-from app.presenters import org_public, tariff_public, token_public, user_public
 from app.routers.auth._body import AccountDeleteBody, MePatchBody
 from app.routers.auth._helpers import _allowed_default_routes, _default_route, _locale
 from app.routers.auth._router import router
-from app.security import hash_password, hash_secret, new_api_token, new_reset_token, verify_password
-from app.services.audit import write_audit
-from app.services.auth_helpers import create_session, me_payload, me_with_csrf, public_base_url, revoke_user_auth, seed_default_tariff, sso_login_redirect
-from app.timeutil import utcnow
-
-from fastapi import Response
 from app.schemas.auth_api import AccountDeletePreviewResponse, AccountDeleteResultResponse, BackupRestoreReportResponse
 from app.schemas.me import MeResponse
+from app.security import verify_password
+from app.services.audit import write_audit
+from app.services.auth_helpers import me_with_csrf
 from app.services.backup import build_backup
 from app.services.export import content_disposition_attachment
-from app.services.restore import restore_backup
-from app.cookies import clear_auth_cookies
 from app.services.mfa import consume_recovery_code, totp_enabled, verify_user_totp
+from app.services.restore import restore_backup
+from app.timeutil import utcnow
+
 
 @router.get("/me", response_model=MeResponse)
 def me(

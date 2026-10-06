@@ -24,7 +24,6 @@ from app.models import (
     User,
     new_id,
 )
-from app.presenters import org_public, tariff_public, token_public, user_public
 from app.routers.auth._body import (
     LoginBody,
     PasswordChangeBody,
