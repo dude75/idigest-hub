@@ -1,24 +1,6 @@
-import type {
-  SchemaCapturePlatformsResponse,
-  SchemaImportPlatformsResponse,
-  SchemaInstanceUsageStatsResponse,
-  SchemaMeResponse,
-  SchemaApiTokenPublic,
-  SchemaLegalDocumentVersionDetailResponse,
-  SchemaLegalDocumentVersionSummary,
-  SchemaOrgPublicLinkItem,
-  SchemaOrgPublicResponse,
-  SchemaOrgSsoAdminResponse,
-  SchemaOwnerSummaryPublicLinkItem,
-  SchemaShareRecordBrief,
-  SchemaSkillPublicResponse,
-  SchemaTariffDeleteImpactResponse,
-  SchemaTariffPublic,
-  SchemaUsageStatsResponse,
-  SchemaUserPublic,
-  SchemaUserTagBrief,
-  SchemaWorkerListItem,
-} from './openapi/contracts'
+import type { components } from './openapi/schema.gen'
+
+type Api = components['schemas']
 
 export type Locale = 'en' | 'ru' | 'es'
 
@@ -34,7 +16,7 @@ export type DateTimePrefs = {
 }
 
 /** Org member / session user shape from OpenAPI `UserPublic`. */
-export type User = SchemaUserPublic
+export type User = Api['UserPublic']
 
 export type LegalDocumentAcceptance = {
   key: 'user_agreement' | 'personal_data_consent' | 'privacy_policy'
@@ -43,14 +25,14 @@ export type LegalDocumentAcceptance = {
   pending: boolean
 }
 
-export type LegalDocumentVersionSummary = SchemaLegalDocumentVersionSummary
+export type LegalDocumentVersionSummary = Api['LegalDocumentVersionSummary']
 
-export type LegalDocumentVersionDetail = SchemaLegalDocumentVersionDetailResponse & {
+export type LegalDocumentVersionDetail = Api['LegalDocumentVersionDetailResponse'] & {
   key: 'user_agreement' | 'personal_data_consent' | 'privacy_policy'
 }
 
 /** Tariff row from OpenAPI `TariffPublic`. */
-export type Tariff = SchemaTariffPublic
+export type Tariff = Api['TariffPublic']
 
 export type TariffChoice = {
   id: string
@@ -62,7 +44,7 @@ export type TariffRemediationPayload = {
 }
 
 /** Tariff delete preview from OpenAPI `TariffDeleteImpactResponse`. */
-export type TariffDeleteImpact = SchemaTariffDeleteImpactResponse
+export type TariffDeleteImpact = Api['TariffDeleteImpactResponse']
 
 export type OrgSso = {
   configured: boolean
@@ -71,10 +53,10 @@ export type OrgSso = {
 }
 
 /** Org SSO admin panel shape from OpenAPI `OrgSsoAdminResponse`. */
-export type OrgSsoAdmin = SchemaOrgSsoAdminResponse
+export type OrgSsoAdmin = Api['OrgSsoAdminResponse']
 
 /** Org profile from OpenAPI `OrgPublicResponse` (instance list may add `hidden` / `members`). */
-export type Org = SchemaOrgPublicResponse & {
+export type Org = Api['OrgPublicResponse'] & {
   members?: User[]
   hidden?: boolean
 }
@@ -122,7 +104,7 @@ export type SummarizeModelChoice = {
 
 /** Session `/me` payload (aligned with OpenAPI `MeResponse`; nested prefs stay explicit for UI). */
 export type Me = Omit<
-  SchemaMeResponse,
+  Api['MeResponse'],
   | 'date_time_prefs'
   | 'transcribe_prefs'
   | 'transcribe_models'
@@ -154,13 +136,13 @@ export type Me = Omit<
   }[] | null
 }
 
-export type ShareRecord = SchemaShareRecordBrief
+export type ShareRecord = Api['ShareRecordBrief']
 
-export type SummaryPublicLink = SchemaOwnerSummaryPublicLinkItem
+export type SummaryPublicLink = Api['OwnerSummaryPublicLinkItem']
 
-export type OrgPublicLinkItem = SchemaOrgPublicLinkItem
+export type OrgPublicLinkItem = Api['OrgPublicLinkItem']
 
-export type UserTag = SchemaUserTagBrief
+export type UserTag = Api['UserTagBrief']
 
 export type LibraryObjectType = 'audio' | 'transcript' | 'summary'
 
@@ -264,13 +246,13 @@ export type Task = {
   skill_ids?: string[]
 }
 
-export type Skill = SchemaSkillPublicResponse
+export type Skill = Api['SkillPublicResponse']
 
 /** Listed API token (`ApiTokenPublic`); create response adds `token` via `ApiTokenCreateResponse`. */
-export type ApiToken = SchemaApiTokenPublic & { token?: string }
+export type ApiToken = Api['ApiTokenPublic'] & { token?: string }
 
 /** Instance worker row from OpenAPI `WorkerListItem` / `WorkerPublicResponse`. */
-export type Worker = SchemaWorkerListItem
+export type Worker = Api['WorkerListItem']
 
 export type WorkersTypeSummary = {
   total: number
@@ -397,7 +379,7 @@ export type PublicImportPlatform = {
   domains: string[]
 }
 
-export type ImportPlatformsResponse = SchemaImportPlatformsResponse
+export type ImportPlatformsResponse = Api['ImportPlatformsResponse']
 
 export type CaptureConnector = {
   id: string
@@ -406,7 +388,7 @@ export type CaptureConnector = {
   status?: string
 }
 
-export type CapturePlatformsResponse = SchemaCapturePlatformsResponse
+export type CapturePlatformsResponse = Api['CapturePlatformsResponse']
 
 export type OrgCaptureJitsiHost = {
   id: string
@@ -511,7 +493,7 @@ export type OrgStatsDay = {
   amount: string
 }
 
-export type OrgStats = SchemaUsageStatsResponse
+export type OrgStats = Api['UsageStatsResponse']
 
 export type DownloadProxyStatus = 'up' | 'down' | 'na'
 
@@ -523,7 +505,7 @@ export type InstanceSnapshot = {
   download_proxy_status: DownloadProxyStatus
 }
 
-export type InstanceStats = SchemaInstanceUsageStatsResponse
+export type InstanceStats = Api['InstanceUsageStatsResponse']
 
 export type AuditLogEntry = {
   id: string
