@@ -1,70 +1,26 @@
 from __future__ import annotations
 
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
-from fastapi import APIRouter, BackgroundTasks, Body, Depends, Query
+from fastapi import Body, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.crypto import encrypt_str
+from app.constants import MAX_UPLOAD_BYTES_CAP
 from app.db import get_session
-from app.deps import (
-    AuthContext,
-    get_instance_settings,
-    invalidate_session_ttl_cache,
-    load_org_bundle,
-    normalize_session_ttl_hours,
-    require_auth,
-)
-from app.errors import ApiError, ErrorCode
-from app.models import HiddenItem, Membership, Organization, Task, Tariff, User, WorkerNode, new_id
+from app.deps import AuthContext, require_auth
+from app.errors import ErrorCode
+from app.models import Tariff, new_id
 from app.money import parse_money
-from app.presenters import org_public, tariff_public, user_public, worker_public
-from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
-from app.services.auth_helpers import revoke_user_auth, seed_default_tariff
-from app.routers.instance._body import (
-    AgreementPreviewBody,
-    BaseSkillBody,
-    CreateOrgBody,
-    ImpersonateBody,
-    OrgDeleteBody,
-    OrgTariffBody,
-    OrgUserRoleBody,
-    SettingsPatch,
-    SmtpTestBody,
-    SmtpTestSendBody,
-    TariffBody,
-    TariffCloneBody,
-    TariffDeleteBody,
-    WalletBody,
-    WorkerBody,
-    WorkerDeleteBody,
-    WorkerProbeBody,
-    WorkerRemediation,
-)
+from app.presenters import tariff_public
+from app.routers.instance._body import TariffBody, TariffCloneBody, TariffDeleteBody
 from app.routers.instance._router import router
-from app.security import hash_password, random_password
-from app.services.access import guard_last_org_admin, is_hidden
-from app.services.audit import export_audit_csv, list_audit, write_audit
-from app.services.billing import signup_balance
-from app.services.export import attachment_response, safe_filename
-from app.services.instance_helpers import (
-    apply_capture_worker_models,
-    apply_transcribe_worker_models,
-    org_count_for_tariff,
-    raise_worker_connect_error,
-    require_instance_admin,
-    resolve_worker_token,
-    workers_list_payload,
-)
-from app.services.instance_orgs import list_orgs_payload
-from app.services.mfa import disable_totp, hub_local_auth_applies, totp_configured
-from app.services.stats import org_ledger, parse_org_stats_range, usage_stats
 from app.schemas.org_api import TariffListResponse, TariffPublic
 from app.schemas.tariff_api import TariffDeleteImpactResponse, TariffDeleteResponse
+from app.services.audit import write_audit
+from app.services.auth_helpers import seed_default_tariff
+from app.services.instance_helpers import org_count_for_tariff, require_instance_admin
 from app.timeutil import utcnow
-
-from app.constants import MAX_UPLOAD_BYTES_CAP
 
 def apply_tariff(tariff: Tariff, body: TariffBody, ctx: AuthContext) -> None:
     if body.max_upload_bytes > MAX_UPLOAD_BYTES_CAP or body.max_upload_bytes <= 0:
