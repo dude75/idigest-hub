@@ -1146,7 +1146,7 @@ th { color: var(--hub-muted); font-weight: 550; }
   font-size: 0.75rem;
   gap: 0.25rem 0.35rem;
 }
-.transcript-tone-inline .transcript-tone-stat-badge {
+.transcript-tone-inline .transcript-tone-stat-chip {
   font-size: 0.7rem;
   height: 1.2rem;
   padding-inline: 0.35rem;
@@ -1154,7 +1154,7 @@ th { color: var(--hub-muted); font-weight: 550; }
 .transcript-tone-inline .transcript-tone-stat-num {
   font-size: 0.68rem;
 }
-.transcript-tone-inline .transcript-tone-layer-badge {
+.transcript-tone-inline .transcript-tone-layer-chip {
   font-size: 0.65rem;
   height: 1.15rem;
 }
@@ -1190,7 +1190,7 @@ th { color: var(--hub-muted); font-weight: 550; }
   flex-wrap: wrap;
   gap: 0.2rem;
 }
-.transcript-tone-layer-badge {
+.transcript-tone-layer-chip {
   font-size: 0.68rem;
   font-weight: 500;
   padding: 0 0.35rem;
@@ -1237,7 +1237,7 @@ th { color: var(--hub-muted); font-weight: 550; }
   letter-spacing: 0;
   max-width: 9rem;
 }
-.transcript-tone-stat-badge {
+.transcript-tone-stat-chip {
   font-size: 0.75rem;
   height: 1.35rem;
   padding-inline: 0.4rem;

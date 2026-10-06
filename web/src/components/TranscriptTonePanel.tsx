@@ -42,7 +42,7 @@ function ToneValenceStat({
   return (
     <div className={`transcript-tone-stat transcript-tone-stat-${kind}`}>
       <span className="transcript-tone-stat-label">{label}</span>
-      <HubBadge tone={valenceBadgeTone(kind)} className="transcript-tone-stat-badge">
+      <HubBadge tone={valenceBadgeTone(kind)} className="transcript-tone-stat-chip">
         {valueLabel}
       </HubBadge>
       {value != null && !Number.isNaN(value) ? (
@@ -107,7 +107,7 @@ function ToneLayersBadges({ layers, t }: { layers: string[]; t: TFunction }) {
       <span className="transcript-tone-layers-label">{t('transcript.toneSources')}</span>
       <span className="transcript-tone-layers-badges">
         {layers.map((layer) => (
-          <HubBadge key={layer} tone="muted" className="transcript-tone-layer-badge">
+          <HubBadge key={layer} tone="muted" className="transcript-tone-layer-chip">
             {toneLayerLabel(t, layer)}
           </HubBadge>
         ))}
