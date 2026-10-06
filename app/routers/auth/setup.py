@@ -24,7 +24,7 @@ from app.models import (
     User,
     new_id,
 )
-from app.presenters import org_public, tariff_public, token_public, user_public
+from app.presenters import user_public
 from app.routers.auth._body import SetupBody, SignupBody
 from app.routers.auth._helpers import _locale, _norm_email
 from app.routers.auth._router import router
@@ -165,7 +165,7 @@ def signup_tariffs(request: Request, db: Session = Depends(get_session, scope="f
         select(Tariff).where(Tariff.archived_at.is_(None), Tariff.available_on_signup.is_(True))
     ).all()
     return SignupTariffListResponse(
-        items=[TariffPublic.model_validate(tariff_public(row, _tariff_org_count(db, row.id))) for row in rows]
+        items=[TariffPublic.from_tariff(row, _tariff_org_count(db, row.id)) for row in rows]
     )
 
 

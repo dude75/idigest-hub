@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.models import Tariff
+from app.money import money_str, rate_str
 
 
 class OrgUsageSummary(BaseModel):
@@ -45,6 +50,26 @@ class TariffPublic(BaseModel):
     max_upload_bytes: int
     tone_analytics_enabled: bool
     org_count: int | None = None
+
+    @classmethod
+    def from_tariff(cls, tariff: Tariff, org_count: int | None = None) -> TariffPublic:
+        payload: dict[str, object] = {
+            "id": tariff.id,
+            "name": tariff.name,
+            "unlimited": tariff.unlimited,
+            "available_on_signup": tariff.available_on_signup,
+            "archived": tariff.archived_at is not None,
+            "price_per_audio_sec": rate_str(Decimal(tariff.price_per_audio_sec)),
+            "price_per_1k_summary_chars": rate_str(Decimal(tariff.price_per_1k_summary_chars)),
+            "audio_retention_days": tariff.audio_retention_days,
+            "api_enabled": tariff.api_enabled,
+            "signup_credit": money_str(Decimal(tariff.signup_credit)),
+            "max_upload_bytes": tariff.max_upload_bytes,
+            "tone_analytics_enabled": tariff.tone_analytics_enabled,
+        }
+        if org_count is not None:
+            payload["org_count"] = org_count
+        return cls.model_validate(payload)
 
 
 class TariffListResponse(BaseModel):

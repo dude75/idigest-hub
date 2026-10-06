@@ -61,23 +61,9 @@ def user_public(
 
 
 def tariff_public(tariff: Tariff, org_count: int | None = None) -> dict[str, Any]:
-    body: dict[str, Any] = {
-        "id": tariff.id,
-        "name": tariff.name,
-        "unlimited": tariff.unlimited,
-        "available_on_signup": tariff.available_on_signup,
-        "archived": tariff.archived_at is not None,
-        "price_per_audio_sec": rate_str(Decimal(tariff.price_per_audio_sec)),
-        "price_per_1k_summary_chars": rate_str(Decimal(tariff.price_per_1k_summary_chars)),
-        "audio_retention_days": tariff.audio_retention_days,
-        "api_enabled": tariff.api_enabled,
-        "signup_credit": money_str(Decimal(tariff.signup_credit)),
-        "max_upload_bytes": tariff.max_upload_bytes,
-        "tone_analytics_enabled": tariff.tone_analytics_enabled,
-    }
-    if org_count is not None:
-        body["org_count"] = org_count
-    return body
+    from app.schemas.org_api import TariffPublic
+
+    return TariffPublic.from_tariff(tariff, org_count).model_dump(mode="json")
 
 
 def org_public(

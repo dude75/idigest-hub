@@ -12,7 +12,6 @@ from app.deps import AuthContext, require_auth
 from app.errors import ErrorCode
 from app.models import Tariff, new_id
 from app.money import parse_money
-from app.presenters import tariff_public
 from app.routers.instance._body import TariffBody, TariffCloneBody, TariffDeleteBody
 from app.routers.instance._router import router
 from app.schemas.org_api import TariffListResponse, TariffPublic
@@ -48,7 +47,7 @@ def list_tariffs(
     seed_default_tariff(db)
     rows = db.scalars(select(Tariff).order_by(Tariff.created_at)).all()
     return TariffListResponse(
-        items=[TariffPublic.model_validate(tariff_public(row, org_count_for_tariff(db, row.id))) for row in rows]
+        items=[TariffPublic.from_tariff(row, org_count_for_tariff(db, row.id)) for row in rows]
     )
 
 
@@ -71,7 +70,7 @@ def create_tariff(
     db.add(tariff)
     db.flush()
     write_audit(db, "tariff.create", ctx, {"tariff_id": tariff.id})
-    return TariffPublic.model_validate(tariff_public(tariff, 0))
+    return TariffPublic.from_tariff(tariff, 0)
 
 
 @router.post("/tariffs/{tariff_id}/clone", response_model=TariffPublic)
@@ -108,7 +107,7 @@ def clone_tariff(
     db.add(tariff)
     db.flush()
     write_audit(db, "tariff.clone", ctx, {"tariff_id": tariff.id, "source_tariff_id": source.id})
-    return TariffPublic.model_validate(tariff_public(tariff, 0))
+    return TariffPublic.from_tariff(tariff, 0)
 
 
 @router.patch("/tariffs/{tariff_id}", response_model=TariffPublic)
@@ -124,7 +123,7 @@ def patch_tariff(
         ctx.raise_error(ErrorCode.not_found)
     apply_tariff(tariff, body, ctx)
     write_audit(db, "tariff.update", ctx, {"tariff_id": tariff.id})
-    return TariffPublic.model_validate(tariff_public(tariff, org_count_for_tariff(db, tariff.id)))
+    return TariffPublic.from_tariff(tariff, org_count_for_tariff(db, tariff.id))
 
 
 @router.post("/tariffs/{tariff_id}/archive", response_model=TariffPublic)
@@ -139,7 +138,7 @@ def archive_tariff(
     tariff.available_on_signup = False
     tariff.updated_at = utcnow()
     write_audit(db, "tariff.archive", ctx, {"tariff_id": tariff.id})
-    return TariffPublic.model_validate(tariff_public(tariff, org_count_for_tariff(db, tariff.id)))
+    return TariffPublic.from_tariff(tariff, org_count_for_tariff(db, tariff.id))
 
 
 @router.post("/tariffs/{tariff_id}/unarchive", response_model=TariffPublic)
@@ -153,7 +152,7 @@ def unarchive_tariff(
     tariff.archived_at = None
     tariff.updated_at = utcnow()
     write_audit(db, "tariff.unarchive", ctx, {"tariff_id": tariff.id})
-    return TariffPublic.model_validate(tariff_public(tariff, org_count_for_tariff(db, tariff.id)))
+    return TariffPublic.from_tariff(tariff, org_count_for_tariff(db, tariff.id))
 
 
 @router.get("/tariffs/{tariff_id}/delete-impact", response_model=TariffDeleteImpactResponse)
