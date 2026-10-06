@@ -4,18 +4,33 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+import pyotp
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from app.constants import MFA_CHALLENGE_TTL_SEC, MFA_RECOVERY_CODE_COUNT
+from app.constants import MFA_CHALLENGE_TTL_SEC, MFA_RECOVERY_CODE_COUNT, MFA_TOTP_ISSUER
 from app.crypto import decrypt_str, encrypt_str
 from app.models import Membership, MfaChallenge, Organization, RecoveryCode, User, new_id
 from app.security import hash_secret, new_mfa_challenge_token, new_recovery_code
 from app.services.sso import AUTH_PROVIDER_OIDC, password_login_allowed
-from app.services.totp import generate_secret, provisioning_uri, verify_code
 from app.timeutil import utcnow
 
 AUTH_PROVIDER_LOCAL = "local"
+
+
+def generate_secret() -> str:
+    return pyotp.random_base32()
+
+
+def provisioning_uri(*, secret: str, email: str) -> str:
+    return pyotp.TOTP(secret).provisioning_uri(name=email, issuer_name=MFA_TOTP_ISSUER)
+
+
+def verify_code(*, secret: str, code: str) -> bool:
+    normalized = (code or "").strip().replace(" ", "")
+    if not normalized.isdigit() or len(normalized) != 6:
+        return False
+    return pyotp.TOTP(secret).verify(normalized, valid_window=1)
 
 
 def totp_enabled(user: User) -> bool:

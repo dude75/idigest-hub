@@ -1,4 +1,4 @@
-from app.services.summarize_model import summarize_model_from_health
+from app.services.summarize_models import summarize_model_from_health
 
 
 def test_summarize_model_from_model_field():

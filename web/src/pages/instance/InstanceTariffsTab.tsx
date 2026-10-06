@@ -28,7 +28,7 @@ import { formatBytes, formatInteger, formatRate, showError } from '../../util'
 import { emptyTariff, MAX_UPLOAD } from './constants'
 import { Button } from '@/components/ui/button'
 import { AdminFormActions, AdminMetaRow, AdminRowActions, AppSubmitButton, HubBadge } from '../../components/app/AdminUi'
-import { jsonDirty } from '../../util/formDirty'
+import { jsonDirty } from '../../util'
 import { AppCheckboxRow, AppInputField } from '../../components/app/AppFormControls'
 import { cn } from '@/lib/utils'
 

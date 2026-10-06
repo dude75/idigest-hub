@@ -8,7 +8,25 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import InstanceSettings, User, WorkerNode
-from app.services.summarize_model import summarize_model_from_health
+
+_LLM_STATUS = frozenset({"ready", "not_ready", "unavailable"})
+
+
+def summarize_model_from_health(health: dict[str, Any] | None) -> str | None:
+    if not health:
+        return None
+    for key in ("model", "llm_model"):
+        raw = health.get(key)
+        if isinstance(raw, str):
+            name = raw.strip()
+            if name:
+                return name
+    llm = health.get("llm")
+    if isinstance(llm, str):
+        name = llm.strip()
+        if name and name.lower() not in _LLM_STATUS:
+            return name
+    return None
 
 
 def worker_summarize_model(node: WorkerNode) -> str | None:

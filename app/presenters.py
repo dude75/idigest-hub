@@ -107,7 +107,7 @@ def org_public(
 
 
 def worker_public(node: WorkerNode) -> dict[str, Any]:
-    from app.services.summarize_model import summarize_model_from_health
+    from app.services.summarize_models import summarize_model_from_health
 
     body: dict[str, Any] = {
         "id": node.id,

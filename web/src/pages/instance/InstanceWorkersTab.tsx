@@ -4,7 +4,7 @@ import { api } from '../../api'
 import type { SchemaWorkerListResponse } from '../../openapi'
 import { AdminFormCard, AdminPage, AdminTableCard } from '../../components/AdminSection'
 import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
-import { jsonDirty } from '../../util/formDirty'
+import { jsonDirty } from '../../util'
 import {
   AdminDataTable,
   AdminTableHeadHint,

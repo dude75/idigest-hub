@@ -124,7 +124,7 @@ async def probe_worker(
             for key, info in sorted(connectors.items())
         ]
     if body.type == "summarize":
-        from app.services.summarize_model import summarize_model_from_health
+        from app.services.summarize_models import summarize_model_from_health
 
         model = summarize_model_from_health(health)
         if model is not None:
