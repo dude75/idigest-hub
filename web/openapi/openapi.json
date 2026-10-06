@@ -14457,8 +14457,7 @@
               "type": "string"
             },
             "type": "array",
-            "title": "Skill Ids",
-            "default": []
+            "title": "Skill Ids"
           }
         },
         "type": "object",
