@@ -898,6 +898,9 @@ async def tick_once(db: Session, task_id: str | None = None, *, refresh_health: 
                 maybe_start_import(db, task)
             continue
         if task.type == "capture":
+            from app.services.capture_runner import refresh_capture_dispatch_health
+
+            await refresh_capture_dispatch_health(db, task)
             await try_finish_capture_task(db, task)
             maybe_start_capture(db, task)
             continue

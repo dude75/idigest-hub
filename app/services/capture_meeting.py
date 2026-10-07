@@ -269,21 +269,41 @@ def _sign_jitsi_jwt(
     return jwt.encode(payload, secret, algorithm="HS256")
 
 
-def capture_worker_candidates(db: Session, connector_id: str) -> list[WorkerNode]:
-    from app.services.capture_platforms import worker_offers_connector
-
-    rows = list(
+def _enabled_capture_nodes(db: Session) -> list[WorkerNode]:
+    return list(
         db.scalars(
             select(WorkerNode).where(WorkerNode.type == "capture", WorkerNode.enabled.is_(True))
         ).all()
     )
-    return [node for node in rows if worker_offers_connector(node, connector_id)]
+
+
+def capture_worker_candidates(db: Session, connector_id: str, *, dispatch_ready: bool = True) -> list[WorkerNode]:
+    from app.deps import get_instance_settings
+    from app.services.capture_platforms import allowed_connectors, worker_offers_connector
+    from app.services.worker_availability import worker_is_dispatch_available
+
+    settings = get_instance_settings(db)
+    connectors = allowed_connectors(settings)
+    rows = _enabled_capture_nodes(db)
+    out: list[WorkerNode] = []
+    for node in rows:
+        if not worker_offers_connector(node, connector_id):
+            continue
+        if dispatch_ready and not worker_is_dispatch_available(node, capture_connectors=connectors):
+            continue
+        out.append(node)
+    return out
 
 
 def pick_capture_worker(db: Session, connector_id: str) -> WorkerNode | None:
     from app.services.dispatcher import pick_node
 
-    return pick_node(db, capture_worker_candidates(db, connector_id))
+    ready = capture_worker_candidates(db, connector_id, dispatch_ready=True)
+    node = pick_node(db, ready)
+    if node is not None:
+        return node
+    fallback = capture_worker_candidates(db, connector_id, dispatch_ready=False)
+    return pick_node(db, fallback)
 
 
 def resolve_capture_target(

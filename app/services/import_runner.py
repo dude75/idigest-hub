@@ -115,7 +115,9 @@ async def _run_import_task(task_id: str) -> None:
         from app.services.download_proxy_health import download_proxy_ready
 
         if not download_proxy_ready(settings, db):
-            _fail_task(db, task, "proxy_unavailable")
+            _update_task_meta(db, task, "proxy_unavailable")
+            task.status = "queued"
+            task.retry_without_timeout = True
             db.commit()
             return
         proxy = effective_download_proxy(settings, db)
