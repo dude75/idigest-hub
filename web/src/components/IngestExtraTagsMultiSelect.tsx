@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { TagsIcon } from 'lucide-react'
 import { ApiError } from '../api'
 import {
   USER_TAG_MAX_PER_OBJECT,
@@ -9,18 +8,11 @@ import {
 } from '../constants/userTags'
 import type { SchemaUserTagListResponse } from '../openapi'
 import { showError } from '../util'
+import { AppSelect } from './app/AppSelect'
+import { Modal } from './Modal'
+import { UserTagChipAssigned } from './UserTagChip'
 import { Button } from '@/components/ui/button'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Popover,
-  PopoverContent,
-  PopoverDescription,
-  PopoverHeader,
-  PopoverTitle,
-  PopoverTrigger,
-} from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 
 type CatalogItem = NonNullable<SchemaUserTagListResponse['items']>[number]
@@ -32,151 +24,154 @@ type Props = {
   onChange: (names: string[]) => void
 }
 
-function selectedKeys(selected: string[]): Set<string> {
-  return new Set(selected.map((name) => name.toLowerCase()))
-}
-
 export function IngestExtraTagsMultiSelect({ catalog, selected, disabled, onChange }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const [draftSelected, setDraftSelected] = useState<string[]>([])
   const [draft, setDraft] = useState('')
+  const [pickId, setPickId] = useState('')
 
-  const keys = useMemo(() => selectedKeys(selected), [selected])
+  useEffect(() => {
+    if (!open) return
+    setDraftSelected([...selected])
+    setDraft('')
+    setPickId('')
+  }, [open, selected])
 
-  const orphanSelected = useMemo(
-    () =>
-      selected.filter(
-        (name) => !catalog.some((tag) => tag.name.toLowerCase() === name.toLowerCase()),
-      ),
-    [catalog, selected],
-  )
-
-  const listItems = useMemo(() => {
-    const rows: { key: string; name: string; id?: string }[] = catalog.map((tag) => ({
-      key: tag.id,
-      id: tag.id,
-      name: tag.name,
-    }))
-    for (const name of orphanSelected) {
-      rows.push({ key: `orphan:${name.toLowerCase()}`, name })
-    }
-    return rows.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
-  }, [catalog, orphanSelected])
+  const pickOptions = useMemo(() => {
+    const assigned = new Set(draftSelected.map((name) => name.toLowerCase()))
+    return catalog
+      .filter((tag) => !assigned.has(tag.name.toLowerCase()))
+      .map((tag) => ({ value: tag.id, label: tag.name }))
+  }, [catalog, draftSelected])
 
   function tryAdd(name: string) {
-    if (disabled) return
     const invalid = userTagNameErrorKey(name)
     if (invalid) {
       showError(new ApiError(invalid, t(`errors.${invalid}`)))
       return
     }
     const normalized = normalizeUserTagName(name)
-    if (keys.has(normalized.toLowerCase())) return
-    const next = [...selected, normalized]
+    if (draftSelected.some((item) => item.toLowerCase() === normalized.toLowerCase())) return
+    const next = [...draftSelected, normalized]
     if (next.length > USER_TAG_MAX_PER_OBJECT - 1) {
       showError(new ApiError('user_tag_limit_per_object', t('errors.user_tag_limit_per_object')))
       return
     }
-    onChange(next)
+    setDraftSelected(next)
   }
 
-  function setChecked(name: string, checked: boolean) {
-    if (disabled) return
-    if (checked) {
-      tryAdd(name)
-      return
-    }
-    onChange(selected.filter((item) => item.toLowerCase() !== name.toLowerCase()))
+  function addExisting(tagId: string) {
+    if (!tagId) return
+    const tag = catalog.find((item) => item.id === tagId)
+    if (!tag) return
+    setPickId('')
+    tryAdd(tag.name)
   }
 
-  const triggerLabel =
+  function addDraftTag() {
+    if (!draft.trim()) return
+    tryAdd(draft)
+    setDraft('')
+  }
+
+  function removeTag(name: string) {
+    setDraftSelected(draftSelected.filter((item) => item !== name))
+  }
+
+  function applyAndClose() {
+    onChange(draftSelected)
+    setOpen(false)
+  }
+
+  const triggerHint =
     selected.length > 0
       ? t('library.ingestExtraTagsCount', { count: selected.length })
-      : t('library.ingestExtraTags')
+      : undefined
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={disabled}
-            className={cn(
-              'library-ingest-tags-trigger shrink-0 gap-1.5 font-normal',
-              selected.length > 0 && 'border-primary/40',
-            )}
-          />
-        }
-      >
-        <TagsIcon className="size-3.5 shrink-0 opacity-70" aria-hidden />
-        <span className="max-w-[8rem] truncate sm:max-w-[10rem]">{triggerLabel}</span>
-      </PopoverTrigger>
-      <PopoverContent className="library-ingest-tags-menu w-[min(18rem,calc(100vw-2rem))] gap-2 p-3" align="start">
-        <PopoverHeader className="gap-1">
-          <PopoverTitle>{t('library.ingestExtraTags')}</PopoverTitle>
-          <PopoverDescription className="text-xs leading-snug">
-            {t('library.ingestExtraTagsHint')}
-          </PopoverDescription>
-        </PopoverHeader>
-        {listItems.length > 0 ? (
-          <ul className="library-ingest-tags-list max-h-48 overflow-y-auto rounded-md border border-border p-1">
-            {listItems.map((row) => {
-              const checked = keys.has(row.name.toLowerCase())
-              const inputId = `ingest-tag-${row.key}`
-              return (
-                <li key={row.key}>
-                  <div className="flex items-center gap-2 rounded-sm px-2 py-1.5 hover:bg-muted/60">
-                    <Checkbox
-                      id={inputId}
-                      checked={checked}
-                      disabled={disabled}
-                      onCheckedChange={(value) => setChecked(row.name, Boolean(value))}
-                    />
-                    <Label htmlFor={inputId} className="min-w-0 flex-1 truncate font-normal">
-                      {row.name}
-                    </Label>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
-        ) : (
-          <p className="muted text-xs">{t('library.noTagsYet')}</p>
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        disabled={disabled}
+        aria-label={triggerHint ? `${t('library.ingestExtraTags')} — ${triggerHint}` : t('library.ingestExtraTags')}
+        className={cn(
+          'library-ingest-tags-trigger h-8 shrink-0 px-2.5 font-normal',
+          selected.length > 0 && 'border-primary/40',
         )}
-        <div className="flex gap-2">
-          <Input
-            className="h-8 shadow-none"
-            value={draft}
-            disabled={disabled}
-            placeholder={t('library.addTagPlaceholder')}
-            aria-label={t('library.addTagPlaceholder')}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                if (!draft.trim()) return
-                tryAdd(draft)
-                setDraft('')
-              }
-            }}
-          />
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="shrink-0"
-            disabled={disabled || !draft.trim()}
-            onClick={() => {
-              tryAdd(draft)
-              setDraft('')
-            }}
-          >
-            {t('library.addTag')}
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+        onClick={() => setOpen(true)}
+      >
+        <span className="truncate">{t('library.ingestExtraTags')}</span>
+        {selected.length > 0 ? (
+          <span className="text-muted-foreground tabular-nums">({selected.length})</span>
+        ) : null}
+      </Button>
+      {open ? (
+        <Modal
+          title={t('library.ingestExtraTags')}
+          description={t('library.ingestExtraTagsHint')}
+          onClose={() => setOpen(false)}
+          footer={
+            <Button type="button" onClick={() => applyAndClose()}>
+              {t('common.save')}
+            </Button>
+          }
+        >
+          <div className="user-tags-editor">
+            <div className="user-tags-row">
+              <span className="user-tags-label muted text-sm">{t('library.myTags')}</span>
+              {pickOptions.length > 0 ? (
+                <AppSelect
+                  className="user-tags-pick [&_[data-slot=select-trigger]]:shadow-none [&_[data-slot=select-trigger]]:focus-visible:ring-0 [&_[data-slot=select-trigger]]:focus-visible:border-input"
+                  value={pickId}
+                  placeholder={t('library.pickTag')}
+                  options={pickOptions}
+                  size="sm"
+                  onValueChange={(value) => {
+                    setPickId(value)
+                    if (value) addExisting(value)
+                  }}
+                />
+              ) : null}
+              <Input
+                className="user-tags-input shadow-none focus-visible:border-input focus-visible:ring-0"
+                value={draft}
+                placeholder={t('library.addTagPlaceholder')}
+                aria-label={t('library.addTagPlaceholder')}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addDraftTag()
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                size="default"
+                variant="outline"
+                className="user-tags-add shrink-0"
+                disabled={!draft.trim()}
+                onClick={() => addDraftTag()}
+              >
+                {t('library.addTag')}
+              </Button>
+              {draftSelected.map((name) => (
+                <UserTagChipAssigned
+                  key={name}
+                  name={name}
+                  removeLabel={t('library.removeTag', { name })}
+                  onRemove={() => removeTag(name)}
+                />
+              ))}
+            </div>
+            {catalog.length === 0 && draftSelected.length === 0 ? (
+              <p className="muted m-0 text-sm">{t('library.noTagsYet')}</p>
+            ) : null}
+          </div>
+        </Modal>
+      ) : null}
+    </>
   )
 }

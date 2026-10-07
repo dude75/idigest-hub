@@ -640,11 +640,9 @@ a.brand:hover,
   line-height: 1.35;
 }
 .library-ingest-tags-trigger {
+  display: inline-flex;
   max-width: 11rem;
-}
-.library-ingest-tags-list {
-  margin: 0;
-  list-style: none;
+  gap: 0.35rem;
 }
 .library-ingest-section-label {
   margin: 0.65rem 0 0.35rem;
