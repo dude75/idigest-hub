@@ -258,12 +258,29 @@ async def refresh_capture_dispatch_health(db: Session, task: Task) -> None:
         await refresh_nodes_health(db, nodes, force=True)
 
 
+def _capture_auth_failure(exc: WorkerClientError) -> bool:
+    if exc.status_code == 401:
+        return True
+    return exc.worker_code == "unauthorized"
+
+
+def _capture_recoverable_worker_error(exc: WorkerClientError) -> bool:
+    if _capture_auth_failure(exc):
+        return True
+    return exc.kind in {"timeout", "http"}
+
+
 def _mark_capture_waiting(db: Session, task: Task, reason: str) -> None:
     meta = dict(task.meta_json or {})
     if reason == "pool_full":
         meta["stage"] = "queue_full"
+        meta.pop("wait_reason", None)
     else:
         meta["stage"] = "queued"
+        if reason == "auth":
+            meta["wait_reason"] = "worker_auth"
+        elif reason != "unreachable":
+            meta.pop("wait_reason", None)
     task.worker_task_id = None
     task.meta_json = meta
     task.retry_without_timeout = True
@@ -276,6 +293,8 @@ def _mark_capture_waiting(db: Session, task: Task, reason: str) -> None:
 def _update_task_meta(db: Session, task: Task, stage: str, extra: dict[str, Any] | None = None) -> None:
     meta = dict(task.meta_json or {})
     meta["stage"] = stage
+    if stage == "joining":
+        meta.pop("wait_reason", None)
     if extra:
         meta.update(extra)
     task.meta_json = meta
@@ -764,8 +783,15 @@ async def _run_capture_task(task_id: str) -> None:
         task = db.get(Task, task_id)
         if task is None or task.type != "capture":
             return
-        if task.status != "running" or task.audio_id:
+        if task.audio_id:
             return
+        if task.status != "running":
+            if task.status == "queued" and task_id in _active:
+                task.status = "running"
+                db.commit()
+            else:
+                log.info("capture thread skip hub_task=%s status=%s", task_id, task.status)
+                return
         if is_capture_canceled(task_id):
             _fail_task(db, task, "canceled")
             db.commit()
@@ -829,6 +855,19 @@ async def _run_capture_task(task_id: str) -> None:
                     _mark_capture_waiting(db, task, "pool_full")
                     db.commit()
                     return
+                if _capture_recoverable_worker_error(exc):
+                    reason = "auth" if _capture_auth_failure(exc) else "unreachable"
+                    _mark_capture_waiting(db, task, reason)
+                    log.warning(
+                        "capture worker transient hub_task=%s reason=%s kind=%s status=%s code=%s",
+                        task.id,
+                        reason,
+                        exc.kind,
+                        exc.status_code,
+                        exc.worker_code,
+                    )
+                    db.commit()
+                    return
                 code = map_capture_worker_error(exc.worker_code)
                 if exc.worker_code == "join_failed":
                     code = "pipeline_error"
@@ -885,9 +924,22 @@ async def _run_capture_task(task_id: str) -> None:
                 db.commit()
                 return
 
-            status_code, poll = await get_capture_task(db, worker_node, worker_task_id)
+            try:
+                status_code, poll = await get_capture_task(db, worker_node, worker_task_id)
+            except WorkerClientError as exc:
+                if _capture_recoverable_worker_error(exc):
+                    reason = "auth" if _capture_auth_failure(exc) else "unreachable"
+                    _mark_capture_waiting(db, task, reason)
+                    db.commit()
+                    return
+                raise
+
             if status_code == 404:
                 _fail_task(db, task, "not_found")
+                db.commit()
+                return
+            if status_code == 401:
+                _mark_capture_waiting(db, task, "auth")
                 db.commit()
                 return
 
