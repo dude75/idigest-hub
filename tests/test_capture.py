@@ -142,6 +142,31 @@ def test_capture_disabled(client):
     assert err_code(response) == "capture_disabled"
 
 
+def test_capture_rejects_when_worker_has_no_capacity(client, fake_workers):
+    setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(
+        worker["id"],
+        {
+            "status": "ok",
+            "version": "x",
+            "connectors": {"jitsi": {"status": "loaded", "label": "Jitsi Meet"}},
+            "workers": {"max": 4, "active": 4, "available": 0},
+        },
+    )
+    _enable_capture(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "capbusy@example.com", "capbusypass1", tariff_id).status_code == 200
+    login_ready(client, "capbusy@example.com", "capbusypass1")
+    _map_jitsi_host(client)
+    response = client.post(
+        "/api/v1/tasks/capture",
+        json={"meeting_url": "https://meet.example.com/room1"},
+    )
+    assert response.status_code == 503
+    assert err_code(response) == "capture_no_worker"
+
+
 def test_meet_jitsi_public_url_parsing():
     from app.services.capture_meeting import parse_meeting_room
 

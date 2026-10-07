@@ -38,22 +38,7 @@ def map_capture_worker_error(code: str | None) -> str:
 
 
 def _auth_header(db: Session, node: WorkerNode) -> dict[str, str]:
-    from cryptography.fernet import InvalidToken
-
-    try:
-        token = decrypt_str(node.api_token_encrypted, db)
-    except InvalidToken as exc:
-        raise WorkerClientError(
-            "error_status",
-            401,
-            {"error": {"code": "unauthorized", "message": "worker token decrypt failed"}},
-        ) from exc
-    if not token.strip():
-        raise WorkerClientError(
-            "error_status",
-            401,
-            {"error": {"code": "unauthorized", "message": "worker token empty"}},
-        )
+    token = decrypt_str(node.api_token_encrypted, db)
     return {"Authorization": f"Bearer {token}"}
 
 

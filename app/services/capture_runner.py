@@ -199,102 +199,47 @@ def _capture_worker_held_by_other(db: Session, worker_id: str, exclude_task_id: 
     return False
 
 
-def capture_worker_capacity_reason(db: Session, task: Task) -> str | None:
-    """None when capture may start; else unreachable | pool_full | busy."""
+def capture_worker_capacity_available(db: Session, task: Task) -> bool:
+    """Gate capture start: dispatch-ready node and free workers.available (or legacy one job per node)."""
     worker_id = (task.worker_id or "").strip()
     if not worker_id:
-        return "unreachable"
+        return False
     node = db.get(WorkerNode, worker_id)
     if node is None:
-        return "unreachable"
+        return False
     from app.deps import get_instance_settings
     from app.services.capture_platforms import allowed_connectors
     from app.services.worker_availability import (
         parse_health_worker_pool,
         worker_is_dispatch_available,
+        worker_node_has_pool_capacity,
     )
 
     settings = get_instance_settings(db)
     connectors = allowed_connectors(settings)
     if not worker_is_dispatch_available(node, capture_connectors=connectors):
-        return "unreachable"
-    pool = parse_health_worker_pool(node.last_health)
-    if pool is not None:
-        if int(pool.get("available") or 0) <= 0:
-            return "pool_full"
-        return None
-    if _capture_worker_held_by_other(db, worker_id, task.id):
-        return "busy"
-    return None
+        return False
+    if parse_health_worker_pool(node.last_health) is not None:
+        return worker_node_has_pool_capacity(node)
+    return not _capture_worker_held_by_other(db, worker_id, task.id)
 
 
-def capture_worker_capacity_available(db: Session, task: Task) -> bool:
-    """Gate capture start: dispatch-ready node and free workers.available (or legacy one job per node)."""
-    return capture_worker_capacity_reason(db, task) is None
-
-
-async def refresh_capture_dispatch_health(db: Session, task: Task) -> None:
-    """Force health refresh while a capture task waits for worker capacity."""
-    if task.type != "capture" or task.audio_id:
-        return
-    if task.status not in {"queued", "running"}:
-        return
-    if (task.worker_task_id or "").strip():
-        return
-    from sqlalchemy import select
-
-    from app.services.dispatcher import refresh_nodes_health
-
-    worker_id = (task.worker_id or "").strip()
-    if worker_id:
-        node = db.get(WorkerNode, worker_id)
-        if node is not None:
-            await refresh_nodes_health(db, [node], force=True)
-            return
-    nodes = list(
-        db.scalars(select(WorkerNode).where(WorkerNode.type == "capture", WorkerNode.enabled.is_(True))).all()
+def capture_worker_ready(db: Session, worker: WorkerNode) -> bool:
+    """True when the node can accept a new capture dispatch right now."""
+    probe = Task(
+        id="__capture_enqueue_probe__",
+        type="capture",
+        status="queued",
+        org_id="",
+        user_id="",
+        worker_id=worker.id,
     )
-    if nodes:
-        await refresh_nodes_health(db, nodes, force=True)
-
-
-def _capture_auth_failure(exc: WorkerClientError) -> bool:
-    if exc.status_code == 401:
-        return True
-    return exc.worker_code == "unauthorized"
-
-
-def _capture_recoverable_worker_error(exc: WorkerClientError) -> bool:
-    if _capture_auth_failure(exc):
-        return True
-    return exc.kind in {"timeout", "http"}
-
-
-def _mark_capture_waiting(db: Session, task: Task, reason: str) -> None:
-    meta = dict(task.meta_json or {})
-    if reason == "pool_full":
-        meta["stage"] = "queue_full"
-        meta.pop("wait_reason", None)
-    else:
-        meta["stage"] = "queued"
-        if reason == "auth":
-            meta["wait_reason"] = "worker_auth"
-        elif reason != "unreachable":
-            meta.pop("wait_reason", None)
-    task.worker_task_id = None
-    task.meta_json = meta
-    task.retry_without_timeout = True
-    if not (task.worker_task_id or "").strip():
-        task.status = "queued"
-    task.updated_at = utcnow()
-    db.flush()
+    return capture_worker_capacity_available(db, probe)
 
 
 def _update_task_meta(db: Session, task: Task, stage: str, extra: dict[str, Any] | None = None) -> None:
     meta = dict(task.meta_json or {})
     meta["stage"] = stage
-    if stage == "joining":
-        meta.pop("wait_reason", None)
     if extra:
         meta.update(extra)
     task.meta_json = meta
@@ -712,9 +657,9 @@ def _bind_capture_worker(db: Session, task: Task, settings: Any) -> WorkerNode |
 
     if task.worker_id:
         node = db.get(WorkerNode, task.worker_id)
-        if node is not None and node.type == "capture" and node.enabled:
-            if capture_worker_capacity_available(db, task):
-                return node
+        if node is not None and node.type == "capture" and node.enabled and capture_worker_capacity_available(
+            db, task
+        ):
             return node
         task.worker_id = None
         task.worker_task_id = None
@@ -783,15 +728,8 @@ async def _run_capture_task(task_id: str) -> None:
         task = db.get(Task, task_id)
         if task is None or task.type != "capture":
             return
-        if task.audio_id:
+        if task.status != "running" or task.audio_id:
             return
-        if task.status != "running":
-            if task.status == "queued" and task_id in _active:
-                task.status = "running"
-                db.commit()
-            else:
-                log.info("capture thread skip hub_task=%s status=%s", task_id, task.status)
-                return
         if is_capture_canceled(task_id):
             _fail_task(db, task, "canceled")
             db.commit()
@@ -851,28 +789,13 @@ async def _run_capture_task(task_id: str) -> None:
                     display_name=display_name,
                 )
             except WorkerClientError as exc:
-                if exc.worker_code == "queue_full":
-                    _mark_capture_waiting(db, task, "pool_full")
-                    db.commit()
-                    return
-                if _capture_recoverable_worker_error(exc):
-                    reason = "auth" if _capture_auth_failure(exc) else "unreachable"
-                    _mark_capture_waiting(db, task, reason)
-                    log.warning(
-                        "capture worker transient hub_task=%s reason=%s kind=%s status=%s code=%s",
-                        task.id,
-                        reason,
-                        exc.kind,
-                        exc.status_code,
-                        exc.worker_code,
-                    )
-                    db.commit()
-                    return
                 code = map_capture_worker_error(exc.worker_code)
                 if exc.worker_code == "join_failed":
                     code = "pipeline_error"
                 if exc.worker_code == "invalid_url":
                     code = "invalid_url"
+                if exc.worker_code == "queue_full":
+                    code = "queue_full"
                 _fail_task(db, task, code)
                 db.commit()
                 return
@@ -924,22 +847,9 @@ async def _run_capture_task(task_id: str) -> None:
                 db.commit()
                 return
 
-            try:
-                status_code, poll = await get_capture_task(db, worker_node, worker_task_id)
-            except WorkerClientError as exc:
-                if _capture_recoverable_worker_error(exc):
-                    reason = "auth" if _capture_auth_failure(exc) else "unreachable"
-                    _mark_capture_waiting(db, task, reason)
-                    db.commit()
-                    return
-                raise
-
+            status_code, poll = await get_capture_task(db, worker_node, worker_task_id)
             if status_code == 404:
                 _fail_task(db, task, "not_found")
-                db.commit()
-                return
-            if status_code == 401:
-                _mark_capture_waiting(db, task, "auth")
                 db.commit()
                 return
 
@@ -1082,18 +992,10 @@ def maybe_start_capture(db: Session, task: Task) -> None:
             return
         _active.discard(task.id)
         _bg_threads.pop(task.id, None)
-        wait_reason = capture_worker_capacity_reason(db, task)
-        if wait_reason is not None:
-            from app.deps import get_instance_settings
-
-            settings = get_instance_settings(db)
-            _bind_capture_worker(db, task, settings)
-            wait_reason = capture_worker_capacity_reason(db, task)
-            if wait_reason is None:
-                db.flush()
-            else:
-                _mark_capture_waiting(db, task, wait_reason)
-                return
+        if not capture_worker_capacity_available(db, task):
+            _fail_task(db, task, "capture_no_worker")
+            db.flush()
+            return
 
         _active.add(task.id)
         if task.status == "queued":

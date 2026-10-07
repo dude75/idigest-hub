@@ -78,6 +78,59 @@ class CaptureBody(BaseModel):
     tone: bool = False
 
 
+def _raise_capture_meeting_error(ctx: AuthContext, exc: Any) -> None:
+    from app.services.capture_meeting import CaptureMeetingError
+
+    if not isinstance(exc, CaptureMeetingError):
+        ctx.raise_error(ErrorCode.pipeline_error)
+    code = exc.code
+    if code == "capture_disabled":
+        ctx.raise_error(ErrorCode.capture_disabled)
+    if code == "invalid_url":
+        ctx.raise_error(ErrorCode.invalid_url)
+    if code == "meeting_host_not_configured":
+        ctx.raise_error(ErrorCode.meeting_host_not_configured)
+    if code == "capture_no_worker":
+        ctx.raise_error(ErrorCode.capture_no_worker)
+    ctx.raise_error(ErrorCode.pipeline_error)
+
+
+async def refresh_capture_worker_for_enqueue(db: Session, ctx: AuthContext, body: CaptureBody) -> None:
+    """Refresh the chosen capture worker health before enqueue (fail when not dispatch-ready)."""
+    from app.services.capture_meeting import (
+        CaptureMeetingError,
+        resolve_capture_bot_display_name,
+        resolve_capture_target,
+    )
+    from app.services.capture_platforms import allowed_connectors
+    from app.services.capture_runner import capture_worker_ready
+    from app.services.dispatcher import refresh_node_health
+
+    org, _ = ctx.require_org()
+    settings = get_instance_settings(db)
+    if not settings.capture_enabled:
+        ctx.raise_error(ErrorCode.capture_disabled)
+    display_name = resolve_capture_bot_display_name(
+        user=ctx.user,
+        org=org,
+        override=body.bot_display_name,
+    )
+    try:
+        target = resolve_capture_target(
+            db,
+            org=org,
+            meeting_url=body.meeting_url.strip(),
+            pin=body.pin or "",
+            settings_allowed=allowed_connectors(settings),
+            display_name=display_name,
+        )
+    except CaptureMeetingError as exc:
+        _raise_capture_meeting_error(ctx, exc)
+    await refresh_node_health(db, target.worker)
+    if not capture_worker_ready(db, target.worker):
+        ctx.raise_error(ErrorCode.capture_no_worker)
+
+
 def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Task:
     org, _ = ctx.require_org()
     settings = get_instance_settings(db)
@@ -106,16 +159,11 @@ def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Ta
             display_name=display_name,
         )
     except CaptureMeetingError as exc:
-        code = exc.code
-        if code == "capture_disabled":
-            ctx.raise_error(ErrorCode.capture_disabled)
-        if code == "invalid_url":
-            ctx.raise_error(ErrorCode.invalid_url)
-        if code == "meeting_host_not_configured":
-            ctx.raise_error(ErrorCode.meeting_host_not_configured)
-        if code == "capture_no_worker":
-            ctx.raise_error(ErrorCode.capture_no_worker)
-        ctx.raise_error(ErrorCode.pipeline_error)
+        _raise_capture_meeting_error(ctx, exc)
+    from app.services.capture_runner import capture_worker_ready
+
+    if not capture_worker_ready(db, target.worker):
+        ctx.raise_error(ErrorCode.capture_no_worker)
     models = resolve_transcribe_models(ctx.user, settings)
     tariff = org.tariff
     from app.services.tone_analytics import validate_tone_for_ctx
@@ -320,6 +368,7 @@ async def create_capture(
     ctx: AuthContext = Depends(require_auth),
 ) -> TaskListItem:
     enforce_write_limits(request, ctx.user.id, get_rate_limits(db), ctx.locale)
+    await refresh_capture_worker_for_enqueue(db, ctx, body)
     task = enqueue_capture_task(db, ctx, body)
     db.commit()
     schedule_locked_tick(background_tasks, task.id, refresh_health=False)
