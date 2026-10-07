@@ -18,7 +18,9 @@ import { AppStackCard } from '../components/AdminSection'
 import { AdminTablePager } from '../components/app/AdminDataTable'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import { ListSection } from '../components/app/EntityUi'
+import { IngestExtraTagsMultiSelect } from '../components/IngestExtraTagsMultiSelect'
 import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
+import { loadIngestExtraTags, saveIngestExtraTags } from '../ingestExtraTags'
 import { ListRow } from '../components/ListRow'
 import { Tabs } from '../components/Tabs'
 import { Card, CardContent } from '@/components/ui/card'
@@ -70,6 +72,7 @@ export function LibraryPage() {
     video: boolean
   } | null>(null)
   const [importUrl, setImportUrl] = useState('')
+  const [ingestExtraTags, setIngestExtraTags] = useState(loadIngestExtraTags)
   const [importPlatforms, setImportPlatforms] = useState<SchemaImportPlatformsResponse | null>(null)
   const [capturePin, setCapturePin] = useState('')
   const [capturePlatforms, setCapturePlatforms] = useState<SchemaCapturePlatformsResponse | null>(null)
@@ -242,10 +245,12 @@ export function LibraryPage() {
       const pipeline = beginPipelineRun()
       const task = await api<Task>('/tasks/capture', {
         method: 'POST',
-        body: JSON.stringify(captureRequest(trimmed, pin.trim(), pipeline, me)),
+        body: JSON.stringify(captureRequest(trimmed, pin.trim(), pipeline, me, ingestExtraTags)),
       })
       setCapturePin('')
       setImportUrl('')
+      setIngestExtraTags([])
+      saveIngestExtraTags([])
       nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
     } catch (e) {
       showError(e)
@@ -266,9 +271,11 @@ export function LibraryPage() {
       const pipeline = beginPipelineRun()
       const task = await api<Task>('/tasks/import', {
         method: 'POST',
-        body: JSON.stringify(importRequest(url, pipeline, me)),
+        body: JSON.stringify(importRequest(url, pipeline, me, ingestExtraTags)),
       })
       setImportUrl('')
+      setIngestExtraTags([])
+      saveIngestExtraTags([])
       nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
     } catch (e) {
       if (
@@ -425,6 +432,15 @@ export function LibraryPage() {
                   }}
                 />
               ) : null}
+              <IngestExtraTagsMultiSelect
+                catalog={userTags}
+                selected={ingestExtraTags}
+                disabled={busy}
+                onChange={(names) => {
+                  setIngestExtraTags(names)
+                  saveIngestExtraTags(names)
+                }}
+              />
               <AppSubmitButton ready={!ingestSubmitDisabled} busy={busy} onClick={() => void importFromUrl()}>
                 {ingestSubmitLabel}
               </AppSubmitButton>

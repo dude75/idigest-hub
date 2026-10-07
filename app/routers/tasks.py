@@ -67,6 +67,7 @@ class ImportBody(BaseModel):
     skill_ids: list[str] = Field(default_factory=list)
     bot_display_name: str | None = None
     tone: bool = False
+    user_tags: list[str] = Field(default_factory=list)
 
 
 class CaptureBody(BaseModel):
@@ -76,6 +77,17 @@ class CaptureBody(BaseModel):
     skill_ids: list[str] = Field(default_factory=list)
     bot_display_name: str | None = None
     tone: bool = False
+    user_tags: list[str] = Field(default_factory=list)
+
+
+def _ingest_user_tags_for_meta(ctx: AuthContext, body: ImportBody | CaptureBody) -> list[str]:
+    from app.errors import ApiError
+    from app.services.ingest_user_tags import parse_ingest_user_tag_names
+
+    try:
+        return parse_ingest_user_tag_names(body.user_tags)
+    except ApiError as exc:
+        ctx.raise_error(exc.code, exc.status_code)
 
 
 def _raise_capture_meeting_error(ctx: AuthContext, exc: Any) -> None:
@@ -183,6 +195,9 @@ def enqueue_capture_task(db: Session, ctx: AuthContext, body: CaptureBody) -> Ta
         meta["jwt"] = target.jwt
     if body.transcribe:
         meta["pipeline_transcribe"] = True
+    from app.services.ingest_user_tags import merge_ingest_user_tags
+
+    merge_ingest_user_tags(meta, _ingest_user_tags_for_meta(ctx, body))
     task = Task(
         id=new_id(),
         type="capture",
@@ -235,6 +250,7 @@ def enqueue_import_task(db: Session, ctx: AuthContext, body: ImportBody) -> Task
                 skill_ids=body.skill_ids,
                 bot_display_name=body.bot_display_name,
                 tone=body.tone,
+                user_tags=body.user_tags,
             ),
         )
     if import_url_looks_like_meeting(body.url):
@@ -262,6 +278,9 @@ def enqueue_import_task(db: Session, ctx: AuthContext, body: ImportBody) -> Task
     meta: dict = {"url": url, "stage": "queued"}
     if body.transcribe:
         meta["pipeline_transcribe"] = True
+    from app.services.ingest_user_tags import merge_ingest_user_tags
+
+    merge_ingest_user_tags(meta, _ingest_user_tags_for_meta(ctx, body))
     task = Task(
         id=new_id(),
         type="import",

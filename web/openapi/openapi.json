@@ -8782,6 +8782,13 @@
             "type": "boolean",
             "title": "Tone",
             "default": false
+          },
+          "user_tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "User Tags"
           }
         },
         "type": "object",
@@ -9128,6 +9135,13 @@
             "type": "boolean",
             "title": "Tone",
             "default": false
+          },
+          "user_tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "User Tags"
           }
         },
         "type": "object",

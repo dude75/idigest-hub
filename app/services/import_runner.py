@@ -185,9 +185,11 @@ async def _run_import_task(task_id: str) -> None:
         )
         db.add(audio)
         db.flush()
+        from app.services.ingest_user_tags import apply_ingest_task_user_tags
         from app.services.source_tags import tag_audio_url_import
 
         tag_audio_url_import(db, user_id=task.user_id, audio_id=audio.id, extractor_key=result.extractor_key)
+        apply_ingest_task_user_tags(db, task, audio.id)
         task.audio_id = audio.id
         task.status = "success"
         task.error_code = None

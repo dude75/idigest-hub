@@ -454,9 +454,11 @@ async def _persist_capture_artifact_locked(
         )
         db.add(audio)
         db.flush()
+        from app.services.ingest_user_tags import apply_ingest_task_user_tags
         from app.services.source_tags import tag_audio_capture
 
         tag_audio_capture(db, user_id=task.user_id, audio_id=audio.id, connector=meta.get("connector"))
+        apply_ingest_task_user_tags(db, task, audio.id)
         task.audio_id = audio.id
         task.status = "success"
         task.error_code = None

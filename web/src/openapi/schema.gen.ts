@@ -2605,6 +2605,8 @@ export interface components {
              * @default false
              */
             tone: boolean;
+            /** User Tags */
+            user_tags?: string[];
         };
         /** CapturePlatformsResponse */
         CapturePlatformsResponse: {
@@ -2742,6 +2744,8 @@ export interface components {
              * @default false
              */
             tone: boolean;
+            /** User Tags */
+            user_tags?: string[];
         };
         /** ImportPlatformsResponse */
         ImportPlatformsResponse: {

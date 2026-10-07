@@ -192,12 +192,14 @@ export function captureRequest(
   pin: string,
   pipeline: IngestPipeline = activePipeline(),
   me?: Me | null,
+  extraTags: string[] = [],
 ): {
   meeting_url: string
   pin: string
   transcribe?: boolean
   skill_ids?: string[]
   tone?: boolean
+  user_tags?: string[]
 } {
   const body: {
     meeting_url: string
@@ -205,7 +207,11 @@ export function captureRequest(
     transcribe?: boolean
     skill_ids?: string[]
     tone?: boolean
+    user_tags?: string[]
   } = { meeting_url: meetingUrl, pin }
+  if (extraTags.length > 0) {
+    body.user_tags = [...extraTags]
+  }
   if (pipelineShouldTranscribe(pipeline)) {
     body.transcribe = true
     body.tone = requestTone(me)
@@ -216,13 +222,28 @@ export function captureRequest(
   return body
 }
 
-export function importRequest(url: string, pipeline: IngestPipeline = activePipeline(), me?: Me | null): {
+export function importRequest(
+  url: string,
+  pipeline: IngestPipeline = activePipeline(),
+  me?: Me | null,
+  extraTags: string[] = [],
+): {
   url: string
   transcribe?: boolean
   skill_ids?: string[]
   tone?: boolean
+  user_tags?: string[]
 } {
-  const body: { url: string; transcribe?: boolean; skill_ids?: string[]; tone?: boolean } = { url }
+  const body: {
+    url: string
+    transcribe?: boolean
+    skill_ids?: string[]
+    tone?: boolean
+    user_tags?: string[]
+  } = { url }
+  if (extraTags.length > 0) {
+    body.user_tags = [...extraTags]
+  }
   if (pipelineShouldTranscribe(pipeline)) {
     body.transcribe = true
     body.tone = requestTone(me)

@@ -639,6 +639,13 @@ a.brand:hover,
   font-size: 0.8rem;
   line-height: 1.35;
 }
+.library-ingest-tags-trigger {
+  max-width: 11rem;
+}
+.library-ingest-tags-list {
+  margin: 0;
+  list-style: none;
+}
 .library-ingest-section-label {
   margin: 0.65rem 0 0.35rem;
   font-size: 0.85rem;

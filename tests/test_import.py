@@ -505,7 +505,10 @@ def test_import_task_success(client, tmp_path, monkeypatch):
 
     created = client.post(
         "/api/v1/tasks/import",
-        json={"url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+        json={
+            "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "user_tags": ["Project Alpha"],
+        },
     )
     assert created.status_code == 202, created.text
     task_id = created.json()["task_id"]
@@ -532,7 +535,7 @@ def test_import_task_success(client, tmp_path, monkeypatch):
     assert listed.status_code == 200
     match = next(item for item in listed.json()["items"] if item["id"] == body["audio_id"])
     assert match["source_url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-    assert {t["name"] for t in audio.json().get("user_tags") or []} == {"youtube"}
+    assert {t["name"] for t in audio.json().get("user_tags") or []} == {"youtube", "Project Alpha"}
 
 
 def test_import_with_transcribe_chains_follow_up(client, tmp_path, monkeypatch, fake_workers):
