@@ -109,7 +109,7 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 
 ### Личные теги
 
-Приватные метки (как REST [Library API](library.md#личные-теги-без-acl)). В list/get — поле `user_tags` для пользователя токена.
+Приватные метки (как REST [Library API](library.md#личные-теги-без-acl)). В list/get — поле `user_tags` для пользователя токена. Upload/import/capture автоматически добавляют тег источника на audio (см. [domain](../domain/library.md#теги-источника-ingest-автоматически)).
 
 | Tool | Параметры | Scope | Ответ |
 | ---- | --------- | ----- | ----- |

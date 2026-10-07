@@ -18,7 +18,7 @@ Invalid extension → `invalid_file`. Over limit → `payload_too_large`.
 
 #### Web UI: record from microphone
 
-On the library page, users can record in the browser (`MediaRecorder`): **WebM** in Chromium/Firefox, **M4A** when Safari exposes `audio/mp4`. The blob is uploaded via the same `POST /audios` path with form field **`from_microphone=true`**; the hub runs the same **ffmpeg → MP3** extract as video upload and stores **`original.mp3`**. After upload, the UI applies user tag **`mic`** through `PUT /object-tags`. Switching the input device mid-session restarts capture (prior audio in that session is discarded).
+On the library page, users can record in the browser (`MediaRecorder`): **WebM** in Chromium/Firefox, **M4A** when Safari exposes `audio/mp4`. The blob is uploaded via the same `POST /audios` path with form field **`from_microphone=true`**; the hub runs the same **ffmpeg → MP3** extract as video upload and stores **`original.mp3`**. The server auto-tags the new audio with **`mic`** (see [ingest source tags](#ingest-source-tags-automatic)). Switching the input device mid-session restarts capture (prior audio in that session is discarded).
 
 ### Endpoints
 
@@ -99,6 +99,19 @@ Per-user labels on audio, transcripts, and summaries (not shared, not org-wide A
 - Catalog: `GET /tags` (rename/delete via `PATCH` / `DELETE`)
 - Assign: `PUT /object-tags` replaces the tag set on one object
 - Filter lists: `?tag=` on `/audios`, `/transcripts`, `/summaries`
+
+### Ingest source tags (automatic)
+
+When **audio** is created, the hub **appends** one tag for the ingest source (owner only). Names are lowercase slugs (`app/services/source_tags.py`; `upload` / `mic` constants sync with `web/src/constants/userTags.ts`).
+
+| Source | Tag |
+| ------ | --- |
+| File upload (`POST /audios`, MCP upload) | `upload` |
+| Microphone (`from_microphone=true`) | `mic` |
+| Successful URL **import** task | yt-dlp extractor id lowercased (e.g. `youtube`, `rutube`, `tiktok`) |
+| Successful meeting **capture** task | capture connector id (e.g. `jitsi`, `telemost`, `zoom`, `meet`) |
+
+On successful **transcribe** / **summarize**, tags on the new transcript or summary are copied once from the parent object (same rules as manual tags). You can still edit tags with `PUT /object-tags` (full replace on that object).
 
 Hard delete removes tag links on that object for all users. See [Library API](../api/library.md#personal-tags-no-acl) and [MCP personal tags](../api/mcp.md#personal-tags).
 

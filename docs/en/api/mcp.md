@@ -109,7 +109,7 @@ List derived flags: `has_transcript`, `has_summary`, `transcript_id`, `summary_t
 
 ### Personal tags
 
-Private labels (same rules as REST [Library API](library.md#personal-tags-no-acl)). List/get payloads include `user_tags` for the token user.
+Private labels (same rules as REST [Library API](library.md#personal-tags-no-acl)). List/get payloads include `user_tags` for the token user. Upload/import/capture auto-append ingest source tags on audio (see [domain](../domain/library.md#ingest-source-tags-automatic)).
 
 | Tool | Parameters | Scope | Returns |
 | ---- | ---------- | ----- | ------- |

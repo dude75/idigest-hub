@@ -54,6 +54,8 @@ app/
     ├── backup.py       # Profile ZIP/TGZ archives
     ├── export.py       # Download filenames, markdown fence unwrap
     ├── storage.py      # Audio blobs: local filesystem or S3 (STORAGE_BACKEND)
+    ├── user_tags.py    # Личные теги на объектах библиотеки
+    ├── source_tags.py  # Автотеги источника ingest при создании audio
     ├── worker_impact.py   # Impact и remediation при delete/change воркера
     └── tariff_impact.py   # Impact удаления тарифа и перенос org
 ```

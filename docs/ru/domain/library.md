@@ -18,7 +18,7 @@
 
 #### Web UI: запись с микрофона
 
-На странице библиотеки доступна запись в браузере (`MediaRecorder`): **WebM** в Chromium/Firefox, **M4A**, если Safari отдаёт `audio/mp4`. Blob загружается тем же `POST /audios` с полем формы **`from_microphone=true`**; hub прогоняет тот же **ffmpeg → MP3**, что и для video upload, и сохраняет **`original.mp3`**. После upload UI проставляет пользовательский тег **`mic`** через `PUT /object-tags`. Смена устройства ввода в сессии перезапускает запись (аудио до смены в этой сессии отбрасывается).
+На странице библиотеки доступна запись в браузере (`MediaRecorder`): **WebM** в Chromium/Firefox, **M4A**, если Safari отдаёт `audio/mp4`. Blob загружается тем же `POST /audios` с полем формы **`from_microphone=true`**; hub прогоняет тот же **ffmpeg → MP3**, что и для video upload, и сохраняет **`original.mp3`**. Сервер автоматически ставит тег **`mic`** (см. [теги источника ingest](#теги-источника-ingest-автоматически)). Смена устройства ввода в сессии перезапускает запись (аудио до смены в этой сессии отбрасывается).
 
 ### Endpoints
 
@@ -99,6 +99,19 @@ POST /shares
 - Каталог: `GET /tags` (переименование/удаление через `PATCH` / `DELETE`)
 - Назначение: `PUT /object-tags` заменяет набор тегов на объекте
 - Фильтр списков: `?tag=` на `/audios`, `/transcripts`, `/summaries`
+
+### Теги источника ingest (автоматически)
+
+При создании **audio** hub **добавляет** один тег по источнику (только владельцу). Имена — lowercase slug (`app/services/source_tags.py`; константы `upload` / `mic` синхронны с `web/src/constants/userTags.ts`).
+
+| Источник | Тег |
+| -------- | --- |
+| Upload файла (`POST /audios`, MCP upload) | `upload` |
+| Микрофон (`from_microphone=true`) | `mic` |
+| Успешная задача **import** по URL | id extractor yt-dlp в нижнем регистре (`youtube`, `rutube`, `tiktok`, …) |
+| Успешная **capture** встречи | id connector capture (`jitsi`, `telemost`, `zoom`, `meet`, …) |
+
+При успешных **transcribe** / **summarize** теги на новый transcript или summary копируются один раз с родителя (как и ручные). Редактирование по-прежнему через `PUT /object-tags` (полная замена на объекте).
 
 При hard delete объекта снимаются tag links на этом объекте у всех пользователей. См. [Library API](../api/library.md#личные-теги-без-acl) и [MCP](../api/mcp.md#личные-теги).
 

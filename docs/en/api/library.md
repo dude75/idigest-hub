@@ -6,7 +6,7 @@ Auth required. Org membership required for all endpoints.
 
 | Method | Path | Description |
 | ------ | ---- | ----------- |
-| POST | `/audios` | Multipart upload (`file`; optional `from_microphone=true` → MP3 extract) |
+| POST | `/audios` | Multipart upload (`file`; optional `from_microphone=true` → MP3 extract). Response includes `user_tags` with auto [ingest source tag](../domain/library.md#ingest-source-tags-automatic). |
 | GET | `/audios?include_hidden=false&tag=` | List (`tag`: your tag id or name) |
 | GET | `/audios/{id}` | Detail + transcript list + `can_transcribe` |
 | GET | `/audios/{id}/file` | Stream audio (inline playback) |
@@ -92,6 +92,8 @@ Per-user labels on library objects you can read (own, shared, or org_admin). Oth
 | PATCH | `/tags/{tag_id}` | `{ "name": "..." }` — rename |
 | DELETE | `/tags/{tag_id}` | Remove tag from all your objects |
 | PUT | `/object-tags` | `{ "object_type": "audio\|transcript\|summary", "object_id": "uuid", "tags": ["name", ...] }` — replace tags on one object (creates tags by name) |
+
+**Ingest source tags:** on audio create (upload, import, capture), the hub appends one owner tag (`upload`, `mic`, platform, or connector — see [domain doc](../domain/library.md#ingest-source-tags-automatic)). Import/capture apply the tag when the ingest task succeeds.
 
 List endpoints accept `tag` (id or case-insensitive name) to filter to objects you tagged.
 

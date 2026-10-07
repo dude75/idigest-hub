@@ -6,7 +6,7 @@
 
 | Method | Path | Описание |
 | ------ | ---- | -------- |
-| POST | `/audios` | Multipart upload (поле `file`; опционально `from_microphone=true` → extract в MP3) |
+| POST | `/audios` | Multipart upload (поле `file`; опционально `from_microphone=true` → extract в MP3). В ответе `user_tags` с автотегом [источника ingest](../domain/library.md#теги-источника-ingest-автоматически). |
 | GET | `/audios?include_hidden=false&tag=` | Список (`tag` — id или имя вашего тега) |
 | GET | `/audios/{id}` | Детали + список transcript + `can_transcribe` |
 | GET | `/audios/{id}/file` | Потоковая отдача или скачивание (`?download=true`) |
@@ -91,6 +91,8 @@ Read-only гостевой URL (нужны Public URL + org `allow_public_links`
 | PATCH | `/tags/{tag_id}` | `{ "name": "..." }` — переименование |
 | DELETE | `/tags/{tag_id}` | Удалить тег со всех ваших объектов |
 | PUT | `/object-tags` | `{ "object_type": "audio\|transcript\|summary", "object_id": "uuid", "tags": ["имя", ...] }` — заменить теги на объекте (создаёт по имени) |
+
+**Теги источника ingest:** при создании audio (upload, import, capture) hub добавляет владельцу один тег (`upload`, `mic`, платформа или connector — см. [domain](../domain/library.md#теги-источника-ingest-автоматически)). Import/capture ставят тег при успешном завершении ingest-задачи.
 
 Списки поддерживают `tag` (id или имя без учёта регистра) для фильтрации.
 

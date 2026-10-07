@@ -40,6 +40,8 @@ Framework: **pytest** с FastAPI `TestClient`.
 | `test_mcp_library.py` | MCP tool payloads: CRUD библиотеки, scopes, постановка summarize/import |
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
 | `test_library.py` | Upload, shares, hide |
+| `test_source_tags.py` | Автотеги источника ingest при upload/import/capture |
+| `test_user_tags.py` | Личные теги, фильтры, наследование при transcribe/summarize |
 | `test_org.py` | Users, offboarding, stats |
 | `test_instance.py` | Workers, tariffs, settings |
 | `test_summarize_models.py` | Выбор модели summarize на инстансе и у пользователя, snapshot задачи |

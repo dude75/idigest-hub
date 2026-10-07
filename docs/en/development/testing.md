@@ -40,6 +40,8 @@ Each test gets:
 | `test_mcp_library.py` | MCP tool payloads: library CRUD, scopes, summarize/import enqueue |
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
 | `test_library.py` | Upload, shares, hide |
+| `test_source_tags.py` | Auto ingest source tags on upload/import/capture |
+| `test_user_tags.py` | Personal tags, filters, inherit on transcribe/summarize |
 | `test_org.py` | Users, offboarding, stats |
 | `test_instance.py` | Workers, tariffs, settings |
 | `test_summarize_models.py` | Instance and user summarize model selection, task snapshot |
