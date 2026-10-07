@@ -46,6 +46,7 @@ web/src/
     ├── Shell.tsx     # Nav layout
     ├── AdminSection.tsx
     ├── MicrophoneRecordModal.tsx   # Library mic capture → POST /audios
+    ├── IngestExtraTagsMultiSelect.tsx  # Library URL ingest: extra tags modal → user_tags on import/capture
     ├── ShareDialog.tsx, MfaSetupPanel.tsx, …
     └── …
 ```
@@ -100,6 +101,10 @@ Regeneration is covered in CI indirectly via pytest (`tests/test_export_openapi.
 6. Instance admin without org → Instance UI
 
 Profile → Security: optional 2FA enable/disable. API token dialog prompts for TOTP when `mfa_enabled`. Org admin: `mfa_required` toggle and member reset-MFA on Org page. Profile also overrides transcription, summarize models, and optional capture bot display name (`PATCH /me`); Instance → Workers delete/edit opens `WorkerImpactModal` when a model or capture connector would be lost (org Jitsi host maps are not tied to workers). Instance → Tariffs delete opens `TariffImpactModal` to list orgs on the tariff and optionally move them to another active tariff before DELETE.
+
+## Library ingest
+
+URL / meeting import on **LibraryPage** sends optional **`user_tags`** via `importRequest` / `captureRequest` (`pipeline.ts`). Extra tag names are edited in **`IngestExtraTagsMultiSelect`** (modal with the same pick / add / chip pattern as object tag editors). Last choice is stored in `localStorage` (`ingestExtraTags.ts`) until a successful import or capture clears it.
 
 ## i18n
 

@@ -41,6 +41,7 @@ Each test gets:
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
 | `test_library.py` | Upload, shares, hide |
 | `test_source_tags.py` | Auto ingest source tags on upload/import/capture |
+| `test_import.py` | URL import pipeline; `user_tags` on successful import |
 | `test_user_tags.py` | Personal tags, filters, inherit on transcribe/summarize |
 | `test_org.py` | Users, offboarding, stats |
 | `test_instance.py` | Workers, tariffs, settings |

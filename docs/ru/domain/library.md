@@ -111,6 +111,10 @@ POST /shares
 | Успешная задача **import** по URL | id extractor yt-dlp в нижнем регистре (`youtube`, `rutube`, `tiktok`, …) |
 | Успешная **capture** встречи | id connector capture (`jitsi`, `telemost`, `zoom`, `meet`, …) |
 
+### Дополнительные теги (import / capture по URL)
+
+На **Library** в строке ingest (URL видео или встречи) — **«Доп. теги»**: модальное окно (каталог и «Новый тег…») перед **Import** / capture. Выбор передаётся в `user_tags` в `POST /tasks/import` или `POST /tasks/capture` и **добавляется** на новый audio при успехе (автотег источника — отдельно). Upload и микрофон это поле не используют; после upload — `PUT /object-tags`.
+
 При успешных **transcribe** / **summarize** теги на новый transcript или summary копируются один раз с родителя (как и ручные). Редактирование по-прежнему через `PUT /object-tags` (полная замена на объекте).
 
 При hard delete объекта снимаются tag links на этом объекте у всех пользователей. См. [Library API](../api/library.md#личные-теги-без-acl) и [MCP](../api/mcp.md#личные-теги).

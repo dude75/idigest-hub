@@ -80,7 +80,7 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 | `get_audio` | `audio_id` | `audio:read` | Аудио + `transcripts[]` (видимые) + `can_transcribe` |
 | `create_audio_upload` | `filename`, `content_base64` (standard или data-URL) | `audio:write` | Созданное аудио (как REST upload) |
 | `list_capture_platforms` | — | `tasks:write` | `{ enabled, connectors[{id,label}], jitsi_hosts[] }` (как `GET /capture/platforms`) |
-| `create_audio_import` | `url`, `transcribe` (bool, по умолчанию `false`), `skill_ids` опционально, `bot_display_name` опционально | `tasks:write` | JSON **задачи** (import или capture) |
+| `create_audio_import` | `url`, `transcribe` (bool, по умолчанию `false`), `skill_ids` опционально, `bot_display_name` опционально (пока без `user_tags` — доп. теги ingest через REST `POST /tasks/import`) | `tasks:write` | JSON **задачи** (import или capture) |
 | `create_transcribe` | `audio_id`, `skill_ids` опционально | `tasks:write` | JSON **задачи** (`type: "transcribe"`) |
 | `get_task` | `task_id` | `tasks:write` | JSON **задачи** (как `GET /tasks/{id}`; tick при `queued`/`running`) |
 | `stop_capture_task` | `task_id` | `tasks:write` | JSON **задачи** capture после запроса stop (как `POST /tasks/{id}/stop`) |

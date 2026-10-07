@@ -80,7 +80,7 @@ Errors surface as tool failures (`PermissionError`, `ValueError`, etc.) — not 
 | `get_audio` | `audio_id` | `audio:read` | Audio + `transcripts[]` (visible) + `can_transcribe` |
 | `create_audio_upload` | `filename`, `content_base64` (standard or data-URL base64) | `audio:write` | Created audio (same shape as REST upload) |
 | `list_capture_platforms` | — | `tasks:write` | `{ enabled, connectors[{id,label}], jitsi_hosts[] }` (same as `GET /capture/platforms`) |
-| `create_audio_import` | `url`, `transcribe` (bool, default `false`), `skill_ids` optional, `bot_display_name` optional | `tasks:write` | **Task** JSON (import or capture) |
+| `create_audio_import` | `url`, `transcribe` (bool, default `false`), `skill_ids` optional, `bot_display_name` optional (no `user_tags` yet — use REST `POST /tasks/import` for extra ingest tags) | `tasks:write` | **Task** JSON (import or capture) |
 | `create_transcribe` | `audio_id`, `skill_ids` optional | `tasks:write` | **Task** JSON (`type: "transcribe"`) |
 | `get_task` | `task_id` | `tasks:write` | **Task** JSON (same as `GET /tasks/{id}`; tick when `queued`/`running`) |
 | `stop_capture_task` | `task_id` | `tasks:write` | **Capture task** JSON after stop request (same as `POST /tasks/{id}/stop`) |

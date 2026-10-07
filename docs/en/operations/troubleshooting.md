@@ -42,7 +42,8 @@ Extended from [README — Typical errors](../../../README.md#typical-errors).
 | Engines not `loaded` | Model not ready on worker | Worker startup / GPU |
 | Summarize never dispatches | `/ready` not 200 | Configure LLM on [isummarize-worker](https://github.com/dude75/isummarize-worker) |
 | Summarize stays `queued`, `no_matching_worker` | Snapshotted LLM name is not offered by any enabled summarize worker | Instance → Settings or Profile: pick a model a live worker reports; or remediate when deleting the last worker for that model |
-| Capture stays `queued` / does not start | No enabled capture node offers the meeting connector (`loaded`), `workers.available` is 0, or legacy one-job-per-node busy | Instance → Workers: connector `loaded`, capacity; Instance → Settings: capture enabled + connector allowed; Jitsi: org host mapped in Org → capture |
+| **`capture_no_worker`** on POST import/capture | Chosen capture worker not dispatch-ready at enqueue (connector not `loaded`, `workers.available` is 0, bad token / health) | Fix worker health and hub token; Instance → Settings: capture + connector; Jitsi org host map. Hub does **not** queue capture until the worker returns — fix worker, then submit again |
+| Capture task errors immediately with `capture_no_worker` after create | Worker became unavailable before background start (race) | Same as above; rare if capacity was taken between enqueue and start |
 | 404 redispatch loop | Worker restarted | Usually self-heals; check worker stability |
 
 ## Data and encryption

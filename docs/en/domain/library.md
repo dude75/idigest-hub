@@ -111,6 +111,10 @@ When **audio** is created, the hub **appends** one tag for the ingest source (ow
 | Successful URL **import** task | yt-dlp extractor id lowercased (e.g. `youtube`, `rutube`, `tiktok`) |
 | Successful meeting **capture** task | capture connector id (e.g. `jitsi`, `telemost`, `zoom`, `meet`) |
 
+### Optional extra tags (URL import / capture)
+
+On **Library**, the ingest row (video or meeting URL) has **Extra tags**: a modal to pick existing tags or create new ones before **Import** / capture. Choices are sent as `user_tags` on `POST /tasks/import` or `POST /tasks/capture` and **appended** on the new audio when the task succeeds (source tag still added automatically). Upload and microphone ingest do not use this field; use `PUT /object-tags` after upload if needed.
+
 On successful **transcribe** / **summarize**, tags on the new transcript or summary are copied once from the parent object (same rules as manual tags). You can still edit tags with `PUT /object-tags` (full replace on that object).
 
 Hard delete removes tag links on that object for all users. See [Library API](../api/library.md#personal-tags-no-acl) and [MCP personal tags](../api/mcp.md#personal-tags).

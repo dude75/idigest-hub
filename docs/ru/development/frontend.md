@@ -46,6 +46,7 @@ web/src/
     ├── Shell.tsx     # Nav layout
     ├── AdminSection.tsx
     ├── MicrophoneRecordModal.tsx   # Запись с микрофона → POST /audios
+    ├── IngestExtraTagsMultiSelect.tsx  # Library URL ingest: модалка доп. тегов → user_tags на import/capture
     ├── ShareDialog.tsx, MfaSetupPanel.tsx, …
     └── …
 ```
@@ -100,6 +101,10 @@ npm run generate:api    # export_openapi.py + generate:api-types
 6. Instance admin без org → Instance UI
 
 Profile → Security: опциональное включение/отключение 2FA. Диалог API token запрашивает TOTP при `mfa_enabled`. Org admin: переключатель `mfa_required` и reset-MFA участников на Org page. В Profile также переопределяются модели транскрибации и summarize и опциональное имя бота capture (`PATCH /me`); удаление и правка в Instance → Workers открывают `WorkerImpactModal`, если пропадёт модель или connector capture (карты Jitsi host org не привязаны к воркерам). Удаление в Instance → Tariffs открывает `TariffImpactModal`: список org на тарифе и опциональный перенос на другой активный тариф перед DELETE.
+
+## Ingest на Library
+
+Import / capture по URL на **LibraryPage** передаёт опциональные **`user_tags`** через `importRequest` / `captureRequest` (`pipeline.ts`). Доп. теги редактируются в **`IngestExtraTagsMultiSelect`** (модалка: pick / add / chips как на карточках объектов). Выбор хранится в `localStorage` (`ingestExtraTags.ts`) до успешного import/capture.
 
 ## i18n
 

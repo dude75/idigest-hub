@@ -56,6 +56,7 @@ app/
     ├── storage.py      # Audio blobs: local filesystem or S3 (STORAGE_BACKEND)
     ├── user_tags.py    # Личные теги на объектах библиотеки
     ├── source_tags.py  # Автотеги источника ingest при создании audio
+    ├── ingest_user_tags.py  # user_tags из meta import/capture → audio
     ├── worker_impact.py   # Impact и remediation при delete/change воркера
     └── tariff_impact.py   # Impact удаления тарифа и перенос org
 ```

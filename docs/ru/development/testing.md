@@ -41,6 +41,7 @@ Framework: **pytest** с FastAPI `TestClient`.
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
 | `test_library.py` | Upload, shares, hide |
 | `test_source_tags.py` | Автотеги источника ingest при upload/import/capture |
+| `test_import.py` | Import по URL; `user_tags` при успешном import |
 | `test_user_tags.py` | Личные теги, фильтры, наследование при transcribe/summarize |
 | `test_org.py` | Users, offboarding, stats |
 | `test_instance.py` | Workers, tariffs, settings |

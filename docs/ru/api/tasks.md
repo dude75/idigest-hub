@@ -40,13 +40,16 @@ Audio должен существовать в org, быть доступен п
   "url": "https://…",
   "transcribe": false,
   "skill_ids": [],
-  "bot_display_name": "Опциональное имя бота"
+  "bot_display_name": "Опциональное имя бота",
+  "user_tags": ["Project Alpha"]
 }
 ```
 
 Import URL (YouTube и т.д.), если host в extractors, или **capture встречи**, если capture включён и URL подходит под разрешённый connector (`jitsi`, `telemost`, …). Capture даёт `type: "capture"`; файловый import — `type: "import"`. Опционально `transcribe` + `skill_ids` после успеха. `bot_display_name` переопределяет имя бота user/org только для этой job.
 
-Ошибки: `import_disabled`, `capture_disabled`, `validation_error`, `insufficient_balance`, на задаче — например `meeting_host_not_configured` (Jitsi host не задан в org).
+Опционально **`user_tags`**: дополнительные личные теги на новый **audio** после успеха (плюс [автотег источника](../domain/library.md#теги-источника-ingest-автоматически)). Те же правила, что у `PUT /object-tags` (без дубликатов; не более 31 extra — один слот под source tag).
+
+Ошибки: `import_disabled`, `capture_disabled`, `validation_error`, `insufficient_balance`, `user_tag_name_invalid`, `user_tag_limit_per_object`, на задаче — например `meeting_host_not_configured` (Jitsi host не задан в org). При routing в capture — **`capture_no_worker`** (503), если на момент постановки нет готового capture-воркера.
 
 ## POST `/tasks/capture`
 
@@ -58,11 +61,16 @@ Import URL (YouTube и т.д.), если host в extractors, или **capture в
   "pin": "",
   "transcribe": false,
   "skill_ids": [],
-  "bot_display_name": null
+  "bot_display_name": null,
+  "user_tags": []
 }
 ```
 
-`pin` — для connectors, где нужен PIN (не Telemost). Нужен `capture_enabled`.
+`pin` — для connectors, где нужен PIN (не Telemost). Нужен `capture_enabled`. Опционально **`user_tags`** — как у import (на audio после успеха).
+
+Перед постановкой hub обновляет health выбранного capture-воркера. Если узел не dispatch-ready (connector не loaded, `workers.available` = 0 и т.д.) — **`capture_no_worker`** (503), **задача не создаётся**. Capture не висит в очереди в ожидании воркера.
+
+Ошибки: `capture_disabled`, `capture_no_worker`, `meeting_host_not_configured`, `invalid_url`, коды валидации тегов выше.
 
 ## GET `/capture/platforms`
 

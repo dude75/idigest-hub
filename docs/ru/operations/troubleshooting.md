@@ -42,7 +42,8 @@
 | Engines not `loaded` | Model не готов на worker | Worker startup / GPU |
 | Summarize never dispatches | `/ready` not 200 | Настройте LLM на [isummarize-worker](https://github.com/dude75/isummarize-worker) |
 | Summarize остаётся `queued`, `no_matching_worker` | Зафиксированное имя LLM не отдаёт ни один включённый summarize-воркер | Instance → Settings или Profile: выберите модель, которую сообщает живой воркер; либо remediation при удалении последнего воркера этой модели |
-| Capture остаётся `queued` / не стартует | Нет включённой capture-ноды с connector встречи (`loaded`), `workers.available` = 0 или legacy «одна job на ноду» занята | Instance → Workers: connector `loaded`, ёмкость; Instance → Settings: capture и connector разрешены; Jitsi: host в Org → capture |
+| **`capture_no_worker`** при POST import/capture | Выбранный capture-воркер не dispatch-ready (connector не `loaded`, `workers.available` = 0, health/token) | Починить воркер и токен hub; Instance → Settings: capture + connector; Jitsi host в org. Hub **не** держит capture в очереди — исправить и отправить снова |
+| Capture сразу в error `capture_no_worker` после создания | Воркер стал недоступен до старта фонового потока (гонка) | То же; редко, если слот заняли между enqueue и start |
 | 404 redispatch loop | Worker перезапущен | Обычно self-heals; проверьте стабильность worker |
 
 ## Data и encryption

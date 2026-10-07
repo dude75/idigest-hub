@@ -40,13 +40,16 @@ Errors: `not_found`, `forbidden`, `validation_error`, `insufficient_balance`.
   "url": "https://…",
   "transcribe": false,
   "skill_ids": [],
-  "bot_display_name": "Optional bot name"
+  "bot_display_name": "Optional bot name",
+  "user_tags": ["Project Alpha"]
 }
 ```
 
 URL import (YouTube, etc.) when the host matches configured extractors, or **meeting capture** when capture is enabled and the URL matches an allowed connector (`jitsi`, `telemost`, …). Capture jobs get `type: "capture"`; file imports get `type: "import"`. Optional `transcribe` + `skill_ids` chain transcribe after success. `bot_display_name` overrides user/org capture bot name for that job only.
 
-Errors: `import_disabled`, `capture_disabled`, `validation_error`, `insufficient_balance`, task errors such as `meeting_host_not_configured` (Jitsi host not mapped for org).
+Optional **`user_tags`**: extra personal tag names applied to the new **audio** when the task succeeds (in addition to the automatic [ingest source tag](../domain/library.md#ingest-source-tags-automatic)). Same validation as `PUT /object-tags` (deduped names; at most 31 extras so one slot remains for the source tag).
+
+Errors: `import_disabled`, `capture_disabled`, `validation_error`, `insufficient_balance`, `user_tag_name_invalid`, `user_tag_limit_per_object`, task errors such as `meeting_host_not_configured` (Jitsi host not mapped for org). When the request routes to capture, **`capture_no_worker`** (503) if no dispatch-ready capture worker at enqueue time.
 
 ## POST `/tasks/capture`
 
@@ -58,11 +61,16 @@ Errors: `import_disabled`, `capture_disabled`, `validation_error`, `insufficient
   "pin": "",
   "transcribe": false,
   "skill_ids": [],
-  "bot_display_name": null
+  "bot_display_name": null,
+  "user_tags": []
 }
 ```
 
-`pin` is used for connectors that require it (not Telemost). Requires `capture_enabled`.
+`pin` is used for connectors that require it (not Telemost). Requires `capture_enabled`. Optional **`user_tags`** — same as import (applied on the new audio after success).
+
+Before enqueue, the hub refreshes health on the chosen capture worker. If the node is not dispatch-ready (connector not loaded, `workers.available` is 0, etc.), the request fails with **`capture_no_worker`** (503) and **no task** is created. Capture tasks are not left waiting in queue for a worker to come back.
+
+Errors include `capture_disabled`, `capture_no_worker`, `meeting_host_not_configured`, `invalid_url`, and tag validation codes above.
 
 ## GET `/capture/platforms`
 
