@@ -8,13 +8,15 @@ import ipaddress
 import logging
 import re
 import socket
-import tempfile
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlparse
 
+from app.config import get_settings
 from app.constants import ALLOWED_AUDIO_SUFFIXES
+from app.paths import ensure_hub_tmp, hub_ytdlp_cache_dir, import_tmpdir_for_path, make_hub_import_tmpdir
 from app.services.export import safe_filename
 from app.services.import_platforms import (
     DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
@@ -373,6 +375,10 @@ def _ydl_opts(
     outtmpl: str | None = None,
     download: bool = False,
 ) -> dict[str, Any]:
+    settings = get_settings()
+    ensure_hub_tmp(settings)
+    ytdlp_cache = hub_ytdlp_cache_dir(settings)
+    ytdlp_cache.mkdir(parents=True, exist_ok=True)
     opts: dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
@@ -381,6 +387,7 @@ def _ydl_opts(
         "retries": 3,
         "fragment_retries": 3,
         "skip_download": not download,
+        "cachedir": str(ytdlp_cache),
     }
     if proxy:
         opts["proxy"] = proxy
@@ -870,78 +877,82 @@ def download_audio(
             },
         )
 
-    tmpdir = Path(tempfile.mkdtemp(prefix="hub-import-"))
-    outtmpl = str(tmpdir / "%(id)s.%(ext)s")
-
-    _run_ytdl(
-        cleaned,
-        host=meta["host"],
-        proxy=proxy,
-        cookies_path=cookies_path,
-        max_audio_bitrate_kbps=max_audio_bitrate_kbps,
-        max_bytes=max_bytes,
-        download=True,
-        outtmpl=outtmpl,
-        is_canceled=is_canceled,
-    )
-
-    if is_canceled and is_canceled():
-        raise UrlImportError("canceled")
-
+    settings = get_settings()
+    tmpdir = make_hub_import_tmpdir(settings)
+    keep_tmp = False
     try:
-        source = _pick_import_source(tmpdir)
-    except UrlImportError as exc:
-        raise UrlImportError("download_failed", meta={"host": meta["host"]}) from exc
+        outtmpl = str(tmpdir / "%(id)s.%(ext)s")
 
-    size = source.stat().st_size
-    if size > max_bytes:
-        cleanup_import_path(source)
-        raise UrlImportError("payload_too_large", meta={"host": meta["host"], "bytes": size})
-
-    _reject_incomplete_import_artifact(
-        size=size,
-        duration_sec=meta.get("duration_sec"),
-        max_audio_bitrate_kbps=max_audio_bitrate_kbps,
-        host=meta["host"],
-        max_bytes=max_bytes,
-    )
-
-    title = meta.get("title")
-    sniffed_before = _sniff_file_suffix(source)
-    storage_path, suffix, filename = _finalize_import_artifact(
-        source,
-        tmpdir,
-        title=title if isinstance(title, str) else None,
-        max_audio_bitrate_kbps=max_audio_bitrate_kbps,
-    )
-    if sniffed_before != ".mp3" and suffix == ".mp3" and on_progress:
-        on_progress(
-            "converting",
-            {
-                "host": meta["host"],
-                "platform": meta["platform_label"],
-                "title": title,
-            },
+        _run_ytdl(
+            cleaned,
+            host=meta["host"],
+            proxy=proxy,
+            cookies_path=cookies_path,
+            max_audio_bitrate_kbps=max_audio_bitrate_kbps,
+            max_bytes=max_bytes,
+            download=True,
+            outtmpl=outtmpl,
+            is_canceled=is_canceled,
         )
 
-    return ImportResult(
-        source_path=storage_path,
-        suffix=suffix,
-        original_filename=filename,
-        title=title if isinstance(title, str) else None,
-        duration_sec=meta.get("duration_sec"),
-        extractor_key=meta["extractor_key"],
-        host=meta["host"],
-        platform_label=meta["platform_label"],
-    )
+        if is_canceled and is_canceled():
+            raise UrlImportError("canceled")
+
+        try:
+            source = _pick_import_source(tmpdir)
+        except UrlImportError as exc:
+            raise UrlImportError("download_failed", meta={"host": meta["host"]}) from exc
+
+        size = source.stat().st_size
+        if size > max_bytes:
+            raise UrlImportError("payload_too_large", meta={"host": meta["host"], "bytes": size})
+
+        _reject_incomplete_import_artifact(
+            size=size,
+            duration_sec=meta.get("duration_sec"),
+            max_audio_bitrate_kbps=max_audio_bitrate_kbps,
+            host=meta["host"],
+            max_bytes=max_bytes,
+        )
+
+        title = meta.get("title")
+        sniffed_before = _sniff_file_suffix(source)
+        storage_path, suffix, filename = _finalize_import_artifact(
+            source,
+            tmpdir,
+            title=title if isinstance(title, str) else None,
+            max_audio_bitrate_kbps=max_audio_bitrate_kbps,
+        )
+        if sniffed_before != ".mp3" and suffix == ".mp3" and on_progress:
+            on_progress(
+                "converting",
+                {
+                    "host": meta["host"],
+                    "platform": meta["platform_label"],
+                    "title": title,
+                },
+            )
+
+        keep_tmp = True
+        return ImportResult(
+            source_path=storage_path,
+            suffix=suffix,
+            original_filename=filename,
+            title=title if isinstance(title, str) else None,
+            duration_sec=meta.get("duration_sec"),
+            extractor_key=meta["extractor_key"],
+            host=meta["host"],
+            platform_label=meta["platform_label"],
+        )
+    finally:
+        if not keep_tmp:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def cleanup_import_path(path: Path) -> None:
+    import_dir = import_tmpdir_for_path(path)
+    if import_dir is not None:
+        shutil.rmtree(import_dir, ignore_errors=True)
+        return
     if path.is_file():
         path.unlink(missing_ok=True)
-    parent = path.parent
-    if parent.name.startswith("hub-import-") and parent.is_dir():
-        try:
-            next(parent.iterdir())
-        except StopIteration:
-            parent.rmdir()

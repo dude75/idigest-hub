@@ -15,6 +15,7 @@ from urllib.parse import unquote, urlparse
 from fastapi import UploadFile
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from app.config import Settings, get_settings
+from app.paths import ensure_hub_tmp
 from app.services.export import content_disposition_attachment, safe_filename
 from app.services.upload_validation import InvalidAudioContent, validate_audio_header
 
@@ -514,7 +515,8 @@ class S3StorageBackend(StorageBackend):
     async def local_path_for_worker(self, storage_path: str) -> AsyncIterator[Path]:
         _, key = self._parse_ref(storage_path)
         suffix = Path(key).suffix or ".bin"
-        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        tmp_dir = ensure_hub_tmp(get_settings())
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix, dir=str(tmp_dir))
         tmp_path = Path(tmp.name)
         try:
             tmp.close()

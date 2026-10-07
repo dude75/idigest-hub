@@ -18,6 +18,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     HOST=0.0.0.0 \
     PORT=8080 \
     DATA_DIR=/data \
+    TMPDIR=/data/tmp \
     DATABASE_URL=sqlite:////data/hub.db \
     LOG_DIR=/data/logs
 

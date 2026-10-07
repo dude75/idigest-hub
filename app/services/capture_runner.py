@@ -12,7 +12,9 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.models import Audio, Organization, Task, WorkerNode, new_id
+from app.paths import ensure_hub_tmp
 from app.services.capture_workers import (
     delete_capture_task,
     download_capture_artifact,
@@ -389,7 +391,8 @@ async def _persist_capture_artifact_locked(
 
         filename = capture_storage_filename(meta, suffix)
 
-        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp_dir = ensure_hub_tmp(get_settings())
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False, dir=str(tmp_dir)) as tmp:
             tmp.write(content)
             temp_path = Path(tmp.name)
 

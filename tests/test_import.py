@@ -852,3 +852,97 @@ def test_import_task_payload_too_large_after_download(client, tmp_path, monkeypa
     assert body["error"]["code"] == "payload_too_large"
     assert body["max_upload_bytes"] == 256
     assert body["meta"].get("max_bytes") == 256
+
+
+def test_cleanup_import_path_removes_nonempty_dir(tmp_path):
+    from app.config import Settings
+    from app.paths import make_hub_import_tmpdir
+    from app.services.url_import import cleanup_import_path
+
+    settings = Settings(DATA_DIR=str(tmp_path))
+    import_dir = make_hub_import_tmpdir(settings)
+    (import_dir / "clip.mp3").write_bytes(b"ID3")
+    (import_dir / "sidecar.json").write_text("{}")
+
+    cleanup_import_path(import_dir / "clip.mp3")
+
+    assert not import_dir.exists()
+
+
+def test_download_audio_ytdl_failure_removes_import_tmpdir(tmp_path, monkeypatch):
+    from app.config import get_settings
+    from app.services.url_import import UrlImportError, download_audio
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+
+    def fake_probe(url, **kwargs):
+        return {
+            "extractor_key": "Rutube",
+            "platform_label": "Rutube",
+            "host": "rutube.ru",
+            "title": "Clip",
+            "duration_sec": 30.0,
+        }
+
+    def fail_ytdl(*args, **kwargs):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr("app.services.url_import.probe_url", fake_probe)
+    monkeypatch.setattr("app.services.url_import._run_ytdl", fail_ytdl)
+
+    with pytest.raises(RuntimeError):
+        download_audio(
+            "https://rutube.ru/video/abc/",
+            settings_allowed=["Rutube"],
+            proxy=None,
+            max_bytes=1_000_000,
+        )
+
+    assert list((tmp_path / "tmp").glob("hub-import-*")) == []
+
+
+def test_ydl_opts_cachedir_under_data_tmp(tmp_path, monkeypatch):
+    from app.config import get_settings
+    from app.services.url_import import _ydl_opts
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+
+    opts = _ydl_opts(None, host="rutube.ru", download=False)
+    assert Path(opts["cachedir"]).resolve() == (tmp_path / "tmp" / "yt-dlp").resolve()
+
+
+def test_download_audio_payload_too_large_cleans_import_tmpdir(tmp_path, monkeypatch):
+    from app.config import get_settings
+    from app.services.url_import import UrlImportError, download_audio
+
+    monkeypatch.setenv("DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+
+    def fake_probe(url, **kwargs):
+        return {
+            "extractor_key": "Rutube",
+            "platform_label": "Rutube",
+            "host": "rutube.ru",
+            "title": "Clip",
+            "duration_sec": 30.0,
+        }
+
+    def fake_ytdl(url, *, outtmpl=None, download=False, **kwargs):
+        parent = Path(outtmpl).parent
+        (parent / "clip.mp3").write_bytes(b"ID3" + b"\x00" * 512)
+        return {}
+
+    monkeypatch.setattr("app.services.url_import.probe_url", fake_probe)
+    monkeypatch.setattr("app.services.url_import._run_ytdl", fake_ytdl)
+
+    with pytest.raises(UrlImportError) as exc:
+        download_audio(
+            "https://rutube.ru/video/abc/",
+            settings_allowed=["Rutube"],
+            proxy=None,
+            max_bytes=256,
+        )
+    assert exc.value.code == "payload_too_large"
+    assert list((tmp_path / "tmp").glob("hub-import-*")) == []

@@ -6,12 +6,12 @@ import asyncio
 import logging
 import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 
 from fastapi import UploadFile
 
 from app.config import get_settings
+from app.paths import HUB_VIDEO_UPLOAD_TMP_PREFIX, make_hub_video_upload_tmpdir
 from app.constants import DEFAULT_VIDEO_EXTRACT_FFMPEG_TIMEOUT_SEC
 from app.services.import_platforms import DEFAULT_IMPORT_AUDIO_BITRATE_KBPS
 from app.services.storage import PayloadTooLarge
@@ -20,7 +20,6 @@ from app.services.upload_validation import validate_audio_header
 log = logging.getLogger("app")
 
 _CHUNK = 1024 * 1024
-_TEMP_PREFIX = "hub-video-upload-"
 
 
 class VideoExtractError(Exception):
@@ -136,7 +135,7 @@ async def video_upload_to_mp3_temp(
     max_bytes: int,
 ) -> Path:
     """Stream video upload to a temp file, return path to extracted MP3 (caller cleans up parent dir)."""
-    tmpdir = Path(tempfile.mkdtemp(prefix=_TEMP_PREFIX))
+    tmpdir = make_hub_video_upload_tmpdir(get_settings())
     source = tmpdir / f"source{suffix.lower()}"
     mp3_path = tmpdir / "extracted.mp3"
     try:
@@ -153,5 +152,5 @@ def cleanup_extract_temp(mp3_path: Path) -> None:
     parent = mp3_path.parent
     if mp3_path.is_file():
         mp3_path.unlink(missing_ok=True)
-    if parent.is_dir() and parent.name.startswith(_TEMP_PREFIX):
+    if parent.is_dir() and parent.name.startswith(HUB_VIDEO_UPLOAD_TMP_PREFIX):
         shutil.rmtree(parent, ignore_errors=True)

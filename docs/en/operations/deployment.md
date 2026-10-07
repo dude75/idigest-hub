@@ -141,8 +141,11 @@ Under `{DATA_DIR}` (default `./data`):
 | `pg/` | PostgreSQL files (compose profile) |
 | `logs/` | Rotating `app.log` |
 | `uploads/{audio_id}/` | Uploaded audio (**local backend only**) |
+| `tmp/` | Ephemeral import/ffmpeg/yt-dlp and S3 worker staging; safe to wipe while the hub is stopped |
 
-With **`STORAGE_BACKEND=s3`**, audio lives in the configured bucket (server-side encryption). The hub downloads to a temp file when streaming to transcribe workers — worker API is unchanged.
+Compose sets `TMPDIR=/data/tmp` so the process does not grow the container writable layer.
+
+With **`STORAGE_BACKEND=s3`**, audio lives in the configured bucket (server-side encryption). The hub downloads to `{DATA_DIR}/tmp` when streaming to transcribe workers — worker API is unchanged.
 
 **Backup strategy:** stop hub (optional but safer), copy `./data` + bucket contents (if S3) + secure copy of `.env`.
 

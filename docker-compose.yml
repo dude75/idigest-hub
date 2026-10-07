@@ -30,6 +30,7 @@ services:
     environment:
       HOST: "0.0.0.0"
       DATA_DIR: /data
+      TMPDIR: /data/tmp
       DATABASE_URL: ${DATABASE_URL:-sqlite:////data/hub.db}
       LOG_DIR: /data/logs
       COOKIE_SECURE: "false"

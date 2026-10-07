@@ -141,8 +141,11 @@ Hub сам эти заголовки не выставляет — настра�
 | `pg/` | Файлы PostgreSQL (compose profile) |
 | `logs/` | Rotating `app.log` |
 | `uploads/{audio_id}/` | Загруженное audio (**только local backend**) |
+| `tmp/` | Временные файлы import/ffmpeg/yt-dlp и worker S3 staging; можно удалить при остановленном hub |
 
-При **`STORAGE_BACKEND=s3`** audio в настроенном bucket (server-side encryption). Hub скачивает во временный файл при отправке на transcribe-воркер — API воркера не меняется.
+Compose задаёт `TMPDIR=/data/tmp`, чтобы процесс не писал во writable layer контейнера.
+
+При **`STORAGE_BACKEND=s3`** audio в настроенном bucket (server-side encryption). Hub скачивает во `{DATA_DIR}/tmp` при отправке на transcribe-воркер — API воркера не меняется.
 
 **Стратегия резервного копирования:** остановите hub (опционально), скопируйте `./data` + содержимое bucket (если S3) и надёжно сохраните `.env`.
 
