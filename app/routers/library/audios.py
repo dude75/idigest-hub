@@ -147,7 +147,13 @@ async def upload_audio(
     )
     db.add(row)
     db.flush()
-    return AudioCreatedResponse.model_validate(audio_public(row))
+    from app.services.source_tags import tag_audio_file_upload
+    from app.services.user_tags import object_user_tags
+
+    tag_audio_file_upload(db, user_id=ctx.user.id, audio_id=audio_id, from_microphone=from_microphone)
+    return AudioCreatedResponse.model_validate(
+        audio_public(row, {"user_tags": object_user_tags(db, ctx.user.id, "audio", audio_id)})
+    )
 
 
 @router.get("/audios", response_model=AudioListResponse)

@@ -224,7 +224,11 @@ def create_audio_upload_payload(
     )
     db.add(row)
     db.flush()
-    return audio_public(row)
+    from app.services.source_tags import tag_audio_file_upload
+    from app.services.user_tags import object_user_tags
+
+    tag_audio_file_upload(db, user_id=ctx.user.id, audio_id=audio_id, from_microphone=False)
+    return audio_public(row, {"user_tags": object_user_tags(db, ctx.user.id, "audio", audio_id)})
 
 
 def create_audio_import_payload(

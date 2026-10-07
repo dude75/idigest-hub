@@ -532,6 +532,7 @@ def test_import_task_success(client, tmp_path, monkeypatch):
     assert listed.status_code == 200
     match = next(item for item in listed.json()["items"] if item["id"] == body["audio_id"])
     assert match["source_url"] == "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    assert {t["name"] for t in audio.json().get("user_tags") or []} == {"youtube"}
 
 
 def test_import_with_transcribe_chains_follow_up(client, tmp_path, monkeypatch, fake_workers):

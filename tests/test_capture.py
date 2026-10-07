@@ -474,6 +474,7 @@ def test_capture_success(client, fake_workers):
     payload = audio.json()
     assert payload["source_url"] == "https://meet.example.com/room1"
     assert payload["filename"] == "room1.mp3"
+    assert {t["name"] for t in payload.get("user_tags") or []} == {"jitsi"}
 
 
 def test_org_capture_jitsi_crud(client, fake_workers):

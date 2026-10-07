@@ -163,4 +163,4 @@ def test_user_tags_inherit_on_transcribe_and_summarize(client, fake_workers):
     bare_tr_id = wait_task(client, bare.json()["task_id"], status="success")["transcript_id"]
     bare_tr = client.get(f"/api/v1/transcripts/{bare_tr_id}")
     assert bare_tr.status_code == 200, bare_tr.text
-    assert bare_tr.json()["user_tags"] == []
+    assert {t["name"] for t in bare_tr.json()["user_tags"]} == {"upload"}

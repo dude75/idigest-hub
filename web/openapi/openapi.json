@@ -8144,6 +8144,13 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "user_tags": {
+            "items": {
+              "$ref": "#/components/schemas/UserTagBrief"
+            },
+            "type": "array",
+            "title": "User Tags"
           }
         },
         "type": "object",

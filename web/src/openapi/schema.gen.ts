@@ -2387,6 +2387,8 @@ export interface components {
             duration_sec?: number | null;
             /** Created At */
             created_at: string;
+            /** User Tags */
+            user_tags?: components["schemas"]["UserTagBrief"][];
         };
         /** AudioDetailResponse */
         AudioDetailResponse: {

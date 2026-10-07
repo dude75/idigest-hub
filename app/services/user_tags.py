@@ -126,6 +126,51 @@ def object_ids_with_tag(db: Session, user_id: str, object_type: str, tag_id: str
     return set(rows)
 
 
+def append_object_tags(
+    db: Session,
+    *,
+    user_id: str,
+    object_type: str,
+    object_id: str,
+    tag_names: list[str],
+) -> list[dict]:
+    """Add tags without removing existing ones."""
+    if object_type not in LIBRARY_OBJECT_TYPES:
+        raise ApiError(ErrorCode.validation_error)
+    if not tag_names:
+        return object_user_tags(db, user_id, object_type, object_id)
+
+    current = object_user_tags(db, user_id, object_type, object_id)
+    current_keys = {tag_name_key(tag["name"]) for tag in current}
+    to_add: list[str] = []
+    for raw in tag_names:
+        name = normalize_tag_name(raw)
+        key = tag_name_key(name)
+        if key in current_keys:
+            continue
+        current_keys.add(key)
+        to_add.append(name)
+    if len(current) + len(to_add) > MAX_TAGS_PER_OBJECT:
+        raise ApiError(ErrorCode.user_tag_limit_per_object)
+
+    now = utcnow()
+    for name in to_add:
+        tag = get_or_create_tag(db, user_id, name)
+        db.add(
+            UserTagLink(
+                id=new_id(),
+                user_id=user_id,
+                tag_id=tag.id,
+                object_type=object_type,
+                object_id=object_id,
+                created_at=now,
+            )
+        )
+    db.flush()
+    _prune_unused_tags(db, user_id)
+    return object_user_tags(db, user_id, object_type, object_id)
+
+
 def inherit_object_user_tags(
     db: Session,
     *,

@@ -158,6 +158,7 @@ class AudioCreatedResponse(BaseModel):
     source_url: str | None = None
     duration_sec: float | None = None
     created_at: str
+    user_tags: list[UserTagBrief] = Field(default_factory=list)
 
 
 class OwnerSummaryPublicLinkItem(BaseModel):
