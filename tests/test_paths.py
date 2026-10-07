@@ -1,7 +1,10 @@
 from pathlib import Path
 
 from app.config import Settings
+import os
+
 from app.paths import (
+    configure_ytdlp_cache_environment,
     ensure_hub_tmp,
     hub_tmp_root,
     hub_ytdlp_cache_dir,
@@ -37,4 +40,18 @@ def test_import_tmpdir_for_path(tmp_path):
 def test_ytdlp_cache_dir(tmp_path):
     settings = Settings(DATA_DIR=str(tmp_path))
     cache = hub_ytdlp_cache_dir(settings)
-    assert cache == tmp_path / "tmp" / "yt-dlp"
+    assert cache == tmp_path / "tmp" / "cache" / "yt-dlp"
+
+
+def test_configure_ytdlp_cache_migrates_legacy_home_cache(tmp_path, monkeypatch):
+    settings = Settings(DATA_DIR=str(tmp_path))
+    legacy = tmp_path / "fakehome" / ".cache" / "yt-dlp"
+    legacy.mkdir(parents=True)
+    (legacy / "token").write_text("cached")
+
+    monkeypatch.setenv("HOME", str(tmp_path / "fakehome"))
+    configure_ytdlp_cache_environment(settings)
+
+    assert os.environ["XDG_CACHE_HOME"] == str(tmp_path / "tmp" / "cache")
+    dest = tmp_path / "tmp" / "cache" / "yt-dlp" / "token"
+    assert dest.read_text() == "cached"

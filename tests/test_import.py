@@ -902,15 +902,20 @@ def test_download_audio_ytdl_failure_removes_import_tmpdir(tmp_path, monkeypatch
     assert list((tmp_path / "tmp").glob("hub-import-*")) == []
 
 
-def test_ydl_opts_cachedir_under_data_tmp(tmp_path, monkeypatch):
+def test_ydl_opts_does_not_override_ytdlp_cachedir(tmp_path, monkeypatch):
+    import os
+
     from app.config import get_settings
+    from app.paths import configure_ytdlp_cache_environment
     from app.services.url_import import _ydl_opts
 
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     get_settings.cache_clear()
+    configure_ytdlp_cache_environment(get_settings())
 
     opts = _ydl_opts(None, host="rutube.ru", download=False)
-    assert Path(opts["cachedir"]).resolve() == (tmp_path / "tmp" / "yt-dlp").resolve()
+    assert "cachedir" not in opts
+    assert os.environ["XDG_CACHE_HOME"] == str(tmp_path / "tmp" / "cache")
 
 
 def test_download_audio_payload_too_large_cleans_import_tmpdir(tmp_path, monkeypatch):

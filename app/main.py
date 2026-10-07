@@ -88,9 +88,10 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     setup_logging(settings)
     Path(settings.DATA_DIR).mkdir(parents=True, exist_ok=True)
-    from app.paths import ensure_hub_tmp
+    from app.paths import configure_ytdlp_cache_environment, ensure_hub_tmp
 
     ensure_hub_tmp(settings)
+    configure_ytdlp_cache_environment(settings)
     engine = get_engine()
     init_database(engine)
     from app.services.storage_gc import drain_all_pending_storage_deletes

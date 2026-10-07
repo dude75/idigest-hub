@@ -141,7 +141,7 @@ Under `{DATA_DIR}` (default `./data`):
 | `pg/` | PostgreSQL files (compose profile) |
 | `logs/` | Rotating `app.log` |
 | `uploads/{audio_id}/` | Uploaded audio (**local backend only**) |
-| `tmp/` | Ephemeral import/ffmpeg/yt-dlp and S3 worker staging; safe to wipe while the hub is stopped |
+| `tmp/` | Ephemeral import/ffmpeg and S3 worker staging; `tmp/cache/yt-dlp` is yt-dlp cache (safe to wipe while stopped; YouTube may require cookies again) |
 
 Compose sets `TMPDIR=/data/tmp` so the process does not grow the container writable layer.
 

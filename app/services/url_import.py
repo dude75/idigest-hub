@@ -16,7 +16,7 @@ from urllib.parse import urlparse
 
 from app.config import get_settings
 from app.constants import ALLOWED_AUDIO_SUFFIXES
-from app.paths import ensure_hub_tmp, hub_ytdlp_cache_dir, import_tmpdir_for_path, make_hub_import_tmpdir
+from app.paths import import_tmpdir_for_path, make_hub_import_tmpdir
 from app.services.export import safe_filename
 from app.services.import_platforms import (
     DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
@@ -375,10 +375,6 @@ def _ydl_opts(
     outtmpl: str | None = None,
     download: bool = False,
 ) -> dict[str, Any]:
-    settings = get_settings()
-    ensure_hub_tmp(settings)
-    ytdlp_cache = hub_ytdlp_cache_dir(settings)
-    ytdlp_cache.mkdir(parents=True, exist_ok=True)
     opts: dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
@@ -387,7 +383,6 @@ def _ydl_opts(
         "retries": 3,
         "fragment_retries": 3,
         "skip_download": not download,
-        "cachedir": str(ytdlp_cache),
     }
     if proxy:
         opts["proxy"] = proxy

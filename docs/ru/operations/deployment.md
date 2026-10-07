@@ -141,7 +141,7 @@ Hub сам эти заголовки не выставляет — настра�
 | `pg/` | Файлы PostgreSQL (compose profile) |
 | `logs/` | Rotating `app.log` |
 | `uploads/{audio_id}/` | Загруженное audio (**только local backend**) |
-| `tmp/` | Временные файлы import/ffmpeg/yt-dlp и worker S3 staging; можно удалить при остановленном hub |
+| `tmp/` | Временные файлы import/ffmpeg и worker S3 staging; `tmp/cache/yt-dlp` — кэш yt-dlp (можно удалить при остановленном hub, YouTube может снова потребовать cookies) |
 
 Compose задаёт `TMPDIR=/data/tmp`, чтобы процесс не писал во writable layer контейнера.
 
