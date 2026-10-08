@@ -144,16 +144,14 @@ def test_capture_disabled(client):
 
 def test_capture_rejects_when_worker_has_no_capacity(client, fake_workers):
     setup_admin(client)
+    fake_workers.health = {
+        "status": "ok",
+        "version": "x",
+        "connectors": {"jitsi": {"status": "loaded", "label": "Jitsi Meet"}},
+        "workers": {"max": 4, "active": 4, "available": 0},
+    }
     worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
-    seed_node_health(
-        worker["id"],
-        {
-            "status": "ok",
-            "version": "x",
-            "connectors": {"jitsi": {"status": "loaded", "label": "Jitsi Meet"}},
-            "workers": {"max": 4, "active": 4, "available": 0},
-        },
-    )
+    seed_node_health(worker["id"], dict(fake_workers.health))
     _enable_capture(client)
     tariff_id = default_tariff_id(client)
     assert signup(client, "capbusy@example.com", "capbusypass1", tariff_id).status_code == 200
