@@ -38,7 +38,9 @@
 | org member | Свои + объекты, расшаренные **ему** |
 | instance admin | Все (при запросе от имени админа) |
 
-Реализация: `can_read_object()` в `app/services/access.py`.
+Реализация: `can_read_object()` в `app/services/access.py`. Чтение артефакта **вне** обычных прав участника org (не владелец / не org_admin / не share) пишет audit `instance.library.read`.
+
+Списки library и `GET /tags` для instance admin без org: все объекты инстанса (списки) и пустой каталог тегов; `GET /skills` — только base-навыки.
 
 ### Скрытие vs удаление
 

@@ -102,6 +102,39 @@ def library_visibility_filters(
     q: str | None = None,
 ) -> list[Any] | None:
     """WHERE clauses for visible library rows. None => empty list (unknown tag)."""
+    if ctx.is_instance_admin:
+        filters: list[Any] = []
+        if owner_user_id:
+            filters.append(model.owner_user_id == owner_user_id)
+        if not include_hidden:
+            hidden_row = exists(
+                select(1).where(
+                    HiddenItem.user_id == ctx.user.id,
+                    HiddenItem.object_type == object_type,
+                    HiddenItem.object_id == model.id,
+                )
+            )
+            filters.append(~hidden_row)
+        if tag:
+            if ctx.org is None:
+                return None
+            row_tag = resolve_user_tag(db, ctx.user.id, tag)
+            if row_tag is None:
+                return None
+            filters.append(
+                model.id.in_(
+                    select(UserTagLink.object_id).where(
+                        UserTagLink.user_id == ctx.user.id,
+                        UserTagLink.object_type == object_type,
+                        UserTagLink.tag_id == row_tag.id,
+                    )
+                )
+            )
+        search = library_search_filter(model, object_type, q)
+        if search is not None:
+            filters.append(search)
+        return filters
+
     org, membership = ctx.require_org()
     filters: list[Any] = [model.org_id == org.id]
     if membership.role != "org_admin":

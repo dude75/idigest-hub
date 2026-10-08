@@ -51,7 +51,10 @@ def get_tags(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> UserTagListResponse:
-    ctx.require_org()
+    if ctx.org is None:
+        if not ctx.is_instance_admin:
+            ctx.require_org()
+        return UserTagListResponse(items=[])
     return UserTagListResponse(items=[UserTagBrief.model_validate(item) for item in list_user_tags(db, ctx.user.id)])
 
 

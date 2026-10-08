@@ -38,7 +38,9 @@ For `audio`, `transcript`, `summary`:
 | Org member | Own + items shared **to** them |
 | Instance admin | All (when querying as admin) |
 
-Implementation: `can_read_object()` in `app/services/access.py`.
+Implementation: `can_read_object()` in `app/services/access.py`. Reads outside normal org membership rules (not owner / org_admin / share) emit audit action `instance.library.read`.
+
+Library lists and `GET /tags` for instance admin without org: all instance objects (lists) and an empty tag catalog; `GET /skills` returns base skills only.
 
 ### Hide vs delete
 

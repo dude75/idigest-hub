@@ -30,6 +30,7 @@ from app.presenters import (
 )
 from app.services.access import (
     can_read_object,
+    ensure_library_readable,
     ensure_object_share,
     is_hidden,
     is_shared_with,
@@ -145,7 +146,7 @@ def get_transcript(
     ctx: AuthContext = Depends(require_oauth_scope(SCOPE_TRANSCRIPTS_READ)),
 ) -> TranscriptDetailResponse:
     row = db.get(Transcript, transcript_id)
-    if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
+    if not ensure_library_readable(ctx, db, row, "transcript", audit=True):
         ctx.raise_error(ErrorCode.not_found)
     stored = decode_transcript_payload(decrypt_str(row.utterances_encrypted, db))
     utterances = extract_utterances(stored)
@@ -189,7 +190,7 @@ def export_transcript(
     ctx: AuthContext = Depends(require_auth),
 ):
     row = db.get(Transcript, transcript_id)
-    if row is None or not can_read_object(ctx, db, "transcript", row.owner_user_id, row.org_id, row.id):
+    if not ensure_library_readable(ctx, db, row, "transcript", audit=True):
         ctx.raise_error(ErrorCode.not_found)
     stored = decode_transcript_payload(decrypt_str(row.utterances_encrypted, db))
     utterances = extract_utterances(stored)

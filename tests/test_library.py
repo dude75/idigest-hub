@@ -56,6 +56,41 @@ def _insert_transcript_and_summary(org_id: str, user_id: str, audio_id: str | No
         db.close()
 
 
+def test_instance_admin_reads_foreign_library_audited(client):
+    from app.services.access import INSTANCE_LIBRARY_READ_ACTION
+
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "member@example.com", "memberpass1", tariff_id).status_code == 200
+    login_ready(client, "member@example.com", "memberpass1")
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    _, summary_id = _insert_transcript_and_summary(org_id, user_id)
+    logout(client)
+    login_ready(client, "admin@example.com", "adminpass1")
+
+    summary = client.get(f"/api/v1/summaries/{summary_id}")
+    assert summary.status_code == 200, summary.text
+    assert summary.json()["body"] == "kept summary"
+
+    tags = client.get("/api/v1/tags")
+    assert tags.status_code == 200, tags.text
+    assert tags.json()["items"] == []
+
+    skills = client.get("/api/v1/skills")
+    assert skills.status_code == 200, skills.text
+
+    audit = client.get(f"/api/v1/instance/audit?action={INSTANCE_LIBRARY_READ_ACTION}&limit=5")
+    assert audit.status_code == 200, audit.text
+    items = audit.json()["items"]
+    assert any(
+        row["action"] == INSTANCE_LIBRARY_READ_ACTION
+        and row["payload"].get("object_type") == "summary"
+        and row["payload"].get("object_id") == summary_id
+        for row in items
+    )
+
+
 def test_org_admin_sees_all_org_library_despite_show_only_my_items_flag(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

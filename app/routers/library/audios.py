@@ -30,6 +30,7 @@ from app.presenters import (
 )
 from app.services.access import (
     can_read_object,
+    ensure_library_readable,
     ensure_object_share,
     is_hidden,
     is_shared_with,
@@ -197,7 +198,7 @@ def get_audio(
     audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> AudioDetailResponse:
     row = db.get(Audio, audio_id)
-    if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
+    if not ensure_library_readable(ctx, db, row, "audio", audit=True):
         ctx.raise_error(ErrorCode.not_found)
     transcripts = db.scalars(
         select(Transcript).where(Transcript.source_audio_id == row.id).order_by(Transcript.created_at.desc())
@@ -240,7 +241,7 @@ def audio_file(
     ctx: AuthContext = Depends(require_auth),
 ):
     row = db.get(Audio, audio_id)
-    if row is None or not can_read_object(ctx, db, "audio", row.owner_user_id, row.org_id, row.id):
+    if not ensure_library_readable(ctx, db, row, "audio", audit=True):
         ctx.raise_error(ErrorCode.not_found)
     storage = get_storage()
     if not storage.exists(row.storage_path):

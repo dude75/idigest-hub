@@ -40,7 +40,20 @@ def _can_read_skill(db: Session, ctx: AuthContext, skill: Skill) -> bool:
     return False
 
 
+def _base_skill_items(db: Session, ctx: AuthContext, scope: str | None) -> list[tuple[Skill, dict]]:
+    items: list[tuple[Skill, dict]] = []
+    for skill in db.scalars(select(Skill).where(Skill.scope == "base")).all():
+        if scope and scope != "base":
+            continue
+        items.append((skill, {"catalog": "base", "readonly": not ctx.is_instance_admin}))
+    return items
+
+
 def _visible_skills(db: Session, ctx: AuthContext, scope: str | None) -> list[tuple[Skill, dict]]:
+    if ctx.org is None:
+        if not ctx.is_instance_admin:
+            ctx.require_org()
+        return _base_skill_items(db, ctx, scope)
     org, _ = ctx.require_org()
     items: list[tuple[Skill, dict]] = []
     base = db.scalars(select(Skill).where(Skill.scope == "base")).all()

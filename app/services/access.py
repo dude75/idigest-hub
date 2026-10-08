@@ -9,7 +9,10 @@ from app.deps import AuthContext
 from app.errors import ApiError, ErrorCode
 from app.i18n import t
 from app.models import HiddenItem, Membership, Share, User, new_id
+from app.services.audit import write_audit
 from app.timeutil import utcnow
+
+INSTANCE_LIBRARY_READ_ACTION = "instance.library.read"
 
 
 def count_active_org_admins(db: Session, org_id: str, exclude_user_id: str | None = None) -> int:
@@ -54,6 +57,24 @@ def is_hidden(db: Session, user_id: str, object_type: str, object_id: str) -> bo
     return row is not None
 
 
+def member_can_read_object(
+    ctx: AuthContext,
+    db: Session,
+    object_type: str,
+    owner_user_id: str,
+    org_id: str,
+    object_id: str,
+) -> bool:
+    """Library visibility for org members (no instance-admin bypass)."""
+    if ctx.org is None or ctx.org.id != org_id:
+        return False
+    if ctx.is_org_admin:
+        return True
+    if owner_user_id == ctx.user.id:
+        return True
+    return is_shared_with(db, object_type, object_id, ctx.user.id) is not None
+
+
 def can_read_object(
     ctx: AuthContext,
     db: Session,
@@ -62,13 +83,59 @@ def can_read_object(
     org_id: str,
     object_id: str,
 ) -> bool:
-    if ctx.org is None or ctx.org.id != org_id:
-        return ctx.is_instance_admin
-    if ctx.is_org_admin:
+    if ctx.is_instance_admin:
         return True
-    if owner_user_id == ctx.user.id:
-        return True
-    return is_shared_with(db, object_type, object_id, ctx.user.id) is not None
+    return member_can_read_object(ctx, db, object_type, owner_user_id, org_id, object_id)
+
+
+def audit_instance_admin_library_read(
+    ctx: AuthContext,
+    db: Session,
+    *,
+    object_type: str,
+    object_id: str,
+    org_id: str,
+    owner_user_id: str,
+) -> None:
+    if not ctx.is_instance_admin:
+        return
+    if member_can_read_object(ctx, db, object_type, owner_user_id, org_id, object_id):
+        return
+    write_audit(
+        db,
+        INSTANCE_LIBRARY_READ_ACTION,
+        ctx,
+        {
+            "object_type": object_type,
+            "object_id": object_id,
+            "org_id": org_id,
+            "owner_user_id": owner_user_id,
+        },
+    )
+
+
+def ensure_library_readable(
+    ctx: AuthContext,
+    db: Session,
+    row,
+    object_type: str,
+    *,
+    audit: bool = False,
+) -> bool:
+    if row is None or not can_read_object(
+        ctx, db, object_type, row.owner_user_id, row.org_id, row.id
+    ):
+        return False
+    if audit:
+        audit_instance_admin_library_read(
+            ctx,
+            db,
+            object_type=object_type,
+            object_id=row.id,
+            org_id=row.org_id,
+            owner_user_id=row.owner_user_id,
+        )
+    return True
 
 
 def can_use_audio(ctx: AuthContext, db: Session, audio) -> bool:

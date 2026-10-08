@@ -30,6 +30,7 @@ from app.presenters import (
 )
 from app.services.access import (
     can_read_object,
+    ensure_library_readable,
     ensure_object_share,
     is_hidden,
     is_shared_with,
@@ -146,7 +147,7 @@ def get_summary(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> SummaryDetailResponse:
     row = db.get(Summary, summary_id)
-    if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
+    if not ensure_library_readable(ctx, db, row, "summary", audit=True):
         ctx.raise_error(ErrorCode.not_found)
     body = decrypt_str(row.body_encrypted, db)
     source_transcript = db.get(Transcript, row.source_transcript_id) if row.source_transcript_id else None
@@ -174,7 +175,7 @@ def export_summary(
     ctx: AuthContext = Depends(require_auth),
 ):
     row = db.get(Summary, summary_id)
-    if row is None or not can_read_object(ctx, db, "summary", row.owner_user_id, row.org_id, row.id):
+    if not ensure_library_readable(ctx, db, row, "summary", audit=True):
         ctx.raise_error(ErrorCode.not_found)
     source_transcript = db.get(Transcript, row.source_transcript_id) if row.source_transcript_id else None
     source_audio = (
