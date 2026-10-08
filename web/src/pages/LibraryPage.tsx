@@ -26,6 +26,7 @@ import { Tabs } from '../components/Tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
 import { beginPipelineRun, captureRequest, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
 import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
 import { ApiError } from '../api'
@@ -362,6 +363,16 @@ export function LibraryPage() {
       ? t('library.captureSubmit')
       : t('library.importSubmit')
 
+  const showImportPlatformsHint =
+    importEnabled && importPlatforms && (proxyBlocked || (importPlatforms.platforms ?? []).length > 0)
+  const importPlatformsHint = showImportPlatformsHint
+    ? proxyBlocked
+      ? t('library.proxyUnavailable')
+      : t('library.importHint', {
+          platforms: (importPlatforms.platforms ?? []).map((p) => p.label).join(' · '),
+        })
+    : null
+
   const listEmpty = listTotal === 0
 
   const pageSizeSelect = (
@@ -378,7 +389,7 @@ export function LibraryPage() {
   return (
     <div className="library-page">
       <Card className="library-ingest mb-4 font-sans bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none">
-        <CardContent className="flex flex-col gap-3 pt-6">
+        <CardContent className="flex flex-col gap-3">
         {uploadProgress && (
           <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
             <div className="upload-progress-label">
@@ -399,21 +410,32 @@ export function LibraryPage() {
         <div className={`library-ingest-toolbar${ingestEnabled ? '' : ' upload-only'}`}>
           {ingestEnabled ? (
             <>
-              <Input
-                className="library-ingest-url bg-card"
-                type="url"
-                value={importUrl}
-                placeholder={ingestUrlPlaceholder}
-                disabled={busy}
-                aria-label={t('library.ingestUrl')}
-                onChange={(e) => setImportUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    if (!ingestSubmitDisabled) void importFromUrl()
-                  }
-                }}
-              />
+              <div className="library-ingest-url-wrap">
+                <Input
+                  className="library-ingest-url bg-card"
+                  type="url"
+                  value={importUrl}
+                  placeholder={ingestUrlPlaceholder}
+                  disabled={busy}
+                  aria-label={t('library.ingestUrl')}
+                  aria-describedby={importPlatformsHint ? 'library-ingest-import-hint' : undefined}
+                  onChange={(e) => setImportUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (!ingestSubmitDisabled) void importFromUrl()
+                    }
+                  }}
+                />
+                {importPlatformsHint ? (
+                  <p
+                    id="library-ingest-import-hint"
+                    className={proxyBlocked ? 'err library-ingest-hint' : 'muted library-ingest-hint'}
+                  >
+                    {importPlatformsHint}
+                  </p>
+                ) : null}
+              </div>
               {showCapturePin ? (
                 <Input
                   className="library-capture-pin max-w-[8rem] bg-card"
@@ -444,9 +466,7 @@ export function LibraryPage() {
               <AppSubmitButton ready={!ingestSubmitDisabled} busy={busy} onClick={() => void importFromUrl()}>
                 {ingestSubmitLabel}
               </AppSubmitButton>
-              <span className="library-ingest-or" aria-hidden="true">
-                {t('library.or')}
-              </span>
+              <Separator orientation="vertical" className="library-ingest-toolbar-separator" />
             </>
           ) : (
             <span className="library-ingest-upload-label">{t('library.uploadFile')}</span>
@@ -489,15 +509,6 @@ export function LibraryPage() {
             </Button>
           </AppHoverHint>
         </div>
-        {importEnabled && importPlatforms && (proxyBlocked || (importPlatforms.platforms ?? []).length > 0) && (
-          <p className={proxyBlocked ? 'err library-ingest-hint' : 'muted library-ingest-hint'}>
-            {proxyBlocked
-              ? t('library.proxyUnavailable')
-              : t('library.importHint', {
-                  platforms: (importPlatforms.platforms ?? []).map((p) => p.label).join(' · '),
-                })}
-          </p>
-        )}
         <IngestPipelinePanel />
         </CardContent>
       </Card>
