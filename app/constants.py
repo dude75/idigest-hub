@@ -44,9 +44,12 @@ DEFAULT_LOCALE = "en"
 INSTANCE_TABS = ("stats", "workers", "tariffs", "orgs", "settings", "baseSkills")
 SECURITY_TABS = ("audit", "encryption")
 DEFAULT_ROUTES = (
-    "library/audio",
-    "library/transcripts",
+    "ingest",
     "library/summaries",
+    "library/transcripts",
+    "library/audio",
+    "library/links",
+    "library/skills",
     "skills",
     "org",
     "stats",
@@ -55,6 +58,6 @@ DEFAULT_ROUTES = (
     "instance",
     *(f"security/{tab}" for tab in SECURITY_TABS),
 )
-DEFAULT_ROUTE = "library/audio"
+DEFAULT_ROUTE = "ingest"
 LEGACY_DEFAULT_ROUTE = "library"
 LEGACY_INSTANCE_ROUTE = "instance"

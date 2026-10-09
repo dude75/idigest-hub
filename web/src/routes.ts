@@ -42,7 +42,10 @@ export function isSecurityTab(value: string | undefined): value is SecurityTab {
   return SECURITY_TABS.includes(value as SecurityTab)
 }
 
+export const INGEST_DEFAULT = '/app/ingest'
+
 export const DEFAULT_ROUTES = [
+  'ingest',
   'library/summaries',
   'library/transcripts',
   'library/audio',
@@ -97,16 +100,19 @@ export function defaultRoutePath(route: DefaultRoute): string {
       return '/app/stats'
     case 'tasks':
       return '/app/tasks'
+    case 'ingest':
+      return INGEST_DEFAULT
     case 'instance':
       return instancePath('stats')
     default:
-      return LIBRARY_DEFAULT
+      return INGEST_DEFAULT
   }
 }
 
 export function allowedDefaultRoutes(me: Me | null): DefaultRoute[] {
   const routes: DefaultRoute[] = []
   if (me?.org) {
+    routes.push('ingest')
     for (const tab of LIBRARY_TABS) routes.push(`library/${tab}`)
     routes.push('org')
     if (me.user.role === 'org_admin') routes.push('stats')
@@ -160,7 +166,7 @@ export function resolveHomePath(me: Me | null): string {
   const allowed = allowedDefaultRoutes(me)
   const stored = normalizeDefaultRoute(me?.user.default_route)
   if (stored && allowed.includes(stored)) return defaultRoutePath(stored)
-  if (me?.org) return LIBRARY_DEFAULT
+  if (me?.org) return INGEST_DEFAULT
   if (Boolean(me?.user.is_instance_admin && !me?.impersonating)) return instancePath('stats')
   return '/app/tasks'
 }

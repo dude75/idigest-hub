@@ -225,7 +225,7 @@ def test_patch_default_route(client):
     tariff_id = default_tariff_id(client)
     assert signup(client, "routes@example.com", "routespass1", tariff_id).status_code == 200
     payload = me(client)
-    assert payload["user"]["default_route"] == "library/audio"
+    assert payload["user"]["default_route"] == "ingest"
 
     patched = client.patch("/api/v1/me", json={"default_route": "library/transcripts"})
     assert patched.status_code == 200, patched.text

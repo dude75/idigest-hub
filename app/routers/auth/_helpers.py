@@ -34,9 +34,12 @@ def _allowed_default_routes(ctx: AuthContext) -> set[str]:
     if ctx.org:
         routes.update(
             {
-                "library/audio",
-                "library/transcripts",
+                "ingest",
                 "library/summaries",
+                "library/transcripts",
+                "library/audio",
+                "library/links",
+                "library/skills",
                 "skills",
                 "org",
             }
@@ -51,7 +54,9 @@ def _allowed_default_routes(ctx: AuthContext) -> set[str]:
 
 def _default_route(value: str) -> str:
     if value == LEGACY_DEFAULT_ROUTE:
-        value = DEFAULT_ROUTE
+        value = "library/audio"
+    if value == "skills":
+        value = "library/skills"
     if value == LEGACY_INSTANCE_ROUTE:
         value = "instance/stats"
     return value if value in DEFAULT_ROUTES else DEFAULT_ROUTE

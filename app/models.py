@@ -159,7 +159,7 @@ class User(Base):
     auth_provider: Mapped[str] = mapped_column(String(32), default="local", nullable=False)
     sso_sub: Mapped[str | None] = mapped_column(String(255))
     locale: Mapped[str] = mapped_column(String(8), default="en", nullable=False)
-    default_route: Mapped[str] = mapped_column(String(32), default="library/audio", nullable=False)
+    default_route: Mapped[str] = mapped_column(String(32), default="ingest", nullable=False)
     date_time_format: Mapped[str | None] = mapped_column(String(16))
     timezone: Mapped[str | None] = mapped_column(String(64))
     asr_model: Mapped[str | None] = mapped_column(String(32))

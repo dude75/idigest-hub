@@ -118,6 +118,7 @@ describe('defaultRoutePath', () => {
     expect(defaultRoutePath('library/links')).toBe('/app/library/links')
     expect(defaultRoutePath('library/skills')).toBe('/app/library/skills')
     expect(defaultRoutePath('skills')).toBe('/app/library/skills')
+    expect(defaultRoutePath('ingest')).toBe('/app/ingest')
   })
 
   it('maps instance tabs to query paths', () => {
@@ -139,6 +140,7 @@ describe('allowedDefaultRoutes', () => {
     expect(routes).toContain('library/audio')
     expect(routes).toContain('library/links')
     expect(routes).toContain('library/skills')
+    expect(routes).toContain('ingest')
     expect(routes).not.toContain('skills')
   })
 
@@ -166,9 +168,9 @@ describe('allowedDefaultRoutes', () => {
     expect(routes).not.toContain('security/audit')
   })
 
-  it('lists library routes before tasks for org users', () => {
+  it('lists ingest first and tasks last for org users', () => {
     const routes = allowedDefaultRoutes(baseMe)
-    expect(routes[0]).toBe('library/summaries')
+    expect(routes[0]).toBe('ingest')
     expect(routes.at(-1)).toBe('tasks')
   })
 })
@@ -193,13 +195,13 @@ describe('resolveHomePath', () => {
     ).toBe('/app/instance')
   })
 
-  it('prefers library summaries as org fallback', () => {
+  it('prefers ingest as org fallback when stored route is not allowed', () => {
     expect(
       resolveHomePath({
         ...baseMe,
         user: { ...baseMe.user, default_route: 'instance/stats' },
       }),
-    ).toBe('/app/library/summaries')
+    ).toBe('/app/ingest')
   })
 
   it('maps legacy instance default for instance admin', () => {
