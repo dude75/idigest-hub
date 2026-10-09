@@ -639,18 +639,6 @@ a.brand:hover,
   background: var(--card);
   --tw-ring-color: color-mix(in oklch, var(--hub-accent) 22%, transparent);
 }
-.nav .nav-ingest-link {
-  color: var(--hub-accent);
-  font-weight: 600;
-}
-.nav .nav-ingest-link:hover {
-  color: var(--hub-accent);
-  filter: brightness(1.08);
-}
-.nav .nav-ingest-link.active,
-.nav .nav-ingest-link[aria-current='page'] {
-  color: var(--hub-accent);
-}
 .ingest-page {
   width: 100%;
 }

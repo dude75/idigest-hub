@@ -56,10 +56,7 @@ export function Shell() {
         <AppBrand />
         <nav className="nav">
           {member && (
-            <NavLink
-              to="/app/ingest"
-              className={({ isActive }) => (isActive ? 'active nav-ingest-link' : 'nav-ingest-link')}
-            >
+            <NavLink to="/app/ingest" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               {t('nav.ingest')}
             </NavLink>
           )}
