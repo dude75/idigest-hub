@@ -956,8 +956,6 @@ a.brand:hover,
 }
 .library-page > .library-tabs {
   margin-top: 0;
-  padding-top: 1.15rem;
-  border-top: 1px solid var(--line);
 }
 .library-ingest [data-slot='input'] {
   background: var(--card);

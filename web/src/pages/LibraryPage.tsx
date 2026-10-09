@@ -1,44 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { api, apiUpload } from '../api'
-import type {
-  SchemaCapturePlatformsResponse,
-  SchemaImportPlatformsResponse,
-  SchemaOrgUserListResponse,
-  SchemaUserTagListResponse,
-} from '../openapi'
+import { api } from '../api'
+import type { SchemaOrgUserListResponse, SchemaUserTagListResponse } from '../openapi'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
 import { Button } from '@/components/ui/button'
 import { AppCheckboxRow, AppInputField, AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
 import { allOption, pageSizeOptions } from '../components/app/selectOptions'
-import type { Audio, Summary, Task, Transcript, User } from '../types'
+import type { Audio, Summary, Transcript, User } from '../types'
 import { AppStackCard } from '../components/AdminSection'
 import { AdminTablePager } from '../components/app/AdminDataTable'
-import { AppHoverHint } from '../components/app/AppHoverHint'
 import { ListSection } from '../components/app/EntityUi'
-import { IngestExtraTagsMultiSelect } from '../components/IngestExtraTagsMultiSelect'
-import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
-import { appendIngestUserTagsToForm } from '../ingestUserTagsForm'
-import { useIngestExtraTagsSlot } from '../hooks/useIngestExtraTagsSlot'
 import { ListRow } from '../components/ListRow'
 import { Tabs } from '../components/Tabs'
-import { Card, CardContent } from '@/components/ui/card'
-import { AppSubmitButton } from '@/components/app/AdminUi'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
-import { beginPipelineRun, captureRequest, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
-import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
-import { ApiError } from '../api'
 import { LibraryLinksTab } from '../components/LibraryLinksTab'
 import { LibrarySkillsTab } from '../components/LibrarySkillsTab'
 import { TagManageDialog } from '../components/TagManageDialog'
-import { MicrophoneRecordModal } from '../components/MicrophoneRecordModal'
-import { MicIcon } from 'lucide-react'
 import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, UserTagBadges, fmtDate, showError } from '../util'
-import { captureMeetingNeedsPin, shouldRouteImportUrlToCapture } from '../util/captureHost'
-import { uploadMicrophoneRecording } from '../util/microphoneUpload'
 import { libraryServerSourceGrouping } from '../libraryList'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { useLibraryList } from '../hooks/useLibraryList'
@@ -68,24 +47,8 @@ export function LibraryPage() {
   const [groupListBySource, setGroupListBySource] = useState(false)
   const [pageSize, setPageSize] = useState<PageSize>(10)
   const [page, setPage] = useState(0)
-  const [busy, setBusy] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState<{
-    name: string
-    percent: number
-    phase: 'uploading' | 'processing'
-    video: boolean
-  } | null>(null)
-  const [importUrl, setImportUrl] = useState('')
-  const linkExtraTags = useIngestExtraTagsSlot('link')
-  const fileExtraTags = useIngestExtraTagsSlot('file')
-  const micExtraTags = useIngestExtraTagsSlot('mic')
-  const [importPlatforms, setImportPlatforms] = useState<SchemaImportPlatformsResponse | null>(null)
-  const [capturePin, setCapturePin] = useState('')
-  const [capturePlatforms, setCapturePlatforms] = useState<SchemaCapturePlatformsResponse | null>(null)
   const [userTags, setUserTags] = useState<NonNullable<SchemaUserTagListResponse['items']>>([])
   const [manageTagsOpen, setManageTagsOpen] = useState(false)
-  const [recordOpen, setRecordOpen] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const hasOrg = Boolean(me?.org)
   const showOwnerFilter = isOrgAdmin(me) || isInstanceAdmin(me)
   const debouncedQuery = useDebouncedValue(query, 300)
@@ -202,182 +165,10 @@ export function LibraryPage() {
     return () => window.clearTimeout(timer)
   }, [sourceFilter, tab, items])
 
-  useEffect(() => {
-    if (!hasOrg) return
-    let cancelled = false
-    async function loadPlatforms() {
-      try {
-        const data = await api<SchemaImportPlatformsResponse>('/import/platforms')
-        if (!cancelled) setImportPlatforms(data)
-      } catch (e) {
-        if (!cancelled) showError(e)
-      }
-    }
-    void loadPlatforms()
-    const timer = window.setInterval(() => void loadPlatforms(), 30_000)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-    }
-  }, [hasOrg])
-
-  useEffect(() => {
-    if (!hasOrg) return
-    let cancelled = false
-    async function loadCapturePlatforms() {
-      try {
-        const data = await api<SchemaCapturePlatformsResponse>('/capture/platforms')
-        if (!cancelled) setCapturePlatforms(data)
-      } catch (e) {
-        if (!cancelled) showError(e)
-      }
-    }
-    void loadCapturePlatforms()
-    return () => {
-      cancelled = true
-    }
-  }, [hasOrg])
-
   if (!hasOrg) return <Navigate to={me?.user.is_instance_admin ? '/app/instance' : '/app/profile'} replace />
   if (tabParam && !isLibraryTab(tabParam)) {
     return <Navigate to={LIBRARY_DEFAULT} replace />
   }
-
-  async function submitCaptureUrl(url: string, pin: string) {
-    const trimmed = url.trim()
-    if (!trimmed) return
-    setBusy(true)
-    try {
-      const pipeline = beginPipelineRun()
-      const task = await api<Task>('/tasks/capture', {
-        method: 'POST',
-        body: JSON.stringify(captureRequest(trimmed, pin.trim(), pipeline, me, linkExtraTags.tags)),
-      })
-      setCapturePin('')
-      setImportUrl('')
-      linkExtraTags.reset()
-      nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
-    } catch (e) {
-      showError(e)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function importFromUrl() {
-    const url = importUrl.trim()
-    if (!url) return
-    if (shouldRouteImportUrlToCapture(url, captureEnabled)) {
-      await submitCaptureUrl(url, capturePin)
-      return
-    }
-    setBusy(true)
-    try {
-      const pipeline = beginPipelineRun()
-      const task = await api<Task>('/tasks/import', {
-        method: 'POST',
-        body: JSON.stringify(importRequest(url, pipeline, me, linkExtraTags.tags)),
-      })
-      setImportUrl('')
-      linkExtraTags.reset()
-      nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
-    } catch (e) {
-      if (
-        captureEnabled &&
-        e instanceof ApiError &&
-        (e.code === 'meeting_use_capture' || e.code === 'unsupported_host') &&
-        shouldRouteImportUrlToCapture(url, true)
-      ) {
-        await submitCaptureUrl(url, capturePin)
-        return
-      }
-      showError(e)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function upload(file: File) {
-    const pipeline = beginPipelineRun()
-    setBusy(true)
-    const video = isVideoUploadFilename(file.name)
-    setUploadProgress({ name: file.name, percent: 0, phase: 'uploading', video })
-    try {
-      const body = new FormData()
-      body.append('file', file)
-      appendIngestUserTagsToForm(body, fileExtraTags.tags)
-      const item = await apiUpload<Audio>('/audios', body, (loaded, total) => {
-        const percent = total ? Math.round((loaded / total) * 100) : 0
-        setUploadProgress({
-          name: file.name,
-          percent,
-          phase: percent >= 100 ? 'processing' : 'uploading',
-          video,
-        })
-      })
-      if (pipelineShouldTranscribe(pipeline)) {
-        const task = await api<Task>('/tasks/transcribe', {
-          method: 'POST',
-          body: JSON.stringify(transcribeRequest(item.id, pipeline, me)),
-        })
-        fileExtraTags.reset()
-        nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
-        return
-      }
-      endPipelineRun()
-      fileExtraTags.reset()
-      nav(libraryPath('audio'))
-      await reload()
-    } catch (e) {
-      showError(e)
-    } finally {
-      setBusy(false)
-      setUploadProgress(null)
-    }
-  }
-
-  const importEnabled = importPlatforms?.enabled === true
-  const captureEnabled = capturePlatforms?.enabled === true
-  const ingestEnabled = importEnabled || captureEnabled
-  const trimmedIngestUrl = importUrl.trim()
-  const ingestToCapture =
-    captureEnabled &&
-    trimmedIngestUrl.length > 0 &&
-    shouldRouteImportUrlToCapture(trimmedIngestUrl, true)
-  const showCapturePin =
-    captureEnabled &&
-    trimmedIngestUrl.length > 0 &&
-    captureMeetingNeedsPin(trimmedIngestUrl, true)
-  const proxyBlocked =
-    importPlatforms?.download_proxy_required === true &&
-    importPlatforms?.download_proxy_available === false
-  const ingestSubmitDisabled =
-    busy ||
-    !trimmedIngestUrl ||
-    (!ingestToCapture && (!importEnabled || proxyBlocked))
-  const ingestUrlPlaceholder =
-    importEnabled && captureEnabled
-      ? t('library.ingestUrlPlaceholder')
-      : captureEnabled
-        ? t('library.capturePlaceholder')
-        : t('library.importPlaceholder')
-  const ingestSubmitLabel = busy
-    ? ingestToCapture
-      ? t('library.capturing')
-      : t('library.importing')
-    : ingestToCapture
-      ? t('library.captureSubmit')
-      : t('library.importSubmit')
-
-  const importPlatformsHoverHint =
-    importEnabled &&
-    importPlatforms &&
-    !proxyBlocked &&
-    (importPlatforms.platforms ?? []).length > 0
-      ? t('library.importHint', {
-          platforms: (importPlatforms.platforms ?? []).map((p) => p.label).join(' · '),
-        })
-      : null
 
   const listEmpty = listTotal === 0
 
@@ -394,138 +185,6 @@ export function LibraryPage() {
 
   return (
     <div className="library-page">
-      <Card className="library-ingest font-sans shadow-md">
-        <CardContent className="flex flex-col gap-3">
-        {uploadProgress && (
-          <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
-            <div className="upload-progress-label">
-              {uploadProgress.phase === 'processing'
-                ? uploadProgress.video
-                  ? t('library.uploadExtractingAudio', { name: uploadProgress.name })
-                  : t('library.uploadProcessing', { name: uploadProgress.name })
-                : t('library.uploading', { name: uploadProgress.name, percent: uploadProgress.percent })}
-            </div>
-            <div className="progress-bar" aria-hidden="true">
-              <div
-                className={`progress-bar-fill${uploadProgress.phase === 'processing' ? ' progress-bar-indeterminate' : ''}`}
-                style={uploadProgress.phase === 'processing' ? undefined : { width: `${uploadProgress.percent}%` }}
-              />
-            </div>
-          </div>
-        )}
-        <div className={`library-ingest-toolbar${ingestEnabled ? '' : ' upload-only'}`}>
-          {ingestEnabled ? (
-            <>
-              <div className="library-ingest-url-wrap">
-                <AppHoverHint content={importPlatformsHoverHint} side="bottom">
-                  <Input
-                    className="library-ingest-url bg-card"
-                    type="url"
-                    value={importUrl}
-                    placeholder={ingestUrlPlaceholder}
-                    disabled={busy}
-                    aria-label={t('library.ingestUrl')}
-                    aria-describedby={proxyBlocked ? 'library-ingest-proxy-err' : undefined}
-                    onChange={(e) => setImportUrl(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        if (!ingestSubmitDisabled) void importFromUrl()
-                      }
-                    }}
-                  />
-                </AppHoverHint>
-                {proxyBlocked ? (
-                  <p id="library-ingest-proxy-err" className="err library-ingest-hint" role="alert">
-                    {t('library.proxyUnavailable')}
-                  </p>
-                ) : null}
-              </div>
-              {showCapturePin ? (
-                <Input
-                  className="library-capture-pin max-w-[8rem] bg-card"
-                  type="password"
-                  value={capturePin}
-                  placeholder={t('library.capturePinPlaceholder')}
-                  disabled={busy}
-                  aria-label={t('library.capturePin')}
-                  autoComplete="off"
-                  onChange={(e) => setCapturePin(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      if (!ingestSubmitDisabled) void importFromUrl()
-                    }
-                  }}
-                />
-              ) : null}
-              <IngestExtraTagsMultiSelect
-                catalog={userTags}
-                selected={linkExtraTags.tags}
-                disabled={busy}
-                onChange={linkExtraTags.setTags}
-              />
-              <AppSubmitButton ready={!ingestSubmitDisabled} busy={busy} onClick={() => void importFromUrl()}>
-                {ingestSubmitLabel}
-              </AppSubmitButton>
-              <Separator orientation="vertical" className="library-ingest-toolbar-separator" />
-            </>
-          ) : (
-            <span className="library-ingest-upload-label">{t('library.uploadFile')}</span>
-          )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={UPLOAD_FILE_ACCEPT}
-            disabled={busy}
-            className="profile-backup-file-input"
-            aria-label={t('library.chooseFile')}
-            onChange={(e) => {
-              const f = e.target.files?.[0]
-              if (f) void upload(f)
-              e.target.value = ''
-            }}
-          />
-          <AppHoverHint content={t('library.uploadFormatsHint')}>
-            <Button
-              type="button"
-              variant="outline"
-              className="shrink-0 whitespace-nowrap"
-              disabled={busy}
-              onClick={() => fileInputRef.current?.click()}
-            >
-            {t('library.chooseFile')}
-          </Button>
-        </AppHoverHint>
-        <IngestExtraTagsMultiSelect
-          catalog={userTags}
-          selected={fileExtraTags.tags}
-          disabled={busy}
-          onChange={fileExtraTags.setTags}
-        />
-        <AppHoverHint content={t('library.recordMic')}>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="shrink-0"
-            disabled={busy}
-            aria-label={t('library.recordMic')}
-            onClick={() => setRecordOpen(true)}
-          >
-            <MicIcon className="size-4" aria-hidden="true" />
-          </Button>
-        </AppHoverHint>
-        <IngestExtraTagsMultiSelect
-          catalog={userTags}
-          selected={micExtraTags.tags}
-          disabled={busy}
-          onChange={micExtraTags.setTags}
-        />
-      </div>
-        <IngestPipelinePanel />
-        </CardContent>
-      </Card>
       <Tabs
         variant="default"
         className="library-tabs"
@@ -813,35 +472,6 @@ export function LibraryPage() {
           onUpdated={() => {
             void loadUserTags()
             void reload()
-          }}
-        />
-      ) : null}
-      {recordOpen ? (
-        <MicrophoneRecordModal
-          busy={busy}
-          onClose={() => setRecordOpen(false)}
-          onSave={(file) => {
-            setRecordOpen(false)
-            setBusy(true)
-            setUploadProgress({ name: file.name, percent: 0, phase: 'uploading', video: true })
-            void uploadMicrophoneRecording(
-              file,
-              nav,
-              {
-                onProgress: (p) => setUploadProgress({ ...p, video: true }),
-                afterUpload: async () => {
-                  await reload()
-                },
-                clearExtraTags: micExtraTags.reset,
-              },
-              me,
-              micExtraTags.tags,
-            )
-              .catch(showError)
-              .finally(() => {
-                setBusy(false)
-                setUploadProgress(null)
-              })
           }}
         />
       ) : null}
