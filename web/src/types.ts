@@ -46,6 +46,9 @@ export type TariffRemediationPayload = {
 /** Tariff delete preview from OpenAPI `TariffDeleteImpactResponse`. */
 export type TariffDeleteImpact = Api['TariffDeleteImpactResponse']
 
+/** Library artifact delete preview from OpenAPI `LibraryArtifactDeleteImpactResponse`. */
+export type LibraryArtifactDeleteImpact = Api['LibraryArtifactDeleteImpactResponse']
+
 export type OrgSso = {
   configured: boolean
   enabled: boolean

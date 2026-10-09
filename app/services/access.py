@@ -88,6 +88,12 @@ def can_read_object(
     return member_can_read_object(ctx, db, object_type, owner_user_id, org_id, object_id)
 
 
+def can_delete_library_object(ctx: AuthContext, owner_user_id: str, org_id: str) -> bool:
+    if ctx.org is None or ctx.org.id != org_id:
+        return False
+    return owner_user_id == ctx.user.id or ctx.is_org_admin
+
+
 def audit_instance_admin_library_read(
     ctx: AuthContext,
     db: Session,

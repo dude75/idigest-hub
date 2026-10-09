@@ -377,6 +377,63 @@ def test_list_audios_includes_derived_badges(client):
     assert bare_item["summary_transcript_id"] is None
 
 
+def test_audio_delete_impact_and_owner_delete(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "delown@example.com", "delownpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio = upload_audio(client)
+    assert audio.status_code == 200, audio.text
+    audio_id = audio.json()["id"]
+    transcript_id, _ = _insert_transcript_and_summary(org_id, user_id, audio_id)
+
+    impact = client.get(f"/api/v1/audios/{audio_id}/delete-impact")
+    assert impact.status_code == 200, impact.text
+    payload = impact.json()
+    assert payload["transcripts"] == [{"id": transcript_id, "title": "clip"}]
+    assert payload["summaries"] == []
+    assert payload["active_tasks"] == {"queued": 0, "running": 0}
+
+    deleted = client.delete(f"/api/v1/audios/{audio_id}")
+    assert deleted.status_code == 200, deleted.text
+    assert client.get(f"/api/v1/audios/{audio_id}").status_code == 404
+
+
+def test_transcript_delete_impact_lists_summaries(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "deltr@example.com", "deltrpass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    audio = upload_audio(client)
+    transcript_id, summary_id = _insert_transcript_and_summary(org_id, user_id, audio.json()["id"])
+
+    impact = client.get(f"/api/v1/transcripts/{transcript_id}/delete-impact")
+    assert impact.status_code == 200, impact.text
+    payload = impact.json()
+    assert len(payload["summaries"]) == 1
+    assert payload["summaries"][0]["id"] == summary_id
+    assert payload["summaries"][0]["title"] == f"clip-{summary_id[:8]}"
+
+
+def test_non_owner_cannot_delete_audio_or_impact(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "dellead@example.com", "delleadpass1", tariff_id).status_code == 200
+    audio_id = upload_audio(client).json()["id"]
+    member = client.post(
+        "/api/v1/org/users",
+        json={"email": "delmember@example.com", "password": "delmember1", "role": "org_member"},
+    )
+    assert member.status_code == 200, member.text
+    logout(client)
+    login_ready(client, "delmember@example.com", "delmember1")
+
+    assert client.get(f"/api/v1/audios/{audio_id}/delete-impact").status_code == 403
+    assert client.delete(f"/api/v1/audios/{audio_id}").status_code == 403
+
+
 def test_delete_transcript_does_not_cascade_summaries(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

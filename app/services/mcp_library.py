@@ -322,11 +322,11 @@ async def stop_capture_task_payload(
 
 def delete_audio_payload(db: Session, ctx: AuthContext, audio_id: str) -> dict:
     _require_oauth_scope(ctx, SCOPE_AUDIO_WRITE)
-    if not ctx.is_org_admin:
-        raise PermissionError("forbidden")
     row = db.get(Audio, audio_id)
     if row is None:
         raise ValueError("not found")
+    if row.owner_user_id != ctx.user.id and not ctx.is_org_admin:
+        raise PermissionError("forbidden")
     if ctx.org is None or row.org_id != ctx.org.id:
         raise ValueError("not found")
     write_audit(db, "audio.wipe", ctx, {"audio_id": row.id})
@@ -434,11 +434,11 @@ def update_transcript_payload(
 
 def delete_transcript_payload(db: Session, ctx: AuthContext, transcript_id: str) -> dict:
     _require_oauth_scope(ctx, SCOPE_TRANSCRIPTS_WRITE)
-    if not ctx.is_org_admin:
-        raise PermissionError("forbidden")
     row = db.get(Transcript, transcript_id)
     if row is None:
         raise ValueError("not found")
+    if row.owner_user_id != ctx.user.id and not ctx.is_org_admin:
+        raise PermissionError("forbidden")
     if ctx.org is None or row.org_id != ctx.org.id:
         raise ValueError("not found")
     write_audit(db, "transcript.wipe", ctx, {"transcript_id": row.id})

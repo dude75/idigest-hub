@@ -1604,6 +1604,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audios/{audio_id}/delete-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Audio Delete Impact */
+        get: operations["audio_delete_impact_api_v1_audios__audio_id__delete_impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/capture/platforms": {
         parameters: {
             query?: never;
@@ -1860,6 +1877,23 @@ export interface paths {
         put?: never;
         /** Unhide Transcript */
         post: operations["unhide_transcript_api_v1_transcripts__transcript_id__unhide_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/transcripts/{transcript_id}/delete-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Transcript Delete Impact */
+        get: operations["transcript_delete_impact_api_v1_transcripts__transcript_id__delete_impact_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2370,6 +2404,31 @@ export interface components {
             blocked_by_tariff: boolean;
             /** Created At */
             created_at: string;
+        };
+        /** ArtifactImpactActiveTasks */
+        ArtifactImpactActiveTasks: {
+            /**
+             * Queued
+             * @default 0
+             */
+            queued: number;
+            /**
+             * Running
+             * @default 0
+             */
+            running: number;
+        };
+        /** ArtifactImpactRelatedItem */
+        ArtifactImpactRelatedItem: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+        };
+        /** ArtifactImpactShareRecipient */
+        ArtifactImpactShareRecipient: {
+            /** Email */
+            email: string;
         };
         /** AudioCreatedResponse */
         AudioCreatedResponse: {
@@ -3088,6 +3147,16 @@ export interface components {
             created_by_user_id?: string | null;
             /** Created By Email */
             created_by_email?: string | null;
+        };
+        /** LibraryArtifactDeleteImpactResponse */
+        LibraryArtifactDeleteImpactResponse: {
+            /** Shared With */
+            shared_with?: components["schemas"]["ArtifactImpactShareRecipient"][];
+            /** Transcripts */
+            transcripts?: components["schemas"]["ArtifactImpactRelatedItem"][];
+            /** Summaries */
+            summaries?: components["schemas"]["ArtifactImpactRelatedItem"][];
+            active_tasks: components["schemas"]["ArtifactImpactActiveTasks"];
         };
         /** LoginBody */
         LoginBody: {
@@ -8308,6 +8377,37 @@ export interface operations {
             };
         };
     };
+    audio_delete_impact_api_v1_audios__audio_id__delete_impact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                audio_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryArtifactDeleteImpactResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     capture_platforms_api_v1_capture_platforms_get: {
         parameters: {
             query?: never;
@@ -8986,6 +9086,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OkStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    transcript_delete_impact_api_v1_transcripts__transcript_id__delete_impact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transcript_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryArtifactDeleteImpactResponse"];
                 };
             };
             /** @description Validation Error */

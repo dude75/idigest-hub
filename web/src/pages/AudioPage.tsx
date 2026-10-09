@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { AudioPlayer } from '../components/AudioPlayer'
-import { ConfirmDialog } from '../components/ConfirmDialog'
+import { LibraryArtifactImpactModal } from '../components/LibraryArtifactImpactModal'
 import { EntityHint, EntityToolbar } from '../components/EntityToolbar'
 import { ListRow } from '../components/ListRow'
 import { ShareDialog } from '../components/ShareDialog'
@@ -41,10 +41,11 @@ export function AudioPage() {
   const [item, setItem] = useState<Audio | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
-  const [confirmWipe, setConfirmWipe] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
   const admin = isOrgAdmin(me)
   const mine = item?.owner_user_id === me?.user.id
+  const canDelete = item && (mine || admin)
   const sourceUrl = httpSourceUrl(item?.source_url)
   const transcripts = item?.transcripts || []
 
@@ -91,7 +92,7 @@ export function AudioPage() {
     }
   }
 
-  async function doWipe() {
+  async function doDelete() {
     if (!id) return
     setBusy(true)
     try {
@@ -153,15 +154,15 @@ export function AudioPage() {
                   {item.hidden ? t('common.unhide') : t('common.hide')}
                 </Button>
               </AppHoverHint>
-              {admin ? (
-                <AppHoverHint content={t('library.wipeHint')}>
-                  <Button type="button" variant="destructive" onClick={() => setConfirmWipe(true)}>
-                    {t('common.wipe')}
+              {canDelete ? (
+                <AppHoverHint content={admin && !mine ? t('library.deleteAdminHint') : t('library.deleteOwnerHint')}>
+                  <Button type="button" variant="destructive" onClick={() => setConfirmDelete(true)}>
+                    {t('common.delete')}
                   </Button>
                 </AppHoverHint>
               ) : null}
             </EntityToolbar>
-            {!admin ? <EntityHint>{t('library.cannotDeleteHint')}</EntityHint> : null}
+            {!canDelete && item ? <EntityHint>{t('library.cannotDeleteHint')}</EntityHint> : null}
           </EntityDetailCard>
           <ListSection title={t('audio.transcripts')} empty={t('common.empty')} isEmpty={transcripts.length === 0}>
             {transcripts.map((tr) => (
@@ -183,14 +184,13 @@ export function AudioPage() {
         </>
       )}
       {share && id ? <ShareDialog objectType="audio" objectId={id} onClose={() => { setShare(false); void load() }} /> : null}
-      {confirmWipe && item ? (
-        <ConfirmDialog
-          message={t('library.wipeConfirm', { title: item.filename || item.id.slice(0, 8) })}
-          confirmLabel={t('common.wipe')}
-          danger
-          busy={busy}
-          onConfirm={() => void doWipe()}
-          onClose={() => setConfirmWipe(false)}
+      {confirmDelete && item && id ? (
+        <LibraryArtifactImpactModal
+          objectType="audio"
+          objectId={id}
+          title={item.filename || item.id.slice(0, 8)}
+          onConfirm={() => doDelete()}
+          onClose={() => setConfirmDelete(false)}
         />
       ) : null}
     </EntityPage>

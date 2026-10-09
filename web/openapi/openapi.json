@@ -5232,6 +5232,53 @@
         ]
       }
     },
+    "/api/v1/audios/{audio_id}/delete-impact": {
+      "get": {
+        "summary": "Audio Delete Impact",
+        "operationId": "audio_delete_impact_api_v1_audios__audio_id__delete_impact_get",
+        "parameters": [
+          {
+            "name": "audio_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Audio Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryArtifactDeleteImpactResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/capture/platforms": {
       "get": {
         "summary": "Capture Platforms",
@@ -6433,6 +6480,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OkStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/transcripts/{transcript_id}/delete-impact": {
+      "get": {
+        "summary": "Transcript Delete Impact",
+        "operationId": "transcript_delete_impact_api_v1_transcripts__transcript_id__delete_impact_get",
+        "parameters": [
+          {
+            "name": "transcript_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Transcript Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryArtifactDeleteImpactResponse"
                 }
               }
             }
@@ -8100,6 +8194,53 @@
           "created_at"
         ],
         "title": "ApiTokenPublic"
+      },
+      "ArtifactImpactActiveTasks": {
+        "properties": {
+          "queued": {
+            "type": "integer",
+            "title": "Queued",
+            "default": 0
+          },
+          "running": {
+            "type": "integer",
+            "title": "Running",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "ArtifactImpactActiveTasks"
+      },
+      "ArtifactImpactRelatedItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "ArtifactImpactRelatedItem"
+      },
+      "ArtifactImpactShareRecipient": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email"
+        ],
+        "title": "ArtifactImpactShareRecipient"
       },
       "AudioCreatedResponse": {
         "properties": {
@@ -10434,6 +10575,39 @@
           "created_at"
         ],
         "title": "LegalDocumentVersionSummary"
+      },
+      "LibraryArtifactDeleteImpactResponse": {
+        "properties": {
+          "shared_with": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactImpactShareRecipient"
+            },
+            "type": "array",
+            "title": "Shared With"
+          },
+          "transcripts": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactImpactRelatedItem"
+            },
+            "type": "array",
+            "title": "Transcripts"
+          },
+          "summaries": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactImpactRelatedItem"
+            },
+            "type": "array",
+            "title": "Summaries"
+          },
+          "active_tasks": {
+            "$ref": "#/components/schemas/ArtifactImpactActiveTasks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "active_tasks"
+        ],
+        "title": "LibraryArtifactDeleteImpactResponse"
       },
       "LoginBody": {
         "properties": {

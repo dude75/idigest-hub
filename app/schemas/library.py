@@ -203,6 +203,27 @@ class ImportPlatformsResponse(BaseModel):
     download_proxy_available: bool
 
 
+class ArtifactImpactShareRecipient(BaseModel):
+    email: str
+
+
+class ArtifactImpactRelatedItem(BaseModel):
+    id: str
+    title: str
+
+
+class ArtifactImpactActiveTasks(BaseModel):
+    queued: int = 0
+    running: int = 0
+
+
+class LibraryArtifactDeleteImpactResponse(BaseModel):
+    shared_with: list[ArtifactImpactShareRecipient] = Field(default_factory=list)
+    transcripts: list[ArtifactImpactRelatedItem] = Field(default_factory=list)
+    summaries: list[ArtifactImpactRelatedItem] = Field(default_factory=list)
+    active_tasks: ArtifactImpactActiveTasks
+
+
 def _derived_audio_defaults() -> dict:
     return {
         "has_transcript": False,

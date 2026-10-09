@@ -40,6 +40,15 @@ def test_export_openapi_writes_health_path():
         "application/json"
     ]["schema"]
     assert audio_detail.get("$ref", "").endswith("/AudioDetailResponse")
+    audio_delete_impact = schema["paths"]["/api/v1/audios/{audio_id}/delete-impact"]["get"]["responses"]["200"][
+        "content"
+    ]["application/json"]["schema"]
+    assert audio_delete_impact.get("$ref", "").endswith("/LibraryArtifactDeleteImpactResponse")
+    transcript_delete_impact = schema["paths"]["/api/v1/transcripts/{transcript_id}/delete-impact"]["get"][
+        "responses"
+    ]["200"]["content"]["application/json"]["schema"]
+    assert transcript_delete_impact.get("$ref", "").endswith("/LibraryArtifactDeleteImpactResponse")
+    assert "LibraryArtifactDeleteImpactResponse" in components
     purge = schema["paths"]["/api/v1/tasks/purge"]["post"]["responses"]["200"]["content"]["application/json"][
         "schema"
     ]
