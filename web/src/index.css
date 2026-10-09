@@ -600,6 +600,16 @@ a.brand:hover,
 .mic-record-modal {
   --primary: var(--foreground);
 }
+.library-page > .library-ingest {
+  margin-bottom: 0;
+  background: var(--card);
+  --tw-ring-color: color-mix(in oklch, var(--hub-accent) 22%, transparent);
+}
+.library-page > .library-tabs {
+  margin-top: 0;
+  padding-top: 1.15rem;
+  border-top: 1px solid var(--line);
+}
 .library-ingest [data-slot='input'] {
   background: var(--card);
 }
@@ -617,6 +627,9 @@ a.brand:hover,
   align-items: center;
 }
 .library-ingest-toolbar:not(.upload-only) {
+  align-items: center;
+}
+.library-ingest-toolbar:not(.upload-only):has(.library-ingest-hint) {
   align-items: flex-start;
 }
 .library-ingest-toolbar.upload-only {

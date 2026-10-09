@@ -363,15 +363,15 @@ export function LibraryPage() {
       ? t('library.captureSubmit')
       : t('library.importSubmit')
 
-  const showImportPlatformsHint =
-    importEnabled && importPlatforms && (proxyBlocked || (importPlatforms.platforms ?? []).length > 0)
-  const importPlatformsHint = showImportPlatformsHint
-    ? proxyBlocked
-      ? t('library.proxyUnavailable')
-      : t('library.importHint', {
+  const importPlatformsHoverHint =
+    importEnabled &&
+    importPlatforms &&
+    !proxyBlocked &&
+    (importPlatforms.platforms ?? []).length > 0
+      ? t('library.importHint', {
           platforms: (importPlatforms.platforms ?? []).map((p) => p.label).join(' · '),
         })
-    : null
+      : null
 
   const listEmpty = listTotal === 0
 
@@ -388,7 +388,7 @@ export function LibraryPage() {
 
   return (
     <div className="library-page">
-      <Card className="library-ingest mb-4 font-sans bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none">
+      <Card className="library-ingest font-sans shadow-md">
         <CardContent className="flex flex-col gap-3">
         {uploadProgress && (
           <div className="upload-progress library-ingest-progress" role="status" aria-live="polite">
@@ -411,28 +411,27 @@ export function LibraryPage() {
           {ingestEnabled ? (
             <>
               <div className="library-ingest-url-wrap">
-                <Input
-                  className="library-ingest-url bg-card"
-                  type="url"
-                  value={importUrl}
-                  placeholder={ingestUrlPlaceholder}
-                  disabled={busy}
-                  aria-label={t('library.ingestUrl')}
-                  aria-describedby={importPlatformsHint ? 'library-ingest-import-hint' : undefined}
-                  onChange={(e) => setImportUrl(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      if (!ingestSubmitDisabled) void importFromUrl()
-                    }
-                  }}
-                />
-                {importPlatformsHint ? (
-                  <p
-                    id="library-ingest-import-hint"
-                    className={proxyBlocked ? 'err library-ingest-hint' : 'muted library-ingest-hint'}
-                  >
-                    {importPlatformsHint}
+                <AppHoverHint content={importPlatformsHoverHint} side="bottom">
+                  <Input
+                    className="library-ingest-url bg-card"
+                    type="url"
+                    value={importUrl}
+                    placeholder={ingestUrlPlaceholder}
+                    disabled={busy}
+                    aria-label={t('library.ingestUrl')}
+                    aria-describedby={proxyBlocked ? 'library-ingest-proxy-err' : undefined}
+                    onChange={(e) => setImportUrl(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        if (!ingestSubmitDisabled) void importFromUrl()
+                      }
+                    }}
+                  />
+                </AppHoverHint>
+                {proxyBlocked ? (
+                  <p id="library-ingest-proxy-err" className="err library-ingest-hint" role="alert">
+                    {t('library.proxyUnavailable')}
                   </p>
                 ) : null}
               </div>
