@@ -951,23 +951,28 @@ a.brand:hover,
   gap: 0.5rem;
 }
 .ingest-studio-card-pipeline {
-  gap: 0.75rem;
   padding-top: 1.1rem;
+  gap: 0.55rem;
 }
 .ingest-studio-pipeline-heading {
   margin: 0;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: normal;
+  text-transform: none;
   color: var(--hub-muted);
+}
+.ingest-studio-card-pipeline .ingest-studio-pipeline.library-pipeline {
+  margin: 0;
+  padding-top: 0;
+  border-top: none;
 }
 .ingest-studio-pipeline.fold {
   border: none;
   background: transparent;
 }
 .ingest-studio-pipeline summary {
-  padding: 0.35rem 0;
+  padding: 0;
 }
 .library-page > .library-tabs {
   margin-top: 0;

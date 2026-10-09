@@ -233,7 +233,7 @@
     "linkSubmitMeeting": "Подключиться ко встрече",
     "linkSubmitImport": "Импорт аудио",
     "linkUrlInvalid": "Укажите ссылку, начинающуюся с http:// или https://",
-    "pipelineSection": "После загрузки"
+    "pipelineSection": "Сделать после загрузки"
   },
   "library": {
     "title": "Библиотека",

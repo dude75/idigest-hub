@@ -233,7 +233,7 @@
     "linkSubmitMeeting": "Join meeting",
     "linkSubmitImport": "Import audio",
     "linkUrlInvalid": "Enter a link starting with http:// or https://",
-    "pipelineSection": "After import"
+    "pipelineSection": "Do after upload"
   },
   "library": {
     "title": "Library",
