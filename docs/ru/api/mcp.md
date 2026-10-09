@@ -138,7 +138,7 @@ audio:read audio:write transcripts:read transcripts:write summaries:read summari
 - **`create_transcribe`**: как `POST /tasks/transcribe` после успешного capture/import — `audio_id` из `get_task` или `list_audios`, не повторный import URL встречи.
 - **`get_task`**: как `GET /tasks/{id}`. Dispatcher tick для активных задач, **кроме** running capture с живым фоновым потоком (см. REST).
 - **`stop_capture_task`**: как `POST /tasks/{id}/stop`. Running **capture** only; worker stop делает фоновый поток, если он есть (не `DELETE` cancel).
-- **`delete_audio`** / **`delete_transcript`**: только org admin.
+- **`delete_audio`** / **`delete_transcript`**: владелец объекта или org admin (как REST `DELETE`).
 - **`create_summary`** — ставит задачу **summarize** (аналог `POST /tasks/summarize`); диспетчер работает асинхронно. LLM — summarize model пользователя или дефолт инстанса, не параметр tool.
 - **`update_transcript`**: владелец или org admin (только title).
 - **`update_summary`** / **`delete_summary`**: владелец или org admin. Правка body ставит `edited=true`.

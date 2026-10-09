@@ -17,7 +17,7 @@
 | Wallet / tariff (self-service) | No | Change to available tariff | No |
 | Own artifacts + shared | If in org | Yes | Yes |
 | Create tasks | If in org | Yes | Yes |
-| Hard-delete org artifacts | No | Yes | No (own summary delete yes) |
+| Hard-delete audio / transcript / summary | If in org | Any org object | Own objects (others’ — org_admin only) |
 | API tokens | Yes (no org) | If tariff.api_enabled | If tariff.api_enabled |
 | MCP / OAuth (Open WebUI) | No (org required) | If tariff.api_enabled | If tariff.api_enabled |
 
@@ -47,8 +47,7 @@ Library lists and `GET /tags` for instance admin without org: all instance objec
 | Action | Who | Effect |
 | ------ | --- | ------ |
 | **Hide** | Owner only | `hidden_items` row — removed from default lists |
-| **Delete (wipe)** | Org admin | Hard delete artifact + dependencies via `artifacts.py` |
-| **Delete summary** | Owner or org admin | Hard delete single summary |
+| **Delete** (audio / transcript / summary) | Owner or org admin | Hard delete via `artifacts.py`; before DELETE the UI calls `GET …/delete-impact` (shares, linked objects, active tasks; summaries also report an active public link) |
 
 Hidden items are per-user; other org members still see the object if they have access.
 

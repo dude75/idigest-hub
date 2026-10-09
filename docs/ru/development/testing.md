@@ -39,7 +39,7 @@ Framework: **pytest** с FastAPI `TestClient`.
 | `test_oauth_provider.py` | OAuth 2.1 authorize, token, DCR, org/tariff gates |
 | `test_mcp_library.py` | MCP tool payloads: CRUD библиотеки, scopes, постановка summarize/import |
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
-| `test_library.py` | Upload, shares, hide |
+| `test_library.py` | Upload, shares, hide, delete-impact и права на удаление |
 | `test_source_tags.py` | Автотеги источника ingest при upload/import/capture |
 | `test_import.py` | Import по URL; `user_tags` при успешном import |
 | `test_user_tags.py` | Личные теги, фильтры, наследование при transcribe/summarize |

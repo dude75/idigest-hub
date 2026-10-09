@@ -29,7 +29,8 @@ On the library page, users can record in the browser (`MediaRecorder`): **WebM**
 | GET | `/audios/{id}/file` | Stream or download original (`?download=true`) |
 | POST | `/audios/{id}/hide` | Owner |
 | POST | `/audios/{id}/unhide` | Owner |
-| DELETE | `/audios/{id}` | org_admin wipe |
+| GET | `/audios/{id}/delete-impact` | Owner or org_admin — preview before delete |
+| DELETE | `/audios/{id}` | Owner or org_admin — hard delete file |
 
 Query `include_hidden=true` on list includes owner's hidden items.
 
@@ -47,7 +48,7 @@ Created by successful **transcribe tasks**, not uploaded directly.
 
 Optional `title` field; editable via `PATCH /transcripts/{id}`. Export: `GET /transcripts/{id}/export?format=txt|json`.
 
-Hide/unhide/delete follow same pattern as audio (delete = org_admin wipe).
+Hide/unhide match audio. Delete: owner or org_admin; UI shows impact preview (shares, linked summaries, active summarize tasks).
 
 ## Summaries
 
@@ -69,7 +70,7 @@ Same hide/unhide pattern as audio and transcripts. List supports `include_hidden
 
 ### Delete
 
-Owner or org_admin — hard delete (not the same as org wipe endpoints for audio/transcript).
+Owner or org_admin — hard delete. `GET /summaries/{id}/delete-impact` lists share recipients and whether a public link is active; UI uses the same confirmation modal as audio/transcript.
 
 ## Sharing
 
@@ -158,7 +159,9 @@ Org admins see all org rows regardless of share/hide.
 - Removes files, DB rows, shares, hidden_items, user tag links on that object
 - Running tasks referencing artifact may get `skip_persist` / `source_deleted`
 
-Org admin DELETE on audio/transcript is destructive for the whole org view.
+Delete removes shares and tag links; recipients lose access. Audio delete does **not** remove linked transcripts (they remain with `source_audio_id` cleared and title from filename when needed). Transcript delete does **not** remove summaries. Usage charges for completed work are not reversed.
+
+Preview: `app/services/artifact_impact.py`, schema `LibraryArtifactDeleteImpactResponse` — [Library API](../api/library.md#delete-impact-preview).
 
 MCP tools cover the same library CRUD (list/get/upload/import/update/delete) over `/mcp`. See [MCP API](../api/mcp.md).
 

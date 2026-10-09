@@ -138,7 +138,7 @@ Private labels (same rules as REST [Library API](library.md#personal-tags-no-acl
 - **`create_transcribe`**: same as `POST /tasks/transcribe` after capture/import success — use `audio_id` from `get_task` or `list_audios`, not another import of the meeting URL.
 - **`get_task`**: same as `GET /tasks/{id}`. Dispatcher tick for active tasks, **except** running capture with a live background thread (see REST).
 - **`stop_capture_task`**: same as `POST /tasks/{id}/stop`. Running **capture** only; the background thread sends worker stop when present (not DELETE cancel).
-- **`delete_audio`** / **`delete_transcript`**: org admin only (same as REST wipe).
+- **`delete_audio`** / **`delete_transcript`**: object owner or org admin (same as REST `DELETE`).
 - **`create_summary`**: enqueues a **summarize** task (like `POST /tasks/summarize`); dispatcher runs asynchronously after the tool returns. LLM is the user’s summarize model or the instance default — not a tool parameter.
 - **`update_transcript`**: owner or org admin (rename only).
 - **`update_summary`** / **`delete_summary`**: owner or org admin. Body edit sets `edited=true`.

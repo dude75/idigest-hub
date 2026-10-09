@@ -39,7 +39,7 @@ Each test gets:
 | `test_oauth_provider.py` | OAuth 2.1 authorize, token, DCR, org/tariff gates |
 | `test_mcp_library.py` | MCP tool payloads: library CRUD, scopes, summarize/import enqueue |
 | `test_tasks.py` | Transcribe/summarize, dispatch, billing |
-| `test_library.py` | Upload, shares, hide |
+| `test_library.py` | Upload, shares, hide, delete-impact previews and delete ACL |
 | `test_source_tags.py` | Auto ingest source tags on upload/import/capture |
 | `test_import.py` | URL import pipeline; `user_tags` on successful import |
 | `test_user_tags.py` | Personal tags, filters, inherit on transcribe/summarize |

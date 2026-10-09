@@ -12,7 +12,8 @@
 | GET | `/audios/{id}/file` | Потоковая отдача или скачивание (`?download=true`) |
 | POST | `/audios/{id}/hide` | Скрытие владельцем |
 | POST | `/audios/{id}/unhide` | Показ владельцем |
-| DELETE | `/audios/{id}` | Жёсткое удаление org_admin |
+| GET | `/audios/{id}/delete-impact` | Превью перед удалением (владелец или org_admin) |
+| DELETE | `/audios/{id}` | Жёсткое удаление (владелец или org_admin) |
 
 Элементы списка/деталей включают share badges: `share_kind`, `shared_with`, `shared_by`, `hidden`, `owner_email`, и **`user_tags`** (личные теги текущего пользователя: `{ "id", "name" }[]`, другим не видны).
 
@@ -30,7 +31,8 @@ Discovery capture встреч: `{ "enabled", "connectors": [{ "id", "label" }],
 | GET | `/transcripts/{id}/export?format=txt\|json` | Скачать transcript |
 | POST | `/transcripts/{id}/hide` | Владелец |
 | POST | `/transcripts/{id}/unhide` | Владелец |
-| DELETE | `/transcripts/{id}` | Удаление org_admin |
+| GET | `/transcripts/{id}/delete-impact` | Превью перед удалением (владелец или org_admin) |
+| DELETE | `/transcripts/{id}` | Жёсткое удаление (владелец или org_admin) |
 
 Форма utterance:
 
@@ -51,7 +53,22 @@ Discovery capture встреч: `{ "enabled", "connectors": [{ "id", "label" }],
 | PATCH | `/summaries/{id}` | `{ "body": "..." }` и/или `{ "title": "..." }` — владелец или org_admin |
 | POST | `/summaries/{id}/hide` | Владелец |
 | POST | `/summaries/{id}/unhide` | Владелец |
-| DELETE | `/summaries/{id}` | Владелец или org_admin |
+| GET | `/summaries/{id}/delete-impact` | Превью перед удалением (владелец или org_admin) |
+| DELETE | `/summaries/{id}` | Жёсткое удаление (владелец или org_admin) |
+
+## Превью перед удалением
+
+Перед `DELETE` владелец или org_admin может вызвать `GET …/delete-impact` для audio, transcript или summary. Ответ **`LibraryArtifactDeleteImpactResponse`**:
+
+| Поле | Смысл |
+| ---- | ----- |
+| `shared_with` | `[{ "email" }]` — кому расшарен объект |
+| `transcripts` | Связанные transcripts (только audio delete; сами transcripts не удаляются) |
+| `summaries` | Связанные summaries (только transcript delete; summaries не удаляются) |
+| `active_tasks` | `{ "queued", "running" }` — transcribe для audio, summarize для transcript |
+| `has_active_public_link` | `true`, если у summary есть действующая публичная ссылка |
+
+В Web UI та же модалка подтверждения, что у instance admin при удалении worker/tariff (секции impact + кнопка Delete).
 
 ### Публичные ссылки на summary
 

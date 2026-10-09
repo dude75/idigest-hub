@@ -13,7 +13,8 @@ Auth required. Org membership required for all endpoints.
 | GET | `/audios/{id}/file?download=true` | Download original file |
 | POST | `/audios/{id}/hide` | Owner hide |
 | POST | `/audios/{id}/unhide` | Owner unhide |
-| DELETE | `/audios/{id}` | org_admin hard delete |
+| GET | `/audios/{id}/delete-impact` | Delete preview (owner or org_admin) |
+| DELETE | `/audios/{id}` | Hard delete (owner or org_admin) |
 
 List/detail items include share badges: `share_kind`, `shared_with`, `shared_by`, `hidden`, `owner_email`, and **`user_tags`** (personal tags for the current user only: `{ "id", "name" }[]`).
 
@@ -31,7 +32,8 @@ Meeting capture discovery: `{ "enabled", "connectors": [{ "id", "label" }], "jit
 | GET | `/transcripts/{id}/export?format=txt\|json` | Download transcript |
 | POST | `/transcripts/{id}/hide` | Owner |
 | POST | `/transcripts/{id}/unhide` | Owner |
-| DELETE | `/transcripts/{id}` | org_admin wipe |
+| GET | `/transcripts/{id}/delete-impact` | Delete preview (owner or org_admin) |
+| DELETE | `/transcripts/{id}` | Hard delete (owner or org_admin) |
 
 Utterance shape:
 
@@ -52,7 +54,22 @@ Utterance shape:
 | PATCH | `/summaries/{id}` | `{ "body": "..." }` and/or `{ "title": "..." }` — owner or org_admin |
 | POST | `/summaries/{id}/hide` | Owner |
 | POST | `/summaries/{id}/unhide` | Owner |
-| DELETE | `/summaries/{id}` | Owner or org_admin |
+| GET | `/summaries/{id}/delete-impact` | Delete preview (owner or org_admin) |
+| DELETE | `/summaries/{id}` | Hard delete (owner or org_admin) |
+
+## Delete impact preview
+
+Before `DELETE`, owner or org_admin may call `GET …/delete-impact` on audio, transcript, or summary. Response **`LibraryArtifactDeleteImpactResponse`**:
+
+| Field | Meaning |
+| ----- | ------- |
+| `shared_with` | `[{ "email" }]` — org members with a share on this object |
+| `transcripts` | Linked transcripts (audio delete only; transcripts are kept) |
+| `summaries` | Linked summaries (transcript delete only; summaries are kept) |
+| `active_tasks` | `{ "queued", "running" }` — transcribe (audio) or summarize (transcript) |
+| `has_active_public_link` | `true` when the summary has an active guest public link |
+
+Web UI uses the same impact confirmation modal pattern as instance worker/tariff delete.
 
 ### Summary public links
 

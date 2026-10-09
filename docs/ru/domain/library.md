@@ -29,7 +29,8 @@
 | GET | `/audios/{id}/file` | Поток или скачивание оригинала (`?download=true`) |
 | POST | `/audios/{id}/hide` | Владелец |
 | POST | `/audios/{id}/unhide` | Владелец |
-| DELETE | `/audios/{id}` | org_admin wipe |
+| GET | `/audios/{id}/delete-impact` | Владелец или org_admin — превью перед удалением |
+| DELETE | `/audios/{id}` | Владелец или org_admin — жёсткое удаление файла |
 
 Query `include_hidden=true` в списке включает скрытые объекты владельца.
 
@@ -47,7 +48,7 @@ Query `include_hidden=true` в списке включает скрытые об
 
 Опциональное поле `title`; редактирование через `PATCH /transcripts/{id}`. Export: `GET /transcripts/{id}/export?format=txt|json`.
 
-Hide/unhide/delete по тому же шаблону, что у audio (delete = org_admin wipe).
+Hide/unhide — как у audio. Delete — владелец или org_admin; перед удалением в UI показывается impact (шары, связанные summaries, активные summarize-задачи).
 
 ## Summaries
 
@@ -69,7 +70,7 @@ Hide/unhide/delete по тому же шаблону, что у audio (delete = 
 
 ### Удаление
 
-Владелец или org_admin — hard delete (не то же самое, что org wipe endpoints для audio/transcript).
+Владелец или org_admin — hard delete. `GET /summaries/{id}/delete-impact` возвращает получателей share и флаг активной публичной ссылки; в UI — та же модалка подтверждения, что для audio/transcript.
 
 ## Шаринг
 
@@ -158,7 +159,9 @@ org admin видит все строки org независимо от share/hid
 - Удаляет файлы, строки БД, shares, hidden_items, user tag links на этом объекте
 - Выполняющиеся задачи, ссылающиеся на артефакт, могут получить `skip_persist` / `source_deleted`
 
-DELETE org admin на audio/transcript разрушителен для всего org-представления.
+Удаление снимает shares и tag links; у получателей объект исчезает из библиотеки. Audio delete **не** удаляет transcripts (остаются без `source_audio_id`, title из имени файла при необходимости). Transcript delete **не** удаляет summaries. Списания usage за уже выполненные задачи не откатываются.
+
+Превью: `app/services/artifact_impact.py`, ответ `LibraryArtifactDeleteImpactResponse` — см. [Library API](../api/library.md#превью-перед-удалением).
 
 MCP tools покрывают тот же CRUD библиотеки (list/get/upload/import/update/delete) через `/mcp`. См. [MCP API](../api/mcp.md).
 
