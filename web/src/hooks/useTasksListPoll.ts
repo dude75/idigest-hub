@@ -5,19 +5,18 @@ import type { TaskListResponse } from '../openapi/contracts'
 import type { Task } from '../types'
 import { TASK_LIST_ACTIVE_POLL_MS, TASK_LIST_IDLE_POLL_MS } from '../taskPoll'
 import { showError } from '../util'
+import type { ListPageSize } from '../components/app/selectOptions'
 
 export type { TaskListResponse }
 
 export type DoneStatusFilter = '' | 'success' | 'error'
-
-type PageSize = 10 | 50 | 100
 
 export function tasksListPath(
   orgId: string,
   userId: string,
   status: DoneStatusFilter,
   doneOffset: number,
-  pageSize: PageSize,
+  pageSize: ListPageSize,
 ): string {
   const q = new URLSearchParams()
   if (orgId) q.set('org_id', orgId)
@@ -32,7 +31,7 @@ export type UseTasksListPollOptions = {
   orgId: string
   userId: string
   statusFilter: DoneStatusFilter
-  pageSize: PageSize
+  pageSize: ListPageSize
   page: number
   enabled?: boolean
   errorToastId?: string
@@ -63,7 +62,7 @@ export function useTasksListPoll(options: UseTasksListPollOptions) {
   const safePage = Math.min(page, pageCount - 1)
   const doneOffset = safePage * pageSize
 
-  async function reload(offset = doneOffset, size: PageSize = pageSize) {
+  async function reload(offset = doneOffset, size: ListPageSize = pageSize) {
     const seq = ++fetchSeq.current
     try {
       const r = await api<TaskListResponse>(tasksListPath(orgId, userId, statusFilter, offset, size))

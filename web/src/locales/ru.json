@@ -1063,7 +1063,7 @@
     "active": "Выполняются",
     "activeCount": "всего: {{count}}",
     "done": "Завершённые",
-    "pageSize": "Показывать",
+    "rowsPerPage": "Строк на странице",
     "pageRange": "{{from}}–{{to}} из {{total}}",
     "filters": "Фильтры",
     "filterOrg": "Организация",

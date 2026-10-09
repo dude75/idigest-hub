@@ -1063,7 +1063,7 @@
     "active": "In progress",
     "activeCount": "{{count}} total",
     "done": "Completed",
-    "pageSize": "Show",
+    "rowsPerPage": "Rows per page",
     "pageRange": "{{from}}–{{to}} of {{total}}",
     "filters": "Filters",
     "filterOrg": "Organization",

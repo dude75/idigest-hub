@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Tariff } from '../types'
-import { Button } from '@/components/ui/button'
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination'
 import {
   LandingTariffCard,
   landingTariffSubtitleKey,
@@ -46,27 +52,29 @@ export function LandingTariffGrid({ tariffs, popularTariffId }: Props) {
       </div>
       {paged && (
         <div className="landing-pricing-controls">
-          <Button
-            type="button"
-            className="landing-pricing-arrow"
-            disabled={page === 0}
-            aria-label={t('common.prev')}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            ‹
-          </Button>
-          <span className="landing-pricing-page muted" aria-live="polite">
-            {t('landing.tariffPage', { current: page + 1, total: pageCount })}
-          </span>
-          <Button
-            type="button"
-            className="landing-pricing-arrow"
-            disabled={page >= pageCount - 1}
-            aria-label={t('common.next')}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            ›
-          </Button>
+          <Pagination className="mx-0 w-auto">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  text={t('common.prev')}
+                  disabled={page === 0}
+                  onClick={() => setPage((p) => p - 1)}
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <span className="landing-pricing-page muted px-2 tabular-nums" aria-live="polite">
+                  {t('landing.tariffPage', { current: page + 1, total: pageCount })}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  text={t('common.next')}
+                  disabled={page >= pageCount - 1}
+                  onClick={() => setPage((p) => p + 1)}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       )}
     </div>

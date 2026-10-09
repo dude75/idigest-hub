@@ -4,7 +4,6 @@ import { api, apiDownload } from '../../api'
 import { AdminPage, AdminTableCard } from '../../components/AdminSection'
 import {
   AdminDataTable,
-  AdminTablePager,
   TableBody,
   TableCell,
   TableHead,
@@ -22,11 +21,12 @@ import type { AuditLogEntry, Org } from '../../types'
 import { defaultFilterRange } from '../../util/date'
 import { formatInteger, fmtDate, showError } from '../../util'
 import { Button } from '@/components/ui/button'
-import { AppPageSizeField } from '../../components/app/AppFormControls'
-import { pageSizeOptions } from '../../components/app/selectOptions'
-
-const PAGE_SIZES = [10, 50, 100] as const
-type PageSize = (typeof PAGE_SIZES)[number]
+import { AppListPagination } from '../../components/app/AppListPagination'
+import {
+  DEFAULT_LIST_PAGE_SIZE,
+  listPageBounds,
+  type ListPageSize,
+} from '../../components/app/selectOptions'
 
 type AuditListResponse = {
   items: AuditLogEntry[]
@@ -57,7 +57,7 @@ export function AuditLogTab() {
   const { t } = useTranslation()
   const [items, setItems] = useState<AuditLogEntry[]>([])
   const [total, setTotal] = useState(0)
-  const [pageSize, setPageSize] = useState<PageSize>(10)
+  const [pageSize, setPageSize] = useState<ListPageSize>(DEFAULT_LIST_PAGE_SIZE)
   const [page, setPage] = useState(0)
   const [orgs, setOrgs] = useState<Org[]>([])
   const [fromDay, setFromDay] = useState(() => defaultFilterRange().from)
@@ -67,10 +67,7 @@ export function AuditLogTab() {
   const [action, setAction] = useState('')
   const [exporting, setExporting] = useState(false)
 
-  const pageCount = Math.max(1, Math.ceil(total / pageSize))
-  const safePage = Math.min(page, pageCount - 1)
-  const from = total === 0 ? 0 : safePage * pageSize + 1
-  const to = Math.min(total, (safePage + 1) * pageSize)
+  const { safePage } = listPageBounds(total, page, pageSize)
 
   const query = useMemo(() => {
     const params = new URLSearchParams()
@@ -168,21 +165,9 @@ export function AuditLogTab() {
         isEmpty={total === 0}
         tableLayout
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" size="sm" variant="outline" disabled={exporting} onClick={() => void exportCsv()}>
-              {exporting ? t('common.loading') : t('audit.exportCsv')}
-            </Button>
-            <AppPageSizeField
-              label={t('task.pageSize')}
-              htmlFor="audit-page-size"
-              value={String(pageSize)}
-              onValueChange={(v) => {
-                setPageSize(Number(v) as PageSize)
-                setPage(0)
-              }}
-              options={pageSizeOptions(PAGE_SIZES)}
-            />
-          </div>
+          <Button type="button" size="sm" variant="outline" disabled={exporting} onClick={() => void exportCsv()}>
+            {exporting ? t('common.loading') : t('audit.exportCsv')}
+          </Button>
         }
       >
         {total > 0 ? (
@@ -232,33 +217,14 @@ export function AuditLogTab() {
                 ))}
               </TableBody>
             </AdminDataTable>
-            <AdminTablePager className="justify-end">
-              {total > pageSize ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={safePage === 0}
-                    onClick={() => setPage(safePage - 1)}
-                  >
-                    {t('common.prev')}
-                  </Button>
-                  <span className="text-sm text-muted-foreground">{t('task.pageRange', { from, to, total })}</span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={safePage >= pageCount - 1}
-                    onClick={() => setPage(safePage + 1)}
-                  >
-                    {t('common.next')}
-                  </Button>
-                </div>
-              ) : (
-                <span className="text-sm text-muted-foreground">{t('task.pageRange', { from, to, total })}</span>
-              )}
-            </AdminTablePager>
+            <AppListPagination
+              htmlFor="audit-page-size"
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+              page={safePage}
+              setPage={setPage}
+              total={total}
+            />
           </>
         ) : null}
       </AdminTableCard>

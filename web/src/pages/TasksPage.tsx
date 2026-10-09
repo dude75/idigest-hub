@@ -7,7 +7,7 @@ import type { Org, Task, User } from '../types'
 import { AdminPage, AppStackCard } from '../components/AdminSection'
 import { ListSection } from '../components/app/EntityUi'
 import { AdminRowActions, AppSubmitButton, HubBadge } from '../components/app/AdminUi'
-import { AdminTablePager } from '../components/app/AdminDataTable'
+import { AppListPagination } from '../components/app/AppListPagination'
 import { ListRow } from '../components/ListRow'
 import {
   canCancelTask,
@@ -19,12 +19,13 @@ import {
 import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage, taskIsRetriable } from '../util'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
-import { allOption, pageSizeOptions } from '../components/app/selectOptions'
+import { AppSelectField } from '../components/app/AppFormControls'
+import {
+  allOption,
+  DEFAULT_LIST_PAGE_SIZE,
+  type ListPageSize,
+} from '../components/app/selectOptions'
 import { useTasksListPoll, type DoneStatusFilter } from '../hooks/useTasksListPoll'
-
-const PAGE_SIZES = [10, 50, 100] as const
-type PageSize = (typeof PAGE_SIZES)[number]
 
 function taskHref(task: Task): string {
   if (task.status === 'success' && (task.type === 'import' || task.type === 'capture') && task.audio_id) {
@@ -52,7 +53,7 @@ function uniqueUsers(orgs: Org[], orgId: string): User[] {
 export function TasksPage() {
   const { t } = useTranslation()
   const { me } = useAuth()
-  const [pageSize, setPageSize] = useState<PageSize>(10)
+  const [pageSize, setPageSize] = useState<ListPageSize>(DEFAULT_LIST_PAGE_SIZE)
   const [page, setPage] = useState(0)
   const [orgs, setOrgs] = useState<Org[]>([])
   const [orgUsers, setOrgUsers] = useState<User[]>([])
@@ -79,10 +80,6 @@ export function TasksPage() {
     pageSize,
     page,
   })
-
-  const pageCount = Math.max(1, Math.ceil(doneTotal / pageSize))
-  const from = doneTotal === 0 ? 0 : safePage * pageSize + 1
-  const to = Math.min(doneTotal, (safePage + 1) * pageSize)
 
   useEffect(() => {
     if (!showFilters) return
@@ -195,19 +192,6 @@ export function TasksPage() {
     )
   }
 
-  const pageSizeSelect = (
-    <AppPageSizeField
-      label={t('task.pageSize')}
-      htmlFor="tasks-page-size"
-      value={String(pageSize)}
-      onValueChange={(v) => {
-        setPageSize(Number(v) as PageSize)
-        setPage(0)
-      }}
-      options={pageSizeOptions(PAGE_SIZES)}
-    />
-  )
-
   const statusFilterField = (
     <AppSelectField
       label={t('task.filterStatus')}
@@ -283,38 +267,28 @@ export function TasksPage() {
         empty={t('common.empty')}
         isEmpty={doneTotal === 0}
         actions={
-          <div className="flex flex-wrap items-end gap-3">
-            {instance ? (
-              <Button
-                type="button"
-                size="sm"
-                variant="destructive"
-                disabled={doneTotal === 0}
-                onClick={() => setConfirmPurge(true)}
-              >
-                {t('task.purgeHistory')}
-              </Button>
-            ) : null}
-            {pageSizeSelect}
-          </div>
+          instance ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={doneTotal === 0}
+              onClick={() => setConfirmPurge(true)}
+            >
+              {t('task.purgeHistory')}
+            </Button>
+          ) : undefined
         }
         footer={
-          doneTotal > pageSize ? (
-            <AdminTablePager>
-              <Button type="button" size="sm" variant="outline" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
-                {t('common.prev')}
-              </Button>
-              <span className="text-sm text-muted-foreground">{t('task.pageRange', { from, to, total: doneTotal })}</span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={safePage >= pageCount - 1}
-                onClick={() => setPage(safePage + 1)}
-              >
-                {t('common.next')}
-              </Button>
-            </AdminTablePager>
+          doneTotal > 0 ? (
+            <AppListPagination
+              htmlFor="tasks-page-size"
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+              page={safePage}
+              setPage={setPage}
+              total={doneTotal}
+            />
           ) : null
         }
       >

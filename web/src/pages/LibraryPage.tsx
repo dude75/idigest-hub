@@ -6,11 +6,16 @@ import type { SchemaOrgUserListResponse, SchemaUserTagListResponse } from '../op
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
 import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
 import { Button } from '@/components/ui/button'
-import { AppCheckboxRow, AppInputField, AppPageSizeField, AppSelectField } from '../components/app/AppFormControls'
-import { allOption, pageSizeOptions } from '../components/app/selectOptions'
+import { AppCheckboxRow, AppInputField, AppSelectField } from '../components/app/AppFormControls'
+import { AppListPagination } from '../components/app/AppListPagination'
+import {
+  allOption,
+  DEFAULT_LIST_PAGE_SIZE,
+  listPageBounds,
+  type ListPageSize,
+} from '../components/app/selectOptions'
 import type { Audio, Summary, Transcript, User } from '../types'
 import { AppStackCard } from '../components/AdminSection'
-import { AdminTablePager } from '../components/app/AdminDataTable'
 import { ListSection } from '../components/app/EntityUi'
 import { ListRow } from '../components/ListRow'
 import { Tabs } from '../components/Tabs'
@@ -28,8 +33,6 @@ type SourceGroup<T> = {
   items: T[]
 }
 
-const PAGE_SIZES = [10, 50, 100] as const
-type PageSize = (typeof PAGE_SIZES)[number]
 
 export function LibraryPage() {
   const { t } = useTranslation()
@@ -45,7 +48,7 @@ export function LibraryPage() {
   const [userId, setUserId] = useState('')
   const [orgUsers, setOrgUsers] = useState<User[]>([])
   const [groupListBySource, setGroupListBySource] = useState(false)
-  const [pageSize, setPageSize] = useState<PageSize>(10)
+  const [pageSize, setPageSize] = useState<ListPageSize>(DEFAULT_LIST_PAGE_SIZE)
   const [page, setPage] = useState(0)
   const [userTags, setUserTags] = useState<NonNullable<SchemaUserTagListResponse['items']>>([])
   const [manageTagsOpen, setManageTagsOpen] = useState(false)
@@ -145,10 +148,7 @@ export function LibraryPage() {
   }, [tab, groupListBySource, sourceGroups])
 
   const listTotal = serverTotal
-  const pageCount = Math.max(1, Math.ceil(listTotal / pageSize))
-  const safePage = Math.min(page, pageCount - 1)
-  const listFrom = listTotal === 0 ? 0 : safePage * pageSize + 1
-  const listTo = Math.min(listTotal, (safePage + 1) * pageSize)
+  const { safePage } = listPageBounds(listTotal, page, pageSize)
   const pagedAudios = filteredAudios
   const pagedTranscripts = filteredTranscripts
   const pagedTranscriptGroups = transcriptGroups
@@ -171,17 +171,6 @@ export function LibraryPage() {
   }
 
   const listEmpty = listTotal === 0
-
-  const pageSizeSelect = (
-    <AppPageSizeField
-      className="library-list-page-size"
-      label={t('task.pageSize')}
-      htmlFor="library-page-size"
-      value={String(pageSize)}
-      onValueChange={(v) => setPageSize(Number(v) as PageSize)}
-      options={pageSizeOptions(PAGE_SIZES)}
-    />
-  )
 
   return (
     <div className="library-page">
@@ -282,18 +271,16 @@ export function LibraryPage() {
       <ListSection
         empty={t('common.empty')}
         isEmpty={listEmpty}
-        actions={pageSizeSelect}
         footer={
-          listTotal > pageSize ? (
-            <AdminTablePager>
-              <Button type="button" size="sm" variant="outline" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
-                {t('common.prev')}
-              </Button>
-              <span className="text-sm text-muted-foreground">{t('task.pageRange', { from: listFrom, to: listTo, total: listTotal })}</span>
-              <Button type="button" size="sm" variant="outline" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}>
-                {t('common.next')}
-              </Button>
-            </AdminTablePager>
+          !listEmpty ? (
+            <AppListPagination
+              htmlFor="library-page-size"
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+              page={safePage}
+              setPage={setPage}
+              total={listTotal}
+            />
           ) : null
         }
       >

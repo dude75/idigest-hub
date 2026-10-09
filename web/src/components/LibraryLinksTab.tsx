@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
-import { AdminTablePager } from './app/AdminDataTable'
+import { AppListPagination } from './app/AppListPagination'
 import { ListSection } from './app/EntityUi'
 import type { SchemaOrgPublicLinkListResponse } from '../openapi'
 import type { OrgPublicLinkItem } from '../types'
@@ -11,11 +11,11 @@ import { fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { HubBadge } from './app/AdminUi'
 import { AppUrlCopyRow } from './app/AppUrlCopyRow'
-import { AppPageSizeField } from './app/AppFormControls'
-import { pageSizeOptions } from './app/selectOptions'
-
-const PAGE_SIZES = [10, 50, 100] as const
-type PageSize = (typeof PAGE_SIZES)[number]
+import {
+  DEFAULT_LIST_PAGE_SIZE,
+  listPageBounds,
+  type ListPageSize,
+} from './app/selectOptions'
 
 function PublicLinkRow({
   link,
@@ -86,7 +86,7 @@ export function LibraryLinksTab() {
   const { me } = useAuth()
   const [links, setLinks] = useState<OrgPublicLinkItem[]>([])
   const [revoking, setRevoking] = useState<string | null>(null)
-  const [pageSize, setPageSize] = useState<PageSize>(10)
+  const [pageSize, setPageSize] = useState<ListPageSize>(DEFAULT_LIST_PAGE_SIZE)
   const [page, setPage] = useState(0)
   const admin = isOrgAdmin(me)
 
@@ -96,11 +96,8 @@ export function LibraryLinksTab() {
   )
 
   const listTotal = sortedLinks.length
-  const pageCount = Math.max(1, Math.ceil(listTotal / pageSize))
-  const safePage = Math.min(page, pageCount - 1)
-  const listFrom = listTotal === 0 ? 0 : safePage * pageSize + 1
-  const listTo = Math.min(listTotal, (safePage + 1) * pageSize)
-  const pagedLinks = sortedLinks.slice(safePage * pageSize, safePage * pageSize + pageSize)
+  const { safePage, offset } = listPageBounds(listTotal, page, pageSize)
+  const pagedLinks = sortedLinks.slice(offset, offset + pageSize)
 
   async function load() {
     const r = await api<SchemaOrgPublicLinkListResponse>('/org/public-links')
@@ -126,20 +123,6 @@ export function LibraryLinksTab() {
   const policyOff = me?.org?.allow_public_links === false
   const urlMissing = me?.org?.public_base_url_set === false
 
-  const pageSizeSelect = (
-    <AppPageSizeField
-      className="library-list-page-size"
-      label={t('task.pageSize')}
-      htmlFor="library-links-page-size"
-      value={String(pageSize)}
-      onValueChange={(v) => {
-        setPageSize(Number(v) as PageSize)
-        setPage(0)
-      }}
-      options={pageSizeOptions(PAGE_SIZES)}
-    />
-  )
-
   return (
     <>
       {policyOff ? <p className="muted admin-notice">{t('publicLinks.policyOff')}</p> : null}
@@ -149,32 +132,16 @@ export function LibraryLinksTab() {
         lead={admin ? t('publicLinks.leadAdmin') : t('publicLinks.lead')}
         empty={t('publicLinks.none')}
         isEmpty={listTotal === 0}
-        actions={pageSizeSelect}
         footer={
-          listTotal > pageSize ? (
-            <AdminTablePager>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={safePage === 0}
-                onClick={() => setPage(safePage - 1)}
-              >
-                {t('common.prev')}
-              </Button>
-              <span className="text-sm text-muted-foreground">
-                {t('task.pageRange', { from: listFrom, to: listTo, total: listTotal })}
-              </span>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                disabled={safePage >= pageCount - 1}
-                onClick={() => setPage(safePage + 1)}
-              >
-                {t('common.next')}
-              </Button>
-            </AdminTablePager>
+          listTotal > 0 ? (
+            <AppListPagination
+              htmlFor="library-links-page-size"
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+              page={safePage}
+              setPage={setPage}
+              total={listTotal}
+            />
           ) : null
         }
       >

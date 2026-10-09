@@ -62,34 +62,6 @@ type CheckboxRowProps = {
 
 export { AppDateField } from './AppDateField'
 
-/** Page size control: label left, select right (e.g. «Показывать» + «10»). */
-export function AppPageSizeField({
-  label,
-  htmlFor,
-  className,
-  selectClassName,
-  options,
-  ...props
-}: FieldProps &
-  Omit<React.ComponentProps<typeof AppSelect>, 'id' | 'options'> & {
-    options: AppSelectOption[]
-    selectClassName?: string
-  }) {
-  return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <Label htmlFor={htmlFor} className="font-normal text-muted-foreground">
-        {label}
-      </Label>
-      <AppSelect
-        id={htmlFor}
-        className={cn('h-8 w-[4.5rem] shrink-0', selectClassName)}
-        options={options}
-        {...props}
-      />
-    </div>
-  )
-}
-
 export function AppCheckboxRow({ id, label, checked, disabled, onCheckedChange, className }: CheckboxRowProps) {
   return (
     <div className={cn('flex items-center gap-2', className)}>

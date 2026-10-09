@@ -1067,7 +1067,7 @@
     "active": "En curso",
     "activeCount": "{{count}} en total",
     "done": "Completadas",
-    "pageSize": "Mostrar",
+    "rowsPerPage": "Filas por página",
     "pageRange": "{{from}}–{{to}} de {{total}}",
     "filters": "Filtros",
     "filterOrg": "Organización",
