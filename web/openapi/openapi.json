@@ -5918,6 +5918,53 @@
         ]
       }
     },
+    "/api/v1/summaries/{summary_id}/delete-impact": {
+      "get": {
+        "summary": "Summary Delete Impact",
+        "operationId": "summary_delete_impact_api_v1_summaries__summary_id__delete_impact_get",
+        "parameters": [
+          {
+            "name": "summary_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Summary Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryArtifactDeleteImpactResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/summaries/{summary_id}/public-link": {
       "get": {
         "summary": "Get Summary Public Link",
@@ -10601,6 +10648,11 @@
           },
           "active_tasks": {
             "$ref": "#/components/schemas/ArtifactImpactActiveTasks"
+          },
+          "has_active_public_link": {
+            "type": "boolean",
+            "title": "Has Active Public Link",
+            "default": false
           }
         },
         "type": "object",

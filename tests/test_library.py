@@ -417,6 +417,37 @@ def test_transcript_delete_impact_lists_summaries(client):
     assert payload["summaries"][0]["title"] == f"clip-{summary_id[:8]}"
 
 
+def test_summary_delete_impact_shares_and_public_link(client):
+    setup_admin(client)
+    assert client.patch("/api/v1/instance/settings", json={"public_base_url": "https://hub.example"}).status_code == 200
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "sumimp@example.com", "sumimppass1", tariff_id).status_code == 200
+    org_id = me(client)["org"]["id"]
+    user_id = me(client)["user"]["id"]
+    peer = client.post(
+        "/api/v1/org/users",
+        json={"email": "sumpeer@example.com", "password": "sumpeerpass1", "role": "org_member"},
+    )
+    assert peer.status_code == 200, peer.text
+    peer_id = peer.json()["id"]
+    _, summary_id = _insert_transcript_and_summary(org_id, user_id)
+
+    shared = client.post(
+        "/api/v1/shares",
+        json={"object_type": "summary", "object_id": summary_id, "to_user_ids": [peer_id]},
+    )
+    assert shared.status_code == 200, shared.text
+    link = client.post(f"/api/v1/summaries/{summary_id}/public-link", json={"expires_in_days": 7})
+    assert link.status_code == 200, link.text
+
+    impact = client.get(f"/api/v1/summaries/{summary_id}/delete-impact")
+    assert impact.status_code == 200, impact.text
+    payload = impact.json()
+    assert payload["has_active_public_link"] is True
+    assert len(payload["shared_with"]) == 1
+    assert payload["shared_with"][0]["email"] == "sumpeer@example.com"
+
+
 def test_non_owner_cannot_delete_audio_or_impact(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

@@ -29,6 +29,7 @@ from app.presenters import (
     transcript_public,
 )
 from app.services.access import (
+    can_delete_library_object,
     can_read_object,
     ensure_library_readable,
     ensure_object_share,
@@ -37,6 +38,7 @@ from app.services.access import (
     outgoing_shares,
     revoke_paired_audio_share,
 )
+from app.services.artifact_impact import compute_summary_delete_impact
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 from app.services.dispatcher import utterances_to_text
 from app.services.transcript_payload import (
@@ -82,6 +84,7 @@ from app.schemas.library import (
     TranscriptListItem,
     TranscriptListResponse,
     TranscriptSourceGroup,
+    LibraryArtifactDeleteImpactResponse,
     _derived_audio_defaults,
 )
 from app.services.billing import upload_limit
@@ -269,6 +272,19 @@ def patch_summary(
     )
 
 
+@router.get("/summaries/{summary_id}/delete-impact", response_model=LibraryArtifactDeleteImpactResponse)
+def summary_delete_impact(
+    summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
+) -> LibraryArtifactDeleteImpactResponse:
+    row = db.get(Summary, summary_id)
+    if row is None:
+        ctx.raise_error(ErrorCode.not_found)
+    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
+        ctx.raise_error(ErrorCode.forbidden)
+    payload = compute_summary_delete_impact(db, row)
+    return LibraryArtifactDeleteImpactResponse.model_validate(payload)
+
+
 @router.delete("/summaries/{summary_id}", response_model=OkStatusResponse)
 def delete_summary(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
@@ -276,10 +292,8 @@ def delete_summary(
     row = db.get(Summary, summary_id)
     if row is None:
         ctx.raise_error(ErrorCode.not_found)
-    if row.owner_user_id != ctx.user.id and not ctx.is_org_admin:
+    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
         ctx.raise_error(ErrorCode.forbidden)
-    if ctx.org is None or row.org_id != ctx.org.id:
-        ctx.raise_error(ErrorCode.not_found)
     write_audit(db, "summary.delete", ctx, {"summary_id": row.id})
     hard_delete_summary(db, row)
     return OkStatusResponse()

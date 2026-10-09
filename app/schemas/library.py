@@ -222,6 +222,7 @@ class LibraryArtifactDeleteImpactResponse(BaseModel):
     transcripts: list[ArtifactImpactRelatedItem] = Field(default_factory=list)
     summaries: list[ArtifactImpactRelatedItem] = Field(default_factory=list)
     active_tasks: ArtifactImpactActiveTasks
+    has_active_public_link: bool = False
 
 
 def _derived_audio_defaults() -> dict:

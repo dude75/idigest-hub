@@ -1777,6 +1777,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/summaries/{summary_id}/delete-impact": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Summary Delete Impact */
+        get: operations["summary_delete_impact_api_v1_summaries__summary_id__delete_impact_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/summaries/{summary_id}/public-link": {
         parameters: {
             query?: never;
@@ -3157,6 +3174,11 @@ export interface components {
             /** Summaries */
             summaries?: components["schemas"]["ArtifactImpactRelatedItem"][];
             active_tasks: components["schemas"]["ArtifactImpactActiveTasks"];
+            /**
+             * Has Active Public Link
+             * @default false
+             */
+            has_active_public_link: boolean;
         };
         /** LoginBody */
         LoginBody: {
@@ -8760,6 +8782,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OkStatusResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    summary_delete_impact_api_v1_summaries__summary_id__delete_impact_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                summary_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryArtifactDeleteImpactResponse"];
                 };
             };
             /** @description Validation Error */

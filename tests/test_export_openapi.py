@@ -48,6 +48,10 @@ def test_export_openapi_writes_health_path():
         "responses"
     ]["200"]["content"]["application/json"]["schema"]
     assert transcript_delete_impact.get("$ref", "").endswith("/LibraryArtifactDeleteImpactResponse")
+    summary_delete_impact = schema["paths"]["/api/v1/summaries/{summary_id}/delete-impact"]["get"]["responses"][
+        "200"
+    ]["content"]["application/json"]["schema"]
+    assert summary_delete_impact.get("$ref", "").endswith("/LibraryArtifactDeleteImpactResponse")
     assert "LibraryArtifactDeleteImpactResponse" in components
     purge = schema["paths"]["/api/v1/tasks/purge"]["post"]["responses"]["200"]["content"]["application/json"][
         "schema"

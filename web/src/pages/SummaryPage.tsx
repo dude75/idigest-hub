@@ -5,7 +5,7 @@ import { api, apiDownload } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
 import { AudioPlayer } from '../components/AudioPlayer'
 import { InlineRename } from '../components/InlineRename'
-import { ConfirmDialog } from '../components/ConfirmDialog'
+import { LibraryArtifactImpactModal } from '../components/LibraryArtifactImpactModal'
 import { EntityToolbar } from '../components/EntityToolbar'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
@@ -208,16 +208,15 @@ export function SummaryPage() {
           onClose={() => { setShare(false); void load() }}
         />
       )}
-      {confirmDelete && item && (
-        <ConfirmDialog
-          message={t('library.deleteConfirm', { title: item.display_title || item.title || item.id.slice(0, 8) })}
-          confirmLabel={t('common.delete')}
-          danger
-          busy={busy}
-          onConfirm={() => void doRemove()}
+      {confirmDelete && item && id ? (
+        <LibraryArtifactImpactModal
+          objectType="summary"
+          objectId={id}
+          title={item.display_title || item.title || item.id.slice(0, 8)}
+          onConfirm={() => doRemove()}
           onClose={() => setConfirmDelete(false)}
         />
-      )}
+      ) : null}
     </EntityPage>
   )
 }

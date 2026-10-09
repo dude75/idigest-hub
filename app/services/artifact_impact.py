@@ -5,7 +5,8 @@ from __future__ import annotations
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import Audio, Share, Summary, Task, Transcript, User
+from app.models import Audio, Organization, Share, Summary, Task, Transcript, User
+from app.services.public_links import get_link_for_summary, link_is_active
 from app.presenters import summary_display_title, transcript_display_title
 
 
@@ -48,6 +49,7 @@ def compute_audio_delete_impact(db: Session, audio: Audio) -> dict:
         "transcripts": transcript_items,
         "summaries": [],
         "active_tasks": _active_task_counts(db, audio_id=audio.id),
+        "has_active_public_link": False,
     }
 
 
@@ -74,4 +76,18 @@ def compute_transcript_delete_impact(db: Session, transcript: Transcript) -> dic
         "transcripts": [],
         "summaries": summary_items,
         "active_tasks": _active_task_counts(db, transcript_id=transcript.id),
+        "has_active_public_link": False,
+    }
+
+
+def compute_summary_delete_impact(db: Session, summary: Summary) -> dict:
+    org = db.get(Organization, summary.org_id)
+    link = get_link_for_summary(db, summary.id)
+    has_active_public_link = bool(link and org and link_is_active(link, org, db))
+    return {
+        "shared_with": _share_recipients(db, "summary", summary.id),
+        "transcripts": [],
+        "summaries": [],
+        "active_tasks": {"queued": 0, "running": 0},
+        "has_active_public_link": has_active_public_link,
     }

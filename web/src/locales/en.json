@@ -310,6 +310,8 @@
     "artifactImpactWarn": "Deleting will affect other people or related items in your organization.",
     "artifactImpactBillingNote": "Completed work stays billed; this only removes stored files and text.",
     "artifactImpactSharedWith": "Shared with",
+    "artifactImpactPublicLink": "Public link",
+    "artifactImpactPublicLinkHint": "Anyone with the link will lose access when this summary is deleted.",
     "artifactImpactTranscripts": "Linked transcripts",
     "artifactImpactTranscriptsHint": "Transcripts stay in the library; they lose the link to this audio file.",
     "artifactImpactSummaries": "Linked summaries",

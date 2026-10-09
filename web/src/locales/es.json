@@ -310,6 +310,8 @@
     "artifactImpactWarn": "La eliminación afectará a otras personas u objetos relacionados en la organización.",
     "artifactImpactBillingNote": "El trabajo ya facturado no se revierte; solo se eliminan archivos y texto almacenados.",
     "artifactImpactSharedWith": "Compartido con",
+    "artifactImpactPublicLink": "Enlace público",
+    "artifactImpactPublicLinkHint": "Quienes tengan el enlace perderán el acceso al eliminar este resumen.",
     "artifactImpactTranscripts": "Transcripciones vinculadas",
     "artifactImpactTranscriptsHint": "Las transcripciones permanecen en la biblioteca; perderán el vínculo con este audio.",
     "artifactImpactSummaries": "Resúmenes vinculados",

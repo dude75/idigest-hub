@@ -7,7 +7,7 @@ import { formatInteger, showError, truncateLabel } from '../util'
 import { Button } from '@/components/ui/button'
 
 type Props = {
-  objectType: 'audio' | 'transcript'
+  objectType: 'audio' | 'transcript' | 'summary'
   objectId: string
   title: string
   onClose: () => void
@@ -29,7 +29,9 @@ export function LibraryArtifactImpactModal({
   const path =
     objectType === 'audio'
       ? `/audios/${objectId}/delete-impact`
-      : `/transcripts/${objectId}/delete-impact`
+      : objectType === 'transcript'
+        ? `/transcripts/${objectId}/delete-impact`
+        : `/summaries/${objectId}/delete-impact`
 
   useEffect(() => {
     let cancelled = false
@@ -60,6 +62,7 @@ export function LibraryArtifactImpactModal({
       || (impact.transcripts?.length ?? 0) > 0
       || (impact.summaries?.length ?? 0) > 0
       || tasks > 0
+      || Boolean(impact.has_active_public_link)
     )
   }, [impact])
 
@@ -127,6 +130,14 @@ export function LibraryArtifactImpactModal({
                     </li>
                   ))}
                 </ul>
+              </section>
+            ) : null}
+            {impact.has_active_public_link ? (
+              <section className="worker-impact-section">
+                <div className="worker-impact-section-head">
+                  <h3>{t('library.artifactImpactPublicLink')}</h3>
+                  <p className="worker-impact-section-hint">{t('library.artifactImpactPublicLinkHint')}</p>
+                </div>
               </section>
             ) : null}
             {(impact.transcripts?.length ?? 0) > 0 ? (
