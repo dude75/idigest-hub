@@ -8,6 +8,8 @@ import type { SchemaSkillListResponse } from '../openapi'
 import { showError } from '../util'
 import { cn } from '@/lib/utils'
 import { AppCheckboxRow } from './app/AppFormControls'
+import { HubBadge } from './app/AdminUi'
+import { skillScopeLabel } from '../skillScope'
 
 function pipelineSummaryKey(pipeline: IngestPipeline): string {
   if (!pipeline.transcribe) return 'library.pipeline.summaryOff'
@@ -81,7 +83,14 @@ export function IngestPipelinePanel({ className, defaultOpen }: IngestPipelinePa
                 key={s.id}
                 id={`library-pipeline-skill-${s.id}`}
                 className="library-pipeline-skill"
-                label={s.name}
+                label={
+                  <>
+                    {s.name}{' '}
+                    <HubBadge tone="muted" className="align-middle">
+                      {skillScopeLabel(s.scope, s.catalog, t)}
+                    </HubBadge>
+                  </>
+                }
                 checked={pipeline.skillIds.includes(s.id)}
                 onCheckedChange={(checked) => toggleSkill(s.id, checked)}
               />

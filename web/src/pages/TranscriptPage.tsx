@@ -31,6 +31,7 @@ import {
   utteranceValenceStripeClass,
 } from '../components/TranscriptTonePanel'
 import { HubBadge } from '../components/app/AdminUi'
+import { skillScopeLabel } from '../skillScope'
 import { AppCursorHint } from '../components/app/AppCursorHint'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import {
@@ -400,7 +401,7 @@ export function TranscriptPage() {
                       <>
                         {s.name}{' '}
                         <HubBadge tone="muted" className="align-middle">
-                          {s.catalog || s.scope}
+                          {skillScopeLabel(s.scope, s.catalog, t)}
                         </HubBadge>
                       </>
                     }

@@ -14,24 +14,13 @@ import { ListSection } from './app/EntityUi'
 import { ListRow } from './ListRow'
 import type { SchemaSkillListResponse, SchemaSkillPublicResponse } from '../openapi'
 import { fmtDate, showError } from '../util'
+import { skillScopeLabel } from '../skillScope'
 import { ButtonLink } from '@/components/ui/button-link'
 const FILTERS = ['all', 'base', 'org', 'self', 'shared'] as const
 type SkillFilter = (typeof FILTERS)[number]
 
 function skillBucket(skill: SchemaSkillPublicResponse): string {
   return skill.catalog || skill.scope
-}
-
-function skillScopeLabel(
-  scope: string,
-  catalog: string | null | undefined,
-  t: (key: string) => string,
-): string {
-  if (catalog === 'shared' || scope === 'shared') return t('skills.shared')
-  if (scope === 'base') return t('skills.base')
-  if (scope === 'org') return t('skills.org')
-  if (scope === 'self') return t('skills.self')
-  return catalog || scope
 }
 
 export function LibrarySkillsTab() {
