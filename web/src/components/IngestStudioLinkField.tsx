@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Film, Link2, Video } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -10,10 +10,9 @@ type Props = {
   placeholder: string
   disabled?: boolean
   className?: string
-  describedBy?: string
-  inlineError?: boolean
   onChange: (value: string) => void
   onSubmit?: () => void
+  onInvalidBlur?: () => void
 }
 
 export function IngestStudioLinkField({
@@ -21,13 +20,11 @@ export function IngestStudioLinkField({
   placeholder,
   disabled,
   className,
-  describedBy,
-  inlineError = false,
   onChange,
   onSubmit,
+  onInvalidBlur,
 }: Props) {
   const { t } = useTranslation()
-  const errId = useId()
   const [focused, setFocused] = useState(false)
   const mode = ingestLinkFieldMode(value)
   const showIcon = !focused && !value.trim()
@@ -59,12 +56,12 @@ export function IngestStudioLinkField({
         disabled={disabled}
         aria-label={t('library.ingestUrl')}
         aria-invalid={invalid || undefined}
-        aria-describedby={
-          [describedBy, invalid ? errId : undefined].filter(Boolean).join(' ') || undefined
-        }
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onBlur={() => {
+          setFocused(false)
+          if (value.trim() && invalid) onInvalidBlur?.()
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault()
@@ -72,11 +69,6 @@ export function IngestStudioLinkField({
           }
         }}
       />
-      {inlineError && invalid ? (
-        <p id={errId} className="ingest-studio-link-err err" role="alert">
-          {t('ingest.linkUrlInvalid')}
-        </p>
-      ) : null}
     </div>
   )
 }

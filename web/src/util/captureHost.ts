@@ -50,6 +50,11 @@ export function ingestLinkUrlLooksInvalid(url: string): boolean {
   }
 }
 
+export function ingestLinkUrlReadyForSubmit(url: string): boolean {
+  const trimmed = url.trim()
+  return trimmed.length > 0 && !ingestLinkUrlLooksInvalid(trimmed)
+}
+
 /** Meeting link with a room path (not a bare server URL). */
 export function meetingRoomPath(url: string): string | null {
   const raw = url.trim()

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   captureMeetingNeedsPin,
   ingestLinkFieldMode,
+  ingestLinkUrlReadyForSubmit,
   isImportVideoUrl,
   isMeetingCaptureUrl,
   isTelemostCaptureUrl,
@@ -53,6 +54,14 @@ describe('ingestLinkFieldMode', () => {
     expect(ingestLinkFieldMode('')).toBe('idle')
     expect(ingestLinkFieldMode('https://meet.jit.si/MyRoom')).toBe('meeting')
     expect(ingestLinkFieldMode('https://www.youtube.com/watch?v=abc')).toBe('import')
+  })
+})
+
+describe('ingestLinkUrlReadyForSubmit', () => {
+  it('requires non-empty http(s) URL', () => {
+    expect(ingestLinkUrlReadyForSubmit('')).toBe(false)
+    expect(ingestLinkUrlReadyForSubmit('not-a-url')).toBe(false)
+    expect(ingestLinkUrlReadyForSubmit('https://youtu.be/abc')).toBe(true)
   })
 })
 

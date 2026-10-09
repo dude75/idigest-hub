@@ -36,6 +36,7 @@ import { showError } from '../util'
 import {
   captureMeetingNeedsPin,
   ingestLinkUrlLooksInvalid,
+  ingestLinkUrlReadyForSubmit,
   shouldRouteImportUrlToCapture,
 } from '../util/captureHost'
 import { studioLinkSubmitLabel } from '../util/ingestLinkSubmitLabel'
@@ -133,9 +134,37 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
     }
   }
 
+  function showIngestLinkValidationError() {
+    showError(new Error(t('ingest.linkUrlInvalid')))
+  }
+
+  function showIngestProxyError() {
+    showError(new Error(t('library.proxyUnavailable')))
+  }
+
+  function tryIngestFromUrl() {
+    const url = importUrl.trim()
+    if (!url) return
+    if (ingestLinkUrlLooksInvalid(url)) {
+      showIngestLinkValidationError()
+      return
+    }
+    const toCapture = shouldRouteImportUrlToCapture(url, captureEnabled)
+    if (!toCapture && proxyBlocked) {
+      showIngestProxyError()
+      return
+    }
+    if (!toCapture && !importEnabled) return
+    void importFromUrl()
+  }
+
   async function importFromUrl() {
     const url = importUrl.trim()
     if (!url) return
+    if (ingestLinkUrlLooksInvalid(url)) {
+      showIngestLinkValidationError()
+      return
+    }
     if (shouldRouteImportUrlToCapture(url, captureEnabled)) {
       await submitCaptureUrl(url, capturePin)
       return
@@ -219,9 +248,10 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
   const proxyBlocked =
     importPlatforms?.download_proxy_required === true &&
     importPlatforms?.download_proxy_available === false
+  const ingestUrlReady = ingestLinkUrlReadyForSubmit(trimmedIngestUrl)
   const ingestSubmitDisabled =
     busy ||
-    !trimmedIngestUrl ||
+    !ingestUrlReady ||
     (!ingestToCapture && (!importEnabled || proxyBlocked))
   const ingestUrlPlaceholder =
     importEnabled && captureEnabled
@@ -349,12 +379,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                     <p className="ingest-studio-card-hint">{t('ingest.fromLinkHint')}</p>
                   </div>
                 </div>
-                <div
-                  className={cn(
-                    'ingest-studio-card-body ingest-studio-card-body-grow ingest-studio-card-ingest-body',
-                    showCapturePin && 'ingest-studio-card-body-has-pin',
-                  )}
-                >
+                <div className="ingest-studio-card-body ingest-studio-card-body-grow ingest-studio-card-ingest-body">
                   <div className="ingest-studio-card-main-slot">
                     <AppHoverHint
                       className="ingest-studio-link-hint"
@@ -366,25 +391,23 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                         value={importUrl}
                         placeholder={ingestUrlPlaceholder}
                         disabled={busy}
-                        describedBy={
-                          [
-                            proxyBlocked ? 'ingest-studio-proxy-err' : undefined,
-                            ingestLinkUrlLooksInvalid(importUrl) ? 'ingest-studio-link-err' : undefined,
-                          ]
-                            .filter(Boolean)
-                            .join(' ') || undefined
-                        }
                         onChange={setImportUrl}
-                        onSubmit={() => {
-                          if (!ingestSubmitDisabled) void importFromUrl()
-                        }}
+                        onInvalidBlur={showIngestLinkValidationError}
+                        onSubmit={tryIngestFromUrl}
                       />
                     </AppHoverHint>
                   </div>
-                  {showCapturePin ? (
-                    <div className="ingest-studio-pin-slot">
+                </div>
+                <div className="ingest-studio-card-foot">
+                  <div
+                    className={cn(
+                      'ingest-studio-foot-tags-row',
+                      showCapturePin && 'ingest-studio-foot-tags-row-with-pin',
+                    )}
+                  >
+                    {showCapturePin ? (
                       <Input
-                        className="ingest-studio-pin h-full max-w-none bg-card"
+                        className="ingest-studio-pin-foot bg-card"
                         type="password"
                         value={capturePin}
                         placeholder={t('library.capturePinPlaceholder')}
@@ -392,33 +415,30 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                         aria-label={t('library.capturePin')}
                         autoComplete="off"
                         onChange={(e) => setCapturePin(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            tryIngestFromUrl()
+                          }
+                        }}
                       />
-                    </div>
-                  ) : null}
-                </div>
-                <div className="ingest-studio-card-foot">
-                  {proxyBlocked ? (
-                    <p id="ingest-studio-proxy-err" className="err ingest-studio-inline-err" role="alert">
-                      {t('library.proxyUnavailable')}
-                    </p>
-                  ) : null}
-                  {ingestLinkUrlLooksInvalid(importUrl) ? (
-                    <p id="ingest-studio-link-err" className="err ingest-studio-inline-err" role="alert">
-                      {t('ingest.linkUrlInvalid')}
-                    </p>
-                  ) : null}
-                  <IngestExtraTagsMultiSelect
-                    className="ingest-studio-card-tags"
-                    catalog={userTags}
-                    selected={linkExtraTags.tags}
-                    disabled={busy}
-                    onChange={linkExtraTags.setTags}
-                  />
+                    ) : null}
+                    <IngestExtraTagsMultiSelect
+                      className={cn(
+                        'ingest-studio-card-tags',
+                        showCapturePin && 'ingest-studio-card-tags-compact',
+                      )}
+                      catalog={userTags}
+                      selected={linkExtraTags.tags}
+                      disabled={busy}
+                      onChange={linkExtraTags.setTags}
+                    />
+                  </div>
                   <AppSubmitButton
                     className="ingest-studio-foot-action w-full"
                     ready={!ingestSubmitDisabled}
                     busy={busy}
-                    onClick={() => void importFromUrl()}
+                    onClick={tryIngestFromUrl}
                   >
                     {studioLinkSubmit}
                   </AppSubmitButton>
@@ -549,21 +569,20 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                       placeholder={ingestUrlPlaceholder}
                       disabled={busy}
                       aria-label={t('library.ingestUrl')}
-                      aria-describedby={proxyBlocked ? 'library-ingest-proxy-err' : undefined}
                       onChange={(e) => setImportUrl(e.target.value)}
+                      onBlur={() => {
+                        if (importUrl.trim() && ingestLinkUrlLooksInvalid(importUrl)) {
+                          showIngestLinkValidationError()
+                        }
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
-                          if (!ingestSubmitDisabled) void importFromUrl()
+                          tryIngestFromUrl()
                         }
                       }}
                     />
                   </AppHoverHint>
-                  {proxyBlocked ? (
-                    <p id="library-ingest-proxy-err" className="err library-ingest-hint" role="alert">
-                      {t('library.proxyUnavailable')}
-                    </p>
-                  ) : null}
                 </div>
                 {showCapturePin ? (
                   <Input
@@ -578,7 +597,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault()
-                        if (!ingestSubmitDisabled) void importFromUrl()
+                        tryIngestFromUrl()
                       }
                     }}
                   />
@@ -589,7 +608,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                   disabled={busy}
                   onChange={linkExtraTags.setTags}
                 />
-                <AppSubmitButton ready={!ingestSubmitDisabled} busy={busy} onClick={() => void importFromUrl()}>
+                <AppSubmitButton ready={!ingestSubmitDisabled} busy={busy} onClick={tryIngestFromUrl}>
                   {ingestSubmitLabel}
                 </AppSubmitButton>
                 <Separator orientation="vertical" className="library-ingest-toolbar-separator" />
