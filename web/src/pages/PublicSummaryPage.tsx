@@ -4,11 +4,13 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
 import { AuthPageShell } from '../components/AuthPageShell'
+import { BackToLandingLink } from '../components/BackToLandingLink'
 import { MarkdownBody } from '../markdown'
 import { showError } from '../util'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Card, CardContent } from '@/components/ui/card'
 import { AppInputField } from '../components/app/AppFormControls'
+import { Link2Off } from 'lucide-react'
 
 type PublicSummary = {
   pin_required: boolean
@@ -73,7 +75,27 @@ export function PublicSummaryPage() {
   if (!ready || !bootstrapDone) {
     return (
       <AuthPageShell>
-        <p className="muted">{t('common.loading')}</p>
+        <Card className="public-summary-card w-full max-w-sm">
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            {t('common.loading')}
+          </CardContent>
+        </Card>
+      </AuthPageShell>
+    )
+  }
+
+  if (failed && !data) {
+    return (
+      <AuthPageShell>
+        <Card className="public-summary-not-found w-full max-w-sm shadow-sm" role="alert">
+          <CardContent className="flex flex-col items-center gap-4 px-6 py-8 text-center">
+            <span className="public-summary-not-found-icon" aria-hidden="true">
+              <Link2Off className="size-6" strokeWidth={1.75} />
+            </span>
+            <p className="text-base font-medium leading-snug text-foreground">{t('publicSummary.notFound')}</p>
+            <BackToLandingLink className="mt-1" />
+          </CardContent>
+        </Card>
       </AuthPageShell>
     )
   }
@@ -84,7 +106,6 @@ export function PublicSummaryPage() {
     <AuthPageShell>
       <Card className="public-summary-card w-full max-w-3xl">
         <CardContent className="flex flex-col gap-4 pt-6">
-        {failed && !data && <p className="err">{t('publicSummary.notFound')}</p>}
         {data?.pin_required && (
           <form className="flex flex-col gap-3" onSubmit={(e) => void unlock(e)}>
             <h1>{t('publicSummary.pinTitle')}</h1>
