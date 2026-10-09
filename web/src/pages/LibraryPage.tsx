@@ -30,6 +30,7 @@ import { Separator } from '@/components/ui/separator'
 import { beginPipelineRun, captureRequest, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
 import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
 import { ApiError } from '../api'
+import { LibraryLinksTab } from '../components/LibraryLinksTab'
 import { LibrarySkillsTab } from '../components/LibrarySkillsTab'
 import { TagManageDialog } from '../components/TagManageDialog'
 import { MicrophoneRecordModal } from '../components/MicrophoneRecordModal'
@@ -98,7 +99,7 @@ export function LibraryPage() {
     groupBySource: serverSourceGrouping,
     limit: pageSize,
     offset: page * pageSize,
-    enabled: hasOrg && tab !== 'skills',
+    enabled: hasOrg && tab !== 'skills' && tab !== 'links',
   })
 
   async function loadUserTags() {
@@ -523,7 +524,9 @@ export function LibraryPage() {
           onClick: () => nav(libraryNavPath(id)),
         }))}
       />
-      {tab === 'skills' ? (
+      {tab === 'links' ? (
+        <LibraryLinksTab />
+      ) : tab === 'skills' ? (
         <LibrarySkillsTab />
       ) : (
         <>

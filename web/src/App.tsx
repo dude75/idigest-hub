@@ -15,7 +15,6 @@ import { LegalDocumentPage } from './pages/LegalDocumentPage'
 import { LoginPage } from './pages/LoginPage'
 import { SsoLoginPage } from './pages/SsoLoginPage'
 import { OrgPage } from './pages/OrgPage'
-import { PublicLinksPage } from './pages/PublicLinksPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { PublicSummaryPage } from './pages/PublicSummaryPage'
 import { ResetPage } from './pages/ResetPage'
@@ -94,7 +93,7 @@ export default function App() {
         <Route path="skill/new" element={<SkillCreatePage />} />
         <Route path="skill/:id" element={<SkillPage />} />
         <Route path="org" element={<OrgPage />} />
-        <Route path="public-links" element={<PublicLinksPage />} />
+        <Route path="public-links" element={<Navigate to={libraryPath('links')} replace />} />
         <Route path="stats" element={<StatsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="instance" element={<LazyInstancePage />} />

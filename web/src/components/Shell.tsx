@@ -65,11 +65,6 @@ export function Shell() {
               {t('nav.org')}
             </NavLink>
           )}
-          {member && (
-            <NavLink to="/app/public-links" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-              {t('nav.publicLinks')}
-            </NavLink>
-          )}
           {orgAdmin && (
             <NavLink to="/app/stats" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               {t('nav.stats')}

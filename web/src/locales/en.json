@@ -223,6 +223,7 @@
     "audio": "Audio",
     "transcripts": "Transcripts",
     "summaries": "Summaries",
+    "links": "Links",
     "skills": "Skills",
     "upload": "Upload audio",
     "chooseFile": "Choose file",

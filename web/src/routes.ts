@@ -3,7 +3,7 @@ import { INSTANCE_TABS, type InstanceTab } from './pages/instance/constants'
 import { SECURITY_TABS, type SecurityTab } from './pages/security/constants'
 import type { Me } from './types'
 
-export const LIBRARY_TABS = ['summaries', 'transcripts', 'audio', 'skills'] as const
+export const LIBRARY_TABS = ['summaries', 'transcripts', 'audio', 'links', 'skills'] as const
 export type LibraryTab = (typeof LIBRARY_TABS)[number]
 
 export const LIBRARY_FIRST_TAB: LibraryTab = LIBRARY_TABS[0]
@@ -46,6 +46,7 @@ export const DEFAULT_ROUTES = [
   'library/summaries',
   'library/transcripts',
   'library/audio',
+  'library/links',
   'library/skills',
   'skills',
   'org',

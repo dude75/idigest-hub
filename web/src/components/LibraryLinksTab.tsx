@@ -1,20 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { isOrgAdmin, useAuth } from '../auth'
-import { AdminPage } from '../components/AdminSection'
-import { AdminTablePager } from '../components/app/AdminDataTable'
-import { ListSection } from '../components/app/EntityUi'
-import { LIBRARY_DEFAULT } from '../routes'
+import { AdminTablePager } from './app/AdminDataTable'
+import { ListSection } from './app/EntityUi'
 import type { SchemaOrgPublicLinkListResponse } from '../openapi'
 import type { OrgPublicLinkItem } from '../types'
 import { fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
-import { HubBadge } from '../components/app/AdminUi'
-import { AppUrlCopyRow } from '../components/app/AppUrlCopyRow'
-import { AppPageSizeField } from '../components/app/AppFormControls'
-import { pageSizeOptions } from '../components/app/selectOptions'
+import { HubBadge } from './app/AdminUi'
+import { AppUrlCopyRow } from './app/AppUrlCopyRow'
+import { AppPageSizeField } from './app/AppFormControls'
+import { pageSizeOptions } from './app/selectOptions'
 
 const PAGE_SIZES = [10, 50, 100] as const
 type PageSize = (typeof PAGE_SIZES)[number]
@@ -83,7 +81,7 @@ function PublicLinkRow({
   )
 }
 
-export function PublicLinksPage() {
+export function LibraryLinksTab() {
   const { t } = useTranslation()
   const { me } = useAuth()
   const [links, setLinks] = useState<OrgPublicLinkItem[]>([])
@@ -91,7 +89,6 @@ export function PublicLinksPage() {
   const [pageSize, setPageSize] = useState<PageSize>(10)
   const [page, setPage] = useState(0)
   const admin = isOrgAdmin(me)
-  const hasOrg = Boolean(me?.org)
 
   const sortedLinks = useMemo(
     () => [...links].sort((a, b) => b.created_at.localeCompare(a.created_at)),
@@ -111,9 +108,8 @@ export function PublicLinksPage() {
   }
 
   useEffect(() => {
-    if (!hasOrg) return
     load().catch(showError)
-  }, [hasOrg])
+  }, [])
 
   async function revoke(linkId: string) {
     setRevoking(linkId)
@@ -127,15 +123,14 @@ export function PublicLinksPage() {
     }
   }
 
-  if (!hasOrg) return <Navigate to="/app/profile" replace />
-
   const policyOff = me?.org?.allow_public_links === false
   const urlMissing = me?.org?.public_base_url_set === false
 
   const pageSizeSelect = (
     <AppPageSizeField
+      className="library-list-page-size"
       label={t('task.pageSize')}
-      htmlFor="public-links-page-size"
+      htmlFor="library-links-page-size"
       value={String(pageSize)}
       onValueChange={(v) => {
         setPageSize(Number(v) as PageSize)
@@ -146,13 +141,9 @@ export function PublicLinksPage() {
   )
 
   return (
-    <AdminPage>
-      {policyOff && (
-        <p className="muted admin-notice">{t('publicLinks.policyOff')}</p>
-      )}
-      {urlMissing && (
-        <p className="muted admin-notice">{t('share.publicUrlMissing')}</p>
-      )}
+    <>
+      {policyOff ? <p className="muted admin-notice">{t('publicLinks.policyOff')}</p> : null}
+      {urlMissing ? <p className="muted admin-notice">{t('share.publicUrlMissing')}</p> : null}
       <ListSection
         title={admin ? t('publicLinks.titleAdmin') : t('publicLinks.title')}
         lead={admin ? t('publicLinks.leadAdmin') : t('publicLinks.lead')}
@@ -197,11 +188,6 @@ export function PublicLinksPage() {
           />
         ))}
       </ListSection>
-      {!admin && (
-        <p className="muted">
-          <Link to={LIBRARY_DEFAULT}>{t('publicLinks.backToLibrary')}</Link>
-        </p>
-      )}
-    </AdminPage>
+    </>
   )
 }

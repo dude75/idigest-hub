@@ -17,7 +17,7 @@ import { Modal } from '../components/Modal'
 import { StatCard, StatGrid } from '../components/StatCard'
 import { TariffDetails } from '../components/TariffDetails'
 import { UserStatusBadges } from '../components/UserAgreementBadge'
-import { LIBRARY_DEFAULT } from '../routes'
+import { LIBRARY_DEFAULT, libraryPath } from '../routes'
 import type { Org, OrgCaptureJitsiHost, OrgCaptureWorkerChoice, Tariff, User } from '../types'
 import { normalizeJitsiHostInput } from '../util/captureHost'
 import { formatDecimal, formatInteger, showError, WalletLabel } from '../util'
@@ -460,7 +460,7 @@ export function OrgPage() {
             )}
             {admin && (
               <p className="muted">
-                <Link to="/app/public-links">{t('publicLinks.manage')}</Link>
+                <Link to={libraryPath('links')}>{t('publicLinks.manage')}</Link>
               </p>
             )}
             {admin ? (
