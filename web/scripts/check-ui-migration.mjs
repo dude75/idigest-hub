@@ -18,6 +18,7 @@ const ALLOW_UI_TABS = new Set([
 /** Modal confirm — not a settings save row. */
 const ALLOW_RAW_SUBMIT_BUTTON = new Set([
   path.join(SRC, 'pages/instance/WorkerImpactModal.tsx'),
+  path.join(SRC, 'components/IngestExtraTagsMultiSelect.tsx'),
 ])
 
 /** Legacy `.badge` in className — use HubBadge. */
@@ -206,7 +207,8 @@ try {
   issues.push('missing web/public/auth-shell.js — OAuth popup select enhancement')
 }
 
-const GRADIENT_SURFACE_RE = /(?:library-ingest|profile-identity|mic-record-modal|stat-card)\b/
+/** Library ingest uses flat card + shadow; gradient required on stat/profile/mic surfaces only. */
+const GRADIENT_SURFACE_RE = /(?:profile-identity|mic-record-modal|stat-card)\b/
 for (const file of files) {
   const text = await readFile(file, 'utf8')
   if (text.includes('ring-sky-')) {
