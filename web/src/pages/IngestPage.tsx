@@ -17,7 +17,6 @@ export function IngestPage() {
     <AdminPage>
       <div className="ingest-page">
         <header className="ingest-page-hero">
-          <h1 className="ingest-page-title">{t('ingest.title')}</h1>
           <p className="ingest-page-lead">{t('ingest.lead')}</p>
         </header>
         <IngestPanel layout="studio" />

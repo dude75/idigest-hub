@@ -670,7 +670,8 @@ a.brand:hover,
   margin: 0;
   line-height: 1.55;
   color: var(--hub-muted);
-  font-size: 0.95rem;
+  font-size: 1rem;
+  font-weight: 400;
 }
 .ingest-studio {
   display: flex;
