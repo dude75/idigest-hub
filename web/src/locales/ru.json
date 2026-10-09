@@ -308,7 +308,6 @@
     "artifactDeleteTitle": "Удалить «{{title}}»?",
     "artifactDeleting": "Удаление…",
     "artifactImpactWarn": "Удаление затронет других людей или связанные объекты в организации.",
-    "artifactImpactBillingNote": "Списания за уже выполненную работу не отменяются — удаляются только файлы и текст.",
     "artifactImpactSharedWith": "Расшарено с",
     "artifactImpactPublicLink": "Публичная ссылка",
     "artifactImpactPublicLinkHint": "У всех, у кого есть ссылка, пропадёт доступ после удаления саммари.",

@@ -115,7 +115,6 @@ export function LibraryArtifactImpactModal({
         <div className={`worker-impact-banner ${bannerClass}`}>
           <p>{bannerMessage}</p>
         </div>
-        <p className="worker-impact-subhead muted">{t('library.artifactImpactBillingNote')}</p>
         {!loading && impact ? (
           <div className="worker-impact-sections">
             {(impact.shared_with?.length ?? 0) > 0 ? (
