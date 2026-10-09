@@ -189,6 +189,44 @@ def public_connectors(settings: InstanceSettings, db: Session) -> list[dict[str,
     return out
 
 
+def public_available_connectors(
+    settings: InstanceSettings,
+    db: Session,
+    *,
+    org_id: str,
+) -> list[dict[str, Any]]:
+    """Meeting connectors this org can actually use (worker ready + org prerequisites)."""
+    if not settings.capture_enabled:
+        return []
+    from app.services.capture_meeting import org_jitsi_hosts_public, pick_capture_worker
+
+    allowed = set(allowed_connectors(settings))
+    labels = {item["id"]: item["label"] for item in aggregate_connector_catalog(db)}
+    out: list[dict[str, Any]] = []
+
+    if "telemost" in allowed and pick_capture_worker(db, "telemost") is not None:
+        out.append(
+            {
+                "id": "telemost",
+                "label": labels.get("telemost", _connector_label("telemost")),
+            }
+        )
+
+    if (
+        "jitsi" in allowed
+        and org_jitsi_hosts_public(db, org_id)
+        and pick_capture_worker(db, "jitsi") is not None
+    ):
+        out.append(
+            {
+                "id": "jitsi",
+                "label": labels.get("jitsi", _connector_label("jitsi")),
+            }
+        )
+
+    return out
+
+
 def worker_offers_connector(node: WorkerNode, connector_id: str) -> bool:
     if node.type != "capture" or not node.enabled:
         return False

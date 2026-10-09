@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Link2, MicIcon, Upload } from 'lucide-react'
@@ -226,15 +226,32 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
       ? t('library.captureSubmit')
       : t('library.importSubmit')
 
-  const importPlatformsHoverHint =
-    importEnabled &&
-    importPlatforms &&
-    !proxyBlocked &&
-    (importPlatforms.platforms ?? []).length > 0
-      ? t('library.importHint', {
-          platforms: (importPlatforms.platforms ?? []).map((p) => p.label).join(' · '),
-        })
-      : null
+  const ingestUrlHoverHint = useMemo((): ReactNode => {
+    const lines: string[] = []
+    if (importEnabled && importPlatforms && !proxyBlocked) {
+      const labels = (importPlatforms.platforms ?? []).map((p) => p.label)
+      if (labels.length) {
+        lines.push(t('library.importHint', { platforms: labels.join(' · ') }))
+      }
+    }
+    if (captureEnabled && capturePlatforms) {
+      const meetingLabels = (capturePlatforms.connectors ?? [])
+        .map((c) => String(c.label || c.id || '').trim())
+        .filter(Boolean)
+      if (meetingLabels.length) {
+        lines.push(t('ingest.linkHoverMeetings', { platforms: meetingLabels.join(' · ') }))
+      }
+    }
+    if (lines.length === 0) return null
+    if (lines.length === 1) return lines[0]
+    return (
+      <span className="flex flex-col gap-1.5">
+        {lines.map((line) => (
+          <span key={line}>{line}</span>
+        ))}
+      </span>
+    )
+  }, [captureEnabled, capturePlatforms, importEnabled, importPlatforms, proxyBlocked, t])
 
   const progressBlock = uploadProgress ? (
     <div className="upload-progress library-ingest-progress ingest-studio-progress" role="status" aria-live="polite">
@@ -304,7 +321,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
             {ingestEnabled ? (
               <section className="ingest-studio-card ingest-studio-card-link" aria-labelledby="ingest-from-link-title">
                 <div className="ingest-studio-card-head">
-                  <span className="ingest-studio-icon" aria-hidden="true">
+                  <span className="ingest-studio-icon ingest-studio-icon-soft" aria-hidden="true">
                     <Link2 className="size-5" strokeWidth={1.75} />
                   </span>
                   <div>
@@ -315,7 +332,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                   </div>
                 </div>
                 <div className="ingest-studio-card-body">
-                  <AppHoverHint content={importPlatformsHoverHint} side="bottom">
+                  <AppHoverHint content={ingestUrlHoverHint} side="bottom">
                     <Input
                       className="ingest-studio-url bg-card"
                       type="url"
@@ -468,7 +485,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
             {ingestEnabled ? (
               <>
                 <div className="library-ingest-url-wrap">
-                  <AppHoverHint content={importPlatformsHoverHint} side="bottom">
+                  <AppHoverHint content={ingestUrlHoverHint} side="bottom">
                     <Input
                       className="library-ingest-url bg-card"
                       type="url"

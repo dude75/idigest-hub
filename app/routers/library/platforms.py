@@ -77,7 +77,7 @@ def capture_platforms(
     org, _ = ctx.require_org()
     from app.deps import get_instance_settings
     from app.services.capture_meeting import normalize_host, org_jitsi_hosts_public
-    from app.services.capture_platforms import allowed_connectors, public_connectors
+    from app.services.capture_platforms import allowed_connectors, public_available_connectors
 
     settings = get_instance_settings(db)
     allowed = allowed_connectors(settings)
@@ -91,7 +91,7 @@ def capture_platforms(
                 jitsi_hosts.append(host)
     return CapturePlatformsResponse(
         enabled=settings.capture_enabled,
-        connectors=public_connectors(settings, db),
+        connectors=public_available_connectors(settings, db, org_id=org.id),
         jitsi_hosts=jitsi_hosts,
     )
 

@@ -92,8 +92,21 @@ def test_instance_settings_lists_worker_connectors(client, fake_workers):
     assert enabled == {"jitsi", "telemost"}
 
 
-def test_capture_platforms(client):
+def test_capture_platforms(client, fake_workers):
     setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap", base_url="http://capture.test")
+    seed_node_health(
+        worker["id"],
+        {
+            "status": "ok",
+            "version": "x",
+            "connectors": {
+                "jitsi": {"status": "loaded", "label": "Jitsi Meet"},
+                "meet": {"status": "loaded", "label": "Google Meet"},
+            },
+            "workers": {"max": 4, "active": 0, "available": 4},
+        },
+    )
     _enable_capture(client)
     tariff_id = default_tariff_id(client)
     assert signup(client, "capplat@example.com", "capplatpass1", tariff_id).status_code == 200
@@ -102,8 +115,14 @@ def test_capture_platforms(client):
     assert response.status_code == 200
     body = response.json()
     assert body["enabled"] is True
-    assert any(item["id"] == "jitsi" for item in body["connectors"])
+    assert body["connectors"] == []
     assert body["jitsi_hosts"] == []
+
+    _map_jitsi_host(client, "meet.example.com")
+    response = client.get("/api/v1/capture/platforms")
+    body = response.json()
+    assert body["connectors"] == [{"id": "jitsi", "label": "Jitsi Meet"}]
+    assert body["jitsi_hosts"] == ["meet.example.com"]
 
 
 def test_org_capture_jitsi_allowed_follows_capture_enabled(client, fake_workers):

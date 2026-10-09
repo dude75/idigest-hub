@@ -259,7 +259,7 @@ def list_capture_platforms_payload(db: Session, ctx: AuthContext) -> dict:
     _require_oauth_scope(ctx, SCOPE_TASKS_WRITE)
     org, _ = ctx.require_org()
     from app.services.capture_meeting import normalize_host, org_jitsi_hosts_public
-    from app.services.capture_platforms import allowed_connectors, public_connectors
+    from app.services.capture_platforms import allowed_connectors, public_available_connectors
 
     settings = get_instance_settings(db)
     allowed = allowed_connectors(settings)
@@ -273,7 +273,7 @@ def list_capture_platforms_payload(db: Session, ctx: AuthContext) -> dict:
                 jitsi_hosts.append(host)
     return {
         "enabled": settings.capture_enabled,
-        "connectors": public_connectors(settings, db),
+        "connectors": public_available_connectors(settings, db, org_id=org.id),
         "jitsi_hosts": jitsi_hosts,
     }
 
