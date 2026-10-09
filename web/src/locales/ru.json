@@ -229,6 +229,10 @@
     "fromFileHint": "Аудио и видео; из видео сохраняется только звуковая дорожка.",
     "fromMic": "Микрофон",
     "fromMicHint": "Запись в браузере — сразу в библиотеку, без файла на диске.",
+    "linkSubmitIdle": "Импорт / Встреча",
+    "linkSubmitMeeting": "Подключиться ко встрече",
+    "linkSubmitImport": "Импорт аудио",
+    "linkUrlInvalid": "Укажите ссылку, начинающуюся с http:// или https://",
     "pipelineSection": "После загрузки"
   },
   "library": {
@@ -263,7 +267,7 @@
     "ingestUrlPlaceholder": "Ссылка на видео или встречу",
     "ingestExtraTags": "Доп. теги",
     "ingestExtraTagsCount": "Доп. теги ({{count}})",
-    "ingestExtraTagsHint": "Тег платформы или встречи (YouTube, Jitsi и т.д.) добавится автоматически. Выберите дополнительные теги для новой записи.",
+    "ingestExtraTagsHint": "Тег источника добавится автоматически. Дополнительные теги сохраняются отдельно для ссылки, файла и микрофона.",
     "importPlaceholder": "URL",
     "importSubmit": "Импорт",
     "importHint": "Импорт на этом инстансе: {{platforms}}",

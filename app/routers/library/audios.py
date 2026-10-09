@@ -94,6 +94,7 @@ async def upload_audio(
     request: Request,
     file: UploadFile,
     from_microphone: bool = Form(False),
+    user_tags: list[str] = Form(default=[]),
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
 ) -> AudioCreatedResponse:
@@ -152,6 +153,22 @@ async def upload_audio(
     from app.services.user_tags import object_user_tags
 
     tag_audio_file_upload(db, user_id=ctx.user.id, audio_id=audio_id, from_microphone=from_microphone)
+    from app.services.ingest_user_tags import parse_ingest_user_tag_names
+
+    try:
+        extra_tag_names = parse_ingest_user_tag_names(user_tags)
+    except ApiError as exc:
+        ctx.raise_error(exc.code, exc.status_code)
+    if extra_tag_names:
+        from app.services.user_tags import append_object_tags
+
+        append_object_tags(
+            db,
+            user_id=ctx.user.id,
+            object_type="audio",
+            object_id=audio_id,
+            tag_names=extra_tag_names,
+        )
     return AudioCreatedResponse.model_validate(
         audio_public(row, {"user_tags": object_user_tags(db, ctx.user.id, "audio", audio_id)})
     )

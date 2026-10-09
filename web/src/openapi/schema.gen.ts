@@ -2576,6 +2576,11 @@ export interface components {
              * @default false
              */
             from_microphone: boolean;
+            /**
+             * User Tags
+             * @default []
+             */
+            user_tags: string[];
         };
         /** Body_upload_backup_restore_api_v1_me_backup_restore_post */
         Body_upload_backup_restore_api_v1_me_backup_restore_post: {

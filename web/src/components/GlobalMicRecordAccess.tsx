@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
 import { MicrophoneRecordModal } from './MicrophoneRecordModal'
 import { AppHoverHint } from './app/AppHoverHint'
+import { loadIngestExtraTags, saveIngestExtraTags } from '../ingestExtraTags'
 import { uploadMicrophoneRecording } from '../util/microphoneUpload'
 import { showError } from '../util'
 import { Button } from '@/components/ui/button'
@@ -47,7 +48,13 @@ export function GlobalMicRecordAccess() {
   async function uploadFromMic(file: File) {
     setBusy(true)
     try {
-      await uploadMicrophoneRecording(file, nav, undefined, me)
+      await uploadMicrophoneRecording(
+        file,
+        nav,
+        { clearExtraTags: () => saveIngestExtraTags('mic', []) },
+        me,
+        loadIngestExtraTags('mic'),
+      )
     } catch (e) {
       showError(e)
     } finally {

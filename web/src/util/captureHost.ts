@@ -6,6 +6,50 @@ function isImportVideoHost(host: string): boolean {
   return IMPORT_VIDEO_HOST_SUFFIXES.some((d) => host === d || host.endsWith(`.${d}`))
 }
 
+export function isImportVideoUrl(url: string): boolean {
+  const raw = url.trim()
+  if (!/^https?:\/\//i.test(raw)) return false
+  try {
+    const u = new URL(raw)
+    let host = u.hostname.toLowerCase()
+    if (host.startsWith('www.')) host = host.slice(4)
+    return isImportVideoHost(host)
+  } catch {
+    return false
+  }
+}
+
+/** Meeting URL shape (Jitsi room, Telemost, …) — independent of capture being enabled. */
+export function isMeetingCaptureUrl(url: string): boolean {
+  if (isTelemostCaptureUrl(url)) return true
+  if (!meetingRoomPath(url)) return false
+  const host = normalizeJitsiHostInput(url)
+  if (!host || isImportVideoHost(host)) return false
+  return true
+}
+
+export type IngestLinkFieldMode = 'idle' | 'meeting' | 'import'
+
+export function ingestLinkFieldMode(url: string): IngestLinkFieldMode {
+  const trimmed = url.trim()
+  if (!trimmed) return 'idle'
+  if (isMeetingCaptureUrl(trimmed)) return 'meeting'
+  if (isImportVideoUrl(trimmed)) return 'import'
+  return 'idle'
+}
+
+export function ingestLinkUrlLooksInvalid(url: string): boolean {
+  const trimmed = url.trim()
+  if (!trimmed) return false
+  if (!/^https?:\/\//i.test(trimmed)) return true
+  try {
+    new URL(trimmed)
+    return false
+  } catch {
+    return true
+  }
+}
+
 /** Meeting link with a room path (not a bare server URL). */
 export function meetingRoomPath(url: string): string | null {
   const raw = url.trim()

@@ -7,6 +7,25 @@ def _tag_names(client, audio_id: str) -> set[str]:
     return {t["name"] for t in detail.json().get("user_tags") or []}
 
 
+def test_upload_extra_user_tags(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "uploadextra@example.com", "uploadextrapass1", tariff_id).status_code == 200
+
+    from io import BytesIO
+
+    from tests.conftest import SAMPLE_WAV_BYTES
+
+    response = client.post(
+        "/api/v1/audios",
+        data={"user_tags": ["Project Beta", "Project Beta"]},
+        files={"file": ("clip.wav", BytesIO(SAMPLE_WAV_BYTES), "audio/wav")},
+    )
+    assert response.status_code == 200, response.text
+    audio_id = response.json()["id"]
+    assert _tag_names(client, audio_id) == {"Project Beta", "upload"}
+
+
 def test_upload_auto_tags_file(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

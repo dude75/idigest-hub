@@ -20,7 +20,8 @@ import { AppHoverHint } from '../components/app/AppHoverHint'
 import { ListSection } from '../components/app/EntityUi'
 import { IngestExtraTagsMultiSelect } from '../components/IngestExtraTagsMultiSelect'
 import { IngestPipelinePanel } from '../components/IngestPipelinePanel'
-import { loadIngestExtraTags, saveIngestExtraTags } from '../ingestExtraTags'
+import { appendIngestUserTagsToForm } from '../ingestUserTagsForm'
+import { useIngestExtraTagsSlot } from '../hooks/useIngestExtraTagsSlot'
 import { ListRow } from '../components/ListRow'
 import { Tabs } from '../components/Tabs'
 import { Card, CardContent } from '@/components/ui/card'
@@ -75,7 +76,9 @@ export function LibraryPage() {
     video: boolean
   } | null>(null)
   const [importUrl, setImportUrl] = useState('')
-  const [ingestExtraTags, setIngestExtraTags] = useState(loadIngestExtraTags)
+  const linkExtraTags = useIngestExtraTagsSlot('link')
+  const fileExtraTags = useIngestExtraTagsSlot('file')
+  const micExtraTags = useIngestExtraTagsSlot('mic')
   const [importPlatforms, setImportPlatforms] = useState<SchemaImportPlatformsResponse | null>(null)
   const [capturePin, setCapturePin] = useState('')
   const [capturePlatforms, setCapturePlatforms] = useState<SchemaCapturePlatformsResponse | null>(null)
@@ -248,12 +251,11 @@ export function LibraryPage() {
       const pipeline = beginPipelineRun()
       const task = await api<Task>('/tasks/capture', {
         method: 'POST',
-        body: JSON.stringify(captureRequest(trimmed, pin.trim(), pipeline, me, ingestExtraTags)),
+        body: JSON.stringify(captureRequest(trimmed, pin.trim(), pipeline, me, linkExtraTags.tags)),
       })
       setCapturePin('')
       setImportUrl('')
-      setIngestExtraTags([])
-      saveIngestExtraTags([])
+      linkExtraTags.reset()
       nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
     } catch (e) {
       showError(e)
@@ -274,11 +276,10 @@ export function LibraryPage() {
       const pipeline = beginPipelineRun()
       const task = await api<Task>('/tasks/import', {
         method: 'POST',
-        body: JSON.stringify(importRequest(url, pipeline, me, ingestExtraTags)),
+        body: JSON.stringify(importRequest(url, pipeline, me, linkExtraTags.tags)),
       })
       setImportUrl('')
-      setIngestExtraTags([])
-      saveIngestExtraTags([])
+      linkExtraTags.reset()
       nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
     } catch (e) {
       if (
@@ -304,6 +305,7 @@ export function LibraryPage() {
     try {
       const body = new FormData()
       body.append('file', file)
+      appendIngestUserTagsToForm(body, fileExtraTags.tags)
       const item = await apiUpload<Audio>('/audios', body, (loaded, total) => {
         const percent = total ? Math.round((loaded / total) * 100) : 0
         setUploadProgress({
@@ -318,10 +320,12 @@ export function LibraryPage() {
           method: 'POST',
           body: JSON.stringify(transcribeRequest(item.id, pipeline, me)),
         })
+        fileExtraTags.reset()
         nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
         return
       }
       endPipelineRun()
+      fileExtraTags.reset()
       nav(libraryPath('audio'))
       await reload()
     } catch (e) {
@@ -457,12 +461,9 @@ export function LibraryPage() {
               ) : null}
               <IngestExtraTagsMultiSelect
                 catalog={userTags}
-                selected={ingestExtraTags}
+                selected={linkExtraTags.tags}
                 disabled={busy}
-                onChange={(names) => {
-                  setIngestExtraTags(names)
-                  saveIngestExtraTags(names)
-                }}
+                onChange={linkExtraTags.setTags}
               />
               <AppSubmitButton ready={!ingestSubmitDisabled} busy={busy} onClick={() => void importFromUrl()}>
                 {ingestSubmitLabel}
@@ -493,23 +494,35 @@ export function LibraryPage() {
               disabled={busy}
               onClick={() => fileInputRef.current?.click()}
             >
-              {t('library.chooseFile')}
-            </Button>
-          </AppHoverHint>
-          <AppHoverHint content={t('library.recordMic')}>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="shrink-0"
-              disabled={busy}
-              aria-label={t('library.recordMic')}
-              onClick={() => setRecordOpen(true)}
-            >
-              <MicIcon className="size-4" aria-hidden="true" />
-            </Button>
-          </AppHoverHint>
-        </div>
+            {t('library.chooseFile')}
+          </Button>
+        </AppHoverHint>
+        <IngestExtraTagsMultiSelect
+          catalog={userTags}
+          selected={fileExtraTags.tags}
+          disabled={busy}
+          onChange={fileExtraTags.setTags}
+        />
+        <AppHoverHint content={t('library.recordMic')}>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="shrink-0"
+            disabled={busy}
+            aria-label={t('library.recordMic')}
+            onClick={() => setRecordOpen(true)}
+          >
+            <MicIcon className="size-4" aria-hidden="true" />
+          </Button>
+        </AppHoverHint>
+        <IngestExtraTagsMultiSelect
+          catalog={userTags}
+          selected={micExtraTags.tags}
+          disabled={busy}
+          onChange={micExtraTags.setTags}
+        />
+      </div>
         <IngestPipelinePanel />
         </CardContent>
       </Card>
@@ -819,8 +832,10 @@ export function LibraryPage() {
                 afterUpload: async () => {
                   await reload()
                 },
+                clearExtraTags: micExtraTags.reset,
               },
               me,
+              micExtraTags.tags,
             )
               .catch(showError)
               .finally(() => {

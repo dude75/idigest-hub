@@ -229,6 +229,10 @@
     "fromFileHint": "Audio and video — only the soundtrack is kept for video.",
     "fromMic": "Microphone",
     "fromMicHint": "Record in the browser and send straight to the library.",
+    "linkSubmitIdle": "Import / Meeting",
+    "linkSubmitMeeting": "Join meeting",
+    "linkSubmitImport": "Import audio",
+    "linkUrlInvalid": "Enter a link starting with http:// or https://",
     "pipelineSection": "After import"
   },
   "library": {
@@ -263,7 +267,7 @@
     "ingestUrlPlaceholder": "Video or meeting URL",
     "ingestExtraTags": "Extra tags",
     "ingestExtraTagsCount": "Extra tags ({{count}})",
-    "ingestExtraTagsHint": "Platform or meeting tags (YouTube, Jitsi, …) are added automatically. Pick any additional tags for the new recording.",
+    "ingestExtraTagsHint": "A source tag is added automatically. Extra tags are remembered separately for link, file, and mic.",
     "importPlaceholder": "URL",
     "importSubmit": "Import",
     "importHint": "Import on this instance: {{platforms}}",

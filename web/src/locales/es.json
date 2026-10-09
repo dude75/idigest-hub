@@ -229,6 +229,10 @@
     "fromFileHint": "Audio y vídeo; del vídeo solo se conserva la pista de audio.",
     "fromMic": "Micrófono",
     "fromMicHint": "Graba en el navegador y envía directo a la biblioteca.",
+    "linkSubmitIdle": "Importar / Reunión",
+    "linkSubmitMeeting": "Unirse a la reunión",
+    "linkSubmitImport": "Importar audio",
+    "linkUrlInvalid": "Introduce un enlace que empiece por http:// o https://",
     "pipelineSection": "Después de importar"
   },
   "library": {
@@ -263,7 +267,7 @@
     "ingestUrlPlaceholder": "Enlace de vídeo o reunión",
     "ingestExtraTags": "Etiquetas extra",
     "ingestExtraTagsCount": "Etiquetas extra ({{count}})",
-    "ingestExtraTagsHint": "La etiqueta de plataforma o reunión (YouTube, Jitsi, …) se añade sola. Elige etiquetas adicionales para la nueva grabación.",
+    "ingestExtraTagsHint": "La etiqueta de origen se añade sola. Las etiquetas extra se recuerdan por separado para enlace, archivo y micrófono.",
     "importPlaceholder": "URL",
     "importSubmit": "Importar",
     "importHint": "Importar en esta instancia: {{platforms}}",

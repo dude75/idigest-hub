@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   captureMeetingNeedsPin,
+  ingestLinkFieldMode,
+  isImportVideoUrl,
+  isMeetingCaptureUrl,
   isTelemostCaptureUrl,
   meetingRoomPath,
   normalizeJitsiHostInput,
@@ -42,6 +45,28 @@ describe('captureMeetingNeedsPin', () => {
   it('needs pin for jitsi-like hosts, not telemost', () => {
     expect(captureMeetingNeedsPin('https://meet.jit.si/MyRoom', true)).toBe(true)
     expect(captureMeetingNeedsPin('https://telemost.yandex.ru/j/x', true)).toBe(false)
+  })
+})
+
+describe('ingestLinkFieldMode', () => {
+  it('classifies meeting and video URLs', () => {
+    expect(ingestLinkFieldMode('')).toBe('idle')
+    expect(ingestLinkFieldMode('https://meet.jit.si/MyRoom')).toBe('meeting')
+    expect(ingestLinkFieldMode('https://www.youtube.com/watch?v=abc')).toBe('import')
+  })
+})
+
+describe('isMeetingCaptureUrl', () => {
+  it('detects jitsi rooms without capture flag', () => {
+    expect(isMeetingCaptureUrl('https://meet.jit.si/MyRoom')).toBe(true)
+    expect(isMeetingCaptureUrl('https://www.youtube.com/watch?v=abc')).toBe(false)
+  })
+})
+
+describe('isImportVideoUrl', () => {
+  it('detects known video hosts', () => {
+    expect(isImportVideoUrl('https://youtu.be/abc')).toBe(true)
+    expect(isImportVideoUrl('https://meet.jit.si/MyRoom')).toBe(false)
   })
 })
 

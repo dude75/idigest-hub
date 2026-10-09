@@ -21,10 +21,11 @@ type Props = {
   catalog: CatalogItem[]
   selected: string[]
   disabled?: boolean
+  className?: string
   onChange: (names: string[]) => void
 }
 
-export function IngestExtraTagsMultiSelect({ catalog, selected, disabled, onChange }: Props) {
+export function IngestExtraTagsMultiSelect({ catalog, selected, disabled, className, onChange }: Props) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [draftSelected, setDraftSelected] = useState<string[]>([])
@@ -99,6 +100,7 @@ export function IngestExtraTagsMultiSelect({ catalog, selected, disabled, onChan
         className={cn(
           'library-ingest-tags-trigger h-8 shrink-0 px-2.5 font-normal',
           selected.length > 0 && 'border-primary/40',
+          className,
         )}
         onClick={() => setOpen(true)}
       >

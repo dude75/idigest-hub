@@ -8720,6 +8720,14 @@
             "type": "boolean",
             "title": "From Microphone",
             "default": false
+          },
+          "user_tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "User Tags",
+            "default": []
           }
         },
         "type": "object",
