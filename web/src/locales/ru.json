@@ -223,6 +223,7 @@
     "audio": "Аудио",
     "transcripts": "Транскрипты",
     "summaries": "Саммари",
+    "skills": "Скилы",
     "upload": "Загрузить аудио",
     "chooseFile": "Выбрать файл",
     "recordMic": "Запись с микрофона",
@@ -398,7 +399,9 @@
     "newOrg": "Скил организации",
     "body": "Текст",
     "createTitle": "Новый скил",
+    "createKind": "Тип",
     "catalog": "Каталог",
+    "filterScope": "Область",
     "statTotal": "Скилов"
   },
   "org": {

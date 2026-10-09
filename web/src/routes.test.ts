@@ -115,6 +115,8 @@ describe('defaultRoutePath', () => {
     expect(defaultRoutePath('library/summaries')).toBe('/app/library/summaries')
     expect(defaultRoutePath('library/transcripts')).toBe('/app/library/transcripts')
     expect(defaultRoutePath('library/audio')).toBe('/app/library/audio')
+    expect(defaultRoutePath('library/skills')).toBe('/app/library/skills')
+    expect(defaultRoutePath('skills')).toBe('/app/library/skills')
   })
 
   it('maps instance tabs to query paths', () => {
@@ -134,6 +136,8 @@ describe('allowedDefaultRoutes', () => {
     expect(routes).toContain('library/summaries')
     expect(routes).toContain('library/transcripts')
     expect(routes).toContain('library/audio')
+    expect(routes).toContain('library/skills')
+    expect(routes).not.toContain('skills')
   })
 
   it('includes stats for org_admin', () => {

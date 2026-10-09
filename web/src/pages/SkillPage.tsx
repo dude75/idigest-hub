@@ -8,6 +8,7 @@ import { EntityToolbar } from '../components/EntityToolbar'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
 import type { SchemaSkillListResponse, SchemaSkillPublicResponse } from '../openapi'
+import { libraryPath } from '../routes'
 import { fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { AppInputField } from '../components/app/AppFormControls'
@@ -39,7 +40,7 @@ export function SkillPage() {
   const [busy, setBusy] = useState(false)
   const instance = isInstanceAdmin(me)
   const hasOrg = Boolean(me?.org)
-  const backTo = hasOrg ? '/app/skills' : '/app/instance?tab=baseSkills'
+  const backTo = hasOrg ? libraryPath('skills') : '/app/instance?tab=baseSkills'
   const canEdit = Boolean(item && (item.scope === 'base' ? instance : !item.readonly))
   const canCopy = hasOrg
   const mine = item?.scope === 'self' && item.owner_user_id === me?.user.id

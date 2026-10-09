@@ -223,6 +223,7 @@
     "audio": "Audio",
     "transcripts": "Transcripciones",
     "summaries": "Resúmenes",
+    "skills": "Skills",
     "upload": "Subir audio",
     "chooseFile": "Elegir archivo",
     "recordMic": "Grabar con micrófono",
@@ -398,7 +399,9 @@
     "newOrg": "Skill de org",
     "body": "Cuerpo",
     "createTitle": "Nuevo skill",
+    "createKind": "Tipo",
     "catalog": "Catálogo",
+    "filterScope": "Ámbito",
     "statTotal": "Skills"
   },
   "org": {

@@ -61,11 +61,6 @@ export function Shell() {
             </NavLink>
           )}
           {member && (
-            <NavLink to="/app/skills" className={({ isActive }) => (isActive ? 'active' : undefined)}>
-              {t('nav.skills')}
-            </NavLink>
-          )}
-          {member && (
             <NavLink to="/app/org" className={({ isActive }) => (isActive ? 'active' : undefined)}>
               {t('nav.org')}
             </NavLink>

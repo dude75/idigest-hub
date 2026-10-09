@@ -3,7 +3,7 @@ import { INSTANCE_TABS, type InstanceTab } from './pages/instance/constants'
 import { SECURITY_TABS, type SecurityTab } from './pages/security/constants'
 import type { Me } from './types'
 
-export const LIBRARY_TABS = ['summaries', 'transcripts', 'audio'] as const
+export const LIBRARY_TABS = ['summaries', 'transcripts', 'audio', 'skills'] as const
 export type LibraryTab = (typeof LIBRARY_TABS)[number]
 
 export const LIBRARY_FIRST_TAB: LibraryTab = LIBRARY_TABS[0]
@@ -46,6 +46,7 @@ export const DEFAULT_ROUTES = [
   'library/summaries',
   'library/transcripts',
   'library/audio',
+  'library/skills',
   'skills',
   'org',
   'stats',
@@ -68,6 +69,7 @@ const LEGACY_INSTANCE_ROUTE = 'instance'
 
 export function normalizeDefaultRoute(value: string | undefined): DefaultRoute | undefined {
   if (value === LEGACY_DEFAULT_ROUTE) return 'library/audio'
+  if (value === 'skills') return 'library/skills'
   if (value === LEGACY_INSTANCE_ROUTE) return 'instance/stats'
   return isDefaultRoute(value) ? value : undefined
 }
@@ -87,7 +89,7 @@ export function defaultRoutePath(route: DefaultRoute): string {
   }
   switch (route) {
     case 'skills':
-      return '/app/skills'
+      return libraryPath('skills')
     case 'org':
       return '/app/org'
     case 'stats':
@@ -105,7 +107,7 @@ export function allowedDefaultRoutes(me: Me | null): DefaultRoute[] {
   const routes: DefaultRoute[] = []
   if (me?.org) {
     for (const tab of LIBRARY_TABS) routes.push(`library/${tab}`)
-    routes.push('skills', 'org')
+    routes.push('org')
     if (me.user.role === 'org_admin') routes.push('stats')
   }
   if (Boolean(me?.user.is_instance_admin && !me?.impersonating)) {

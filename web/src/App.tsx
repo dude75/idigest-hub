@@ -21,15 +21,15 @@ import { PublicSummaryPage } from './pages/PublicSummaryPage'
 import { ResetPage } from './pages/ResetPage'
 import { SetupPage } from './pages/SetupPage'
 import { SignupPage } from './pages/SignupPage'
+import { SkillCreatePage } from './pages/SkillCreatePage'
 import { SkillPage } from './pages/SkillPage'
-import { SkillsPage } from './pages/SkillsPage'
 import { SecurityPage } from './pages/security/SecurityPage'
 import { StatsPage } from './pages/StatsPage'
 import { SummaryPage } from './pages/SummaryPage'
 import { TaskPage } from './pages/TaskPage'
 import { TasksPage } from './pages/TasksPage'
 import { TranscriptPage } from './pages/TranscriptPage'
-import { resolveAuthBlockPath, resolveHomePath, LIBRARY_DEFAULT } from './routes'
+import { libraryPath, resolveAuthBlockPath, resolveHomePath, LIBRARY_DEFAULT } from './routes'
 
 const InstancePage = lazy(() =>
   import('./pages/instance/InstancePage').then((m) => ({ default: m.InstancePage })),
@@ -90,7 +90,8 @@ export default function App() {
         <Route path="audio/:id" element={<AudioPage />} />
         <Route path="transcript/:id" element={<TranscriptPage />} />
         <Route path="summary/:id" element={<SummaryPage />} />
-        <Route path="skills" element={<SkillsPage />} />
+        <Route path="skills" element={<Navigate to={libraryPath('skills')} replace />} />
+        <Route path="skill/new" element={<SkillCreatePage />} />
         <Route path="skill/:id" element={<SkillPage />} />
         <Route path="org" element={<OrgPage />} />
         <Route path="public-links" element={<PublicLinksPage />} />

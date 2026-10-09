@@ -30,6 +30,7 @@ import { Separator } from '@/components/ui/separator'
 import { beginPipelineRun, captureRequest, endPipelineRun, importRequest, pipelineNavState, pipelineShouldTranscribe, transcribeRequest } from '../pipeline'
 import { isVideoUploadFilename, UPLOAD_FILE_ACCEPT } from '../uploadFormats'
 import { ApiError } from '../api'
+import { LibrarySkillsTab } from '../components/LibrarySkillsTab'
 import { TagManageDialog } from '../components/TagManageDialog'
 import { MicrophoneRecordModal } from '../components/MicrophoneRecordModal'
 import { MicIcon } from 'lucide-react'
@@ -97,7 +98,7 @@ export function LibraryPage() {
     groupBySource: serverSourceGrouping,
     limit: pageSize,
     offset: page * pageSize,
-    enabled: hasOrg,
+    enabled: hasOrg && tab !== 'skills',
   })
 
   async function loadUserTags() {
@@ -522,6 +523,10 @@ export function LibraryPage() {
           onClick: () => nav(libraryNavPath(id)),
         }))}
       />
+      {tab === 'skills' ? (
+        <LibrarySkillsTab />
+      ) : (
+        <>
       <AppStackCard className="library-panel mb-4" contentClassName="pt-0">
         <div
           className={`library-list-filters${showOwnerFilter ? '' : ' library-list-filters-no-user'}`}
@@ -822,6 +827,8 @@ export function LibraryPage() {
           }}
         />
       ) : null}
+        </>
+      )}
     </div>
   )
 }
