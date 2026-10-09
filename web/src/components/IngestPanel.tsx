@@ -544,7 +544,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
             <h2 id="ingest-pipeline-title" className="ingest-studio-pipeline-heading">
               {t('ingest.pipelineSection')}
             </h2>
-            <IngestPipelinePanel className="ingest-studio-pipeline" defaultOpen />
+            <IngestPipelinePanel className="ingest-studio-pipeline" />
           </section>
         </div>
         {micModal}
