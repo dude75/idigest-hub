@@ -9,6 +9,7 @@ import { AcceptAgreementPage } from './pages/AcceptAgreementPage'
 import { Enroll2faPage } from './pages/Enroll2faPage'
 import { Verify2faPage } from './pages/Verify2faPage'
 import { ForgotPage } from './pages/ForgotPage'
+import { IngestPage } from './pages/IngestPage'
 import { LibraryPage } from './pages/LibraryPage'
 import { LandingPage } from './pages/LandingPage'
 import { LegalDocumentPage } from './pages/LegalDocumentPage'
@@ -86,6 +87,7 @@ export default function App() {
         <Route index element={<AppHomeRedirect />} />
         <Route path="library" element={<Navigate to={LIBRARY_DEFAULT} replace />} />
         <Route path="library/:tab" element={<LibraryPage />} />
+        <Route path="ingest" element={<IngestPage />} />
         <Route path="audio/:id" element={<AudioPage />} />
         <Route path="transcript/:id" element={<TranscriptPage />} />
         <Route path="summary/:id" element={<SummaryPage />} />

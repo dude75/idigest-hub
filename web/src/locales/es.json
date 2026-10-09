@@ -3,6 +3,7 @@
   "lang": { "en": "EN", "ru": "RU", "es": "ES" },
   "nav": {
     "library": "Biblioteca",
+    "ingest": "Importar",
     "skills": "Skills",
     "org": "Org",
     "stats": "Estadísticas",
@@ -217,6 +218,17 @@
     "orgIdInvalid": "Introduzca un ID de organización válido (UUID).",
     "changeOrgId": "¿Organización incorrecta? Cambiar ID",
     "toEmailLogin": "Entrar con correo y contraseña"
+  },
+  "ingest": {
+    "title": "Importar",
+    "lead": "Enlace de reunión o vídeo, archivo local o grabación con micrófono — usted elige el pipeline.",
+    "fromLink": "Desde enlace",
+    "fromLinkHint": "Plataformas y capture de reuniones si la org los tiene activos.",
+    "fromFile": "Desde archivo",
+    "fromFileHint": "Audio y vídeo; del vídeo solo se conserva la pista de audio.",
+    "fromMic": "Micrófono",
+    "fromMicHint": "Graba en el navegador y envía directo a la biblioteca.",
+    "pipelineSection": "Después de importar"
   },
   "library": {
     "title": "Biblioteca",

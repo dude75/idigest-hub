@@ -6,6 +6,7 @@ import { toneAnalyticsLabelKey } from '../toneAnalytics'
 import { loadPipeline, normalizePipeline, savePipeline, type IngestPipeline } from '../pipeline'
 import type { SchemaSkillListResponse } from '../openapi'
 import { showError } from '../util'
+import { cn } from '@/lib/utils'
 import { AppCheckboxRow } from './app/AppFormControls'
 
 function pipelineSummaryKey(pipeline: IngestPipeline): string {
@@ -14,7 +15,12 @@ function pipelineSummaryKey(pipeline: IngestPipeline): string {
   return 'library.pipeline.summaryFull'
 }
 
-export function IngestPipelinePanel() {
+type IngestPipelinePanelProps = {
+  className?: string
+  defaultOpen?: boolean
+}
+
+export function IngestPipelinePanel({ className, defaultOpen }: IngestPipelinePanelProps = {}) {
   const { t } = useTranslation()
   const { me } = useAuth()
   const [pipeline, setPipeline] = useState<IngestPipeline>(() => loadPipeline())
@@ -49,7 +55,7 @@ export function IngestPipelinePanel() {
     : undefined
 
   return (
-    <details className="fold library-pipeline">
+    <details className={cn('fold library-pipeline', className)} open={defaultOpen || undefined}>
       <summary>
         {t('library.pipeline.title')}
         {' · '}

@@ -633,10 +633,242 @@ a.brand:hover,
 .mic-record-modal {
   --primary: var(--foreground);
 }
-.library-page > .library-ingest {
+.library-page > .library-ingest,
+.ingest-page > .library-ingest {
   margin-bottom: 0;
   background: var(--card);
   --tw-ring-color: color-mix(in oklch, var(--hub-accent) 22%, transparent);
+}
+.nav .nav-ingest-link {
+  color: var(--hub-accent);
+  font-weight: 600;
+}
+.nav .nav-ingest-link:hover {
+  color: var(--hub-accent);
+  filter: brightness(1.08);
+}
+.nav .nav-ingest-link.active,
+.nav .nav-ingest-link[aria-current='page'] {
+  color: var(--hub-accent);
+}
+.ingest-page {
+  width: 100%;
+}
+.ingest-page-hero {
+  margin-bottom: 1.75rem;
+  padding: 1.5rem 1.35rem 1.65rem;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklch, var(--hub-accent) 22%, var(--line));
+  background:
+    radial-gradient(ellipse 120% 80% at 0% 0%, color-mix(in oklch, var(--hub-accent) 16%, transparent), transparent 55%),
+    radial-gradient(ellipse 90% 70% at 100% 100%, color-mix(in oklch, var(--hub-accent) 10%, transparent), transparent 50%),
+    var(--card);
+}
+.ingest-page-eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--hub-accent);
+}
+.ingest-page-title {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.45rem, 2.5vw, 1.85rem);
+  line-height: 1.2;
+  color: var(--text);
+}
+.ingest-page-lead {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--hub-muted);
+  font-size: 0.95rem;
+}
+.ingest-studio {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.ingest-studio-progress {
+  border-radius: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: color-mix(in oklch, var(--hub-accent) 8%, var(--card));
+  border: 1px solid color-mix(in oklch, var(--hub-accent) 18%, var(--line));
+}
+.ingest-studio-grid {
+  display: grid;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+@media (min-width: 640px) {
+  .ingest-studio-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .ingest-studio-grid-no-link {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (min-width: 960px) {
+  .ingest-studio-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .ingest-studio-grid-no-link {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.ingest-studio-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 100%;
+  padding: 1.25rem 1.35rem 1.35rem;
+  border-radius: 1rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--text) 6%, transparent);
+}
+.ingest-studio-card-link {
+  border-color: color-mix(in oklch, var(--hub-accent) 28%, var(--line));
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--hub-accent) 10%, transparent);
+}
+.ingest-studio-card-link .library-ingest-tags-trigger {
+  width: 100%;
+  max-width: none;
+  justify-content: center;
+}
+.ingest-studio-card-head {
+  display: flex;
+  gap: 0.85rem;
+  align-items: flex-start;
+}
+.ingest-studio-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.65rem;
+  color: var(--accent-ink);
+  background: var(--hub-accent);
+}
+.ingest-studio-icon-soft {
+  color: var(--hub-accent);
+  background: color-mix(in oklch, var(--hub-accent) 14%, var(--card));
+}
+.ingest-studio-card-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.ingest-studio-card-hint {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--hub-muted);
+}
+.ingest-studio-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 1.1rem;
+}
+.ingest-studio-card-body-grow {
+  flex: 1;
+}
+.ingest-studio-card-foot {
+  margin-top: auto;
+  padding-top: 1rem;
+}
+.ingest-studio-foot-action {
+  justify-content: center;
+}
+.ingest-studio-url {
+  min-height: 2.5rem;
+}
+.ingest-studio-inline-err {
+  margin: 0;
+  font-size: 0.85rem;
+}
+.ingest-studio-dropzone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  width: 100%;
+  min-height: 5.5rem;
+  padding: 1.1rem 1rem;
+  border-radius: 0.75rem;
+  border: 1.5px dashed color-mix(in oklch, var(--hub-accent) 35%, var(--line));
+  background: color-mix(in oklch, var(--hub-accent) 5%, var(--bg));
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.ingest-studio-dropzone:hover:not(:disabled) {
+  border-color: var(--hub-accent);
+  background: color-mix(in oklch, var(--hub-accent) 10%, var(--bg));
+}
+.ingest-studio-dropzone:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.ingest-studio-dropzone-hit {
+  border-style: solid;
+  border-color: color-mix(in oklch, var(--hub-accent) 12%, var(--line));
+  background: color-mix(in oklch, var(--hub-accent) 3%, var(--bg));
+  font: inherit;
+  color: inherit;
+}
+.ingest-studio-dropzone-hit:hover:not(:disabled) {
+  border-color: var(--hub-accent);
+  background: color-mix(in oklch, var(--hub-accent) 10%, var(--bg));
+}
+.ingest-studio-dropzone-hit:hover:not(:disabled) svg {
+  color: var(--hub-accent);
+}
+.ingest-studio-file-btn,
+.ingest-studio-mic-btn {
+  min-height: 2.25rem;
+  border-color: color-mix(in oklch, var(--hub-accent) 35%, var(--line));
+}
+.ingest-studio-file-btn:hover:not(:disabled),
+.ingest-studio-mic-btn:hover:not(:disabled) {
+  border-color: var(--hub-accent);
+  background: color-mix(in oklch, var(--hub-accent) 8%, var(--card));
+}
+.ingest-studio-foot-action[data-slot='button'],
+.ingest-studio-foot-action.app-submit-button {
+  min-height: 2.25rem;
+}
+.ingest-studio-dropzone-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--hub-accent);
+}
+.ingest-studio-mic-btn {
+  gap: 0.5rem;
+}
+.ingest-studio-card-pipeline {
+  gap: 0.75rem;
+  padding-top: 1.1rem;
+}
+.ingest-studio-pipeline-heading {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--hub-muted);
+}
+.ingest-studio-pipeline.fold {
+  border: none;
+  background: transparent;
+}
+.ingest-studio-pipeline summary {
+  padding: 0.35rem 0;
 }
 .library-page > .library-tabs {
   margin-top: 0;

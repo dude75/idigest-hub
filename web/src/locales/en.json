@@ -3,6 +3,7 @@
   "lang": { "en": "EN", "ru": "RU", "es": "ES" },
   "nav": {
     "library": "Library",
+    "ingest": "Import",
     "skills": "Skills",
     "org": "Org",
     "stats": "Stats",
@@ -217,6 +218,17 @@
     "orgIdInvalid": "Enter a valid organization ID (UUID).",
     "changeOrgId": "Wrong organization? Change ID",
     "toEmailLogin": "Sign in with email and password"
+  },
+  "ingest": {
+    "title": "Import",
+    "lead": "Bring in a meeting link, a file from disk, or a fresh microphone take — then choose what happens next.",
+    "fromLink": "From link",
+    "fromLinkHint": "Video platforms and meeting capture when your org enables them.",
+    "fromFile": "From file",
+    "fromFileHint": "Audio and video — only the soundtrack is kept for video.",
+    "fromMic": "Microphone",
+    "fromMicHint": "Record in the browser and send straight to the library.",
+    "pipelineSection": "After import"
   },
   "library": {
     "title": "Library",
