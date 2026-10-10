@@ -13514,6 +13514,28 @@
               }
             ],
             "title": "Share Kind"
+          },
+          "shared_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shared By"
+          },
+          "share_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Share Id"
           }
         },
         "type": "object",

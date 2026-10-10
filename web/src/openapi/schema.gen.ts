@@ -4042,6 +4042,10 @@ export interface components {
             readonly?: boolean | null;
             /** Share Kind */
             share_kind?: string | null;
+            /** Shared By */
+            shared_by?: string | null;
+            /** Share Id */
+            share_id?: string | null;
         };
         /** SmtpTestBody */
         SmtpTestBody: {

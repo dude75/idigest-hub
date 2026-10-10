@@ -21,6 +21,8 @@ class SkillPublicResponse(BaseModel):
     catalog: str | None = None
     readonly: bool | None = None
     share_kind: str | None = None
+    shared_by: str | None = None
+    share_id: str | None = None
 
 
 class SkillListResponse(BaseModel):

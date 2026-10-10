@@ -1141,6 +1141,7 @@
     "none": "Aún no compartido con nadie",
     "addMore": "Añadir personas",
     "revoke": "Revocar",
+    "decline": "Rechazar",
     "publicLink": "Enlace público",
     "publicUrlMissing": "Pida al administrador de instancia que configure la URL pública.",
     "publicLinksDisabled": "Los enlaces públicos están desactivados para esta organización.",

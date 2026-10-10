@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { userTagBadgeClassName } from './components/userTagBadgeStyles'
 import { cn } from '@/lib/utils'
 import { formatAge, formatDateTime } from './util/datetimeFormat'
-import type { Audio, ShareBadge, Task, Transcript, UserTag } from './types'
+import type { Audio, ShareBadgeFields, Task, Transcript, UserTag } from './types'
 
 type TaskTranslate = (
   key: string,
@@ -245,7 +245,13 @@ export function UserTagBadges({ tags, max = 3 }: { tags?: UserTag[]; max?: numbe
   )
 }
 
-export function ShareBadges({ item, showHidden = true }: { item: ShareBadge; showHidden?: boolean }) {
+export function ShareBadges({
+  item,
+  showHidden = true,
+}: {
+  item: ShareBadgeFields
+  showHidden?: boolean
+}) {
   const { t } = useTranslation()
   const sharedWith =
     item.shares?.map((s) => s.email).join(', ')

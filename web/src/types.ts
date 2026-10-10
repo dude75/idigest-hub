@@ -149,16 +149,20 @@ export type UserTag = Api['UserTagBrief']
 
 export type LibraryObjectType = 'audio' | 'transcript' | 'summary'
 
-export type ShareBadge = {
-  share_kind?: 'incoming' | 'outgoing' | null
-  shared_by?: string
+export type ShareBadgeFields = {
+  share_kind?: 'incoming' | 'outgoing' | string | null
+  shared_by?: string | null
   shared_with?: string[]
   shares?: ShareRecord[]
-  share_id?: string
+  share_id?: string | null
   hidden?: boolean
   owner_email?: string | null
   edited?: boolean
   user_tags?: UserTag[]
+}
+
+export type ShareBadge = ShareBadgeFields & {
+  share_kind?: 'incoming' | 'outgoing' | null
 }
 
 export type Audio = ShareBadge & {

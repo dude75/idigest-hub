@@ -3,7 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { AppStackCard } from './AdminSection'
 import { AppListPagination } from './app/AppListPagination'
-import { HubBadge } from './app/AdminUi'
+import { AdminRowActions, HubBadge } from './app/AdminUi'
+import { Button } from '@/components/ui/button'
+import { ShareBadges } from '../util'
 import { AppSelectField } from './app/AppFormControls'
 import {
   DEFAULT_LIST_PAGE_SIZE,
@@ -29,12 +31,21 @@ export function LibrarySkillsTab() {
   const [filter, setFilter] = useState<SkillFilter>('all')
   const [pageSize, setPageSize] = useState<ListPageSize>(DEFAULT_LIST_PAGE_SIZE)
   const [page, setPage] = useState(0)
+  const [declining, setDeclining] = useState<string | null>(null)
+
+  async function reload() {
+    const r = await api<SchemaSkillListResponse>('/skills')
+    setAllItems(r.items ?? [])
+  }
 
   useEffect(() => {
-    void api<SchemaSkillListResponse>('/skills')
-      .then((r) => setAllItems(r.items ?? []))
-      .catch(showError)
+    void reload().catch(showError)
   }, [])
+
+  async function declineShare(shareId: string) {
+    await api(`/shares/${shareId}`, { method: 'DELETE' })
+    await reload()
+  }
 
   const items = useMemo(() => {
     const filtered =
@@ -93,8 +104,33 @@ export function LibrarySkillsTab() {
             key={s.id}
             to={`/app/skill/${s.id}`}
             title={s.name}
-            meta={fmtDate(s.created_at)}
-            trailing={<HubBadge tone="muted">{skillScopeLabel(s.scope, s.catalog, t)}</HubBadge>}
+            meta={
+              <>
+                {fmtDate(s.created_at)}
+                <ShareBadges item={s} showHidden={false} />
+              </>
+            }
+            trailing={
+              <AdminRowActions>
+                <HubBadge tone="muted">{skillScopeLabel(s.scope, s.catalog, t)}</HubBadge>
+                {s.share_kind === 'incoming' && s.share_id ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={declining === s.share_id}
+                    onClick={() => {
+                      setDeclining(s.share_id!)
+                      void declineShare(s.share_id!)
+                        .catch(showError)
+                        .finally(() => setDeclining(null))
+                    }}
+                  >
+                    {t('share.decline')}
+                  </Button>
+                ) : null}
+              </AdminRowActions>
+            }
           />
         ))}
       </ListSection>

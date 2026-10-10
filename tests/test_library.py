@@ -657,6 +657,47 @@ def test_shares_incoming_and_recipient_decline(client):
     assert peer_id not in (updated.json().get("shared_with") or [])
 
 
+def test_skill_share_recipient_decline(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "lead@example.com", "leadpass1", tariff_id).status_code == 200
+    owner = client.post(
+        "/api/v1/org/users",
+        json={"email": "owner@example.com", "password": "ownerpass", "role": "org_member"},
+    )
+    peer = client.post(
+        "/api/v1/org/users",
+        json={"email": "peer@example.com", "password": "peerpass1", "role": "org_member"},
+    )
+    assert owner.status_code == 200 and peer.status_code == 200
+    peer_id = peer.json()["id"]
+
+    logout(client)
+    login_ready(client, "owner@example.com", "ownerpass")
+    skill = client.post("/api/v1/skills/self", json={"name": "Shared skill", "body": "Prompt"})
+    assert skill.status_code == 200, skill.text
+    skill_id = skill.json()["id"]
+    shared = client.post(
+        "/api/v1/shares",
+        json={"object_type": "skill", "object_id": skill_id, "to_user_ids": [peer_id]},
+    )
+    assert shared.status_code == 200, shared.text
+
+    logout(client)
+    login_ready(client, "peer@example.com", "peerpass1")
+    catalog = client.get("/api/v1/skills")
+    assert catalog.status_code == 200, catalog.text
+    match = next(item for item in catalog.json()["items"] if item["id"] == skill_id)
+    assert match["catalog"] == "shared"
+    assert match["share_kind"] == "incoming"
+    assert match["shared_by"] == "owner@example.com"
+    share_id = match["share_id"]
+    declined = client.delete(f"/api/v1/shares/{share_id}")
+    assert declined.status_code == 200, declined.text
+    after = client.get("/api/v1/skills")
+    assert all(item["id"] != skill_id for item in after.json()["items"])
+
+
 def test_transcript_share_cascades_audio_and_revoke(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

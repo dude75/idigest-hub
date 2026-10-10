@@ -44,6 +44,7 @@ export function SkillPage() {
   const canEdit = Boolean(item && (item.scope === 'base' ? instance : !item.readonly))
   const canCopy = hasOrg
   const mine = item?.scope === 'self' && item.owner_user_id === me?.user.id
+  const incomingShare = item?.share_kind === 'incoming' && item.share_id
 
   const skillEditReady = useMemo(() => {
     if (!item) return false
@@ -105,6 +106,19 @@ export function SkillPage() {
     if (!item) return
     const next = await api<SchemaSkillPublicResponse>(`/skills/${item.id}/copy`, { method: 'POST' })
     nav(`/app/skill/${next.id}`)
+  }
+
+  async function declineShare() {
+    if (!item?.share_id) return
+    setBusy(true)
+    try {
+      await api(`/shares/${item.share_id}`, { method: 'DELETE' })
+      nav(backTo)
+    } catch (e) {
+      showError(e)
+    } finally {
+      setBusy(false)
+    }
   }
 
   async function renameSkill(nextName: string) {
@@ -176,6 +190,11 @@ export function SkillPage() {
             {canCopy ? (
               <Button type="button" variant="outline" onClick={() => void copy()}>
                 {t('common.copy')}
+              </Button>
+            ) : null}
+            {incomingShare ? (
+              <Button type="button" variant="outline" disabled={busy} onClick={() => void declineShare()}>
+                {t('share.decline')}
               </Button>
             ) : null}
           </EntityToolbar>

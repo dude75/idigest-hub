@@ -1137,6 +1137,7 @@
     "none": "Not shared with anyone yet",
     "addMore": "Add people",
     "revoke": "Revoke",
+    "decline": "Decline share",
     "publicLink": "Public link",
     "publicUrlMissing": "Ask the instance admin to set Public URL first.",
     "publicLinksDisabled": "Public links are disabled for this organization.",

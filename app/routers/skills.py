@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.db import get_session
 from app.deps import AuthContext, require_auth
 from app.errors import ErrorCode
-from app.models import Share, Skill, new_id
+from app.models import Share, Skill, User, new_id
 from app.presenters import skill_public
 from app.schemas.common import OkStatusResponse
 from app.schemas.skills_api import SkillListResponse, SkillPublicResponse
@@ -61,13 +61,19 @@ def _visible_skills(db: Session, ctx: AuthContext, scope: str | None) -> list[tu
     mine = db.scalars(
         select(Skill).where(Skill.scope == "self", Skill.owner_user_id == ctx.user.id)
     ).all()
-    shared_ids = [
-        row.object_id
-        for row in db.scalars(
+    incoming_shares = list(
+        db.scalars(
             select(Share).where(Share.to_user_id == ctx.user.id, Share.object_type == "skill")
         ).all()
-    ]
+    )
+    incoming_by_skill = {row.object_id: row for row in incoming_shares}
+    shared_ids = list(incoming_by_skill.keys())
     shared = db.scalars(select(Skill).where(Skill.id.in_(shared_ids))).all() if shared_ids else []
+    sharer_ids = {row.from_user_id for row in incoming_shares}
+    sharer_emails: dict[str, str] = {}
+    if sharer_ids:
+        for user in db.scalars(select(User).where(User.id.in_(sharer_ids))).all():
+            sharer_emails[user.id] = user.email
 
     def add(skill: Skill, extra: dict, bucket: str) -> None:
         if scope and bucket != scope:
@@ -88,7 +94,12 @@ def _visible_skills(db: Session, ctx: AuthContext, scope: str | None) -> list[tu
     for skill in mine:
         add(skill, {}, "self")
     for skill in shared:
-        add(skill, {"share_kind": "incoming"}, "shared")
+        inc = incoming_by_skill.get(skill.id)
+        extra: dict = {"share_kind": "incoming"}
+        if inc is not None:
+            extra["share_id"] = inc.id
+            extra["shared_by"] = sharer_emails.get(inc.from_user_id, inc.from_user_id)
+        add(skill, extra, "shared")
     return items
 
 
