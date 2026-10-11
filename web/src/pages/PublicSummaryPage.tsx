@@ -101,10 +101,11 @@ export function PublicSummaryPage() {
   }
 
   const title = data?.display_title || data?.title
+  const summaryContent = Boolean(data && !data.pin_required)
 
   return (
-    <AuthPageShell>
-      <Card className="public-summary-card w-full max-w-3xl">
+    <AuthPageShell appPage={summaryContent}>
+      <Card className={`public-summary-card w-full${summaryContent ? '' : ' max-w-3xl'}`}>
         <CardContent className="flex flex-col gap-4 pt-6">
         {data?.pin_required && (
           <form className="flex flex-col gap-3" onSubmit={(e) => void unlock(e)}>

@@ -6,9 +6,11 @@ import { LanguageSwitcher } from './LanguageSwitcher'
 
 type Props = {
   children: ReactNode
+  /** Same content column as `/app/*` (`main.page`, 1080px). */
+  appPage?: boolean
 }
 
-export function AuthPageShell({ children }: Props) {
+export function AuthPageShell({ children, appPage }: Props) {
   return (
     <div className="auth-layout">
       <header className="auth-topbar topbar">
@@ -19,7 +21,7 @@ export function AuthPageShell({ children }: Props) {
           <LanguageSwitcher />
         </div>
       </header>
-      <main className="auth-page">{children}</main>
+      <main className={appPage ? 'page' : 'auth-page'}>{children}</main>
     </div>
   )
 }
