@@ -158,7 +158,7 @@ Login с 2FA: пароль → `/verify-2fa` (TOTP или recovery code). При
 | `SSL_KEYFILE`                | Путь к PEM private key. В паре с `SSL_CERTFILE` включает HTTPS.                                                                                                   |
 | `SSL_KEYFILE_PASSWORD`       | Опциональный пароль зашифрованного private key.                                                                                                                  |
 | `DATA_DIR`                   | Корень персистентных данных (по умолчанию `./data`): логи и (при `STORAGE_BACKEND=local`) загрузки `{DATA_DIR}/uploads/{audio_id}/`. Файл SQLite — в этом дереве при URL по умолчанию. |
-| `STORAGE_BACKEND`            | Хранилище audio: `local` (по умолчанию) или `s3`. Воркеры не меняются — hub по-прежнему стримит файл на transcribe-воркер. |
+| `STORAGE_BACKEND`            | Хранилище audio: `local` (по умолчанию) или `s3`. Воркеры не меняются — hub по-прежнему стримит файл на transcribe-воркер. Массовое копирование диск ↔ bucket: [deployment](docs/ru/operations/deployment.md#миграция-audio-между-локальным-диском-и-s3) (`scripts/storage_sync_*`). |
 | `S3_ENDPOINT`                | URL S3-compatible API (пусто для AWS). |
 | `S3_BUCKET`                  | Имя bucket для audio. Обязателен при `STORAGE_BACKEND=s3`. |
 | `S3_REGION`                  | Регион (зависит от провайдера). |
@@ -236,6 +236,8 @@ Compose воркеры **не** поднимает. Запустите [itranscr
 
    Не делайте chmod `777`. `docker compose down` каталог `./data` не удаляет.
 3. Compose ставит `COOKIE_SECURE=false` для локального HTTP. За HTTPS поставьте `COOKIE_SECURE=true` в `docker-compose.yml` (или уберите override и задайте в `.env`).
+
+Массовое копирование audio между `./data/uploads` и S3 в Compose: `docker compose run --rm --no-deps idigest-hub python scripts/storage_sync_*.py` ([подробнее](docs/ru/operations/deployment.md#docker-compose)).
 
 ### Запуск (SQLite, по умолчанию)
 

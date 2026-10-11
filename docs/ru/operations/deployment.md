@@ -149,6 +149,57 @@ Compose задаёт `TMPDIR=/data/tmp`, чтобы процесс не писа
 
 **Стратегия резервного копирования:** остановите hub (опционально), скопируйте `./data` + содержимое bucket (если S3) и надёжно сохраните `.env`.
 
+### Миграция audio между локальным диском и S3
+
+Офлайн CLI копирует только объекты с префиксом `uploads/` (та же схема, что у hub: `{DATA_DIR}/uploads/{audio_id}/original{suffix}` ↔ `s3://{bucket}/uploads/...`). Берут **`DATA_DIR`** и **`S3_*`** из `.env`; **`STORAGE_BACKEND`** скрипты не меняют — выставьте его после копирования и перезапустите hub.
+
+Перед массовой синхронизацией hub лучше остановить.
+
+| Направление | Скрипт |
+| ----------- | ------ |
+| S3 → local | `scripts/storage_sync_s3_to_local.py` |
+| local → S3 | `scripts/storage_sync_local_to_s3.py` |
+
+Сначала **`--dry-run`** — список операций без записи. По умолчанию пропуск, если в назначении уже есть файл **того же размера**; **`--overwrite`** — принудительно. При upload в S3 учитываются **`S3_SSE`** / **`S3_SSE_KMS_KEY_ID`**, если заданы.
+
+#### Docker Compose
+
+Скрипты уже в образе hub (`/app/scripts/`). Compose монтирует **`./data:/data`**, задаёт **`DATA_DIR=/data`**; **`S3_*`** — из **`env_file: .env`**. Локальные uploads оказываются в **`./data/uploads`** на хосте.
+
+Из каталога с `docker-compose.yml` и `.env`:
+
+```bash
+docker compose stop idigest-hub
+
+docker compose run --rm --no-deps idigest-hub \
+  python scripts/storage_sync_s3_to_local.py --dry-run
+
+docker compose run --rm --no-deps idigest-hub \
+  python scripts/storage_sync_s3_to_local.py
+```
+
+Для обратного направления замените имя на `storage_sync_local_to_s3.py`. Затем при необходимости обновите **`STORAGE_BACKEND`** в `.env` и `docker compose up -d idigest-hub`.
+
+Предпочитайте **`docker compose run`**, пока основной hub остановлен — меньше риска параллельной записи. **`--no-deps`** не ждёт optional Postgres (sync storage БД не использует). Пересоберите образ (`docker compose build idigest-hub`), если он старше появления этих скриптов.
+
+**S3 endpoint из контейнера:** `localhost` в **`S3_ENDPOINT`** — это контейнер, не хост. Для MinIO на хосте укажите URL, доступный из контейнера (например `http://host.docker.internal:9000` в Docker Desktop или IP хоста в Linux).
+
+**Владелец файлов:** контейнер hub работает от **uid/gid 1001**. Sync через Compose создаёт файлы с владельцем 1001. При запуске скриптов на хосте убедитесь, что `./data/uploads` доступен на запись uid 1001 (`chown -R 1001:1001 ./data` при необходимости).
+
+#### Установка без Docker (venv)
+
+Из корня репозитория с venv проекта (нужен `boto3`):
+
+```bash
+./.venv/bin/python scripts/storage_sync_s3_to_local.py --dry-run
+```
+
+В `.env` задайте **`DATA_DIR=./data`**, чтобы пути совпадали с bind mount в Compose.
+
+Скрипты **не обновляют** `storage_path` в БД. После смены бэкенда строки должны уже ссылаться на нужный вид (абсолютный путь для `local`, `s3://…` для `s3`). Типичный «чистый» переезд (пустой bucket перед S3 или пустое дерево uploads перед `local`) — sync + смена `STORAGE_BACKEND`; если инстанс уже писал пути под старый бэкенд, нужна отдельная правка БД.
+
+См. также [Backend — operational CLI](../development/backend.md#operational-cli).
+
 ## Rate limiting
 
 Настраивается в UI Instance → Settings (хранится в БД). Применяется в RAM — перезапуск обнуляет счётчики.

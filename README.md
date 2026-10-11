@@ -158,7 +158,7 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `SSL_KEYFILE`                | PEM private key path. Pair with `SSL_CERTFILE` to enable HTTPS.                                                                                                  |
 | `SSL_KEYFILE_PASSWORD`       | Optional password for an encrypted private key.                                                                                                                  |
 | `DATA_DIR`                   | Persistent root (default `./data`): logs and (with `STORAGE_BACKEND=local`) uploads at `{DATA_DIR}/uploads/{audio_id}/`. SQLite file lives under this tree when using the default URL. |
-| `STORAGE_BACKEND`            | Audio blob backend: `local` (default) or `s3`. Workers are unchanged — the hub still streams files to transcribe workers. |
+| `STORAGE_BACKEND`            | Audio blob backend: `local` (default) or `s3`. Workers are unchanged — the hub still streams files to transcribe workers. Bulk copy between disk and bucket: [deployment docs](docs/en/operations/deployment.md#migrating-audio-between-local-disk-and-s3) (`scripts/storage_sync_*`). |
 | `S3_ENDPOINT`                | S3-compatible API URL (empty for AWS). Required when `STORAGE_BACKEND=s3` unless using default AWS endpoints. |
 | `S3_BUCKET`                  | Bucket name for audio objects. Required when `STORAGE_BACKEND=s3`. |
 | `S3_REGION`                  | Region (provider-specific; may be empty for some on-prem MinIO setups). |
@@ -236,6 +236,8 @@ By default the hub uses SQLite (`DATABASE_URL=sqlite:////data/hub.db` inside the
 
    Do not chmod `777`. `docker compose down` does not delete `./data`.
 3. Compose sets `COOKIE_SECURE=false` for local HTTP. Behind HTTPS set `COOKIE_SECURE=true` in `docker-compose.yml` (or drop that override and set it in `.env`).
+
+To bulk-copy audio between `./data/uploads` and S3 while on Compose, use `docker compose run --rm --no-deps idigest-hub python scripts/storage_sync_*.py` ([details](docs/en/operations/deployment.md#docker-compose)).
 
 ### Run (SQLite, default)
 

@@ -122,6 +122,19 @@ cd web && npm run generate:api-types             # → web/src/openapi/schema.ge
 
 Или из `web/`: `npm run generate:api` (оба шага). Коммитьте `openapi.json` и `schema.gen.ts` при изменении контракта API. См. [Frontend — API types](frontend.md#api-types-openapi).
 
+### Operational CLI
+
+Служебные скрипты в `scripts/` (`.env` через `app.config`). При **Docker Compose** — `docker compose run --rm --no-deps idigest-hub python scripts/…`, см. [Deployment — Docker Compose](../operations/deployment.md#docker-compose). Локально — корень репозитория и venv:
+
+| Скрипт | Назначение |
+| ------ | ---------- |
+| `scripts/export_openapi.py` | Перегенерация `web/openapi/openapi.json` (без сервера) |
+| `scripts/reset_instance_admin_password.py` | Break-glass сброс пароля instance admin (`--confirm`; см. [Troubleshooting](../operations/troubleshooting.md)) |
+| `scripts/storage_sync_s3_to_local.py` | Копирование `uploads/` из S3 bucket в `{DATA_DIR}/uploads/` |
+| `scripts/storage_sync_local_to_s3.py` | Копирование `{DATA_DIR}/uploads/` в S3 bucket |
+
+Скрипты синхронизации storage: `--dry-run`, `--overwrite`, `--prefix` (по умолчанию `uploads/`). Подробнее: [Deployment — миграция audio](../operations/deployment.md#миграция-audio-между-локальным-диском-и-s3).
+
 ## Связанные страницы
 
 - [Database](../operations/database.md)

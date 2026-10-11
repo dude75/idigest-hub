@@ -122,6 +122,19 @@ cd web && npm run generate:api-types             # → web/src/openapi/schema.ge
 
 Or from `web/`: `npm run generate:api` (runs both steps). Commit `openapi.json` and `schema.gen.ts` when the API contract changes. See [Frontend — API types](frontend.md#api-types-openapi).
 
+### Operational CLI
+
+Maintenance scripts under `scripts/` (`.env` loaded via `app.config`). On **Docker Compose**, run with `docker compose run --rm --no-deps idigest-hub python scripts/…` — see [Deployment — migrating audio](../operations/deployment.md#docker-compose). Locally, use the repo root and project venv:
+
+| Script | Purpose |
+| ------ | ------- |
+| `scripts/export_openapi.py` | Regenerate `web/openapi/openapi.json` (no server) |
+| `scripts/reset_instance_admin_password.py` | Break-glass instance admin password reset (`--confirm`; see [Troubleshooting](../operations/troubleshooting.md)) |
+| `scripts/storage_sync_s3_to_local.py` | Copy `uploads/` from S3 bucket to `{DATA_DIR}/uploads/` |
+| `scripts/storage_sync_local_to_s3.py` | Copy `{DATA_DIR}/uploads/` to S3 bucket |
+
+Storage sync scripts accept `--dry-run`, `--overwrite`, and `--prefix` (default `uploads/`). Details: [Deployment — migrating audio](../operations/deployment.md#migrating-audio-between-local-disk-and-s3).
+
 ## Related pages
 
 - [Database](../operations/database.md)

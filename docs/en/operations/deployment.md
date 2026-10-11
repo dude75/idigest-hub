@@ -149,6 +149,57 @@ With **`STORAGE_BACKEND=s3`**, audio lives in the configured bucket (server-side
 
 **Backup strategy:** stop hub (optional but safer), copy `./data` + bucket contents (if S3) + secure copy of `.env`.
 
+### Migrating audio between local disk and S3
+
+Offline CLI scripts copy blobs under the `uploads/` prefix only (same layout as the hub: `{DATA_DIR}/uploads/{audio_id}/original{suffix}` ↔ `s3://{bucket}/uploads/...`). They read **`DATA_DIR`** and **`S3_*`** from `.env`; **`STORAGE_BACKEND`** is not changed by the scripts — set it after copying and restart the hub.
+
+Stop the hub before a bulk sync to avoid concurrent writes.
+
+| Direction | Script |
+| --------- | ------ |
+| S3 → local | `scripts/storage_sync_s3_to_local.py` |
+| local → S3 | `scripts/storage_sync_local_to_s3.py` |
+
+Use **`--dry-run`** first to list transfers. By default, files are skipped when the destination already exists with the **same size**; use **`--overwrite`** to force. Uploads to S3 honour **`S3_SSE`** / **`S3_SSE_KMS_KEY_ID`** when set.
+
+#### Docker Compose
+
+Scripts ship in the hub image at `/app/scripts/`. Compose mounts **`./data:/data`** and sets **`DATA_DIR=/data`**; `S3_*` come from **`env_file: .env`**. Local uploads land in **`./data/uploads`** on the host.
+
+From the directory that contains `docker-compose.yml` and `.env`:
+
+```bash
+docker compose stop idigest-hub
+
+docker compose run --rm --no-deps idigest-hub \
+  python scripts/storage_sync_s3_to_local.py --dry-run
+
+docker compose run --rm --no-deps idigest-hub \
+  python scripts/storage_sync_s3_to_local.py
+```
+
+Replace the script name with `storage_sync_local_to_s3.py` for the opposite direction. Then update **`STORAGE_BACKEND`** in `.env` if needed and `docker compose up -d idigest-hub`.
+
+Prefer **`docker compose run`** over **`exec`** while the main hub is stopped — avoids concurrent writes. **`--no-deps`** skips waiting for the optional Postgres profile (storage sync does not use the DB). Rebuild the image (`docker compose build idigest-hub`) if the image predates these scripts.
+
+**S3 endpoint from inside the container:** `localhost` in **`S3_ENDPOINT`** refers to the container, not the host. For MinIO or similar on the host, use a reachable URL (e.g. `http://host.docker.internal:9000` on Docker Desktop, or the host LAN IP on Linux).
+
+**File ownership:** the hub container runs as **uid/gid 1001**. Sync via Compose creates files owned by 1001. If you run scripts on the host instead, ensure `./data/uploads` remains writable by 1001 (`chown -R 1001:1001 ./data` if needed).
+
+#### Native install (venv)
+
+From the repo root with the project venv (needs `boto3`):
+
+```bash
+./.venv/bin/python scripts/storage_sync_s3_to_local.py --dry-run
+```
+
+Use **`DATA_DIR=./data`** in `.env` so paths match the Compose bind mount.
+
+The scripts do **not** update `storage_path` values in the database. After switching backends, existing rows must already reference the correct form (absolute path for `local`, `s3://…` for `s3`). Typical greenfield moves (empty bucket before enabling S3, or fresh local tree before enabling `local`) need only the sync + `STORAGE_BACKEND` change; migrating an instance that already stored paths for the old backend requires a separate DB update.
+
+See also [Backend — operational CLI](../development/backend.md#operational-cli).
+
 ## Rate limiting
 
 Configured in Instance → Settings UI (stored in DB). Enforced in RAM — restart clears counters.
