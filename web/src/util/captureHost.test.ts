@@ -3,7 +3,6 @@ import {
   captureMeetingNeedsPin,
   ingestLinkFieldMode,
   ingestLinkUrlReadyForSubmit,
-  parseRecognizedIngestLink,
   isImportVideoUrl,
   isMeetingCaptureUrl,
   isTelemostCaptureUrl,
@@ -47,24 +46,6 @@ describe('captureMeetingNeedsPin', () => {
   it('needs pin for jitsi-like hosts, not telemost', () => {
     expect(captureMeetingNeedsPin('https://meet.jit.si/MyRoom', true)).toBe(true)
     expect(captureMeetingNeedsPin('https://telemost.yandex.ru/j/x', true)).toBe(false)
-  })
-})
-
-describe('parseRecognizedIngestLink', () => {
-  it('returns supported video and meeting URLs', () => {
-    expect(parseRecognizedIngestLink('https://www.youtube.com/watch?v=abc')).toBe(
-      'https://www.youtube.com/watch?v=abc',
-    )
-    expect(parseRecognizedIngestLink('https://meet.jit.si/MyRoom')).toBe('https://meet.jit.si/MyRoom')
-  })
-
-  it('extracts URL from surrounding text', () => {
-    expect(parseRecognizedIngestLink('смотри https://youtu.be/abc там')).toBe('https://youtu.be/abc')
-  })
-
-  it('rejects unknown hosts', () => {
-    expect(parseRecognizedIngestLink('https://example.com/')).toBeNull()
-    expect(parseRecognizedIngestLink('hello')).toBeNull()
   })
 })
 

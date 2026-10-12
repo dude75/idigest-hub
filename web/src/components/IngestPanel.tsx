@@ -39,7 +39,6 @@ import {
   ingestLinkUrlReadyForSubmit,
   shouldRouteImportUrlToCapture,
 } from '../util/captureHost'
-import { readRecognizedIngestLinkFromClipboard } from '../util/ingestClipboard'
 import { studioLinkSubmitLabel } from '../util/ingestLinkSubmitLabel'
 import { uploadMicrophoneRecording } from '../util/microphoneUpload'
 import { Card, CardContent } from '@/components/ui/card'
@@ -137,13 +136,6 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
 
   function showIngestLinkValidationError() {
     showError(new Error(t('ingest.linkUrlInvalid')))
-  }
-
-  function tryPasteIngestLinkFromClipboard() {
-    if (busy || importUrl.trim()) return
-    void readRecognizedIngestLinkFromClipboard().then((link) => {
-      if (link) setImportUrl(link)
-    })
   }
 
   function showIngestProxyError() {
@@ -578,7 +570,6 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                       disabled={busy}
                       aria-label={t('library.ingestUrl')}
                       onChange={(e) => setImportUrl(e.target.value)}
-                      onFocus={tryPasteIngestLinkFromClipboard}
                       onBlur={() => {
                         if (importUrl.trim() && ingestLinkUrlLooksInvalid(importUrl)) {
                           showIngestLinkValidationError()
