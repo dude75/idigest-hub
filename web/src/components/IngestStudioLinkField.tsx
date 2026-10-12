@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Film, Link2, Video } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ingestLinkFieldMode, ingestLinkUrlLooksInvalid } from '../util/captureHost'
+import { readRecognizedIngestLinkFromClipboard } from '../util/ingestClipboard'
 import { ingestStudioHitSurfaceClassName } from './ingestStudioHitSurface'
 
 type Props = {
@@ -57,7 +58,13 @@ export function IngestStudioLinkField({
         aria-label={t('library.ingestUrl')}
         aria-invalid={invalid || undefined}
         onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setFocused(true)}
+        onFocus={() => {
+          setFocused(true)
+          if (disabled || value.trim()) return
+          void readRecognizedIngestLinkFromClipboard().then((link) => {
+            if (link) onChange(link)
+          })
+        }}
         onBlur={() => {
           setFocused(false)
           if (value.trim() && invalid) onInvalidBlur?.()

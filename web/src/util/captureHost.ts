@@ -38,6 +38,25 @@ export function ingestLinkFieldMode(url: string): IngestLinkFieldMode {
   return 'idle'
 }
 
+function trimTrailingUrlPunctuation(url: string): string {
+  return url.replace(/[.,;:!?)>\]]+$/, '')
+}
+
+/** Clipboard / paste text → supported ingest URL, or null. */
+export function parseRecognizedIngestLink(raw: string): string | null {
+  const candidates: string[] = []
+  const trimmed = raw.trim()
+  if (trimmed) candidates.push(trimTrailingUrlPunctuation(trimmed))
+  const embedded = raw.match(/https?:\/\/[^\s<>"')\]]+/i)?.[0]
+  if (embedded) candidates.push(trimTrailingUrlPunctuation(embedded))
+
+  for (const url of candidates) {
+    if (!url || ingestLinkUrlLooksInvalid(url)) continue
+    if (ingestLinkFieldMode(url) !== 'idle') return url
+  }
+  return null
+}
+
 export function ingestLinkUrlLooksInvalid(url: string): boolean {
   const trimmed = url.trim()
   if (!trimmed) return false
