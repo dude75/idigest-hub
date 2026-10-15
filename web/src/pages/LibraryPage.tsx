@@ -26,7 +26,7 @@ import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, UserTagBadges
 import { libraryServerSourceGrouping } from '../libraryList'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { useLibraryList } from '../hooks/useLibraryList'
-import { compareUsersByDisplayName, ownerListLabel, userDisplayName } from '../userDisplay'
+import { compareUsersByDisplayName, ownerListLabel, userPickerLabel } from '../userDisplay'
 
 type SourceGroup<T> = {
   key: string
@@ -218,7 +218,7 @@ export function LibraryPage() {
                 allOption(t('common.all')),
                 ...[...orgUsers]
                   .sort(compareUsersByDisplayName)
-                  .map((user) => ({ value: user.id, label: userDisplayName(user) })),
+                  .map((user) => ({ value: user.id, label: userPickerLabel(user) })),
               ]}
             />
           ) : null}

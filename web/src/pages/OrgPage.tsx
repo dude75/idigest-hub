@@ -45,7 +45,7 @@ import { AdminFormActions, AppSubmitButton } from '../components/app/AdminUi'
 import { SettingsFoldSummary } from '../components/app/SettingsFoldSummary'
 import { AppUrlCopyRow } from '../components/app/AppUrlCopyRow'
 import { OrgMemberCell } from '../components/UserIdentityCell'
-import { compareUsersByDisplayName, memberMatchesQuery, userDisplayName } from '../userDisplay'
+import { compareUsersByDisplayName, memberMatchesQuery, userDisplayName, userPickerLabel } from '../userDisplay'
 import { Input } from '@/components/ui/input'
 
 function tariffSelectable(tariffs: Tariff[], current: Tariff): boolean {
@@ -967,7 +967,7 @@ export function OrgPage() {
                 { value: '', label: '—' },
                 ...users
                   .filter((u) => u.id !== offUser.id && !u.disabled)
-                  .map((u) => ({ value: u.id, label: userDisplayName(u) })),
+                  .map((u) => ({ value: u.id, label: userPickerLabel(u) })),
               ]}
             />
           )}

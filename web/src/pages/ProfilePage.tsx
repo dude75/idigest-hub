@@ -33,7 +33,7 @@ import {
   resolveEffectiveAsr,
   resolveEffectiveDiarization,
 } from '../transcribeModels'
-import { userDisplayName, userHasDistinctDisplayName } from '../userDisplay'
+import { userDisplayName, userHasDistinctDisplayName, userPickerLabel } from '../userDisplay'
 import { fmtDate, formatInteger, showError } from '../util'
 import { DATE_TIME_FORMATS, formatDateTime } from '../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../util/timezones'
@@ -1121,7 +1121,7 @@ export function ProfilePage() {
                   ...(deletePreview.candidates.length > 1 ? [{ value: '', label: t('org.target') }] : []),
                   ...deletePreview.candidates.map((c) => ({
                     value: c.id,
-                    label: userDisplayName(c),
+                    label: userPickerLabel(c),
                   })),
                 ]}
               />

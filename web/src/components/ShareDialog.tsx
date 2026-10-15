@@ -18,7 +18,7 @@ import { AppSelect } from './app/AppSelect'
 import { FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { AppUrlCopyRow } from './app/AppUrlCopyRow'
-import { compareUsersByDisplayName, userDisplayName, userHasDistinctDisplayName } from '../userDisplay'
+import { compareUsersByDisplayName, userPickerLabel } from '../userDisplay'
 
 type Props = {
   objectType: 'audio' | 'transcript' | 'summary' | 'skill'
@@ -316,9 +316,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
                   key={u.id}
                   id={`share-pick-${u.id}`}
                   className="share-picker-row"
-                  label={
-                    userHasDistinctDisplayName(u) ? `${userDisplayName(u)} (${u.email})` : userDisplayName(u)
-                  }
+                  label={userPickerLabel(u)}
                   checked={Boolean(picked[u.id])}
                   onCheckedChange={(checked) => setPicked((p) => ({ ...p, [u.id]: checked }))}
                 />

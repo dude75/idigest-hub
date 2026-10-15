@@ -18,6 +18,16 @@ export function userHasDistinctDisplayName(user: UserLabelSource | null | undefi
   return Boolean(name && name !== user.email.trim())
 }
 
+/** Dropdowns / filters: «Иван Иванов (user@example.com)» or email only. */
+export function userPickerLabel(user: UserLabelSource | null | undefined): string {
+  if (!user) return ''
+  const email = (user.email || '').trim()
+  if (userHasDistinctDisplayName(user)) {
+    return `${userDisplayName(user)} (${email})`
+  }
+  return email || userDisplayName(user)
+}
+
 export function compareUsersByDisplayName(
   a: UserLabelSource & { id?: string },
   b: UserLabelSource & { id?: string },

@@ -26,7 +26,7 @@ import {
   type ListPageSize,
 } from '../components/app/selectOptions'
 import { useTasksListPoll, type DoneStatusFilter } from '../hooks/useTasksListPoll'
-import { compareUsersByDisplayName, ownerListLabel, userDisplayName } from '../userDisplay'
+import { compareUsersByDisplayName, ownerListLabel, userPickerLabel } from '../userDisplay'
 
 function taskHref(task: Task): string {
   if (task.status === 'success' && (task.type === 'import' || task.type === 'capture') && task.audio_id) {
@@ -258,7 +258,7 @@ export function TasksPage() {
               }}
               options={[
                 allOption(t('common.all')),
-                ...userOptions.map((user) => ({ value: user.id, label: userDisplayName(user) })),
+                ...userOptions.map((user) => ({ value: user.id, label: userPickerLabel(user) })),
               ]}
             />
             {statusFilterField}
