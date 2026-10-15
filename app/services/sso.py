@@ -297,7 +297,9 @@ def resolve_or_provision_user(
     email: str,
     sub: str,
     locale: str = "en",
+    claims: dict[str, Any] | None = None,
 ) -> User:
+    from app.services.user_display import apply_sso_names
     from app.timeutil import utcnow
 
     user = db.scalar(select(User).where(User.email == email))
@@ -313,6 +315,8 @@ def resolve_or_provision_user(
             log.warning("sso sub mismatch for user %s", user.id)
         user.sso_sub = sub
         user.auth_provider = AUTH_PROVIDER_OIDC
+        if claims:
+            apply_sso_names(user, claims)
         user.updated_at = utcnow()
         return user
 
@@ -334,6 +338,8 @@ def resolve_or_provision_user(
     db.add(user)
     db.flush()
     db.add(Membership(id=new_id(), user_id=user.id, org_id=org.id, role="org_member"))
+    if claims:
+        apply_sso_names(user, claims)
     return user
 
 

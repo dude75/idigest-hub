@@ -17,6 +17,7 @@ class OrgPublicLinkItem(BaseModel):
     revoked: bool
     summary_title: str | None = None
     owner_email: str | None = None
+    owner_display_name: str | None = None
     active: bool
 
 

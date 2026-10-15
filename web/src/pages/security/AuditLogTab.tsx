@@ -193,7 +193,7 @@ export function AuditLogTab() {
                     >
                       {auditActionLabel(entry.action, t)}
                     </AdminTableCellHint>
-                    <TableCell>{entry.actor_email || '—'}</TableCell>
+                    <TableCell>{entry.actor_display_name || entry.actor_email || '—'}</TableCell>
                     <TableCell>{entry.on_behalf_of_email || '—'}</TableCell>
                     <TableCell className={adminTableCellMuted}>
                       {payloadTitle(entry.payload) ? (

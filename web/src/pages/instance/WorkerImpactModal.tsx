@@ -56,8 +56,8 @@ type UnavailableItem =
   | { kind: 'capture_losing_jitsi' }
 
 type InUseItem =
-  | { kind: 'user'; email: string; pair: ModelPair }
-  | { kind: 'summarize_user'; email: string; model: string | null }
+  | { kind: 'user'; email: string; display_name?: string; pair: ModelPair }
+  | { kind: 'summarize_user'; email: string; display_name?: string; model: string | null }
   | { kind: 'tasks'; pair: ModelPair; queued: number; running: number; total: number }
   | { kind: 'defaults'; pair: ModelPair }
   | { kind: 'summarize_defaults'; model: string | null }
@@ -144,12 +144,14 @@ function useImpactSections(
         inUse.push({
           kind: 'summarize_user',
           email: user.email,
+          display_name: user.display_name,
           model: user.summarize_model ?? null,
         })
       } else {
         inUse.push({
           kind: 'user',
           email: user.email,
+          display_name: user.display_name,
           pair: { asr: user.asr_model ?? '', diarization: user.diarization_model ?? null },
         })
       }
@@ -292,7 +294,7 @@ function InUseRow({
   if (item.kind === 'user') {
     return (
       <li className="worker-impact-row">
-        <span className="worker-impact-email">{item.email}</span>
+        <span className="worker-impact-email">{item.display_name || item.email}</span>
         <ModelPairChip pair={item.pair} t={t} />
       </li>
     )
@@ -300,7 +302,7 @@ function InUseRow({
   if (item.kind === 'summarize_user') {
     return (
       <li className="worker-impact-row">
-        <span className="worker-impact-email">{item.email}</span>
+        <span className="worker-impact-email">{item.display_name || item.email}</span>
         <code className="worker-impact-pair">{item.model || '—'}</code>
       </li>
     )

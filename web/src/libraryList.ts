@@ -37,14 +37,20 @@ export function libraryListPath(tab: LibraryTab, query: LibraryListQuery): strin
 export function librarySearchHaystack(tab: LibraryTab, item: Audio | Transcript | Summary): string {
   if (tab === 'audio') {
     const a = item as Audio
-    return [a.filename, a.owner_email || ''].join(' ').toLowerCase()
+    return [a.filename, a.owner_display_name || '', a.owner_email || ''].join(' ').toLowerCase()
   }
   if (tab === 'transcripts') {
     const tr = item as Transcript
-    return [tr.display_title, tr.title, tr.source_filename, tr.owner_email].filter(Boolean).join(' ').toLowerCase()
+    return [tr.display_title, tr.title, tr.source_filename, tr.owner_display_name, tr.owner_email]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
   }
   const s = item as Summary
-  return [s.display_title, s.title, s.source_transcript_title, s.owner_email].filter(Boolean).join(' ').toLowerCase()
+  return [s.display_title, s.title, s.source_transcript_title, s.owner_display_name, s.owner_email]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
 }
 
 export function filterLibraryItems<T extends { owner_user_id: string }>(

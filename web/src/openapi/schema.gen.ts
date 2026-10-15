@@ -2446,6 +2446,8 @@ export interface components {
         ArtifactImpactShareRecipient: {
             /** Email */
             email: string;
+            /** Display Name */
+            display_name: string;
         };
         /** AudioCreatedResponse */
         AudioCreatedResponse: {
@@ -2475,6 +2477,8 @@ export interface components {
             hidden: boolean;
             /** Owner Email */
             owner_email?: string | null;
+            /** Owner Display Name */
+            owner_display_name?: string | null;
             /** User Tags */
             user_tags?: components["schemas"]["UserTagBrief"][];
             /** Share Kind */
@@ -2518,6 +2522,8 @@ export interface components {
             hidden: boolean;
             /** Owner Email */
             owner_email?: string | null;
+            /** Owner Display Name */
+            owner_display_name?: string | null;
             /** User Tags */
             user_tags?: components["schemas"]["UserTagBrief"][];
             /** Share Kind */
@@ -2576,8 +2582,12 @@ export interface components {
             action: string;
             /** Actor Email */
             actor_email?: string | null;
+            /** Actor Display Name */
+            actor_display_name?: string | null;
             /** On Behalf Of Email */
             on_behalf_of_email?: string | null;
+            /** On Behalf Of Display Name */
+            on_behalf_of_display_name?: string | null;
             /** Payload */
             payload?: {
                 [key: string]: unknown;
@@ -3212,6 +3222,10 @@ export interface components {
         };
         /** MePatchBody */
         MePatchBody: {
+            /** First Name */
+            first_name?: string | null;
+            /** Last Name */
+            last_name?: string | null;
             /** Locale */
             locale?: string | null;
             /** Default Route */
@@ -3535,10 +3549,14 @@ export interface components {
             user_id?: string | null;
             /** User Email */
             user_email?: string | null;
+            /** User Display Name */
+            user_display_name?: string | null;
             /** Task Id */
             task_id?: string | null;
             /** Actor Email */
             actor_email?: string | null;
+            /** Actor Display Name */
+            actor_display_name?: string | null;
             /** Unlimited Skip */
             unlimited_skip: boolean;
             /** Audio Sec */
@@ -3582,6 +3600,8 @@ export interface components {
             summary_title?: string | null;
             /** Owner Email */
             owner_email?: string | null;
+            /** Owner Display Name */
+            owner_display_name?: string | null;
             /** Active */
             active: boolean;
         };
@@ -3983,6 +4003,8 @@ export interface components {
             to_user_id: string;
             /** Email */
             email: string;
+            /** Display Name */
+            display_name: string;
         };
         /** SignupBody */
         SignupBody: {
@@ -4118,6 +4140,8 @@ export interface components {
             hidden: boolean;
             /** Owner Email */
             owner_email?: string | null;
+            /** Owner Display Name */
+            owner_display_name?: string | null;
             /** User Tags */
             user_tags?: components["schemas"]["UserTagBrief"][];
             /** Share Kind */
@@ -4167,6 +4191,8 @@ export interface components {
             hidden: boolean;
             /** Owner Email */
             owner_email?: string | null;
+            /** Owner Display Name */
+            owner_display_name?: string | null;
             /** User Tags */
             user_tags?: components["schemas"]["UserTagBrief"][];
             /** Share Kind */
@@ -4426,6 +4452,8 @@ export interface components {
             updated_at: string;
             /** Owner Email */
             owner_email?: string | null;
+            /** Owner Display Name */
+            owner_display_name?: string | null;
             /** Org Name */
             org_name?: string | null;
             /** Audio Filename */
@@ -4480,6 +4508,8 @@ export interface components {
             hidden: boolean;
             /** Owner Email */
             owner_email?: string | null;
+            /** Owner Display Name */
+            owner_display_name?: string | null;
             /** User Tags */
             user_tags?: components["schemas"]["UserTagBrief"][];
             /** Share Kind */
@@ -4540,6 +4570,8 @@ export interface components {
             hidden: boolean;
             /** Owner Email */
             owner_email?: string | null;
+            /** Owner Display Name */
+            owner_display_name?: string | null;
             /** User Tags */
             user_tags?: components["schemas"]["UserTagBrief"][];
             /** Share Kind */
@@ -4633,6 +4665,12 @@ export interface components {
             id: string;
             /** Email */
             email: string;
+            /** First Name */
+            first_name?: string | null;
+            /** Last Name */
+            last_name?: string | null;
+            /** Display Name */
+            display_name: string;
             /** Locale */
             locale: string;
             /** Default Route */

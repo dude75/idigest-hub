@@ -8,17 +8,18 @@ from sqlalchemy.orm import Session
 from app.models import Audio, Organization, Share, Summary, Task, Transcript, User
 from app.services.public_links import get_link_for_summary, link_is_active
 from app.presenters import summary_display_title, transcript_display_title
+from app.services.user_display import user_display_name
 
 
 def _share_recipients(db: Session, object_type: str, object_id: str) -> list[dict[str, str]]:
-    rows = db.execute(
-        select(User.email)
+    rows = db.scalars(
+        select(User)
         .select_from(Share)
         .join(User, User.id == Share.to_user_id)
         .where(Share.object_type == object_type, Share.object_id == object_id)
         .order_by(User.email)
     ).all()
-    return [{"email": email} for (email,) in rows]
+    return [{"email": u.email, "display_name": user_display_name(u)} for u in rows]
 
 
 def _active_task_counts(db: Session, *, audio_id: str | None = None, transcript_id: str | None = None) -> dict[str, int]:

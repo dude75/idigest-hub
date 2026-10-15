@@ -14,6 +14,9 @@ class UserPublic(BaseModel):
 
     id: str
     email: str
+    first_name: str | None = None
+    last_name: str | None = None
+    display_name: str
     locale: str
     default_route: str
     date_time_format: str | None = None

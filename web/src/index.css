@@ -3542,12 +3542,71 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 .stats-chart-chars { background: #fffbeb; border-color: #fde68a; }
 .stats-chart-amount { background: #f8fbff; border-color: #bfdbfe; }
 
+.admin-table-card-search {
+  padding-inline: var(--card-spacing, 1rem);
+  padding-bottom: 0.75rem;
+}
+.admin-table-card-search [data-slot='input'] {
+  width: 100%;
+}
+.instance-org-member-search {
+  padding-bottom: 0.75rem;
+}
+.instance-org-member-search [data-slot='input'] {
+  width: 100%;
+}
+.instance-org-detail .instance-org-member-search {
+  /* Align with table cell text (detail padding + th px-4). */
+  padding-inline: 1rem;
+}
+
+.org-member-cell {
+  display: grid;
+  gap: 0.12rem;
+  line-height: 1.35;
+}
+.org-member-cell-email {
+  font-weight: 500;
+}
+.org-member-cell-name {
+  font-size: 0.82rem;
+  color: var(--hub-muted);
+}
+
 .profile-settings-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
 }
-.profile-settings-grid > .admin-form-card { margin: 0; }
+.profile-settings-grid > .admin-form-card,
+.profile-settings-grid > .admin-table-card {
+  margin: 0;
+}
+.profile-settings-pair {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+.profile-settings-pair > .admin-form-card,
+.profile-settings-pair > .admin-table-card {
+  margin: 0;
+  min-width: 0;
+  height: 100%;
+}
+.profile-settings-pair > .admin-form-card [data-slot='card-content'],
+.profile-settings-pair > .admin-table-card [data-slot='card-content'] {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.profile-settings-pair .profile-backup-actions {
+  margin-top: auto;
+}
+.profile-settings-grid > .profile-delete-account-card {
+  grid-column: 1 / -1;
+}
 .profile-actions {
   display: flex;
   align-items: center;
@@ -3720,6 +3779,7 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 
 @media (max-width: 720px) {
   .profile-settings-grid { grid-template-columns: 1fr; }
+  .profile-settings-pair { grid-template-columns: 1fr; }
   .profile-token-item { align-items: flex-start; flex-direction: column; }
   .topbar { flex-wrap: wrap; }
   .hide-sm { display: none; }

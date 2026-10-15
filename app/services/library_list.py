@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import AuthContext
 from app.models import Audio, HiddenItem, Share, Summary, Transcript, User, UserTagLink
+from app.services.user_display import user_display_name
 from app.services.user_tags import resolve_user_tag
 
 
@@ -33,11 +34,16 @@ def _like_pattern(q: str) -> str:
     return f"%{escaped}%"
 
 
-def _owner_email_matches(model, pattern: str) -> Any:
+def _owner_user_matches(model, pattern: str) -> Any:
+    name_like = lambda col: func.lower(col).like(pattern, escape="\\")
     return exists(
         select(1).where(
             User.id == model.owner_user_id,
-            func.lower(User.email).like(pattern, escape="\\"),
+            or_(
+                func.lower(User.email).like(pattern, escape="\\"),
+                name_like(User.first_name),
+                name_like(User.last_name),
+            ),
         )
     )
 
@@ -51,7 +57,7 @@ def library_search_filter(model: type, object_type: str, q: str | None) -> Any |
     like = lambda col: func.lower(col).like(pattern, escape="\\")
 
     if object_type == "audio":
-        return or_(like(model.original_filename), _owner_email_matches(model, pattern))
+        return or_(like(model.original_filename), _owner_user_matches(model, pattern))
 
     if object_type == "transcript":
         audio_name = exists(
@@ -63,7 +69,7 @@ def library_search_filter(model: type, object_type: str, q: str | None) -> Any |
             )
         )
         title_match = and_(model.title.is_not(None), like(model.title))
-        return or_(title_match, audio_name, _owner_email_matches(model, pattern))
+        return or_(title_match, audio_name, _owner_user_matches(model, pattern))
 
     if object_type == "summary":
         transcript_match = exists(
@@ -85,7 +91,7 @@ def library_search_filter(model: type, object_type: str, q: str | None) -> Any |
             )
         )
         title_match = and_(model.title.is_not(None), like(model.title))
-        return or_(title_match, transcript_match, _owner_email_matches(model, pattern))
+        return or_(title_match, transcript_match, _owner_user_matches(model, pattern))
 
     return None
 
@@ -362,15 +368,23 @@ def count_hidden_library_rows(
     )
 
 
-def _share_items_from_map(rows: list[Share], emails: dict[str, str]) -> list[dict]:
-    return [
-        {
-            "id": row.id,
-            "to_user_id": row.to_user_id,
-            "email": emails.get(row.to_user_id, row.to_user_id),
-        }
-        for row in rows
-    ]
+def _share_items_from_map(rows: list[Share], users: dict[str, User]) -> list[dict]:
+    out: list[dict] = []
+    for row in rows:
+        user = users.get(row.to_user_id)
+        if user is None:
+            uid = row.to_user_id
+            out.append({"id": row.id, "to_user_id": uid, "email": uid, "display_name": uid})
+            continue
+        out.append(
+            {
+                "id": row.id,
+                "to_user_id": row.to_user_id,
+                "email": user.email,
+                "display_name": user_display_name(user),
+            }
+        )
+    return out
 
 
 def batch_share_badges(
@@ -426,32 +440,34 @@ def batch_share_badges(
         for share in shares:
             email_ids.add(share.to_user_id)
 
-    emails = (
-        {
-            u.id: u.email
-            for u in db.scalars(select(User).where(User.id.in_(email_ids))).all()
-        }
+    users = (
+        {u.id: u for u in db.scalars(select(User).where(User.id.in_(email_ids))).all()}
         if email_ids
         else {}
     )
 
     result: dict[str, dict] = {}
     for row in rows:
+        owner = users.get(row.owner_user_id)
         extra: dict[str, Any] = {
             "hidden": row.id in hidden_ids,
-            "owner_email": emails.get(row.owner_user_id),
+            "owner_email": owner.email if owner else None,
+            "owner_display_name": user_display_name(owner) if owner else None,
             "user_tags": user_tags_by_id.get(row.id, []),
         }
         if row.owner_user_id == user_id:
             outgoing = outgoing_by_object.get(row.id, [])
             extra["shared_with"] = [s.to_user_id for s in outgoing]
-            extra["shares"] = _share_items_from_map(outgoing, emails)
+            extra["shares"] = _share_items_from_map(outgoing, users)
             extra["share_kind"] = "outgoing" if outgoing else None
         else:
             inc = incoming_by_object.get(row.id)
             if inc:
                 extra["share_kind"] = "incoming"
-                extra["shared_by"] = emails.get(inc.from_user_id, inc.from_user_id)
+                from_user = users.get(inc.from_user_id)
+                extra["shared_by"] = (
+                    user_display_name(from_user) if from_user else inc.from_user_id
+                )
                 extra["share_id"] = inc.id
         result[row.id] = extra
     return result

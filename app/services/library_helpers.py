@@ -19,6 +19,7 @@ from app.services.access import can_read_object, is_hidden, is_shared_with, outg
 from app.services.export import safe_filename
 from app.services.library_list import batch_share_badges, count_hidden_library_rows, list_library_rows
 from app.services.upload_validation import InvalidAudioContent
+from app.services.user_display import user_display_name
 from app.services.user_tags import batch_object_user_tags, object_user_tags
 from app.services.storage import PayloadTooLarge, get_storage
 from app.services.video_extract import VideoExtractError, cleanup_extract_temp, video_upload_to_mp3_temp
@@ -37,14 +38,28 @@ def share_items(db: Session, rows: list[Share]) -> list[dict]:
         u.id: u
         for u in db.scalars(select(User).where(User.id.in_(user_ids))).all()
     }
-    return [
-        {
-            "id": row.id,
-            "to_user_id": row.to_user_id,
-            "email": users[row.to_user_id].email if row.to_user_id in users else row.to_user_id,
-        }
-        for row in rows
-    ]
+    out: list[dict] = []
+    for row in rows:
+        user = users.get(row.to_user_id)
+        if user is None:
+            out.append(
+                {
+                    "id": row.id,
+                    "to_user_id": row.to_user_id,
+                    "email": row.to_user_id,
+                    "display_name": row.to_user_id,
+                }
+            )
+            continue
+        out.append(
+            {
+                "id": row.id,
+                "to_user_id": row.to_user_id,
+                "email": user.email,
+                "display_name": user_display_name(user),
+            }
+        )
+    return out
 
 
 def share_badge(
@@ -67,10 +82,12 @@ def share_badge(
         if row:
             from_user = db.get(User, row.from_user_id)
             extra["share_kind"] = "incoming"
-            extra["shared_by"] = from_user.email if from_user else row.from_user_id
+            extra["shared_by"] = user_display_name(from_user) if from_user else row.from_user_id
             extra["share_id"] = row.id
     extra["hidden"] = is_hidden(db, ctx.user.id, object_type, object_id)
-    extra["owner_email"] = (db.get(User, owner_id).email if db.get(User, owner_id) else None)
+    owner = db.get(User, owner_id)
+    extra["owner_email"] = owner.email if owner else None
+    extra["owner_display_name"] = user_display_name(owner) if owner else None
     if user_tags is None:
         user_tags = object_user_tags(db, ctx.user.id, object_type, object_id)
     extra["user_tags"] = user_tags

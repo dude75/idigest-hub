@@ -22,6 +22,7 @@ from app.models import (
 from app.money import money_str, rate_str
 from app.services.mfa import totp_configured
 from app.services.sso import org_sso_public
+from app.services.user_display import user_display_name
 from app.timeutil import isoformat_utc
 
 
@@ -34,6 +35,9 @@ def user_public(
     body: dict[str, Any] = {
         "id": user.id,
         "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "display_name": user_display_name(user),
         "locale": user.locale,
         "default_route": user.default_route,
         "date_time_format": user.date_time_format,

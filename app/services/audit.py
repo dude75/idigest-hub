@@ -111,8 +111,10 @@ def list_audit(
 
     actor = aliased(User)
     behalf = aliased(User)
+    from app.services.user_display import user_display_name
+
     query = (
-        select(AuditLog, actor.email, behalf.email)
+        select(AuditLog, actor, behalf)
         .outerjoin(actor, actor.id == AuditLog.actor_user_id)
         .outerjoin(behalf, behalf.id == AuditLog.on_behalf_of_user_id)
         .order_by(AuditLog.created_at.desc())
@@ -122,17 +124,21 @@ def list_audit(
     if filters:
         query = query.where(*filters)
     rows = db.execute(query).all()
-    items = [
-        {
-            "id": row[0].id,
-            "action": row[0].action,
-            "actor_email": row[1],
-            "on_behalf_of_email": row[2],
-            "payload": row[0].payload_json,
-            "created_at": isoformat_utc(row[0].created_at),
-        }
-        for row in rows
-    ]
+    items = []
+    for row in rows:
+        log, actor_user, behalf_user = row[0], row[1], row[2]
+        items.append(
+            {
+                "id": log.id,
+                "action": log.action,
+                "actor_email": actor_user.email if actor_user else None,
+                "actor_display_name": user_display_name(actor_user) if actor_user else None,
+                "on_behalf_of_email": behalf_user.email if behalf_user else None,
+                "on_behalf_of_display_name": user_display_name(behalf_user) if behalf_user else None,
+                "payload": log.payload_json,
+                "created_at": isoformat_utc(log.created_at),
+            }
+        )
     return items, total
 
 

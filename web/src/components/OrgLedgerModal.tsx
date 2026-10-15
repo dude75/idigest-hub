@@ -151,7 +151,13 @@ export function OrgLedgerModal({
                             </span>
                           ) : null}
                         </TableCell>
-                        <TableCell>{entry.user_email || entry.actor_email || '—'}</TableCell>
+                        <TableCell>
+                          {entry.user_display_name ||
+                            entry.actor_display_name ||
+                            entry.user_email ||
+                            entry.actor_email ||
+                            '—'}
+                        </TableCell>
                         <TableCell className={adminTableCellMuted}>
                           {entry.kind ? (
                             <span>{t(`task.type.${entry.kind}`)}</span>

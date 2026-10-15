@@ -125,7 +125,7 @@ export function LibraryArtifactImpactModal({
                 <ul className="worker-impact-list">
                   {impact.shared_with!.map((row) => (
                     <li key={row.email} className="worker-impact-row">
-                      {row.email}
+                      {row.display_name || row.email}
                     </li>
                   ))}
                 </ul>

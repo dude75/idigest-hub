@@ -65,6 +65,8 @@ class MfaDisableBody(BaseModel):
 
 
 class MePatchBody(BaseModel):
+    first_name: str | None = Field(default=None, max_length=128)
+    last_name: str | None = Field(default=None, max_length=128)
     locale: str | None = None
     default_route: str | None = None
     date_time_format: str | None = None

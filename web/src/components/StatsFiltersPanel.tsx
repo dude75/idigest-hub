@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { AppStackCard } from './AdminSection'
 import { AppDateField, AppSelectField } from './app/AppFormControls'
 import { allOption } from './app/selectOptions'
+import { userDisplayName } from '../userDisplay'
 import { DatePresetBar } from './DatePresetBar'
 
 type UserOption = { id: string; email: string }
@@ -74,7 +75,10 @@ export function StatsFiltersPanel({
           value={userId}
           disabled={showOrgFilter && !orgId}
           onValueChange={onUserIdChange}
-          options={[allOption(t('common.all')), ...users.map((u) => ({ value: u.id, label: u.email }))]}
+          options={[
+            allOption(t('common.all')),
+            ...users.map((u) => ({ value: u.id, label: userDisplayName(u) })),
+          ]}
         />
         <AppSelectField
           label={t('stats.kind')}

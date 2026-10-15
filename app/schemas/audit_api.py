@@ -13,7 +13,9 @@ class AuditLogEntry(BaseModel):
     id: str
     action: str
     actor_email: str | None = None
+    actor_display_name: str | None = None
     on_behalf_of_email: str | None = None
+    on_behalf_of_display_name: str | None = None
     payload: dict[str, Any] | None = None
     created_at: str
 

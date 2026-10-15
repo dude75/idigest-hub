@@ -10,6 +10,7 @@ import { AppBrand } from './AppBrand'
 import { GlobalMicRecordAccess } from './GlobalMicRecordAccess'
 import { GitHubLink } from './GitHubLink'
 import { LanguageSwitcher } from './LanguageSwitcher'
+import { userDisplayName } from '../userDisplay'
 
 export function Shell() {
   const { t } = useTranslation()
@@ -37,7 +38,7 @@ export function Shell() {
     <div className="app-shell">
       {me?.impersonating && (
         <div className="banner">
-          <span>{t('impersonate.banner', { email: me.user.email })}</span>
+          <span>{t('impersonate.banner', { email: userDisplayName(me.user) })}</span>
           <Button
             type="button"
             size="sm"

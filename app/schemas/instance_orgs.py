@@ -34,8 +34,10 @@ class OrgLedgerEntry(BaseModel):
     kind: str | None = None
     user_id: str | None = None
     user_email: str | None = None
+    user_display_name: str | None = None
     task_id: str | None = None
     actor_email: str | None = None
+    actor_display_name: str | None = None
     unlimited_skip: bool
     audio_sec: float | None = None
     summary_chars: int | None = None

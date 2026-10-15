@@ -166,7 +166,9 @@ def sso_callback(
         sub = str(claims.get("sub") or "")
         if not email or not sub:
             return fail(ErrorCode.sso_email_missing)
-        user = resolve_or_provision_user(db, org=org, email=email, sub=sub, locale=locale)
+        user = resolve_or_provision_user(
+            db, org=org, email=email, sub=sub, locale=locale, claims=claims
+        )
     except ValueError as exc:
         message = str(exc)
         if message == "user wrong org":

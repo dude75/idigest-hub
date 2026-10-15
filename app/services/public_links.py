@@ -244,7 +244,10 @@ def link_org_list_item(
 
     payload = link_public_payload(link, db)
     payload["summary_title"] = summary_display_title(summary)
+    from app.services.user_display import user_display_name
+
     payload["owner_email"] = owner.email
+    payload["owner_display_name"] = user_display_name(owner)
     payload["active"] = link_is_active(link, org, db)
     return payload
 

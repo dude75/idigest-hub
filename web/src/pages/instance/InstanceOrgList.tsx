@@ -1,10 +1,9 @@
-import { Fragment, useEffect, useState, type Dispatch, type SetStateAction } from 'react'
+import { Fragment, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, MoreHorizontal } from 'lucide-react'
 import { api } from '../../api'
 import {
   AdminDataTable,
-  AdminTableCellHint,
   AdminTruncateHint,
   TableBody,
   TableCell,
@@ -37,6 +36,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { OrgMemberCell } from '../../components/UserIdentityCell'
+import { compareUsersByDisplayName, memberMatchesQuery } from '../../userDisplay'
 
 type InstanceOrgListProps = {
   orgs: Org[]
@@ -77,14 +78,28 @@ function OrgMembersTable({
   onMfaReset: (orgId: string, user: User) => void
 }) {
   const { t } = useTranslation()
+  const [memberSearch, setMemberSearch] = useState('')
   const members = org.members || []
+  const filteredMembers = useMemo(() => {
+    const list = members.filter((u) => memberMatchesQuery(u, memberSearch))
+    return [...list].sort(compareUsersByDisplayName)
+  }, [members, memberSearch])
 
   if (members.length === 0) {
     return <p className="instance-org-empty-members">{t('common.empty')}</p>
   }
 
   return (
-    <AdminDataTable className="instance-org-users-table">
+    <>
+      <div className="instance-org-member-search">
+        <Input
+          type="search"
+          placeholder={t('org.searchPeople')}
+          value={memberSearch}
+          onChange={(e) => setMemberSearch(e.target.value)}
+        />
+      </div>
+      <AdminDataTable className="instance-org-users-table">
       <TableHeader>
         <TableRow>
           <TableHead>{t('common.email')}</TableHead>
@@ -94,15 +109,11 @@ function OrgMembersTable({
         </TableRow>
       </TableHeader>
       <TableBody>
-        {members.map((u) => (
+        {filteredMembers.map((u) => (
           <TableRow key={u.id}>
-            <AdminTableCellHint
-              hint={u.email}
-              className="max-w-[min(24rem,40vw)] font-medium"
-              hintClassName="max-w-[min(24rem,40vw)]"
-            >
-              {u.email}
-            </AdminTableCellHint>
+            <TableCell className={cn('max-w-[min(24rem,40vw)]', adminTableCellPrimary)}>
+              <OrgMemberCell user={u} className="max-w-[min(24rem,40vw)]" />
+            </TableCell>
             <TableCell>
               {!u.is_instance_admin ? (
                 <AppSelect
@@ -172,6 +183,7 @@ function OrgMembersTable({
         ))}
       </TableBody>
     </AdminDataTable>
+    </>
   )
 }
 

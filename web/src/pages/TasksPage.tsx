@@ -26,6 +26,7 @@ import {
   type ListPageSize,
 } from '../components/app/selectOptions'
 import { useTasksListPoll, type DoneStatusFilter } from '../hooks/useTasksListPoll'
+import { compareUsersByDisplayName, ownerListLabel, userDisplayName } from '../userDisplay'
 
 function taskHref(task: Task): string {
   if (task.status === 'success' && (task.type === 'import' || task.type === 'capture') && task.audio_id) {
@@ -47,7 +48,7 @@ function uniqueUsers(orgs: Org[], orgId: string): User[] {
     seen.add(user.id)
     out.push(user)
   }
-  return out.sort((a, b) => a.email.localeCompare(b.email))
+  return out.sort(compareUsersByDisplayName)
 }
 
 export function TasksPage() {
@@ -70,7 +71,7 @@ export function TasksPage() {
 
   const userOptions = useMemo(() => {
     if (instance) return uniqueUsers(orgs, orgId)
-    return [...orgUsers].sort((a, b) => a.email.localeCompare(b.email))
+    return [...orgUsers].sort(compareUsersByDisplayName)
   }, [instance, orgs, orgId, orgUsers])
 
   const { active, done, doneTotal, safePage, reload } = useTasksListPoll({
@@ -155,7 +156,7 @@ export function TasksPage() {
           <>
             {task.audio_filename ? `${typeLabel} · ` : ''}
             {fmtDate(task.updated_at || task.created_at || '')}
-            {showOwner && task.owner_email && ` · ${task.owner_email}`}
+            {showOwner && ownerListLabel(task) && ` · ${ownerListLabel(task)}`}
             {showOrg && task.org_name && ` · ${task.org_name}`}
           </>
         }
@@ -255,7 +256,10 @@ export function TasksPage() {
                 setUserId(next)
                 setPage(0)
               }}
-              options={[allOption(t('common.all')), ...userOptions.map((user) => ({ value: user.id, label: user.email }))]}
+              options={[
+                allOption(t('common.all')),
+                ...userOptions.map((user) => ({ value: user.id, label: userDisplayName(user) })),
+              ]}
             />
             {statusFilterField}
           </div>

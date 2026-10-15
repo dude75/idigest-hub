@@ -254,7 +254,7 @@ export function ShareBadges({
 }) {
   const { t } = useTranslation()
   const sharedWith =
-    item.shares?.map((s) => s.email).join(', ')
+    item.shares?.map((s) => s.display_name || s.email).join(', ')
     || (item.shared_with?.length ? t('library.sharedWithCount', { count: item.shared_with.length }) : null)
   const incoming = item.share_kind === 'incoming' && item.shared_by
   const outgoingShared = item.share_kind === 'outgoing' && sharedWith

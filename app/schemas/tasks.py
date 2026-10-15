@@ -29,6 +29,7 @@ class TaskListItem(BaseModel):
     created_at: str
     updated_at: str
     owner_email: str | None = None
+    owner_display_name: str | None = None
     org_name: str | None = None
     audio_filename: str | None = None
     skill_ids: list[str] = Field(default_factory=list)

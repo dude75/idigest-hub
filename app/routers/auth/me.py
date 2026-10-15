@@ -181,6 +181,15 @@ def patch_me(
         else:
             ctx.user.capture_bot_display_name = normalize_capture_bot_display_name(str(raw))
         ctx.user.updated_at = utcnow()
+    if "first_name" in data or "last_name" in data:
+        from app.services.user_display import normalize_name_part
+
+        if "first_name" in data:
+            ctx.user.first_name = normalize_name_part(data["first_name"])
+        if "last_name" in data:
+            ctx.user.last_name = normalize_name_part(data["last_name"])
+        ctx.user.profile_name_override = True
+        ctx.user.updated_at = utcnow()
     return MeResponse.model_validate(me_with_csrf(request, response, ctx, db))
 
 

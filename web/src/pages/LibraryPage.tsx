@@ -26,6 +26,7 @@ import { AudioDerivedBadges, ShareBadges, TranscriptDerivedBadges, UserTagBadges
 import { libraryServerSourceGrouping } from '../libraryList'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
 import { useLibraryList } from '../hooks/useLibraryList'
+import { compareUsersByDisplayName, ownerListLabel, userDisplayName } from '../userDisplay'
 
 type SourceGroup<T> = {
   key: string
@@ -216,8 +217,8 @@ export function LibraryPage() {
               options={[
                 allOption(t('common.all')),
                 ...[...orgUsers]
-                  .sort((a, b) => a.email.localeCompare(b.email))
-                  .map((user) => ({ value: user.id, label: user.email })),
+                  .sort(compareUsersByDisplayName)
+                  .map((user) => ({ value: user.id, label: userDisplayName(user) })),
               ]}
             />
           ) : null}
@@ -297,7 +298,7 @@ export function LibraryPage() {
                     <>
                       <span>{fmtDate(a.created_at)}</span>
                       <AudioDerivedBadges audio={a} />
-                      {a.owner_email && <span>· {a.owner_email}</span>}
+                      {ownerListLabel(a) && <span>· {ownerListLabel(a)}</span>}
                     </>
                   }
                   trailing={
@@ -332,7 +333,7 @@ export function LibraryPage() {
                         <>
                           <span>{fmtDate(tr.created_at)}</span>
                           <TranscriptDerivedBadges transcript={tr} />
-                          {tr.owner_email && <span>· {tr.owner_email}</span>}
+                          {ownerListLabel(tr) && <span>· {ownerListLabel(tr)}</span>}
                         </>
                       }
                       trailing={
@@ -368,7 +369,7 @@ export function LibraryPage() {
                           </span>
                         </>
                       )}
-                      {tr.owner_email && <span>· {tr.owner_email}</span>}
+                      {ownerListLabel(tr) && <span>· {ownerListLabel(tr)}</span>}
                     </>
                   }
                   trailing={
@@ -403,7 +404,7 @@ export function LibraryPage() {
                       meta={
                         <>
                           <span>{fmtDate(s.created_at)}</span>
-                          {s.owner_email && <span>· {s.owner_email}</span>}
+                          {ownerListLabel(s) && <span>· {ownerListLabel(s)}</span>}
                         </>
                       }
                       trailing={
@@ -437,7 +438,7 @@ export function LibraryPage() {
                           </Link>
                         </span>
                       )}
-                      {s.owner_email && <span>· {s.owner_email}</span>}
+                      {ownerListLabel(s) && <span>· {ownerListLabel(s)}</span>}
                     </>
                   }
                   trailing={

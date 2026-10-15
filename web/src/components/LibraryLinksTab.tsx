@@ -57,7 +57,7 @@ function PublicLinkRow({
         {admin && (
           <div className="public-link-meta-item">
             <dt>{t('org.publicLinksOwner')}</dt>
-            <dd className="public-link-owner-email">{link.owner_email}</dd>
+            <dd className="public-link-owner-email">{link.owner_display_name || link.owner_email}</dd>
           </div>
         )}
       </dl>

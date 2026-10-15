@@ -20,6 +20,7 @@ import { libraryPath } from '../routes'
 import type { Audio, Task } from '../types'
 import { UserTagsEditor } from '../components/UserTagsEditor'
 import { ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
+import { ownerListLabel } from '../userDisplay'
 import { Button } from '@/components/ui/button'
 
 function httpSourceUrl(value: string | null | undefined): string | null {
@@ -174,7 +175,7 @@ export function AudioPage() {
                   <>
                     <span>{fmtDate(tr.created_at)}</span>
                     <TranscriptDerivedBadges transcript={tr} />
-                    {tr.owner_email ? <span>· {tr.owner_email}</span> : null}
+                    {ownerListLabel(tr) ? <span>· {ownerListLabel(tr)}</span> : null}
                   </>
                 }
                 trailing={<ShareBadges item={tr} />}

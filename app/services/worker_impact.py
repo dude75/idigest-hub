@@ -96,6 +96,8 @@ def _transcribe_impact(
     instance_combo = (settings.asr_model, settings.diarization_model)
     instance_defaults_broken = bool(lost_pairs) and instance_combo in before_pairs and instance_combo not in after_pairs
 
+    from app.services.user_display import user_display_name
+
     affected_users: list[dict[str, str | None]] = []
     for user in db.scalars(select(User).order_by(User.email)).all():
         prefs = resolve_transcribe_models(user, settings)
@@ -106,6 +108,7 @@ def _transcribe_impact(
             {
                 "id": user.id,
                 "email": user.email,
+                "display_name": user_display_name(user),
                 "asr_model": prefs["asr_model"],
                 "diarization_model": prefs["diarization_model"],
             }
@@ -253,6 +256,8 @@ def _summarize_impact(
     instance_model = (settings.summarize_model or "").strip() or None
     instance_defaults_broken = bool(lost_models) and instance_model in before_models and instance_model not in after_models
 
+    from app.services.user_display import user_display_name
+
     affected_users: list[dict[str, str | None]] = []
     for user in db.scalars(select(User).order_by(User.email)).all():
         prefs = resolve_summarize_models(user, settings, available=sorted(after_models))
@@ -263,6 +268,7 @@ def _summarize_impact(
             {
                 "id": user.id,
                 "email": user.email,
+                "display_name": user_display_name(user),
                 "summarize_model": model,
             }
         )

@@ -44,6 +44,9 @@ import { AppField } from '../components/app/AppField'
 import { AdminFormActions, AppSubmitButton } from '../components/app/AdminUi'
 import { SettingsFoldSummary } from '../components/app/SettingsFoldSummary'
 import { AppUrlCopyRow } from '../components/app/AppUrlCopyRow'
+import { OrgMemberCell } from '../components/UserIdentityCell'
+import { compareUsersByDisplayName, memberMatchesQuery, userDisplayName } from '../userDisplay'
+import { Input } from '@/components/ui/input'
 
 function tariffSelectable(tariffs: Tariff[], current: Tariff): boolean {
   return tariffs.some((tr) => tr.id === current.id)
@@ -88,9 +91,15 @@ export function OrgPage() {
     jwt_secret: '',
     clear_jwt_secret: false,
   })
+  const [peopleSearch, setPeopleSearch] = useState('')
   const admin = isOrgAdmin(me)
   const hasOrg = Boolean(me?.org)
   const canConfigureSso = admin && hasOrg
+
+  const filteredUsers = useMemo(() => {
+    const list = users.filter((u) => memberMatchesQuery(u, peopleSearch))
+    return [...list].sort(compareUsersByDisplayName)
+  }, [users, peopleSearch])
 
   const summary = useMemo(() => ({
     total: users.length,
@@ -817,10 +826,20 @@ export function OrgPage() {
       <AdminTableCard
         title={t('org.people')}
         empty={t('common.empty')}
-        isEmpty={users.length === 0}
-        tableLayout={users.length > 0}
+        isEmpty={filteredUsers.length === 0}
+        tableLayout={filteredUsers.length > 0}
       >
         {users.length > 0 ? (
+          <div className="admin-table-card-search">
+            <Input
+              type="search"
+              placeholder={t('org.searchPeople')}
+              value={peopleSearch}
+              onChange={(e) => setPeopleSearch(e.target.value)}
+            />
+          </div>
+        ) : null}
+        {filteredUsers.length > 0 ? (
           <AdminDataTable>
             <TableHeader>
               <TableRow>
@@ -831,9 +850,11 @@ export function OrgPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((u) => (
+              {filteredUsers.map((u) => (
                 <TableRow key={u.id}>
-                  <TableCell className={adminTableCellPrimary}>{u.email}</TableCell>
+                  <TableCell className={adminTableCellPrimary}>
+                    <OrgMemberCell user={u} />
+                  </TableCell>
                   <TableCell>
                     {admin ? (
                       <AppSelect
@@ -925,7 +946,7 @@ export function OrgPage() {
       )}
       {offUser && (
         <Modal onClose={() => setOffUser(null)} panelClassName="stack">
-          <h2>{t('org.offboard')}: {offUser.email}</h2>
+          <h2>{t('org.offboard')}: {userDisplayName(offUser)}</h2>
           <AppSelectField
             label={t('org.offboard')}
             htmlFor="org-offboard-action"
@@ -946,7 +967,7 @@ export function OrgPage() {
                 { value: '', label: '—' },
                 ...users
                   .filter((u) => u.id !== offUser.id && !u.disabled)
-                  .map((u) => ({ value: u.id, label: u.email })),
+                  .map((u) => ({ value: u.id, label: userDisplayName(u) })),
               ]}
             />
           )}

@@ -33,6 +33,7 @@ import {
   resolveEffectiveAsr,
   resolveEffectiveDiarization,
 } from '../transcribeModels'
+import { userDisplayName, userHasDistinctDisplayName } from '../userDisplay'
 import { fmtDate, formatInteger, showError } from '../util'
 import { DATE_TIME_FORMATS, formatDateTime } from '../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../util/timezones'
@@ -66,6 +67,10 @@ export function ProfilePage() {
   const [summarizeOk, setSummarizeOk] = useState(false)
   const [captureBotName, setCaptureBotNameLocal] = useState('')
   const [captureBotOk, setCaptureBotOk] = useState(false)
+  const [firstName, setFirstNameLocal] = useState('')
+  const [lastName, setLastNameLocal] = useState('')
+  const [namesSyncedFromMe, setNamesSyncedFromMe] = useState(false)
+  const [namesOk, setNamesOk] = useState(false)
   const [defaultRoute, setDefaultRouteLocal] = useState<DefaultRoute>(() => {
     const stored = normalizeDefaultRoute(me?.user.default_route)
     const allowed = allowedDefaultRoutes(me)
@@ -128,7 +133,10 @@ export function ProfilePage() {
   }, [me])
 
   useEffect(() => {
-    if (!me) return
+    if (!me) {
+      setNamesSyncedFromMe(false)
+      return
+    }
     setDateTimeFormatLocal(
       me.user.date_time_format && DATE_TIME_FORMATS.includes(me.user.date_time_format as DateTimeFormatId)
         ? (me.user.date_time_format as DateTimeFormatId)
@@ -142,6 +150,9 @@ export function ProfilePage() {
     setToneAnalyticsLocal(me.user.tone_analytics_enabled ?? true)
     setSummarizeModelLocal(me.user.summarize_model || 'inherit')
     setCaptureBotNameLocal(me.user.capture_bot_display_name || '')
+    setFirstNameLocal(me.user.first_name || '')
+    setLastNameLocal(me.user.last_name || '')
+    setNamesSyncedFromMe(true)
   }, [me])
 
   const dateTimePreview = useMemo(() => {
@@ -217,6 +228,12 @@ export function ProfilePage() {
   const savedCaptureBotName = me?.user.capture_bot_display_name ?? ''
   const captureBotDirty = captureBotName.trim() !== savedCaptureBotName.trim()
 
+  const savedFirstName = me?.user.first_name ?? ''
+  const savedLastName = me?.user.last_name ?? ''
+  const namesDirty =
+    namesSyncedFromMe &&
+    (firstName.trim() !== (savedFirstName || '').trim() || lastName.trim() !== (savedLastName || '').trim())
+
   const passwordReady = current.trim().length > 0 && next.trim().length >= 8
 
   async function saveDefaultRoute() {
@@ -281,6 +298,29 @@ export function ProfilePage() {
       })
       await refresh()
       setSummarizeOk(true)
+    } catch (e) {
+      showError(e)
+    }
+  }
+
+  async function saveProfileNames() {
+    setNamesOk(false)
+    setCaptureBotOk(false)
+    setSummarizeOk(false)
+    setTranscribeOk(false)
+    setRouteOk(false)
+    setOk(false)
+    setDateTimeOk(false)
+    try {
+      await api('/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          first_name: firstName.trim() ? firstName.trim() : null,
+          last_name: lastName.trim() ? lastName.trim() : null,
+        }),
+      })
+      await refresh()
+      setNamesOk(true)
     } catch (e) {
       showError(e)
     }
@@ -501,9 +541,13 @@ export function ProfilePage() {
       {me && (
         <Card className="profile-identity font-sans bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none">
           <CardHeader className="gap-2">
-            <CardDescription>{t('common.email')}</CardDescription>
+            <CardDescription>
+              {userHasDistinctDisplayName(me.user) ? me.user.email : t('common.email')}
+            </CardDescription>
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <CardTitle className="min-w-0 break-all text-lg font-semibold leading-snug">{me.user.email}</CardTitle>
+              <CardTitle className="min-w-0 break-all text-lg font-semibold leading-snug">
+                {userDisplayName(me.user)}
+              </CardTitle>
               {roleBadge ? <HubBadge tone={roleBadgeTone}>{roleBadge}</HubBadge> : null}
             </div>
           </CardHeader>
@@ -526,6 +570,33 @@ export function ProfilePage() {
       </StatGrid>
 
       <div className="profile-settings-grid">
+        <AdminFormCard title={t('profile.names')} lead={t('profile.namesHint')}>
+          <AppInputField
+            label={t('common.firstName')}
+            htmlFor="profile-first-name"
+            value={firstName}
+            onChange={(e) => {
+              setNamesOk(false)
+              setFirstNameLocal(e.target.value)
+            }}
+          />
+          <AppInputField
+            label={t('common.lastName')}
+            htmlFor="profile-last-name"
+            value={lastName}
+            onChange={(e) => {
+              setNamesOk(false)
+              setLastNameLocal(e.target.value)
+            }}
+          />
+          <AdminFormActions className="profile-actions">
+            <AppSubmitButton ready={namesDirty} onClick={() => void saveProfileNames()}>
+              {t('common.save')}
+            </AppSubmitButton>
+            {namesOk ? <p className="ok">{t('profile.saved')}</p> : null}
+          </AdminFormActions>
+        </AdminFormCard>
+
         <AdminFormCard title={t('profile.defaultRoute')} lead={t('profile.defaultRouteHint')}>
           <AppSelectField
             label={t('profile.defaultRoute')}
@@ -820,6 +891,7 @@ export function ProfilePage() {
           </AdminFormCard>
         )}
 
+        <div className="profile-settings-pair">
         {hasOrg && (
           <AdminFormCard className="profile-backup-card" title={t('profile.backup')} lead={t('profile.backupLead')}>
             <div className="profile-backup-body">
@@ -903,9 +975,8 @@ export function ProfilePage() {
             </div>
           </AdminFormCard>
         )}
-      </div>
 
-      <AdminTableCard title={t('profile.tokens')} lead={t('profile.tokensLead')}>
+        <AdminTableCard className="profile-tokens-card" title={t('profile.tokens')} lead={t('profile.tokensLead')}>
         <p className="muted profile-mcp-hint">{t('profile.mcpOAuthHint')}</p>
         {!apiAllowed && (
           <div className="profile-alert" role="status">
@@ -1001,15 +1072,26 @@ export function ProfilePage() {
             {t('profile.tokenCount', { count: activeTokens.length })}
           </p>
         )}
-      </AdminTableCard>
+        </AdminTableCard>
+        </div>
 
-      {canDeleteAccount && (
-        <AdminFormCard title={t('profile.deleteAccount')} lead={t('profile.deleteAccountLead')}>
-          <Button type="button" variant="destructive" onClick={() => void openDeleteAccount()}>
-            {t('profile.deleteAccount')}
-          </Button>
-        </AdminFormCard>
-      )}
+        {canDeleteAccount && (
+          <AdminFormCard
+            className="profile-delete-account-card"
+            title={t('profile.deleteAccount')}
+            lead={t('profile.deleteAccountLead')}
+          >
+            <Button
+              type="button"
+              variant="destructive"
+              className="w-full"
+              onClick={() => void openDeleteAccount()}
+            >
+              {t('profile.deleteAccount')}
+            </Button>
+          </AdminFormCard>
+        )}
+      </div>
 
       {deleteOpen && deletePreview && (
         <Modal
@@ -1037,7 +1119,10 @@ export function ProfilePage() {
                 onValueChange={setDeleteSuccessor}
                 options={[
                   ...(deletePreview.candidates.length > 1 ? [{ value: '', label: t('org.target') }] : []),
-                  ...deletePreview.candidates.map((c) => ({ value: c.id, label: c.email })),
+                  ...deletePreview.candidates.map((c) => ({
+                    value: c.id,
+                    label: userDisplayName(c),
+                  })),
                 ]}
               />
             </>

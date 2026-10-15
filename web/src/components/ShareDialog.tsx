@@ -18,6 +18,7 @@ import { AppSelect } from './app/AppSelect'
 import { FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { AppUrlCopyRow } from './app/AppUrlCopyRow'
+import { compareUsersByDisplayName, userDisplayName, userHasDistinctDisplayName } from '../userDisplay'
 
 type Props = {
   objectType: 'audio' | 'transcript' | 'summary' | 'skill'
@@ -78,7 +79,9 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
   }, [objectType, objectId, showPublic])
 
   const sharedIds = new Set(shares.map((s) => s.to_user_id))
-  const available = users.filter((u) => !sharedIds.has(u.id))
+  const available = users
+    .filter((u) => !sharedIds.has(u.id))
+    .sort(compareUsersByDisplayName)
 
   useLayoutEffect(() => {
     const body = bodyRef.current
@@ -288,7 +291,9 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
             <div className="share-member-list">
               {shares.map((s) => (
                 <div key={s.id} className="share-member-row">
-                  <span className="share-member-email">{s.email}</span>
+                  <span className="share-member-email" title={s.email}>
+                    {s.display_name || s.email}
+                  </span>
                   <Button type="button" variant="destructive" className="share-member-action" disabled={revoking === s.id} onClick={() => void revoke(s.id)}
                   >
                     {t('share.revoke')}
@@ -311,7 +316,9 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
                   key={u.id}
                   id={`share-pick-${u.id}`}
                   className="share-picker-row"
-                  label={u.email}
+                  label={
+                    userHasDistinctDisplayName(u) ? `${userDisplayName(u)} (${u.email})` : userDisplayName(u)
+                  }
                   checked={Boolean(picked[u.id])}
                   onCheckedChange={(checked) => setPicked((p) => ({ ...p, [u.id]: checked }))}
                 />

@@ -8281,11 +8281,16 @@
           "email": {
             "type": "string",
             "title": "Email"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
           }
         },
         "type": "object",
         "required": [
-          "email"
+          "email",
+          "display_name"
         ],
         "title": "ArtifactImpactShareRecipient"
       },
@@ -8368,6 +8373,17 @@
               }
             ],
             "title": "Owner Email"
+          },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Display Name"
           },
           "user_tags": {
             "items": {
@@ -8519,6 +8535,17 @@
               }
             ],
             "title": "Owner Email"
+          },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Display Name"
           },
           "user_tags": {
             "items": {
@@ -8720,6 +8747,17 @@
             ],
             "title": "Actor Email"
           },
+          "actor_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Display Name"
+          },
           "on_behalf_of_email": {
             "anyOf": [
               {
@@ -8730,6 +8768,17 @@
               }
             ],
             "title": "On Behalf Of Email"
+          },
+          "on_behalf_of_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Behalf Of Display Name"
           },
           "payload": {
             "anyOf": [
@@ -10713,6 +10762,30 @@
       },
       "MePatchBody": {
         "properties": {
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
           "locale": {
             "anyOf": [
               {
@@ -11650,6 +11723,17 @@
             ],
             "title": "User Email"
           },
+          "user_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Display Name"
+          },
           "task_id": {
             "anyOf": [
               {
@@ -11671,6 +11755,17 @@
               }
             ],
             "title": "Actor Email"
+          },
+          "actor_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Display Name"
           },
           "unlimited_skip": {
             "type": "boolean",
@@ -11822,6 +11917,17 @@
               }
             ],
             "title": "Owner Email"
+          },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Display Name"
           },
           "active": {
             "type": "boolean",
@@ -13358,13 +13464,18 @@
           "email": {
             "type": "string",
             "title": "Email"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
           }
         },
         "type": "object",
         "required": [
           "id",
           "to_user_id",
-          "email"
+          "email",
+          "display_name"
         ],
         "title": "ShareRecordBrief"
       },
@@ -13800,6 +13911,17 @@
             ],
             "title": "Owner Email"
           },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Display Name"
+          },
           "user_tags": {
             "items": {
               "$ref": "#/components/schemas/UserTagBrief"
@@ -13977,6 +14099,17 @@
               }
             ],
             "title": "Owner Email"
+          },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Display Name"
           },
           "user_tags": {
             "items": {
@@ -14707,6 +14840,17 @@
             ],
             "title": "Owner Email"
           },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Display Name"
+          },
           "org_name": {
             "anyOf": [
               {
@@ -14875,6 +15019,17 @@
               }
             ],
             "title": "Owner Email"
+          },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Display Name"
           },
           "user_tags": {
             "items": {
@@ -15074,6 +15229,17 @@
               }
             ],
             "title": "Owner Email"
+          },
+          "owner_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Display Name"
           },
           "user_tags": {
             "items": {
@@ -15372,6 +15538,32 @@
             "type": "string",
             "title": "Email"
           },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Name"
+          },
+          "display_name": {
+            "type": "string",
+            "title": "Display Name"
+          },
           "locale": {
             "type": "string",
             "title": "Locale"
@@ -15527,6 +15719,7 @@
         "required": [
           "id",
           "email",
+          "display_name",
           "locale",
           "default_route",
           "tone_analytics_enabled",

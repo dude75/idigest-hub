@@ -39,6 +39,7 @@ class ShareRecordBrief(BaseModel):
     id: str
     to_user_id: str
     email: str
+    display_name: str
 
 
 class LibraryShareFields(BaseModel):
@@ -46,6 +47,7 @@ class LibraryShareFields(BaseModel):
 
     hidden: bool = False
     owner_email: str | None = None
+    owner_display_name: str | None = None
     user_tags: list[UserTagBrief] = Field(default_factory=list)
     share_kind: str | None = None
     shared_by: str | None = None
@@ -205,6 +207,7 @@ class ImportPlatformsResponse(BaseModel):
 
 class ArtifactImpactShareRecipient(BaseModel):
     email: str
+    display_name: str
 
 
 class ArtifactImpactRelatedItem(BaseModel):

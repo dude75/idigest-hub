@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { AppStackCard } from './AdminSection'
 import { AppDateField, AppSelectField } from './app/AppFormControls'
 import { allOption } from './app/selectOptions'
+import { userDisplayName } from '../userDisplay'
 import { DatePresetBar } from './DatePresetBar'
 
 export const AUDIT_ACTIONS = [
@@ -104,7 +105,10 @@ export function AuditFiltersPanel({
           value={userId}
           disabled={!orgId}
           onValueChange={onUserIdChange}
-          options={[allOption(t('common.all')), ...users.map((u) => ({ value: u.id, label: u.email }))]}
+          options={[
+            allOption(t('common.all')),
+            ...users.map((u) => ({ value: u.id, label: userDisplayName(u) })),
+          ]}
         />
         <AppSelectField
           label={t('audit.action')}

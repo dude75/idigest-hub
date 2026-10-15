@@ -157,6 +157,7 @@ export type ShareBadgeFields = {
   share_id?: string | null
   hidden?: boolean
   owner_email?: string | null
+  owner_display_name?: string | null
   edited?: boolean
   user_tags?: UserTag[]
 }
@@ -315,6 +316,7 @@ export type WorkerProbeResult = {
 export type WorkerDeleteImpactUser = {
   id: string
   email: string
+  display_name?: string
   asr_model?: string
   diarization_model?: string | null
   summarize_model?: string | null
@@ -518,7 +520,9 @@ export type AuditLogEntry = {
   id: string
   action: string
   actor_email: string | null
+  actor_display_name?: string | null
   on_behalf_of_email: string | null
+  on_behalf_of_display_name?: string | null
   payload: Record<string, unknown> | null
   created_at: string
 }
@@ -532,8 +536,10 @@ export type OrgLedgerEntry = {
   kind: string | null
   user_id: string | null
   user_email: string | null
+  user_display_name?: string | null
   task_id: string | null
   actor_email: string | null
+  actor_display_name?: string | null
   unlimited_skip: boolean
   audio_sec: number | null
   summary_chars: number | null

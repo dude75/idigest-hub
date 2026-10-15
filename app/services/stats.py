@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models import AuditLog, Task, UsageEvent, User
 from app.money import money_str, parse_money
+from app.services.user_display import user_display_name
 from app.timeutil import as_utc, isoformat_utc
 
 
@@ -179,7 +180,7 @@ def org_ledger(
     kind: str | None = None,
 ) -> dict:
     entries: list[dict] = []
-    user_cache: dict[str, str | None] = {}
+    user_cache: dict[str, User | None] = {}
     total_spent = Decimal("0.000")
     total_topup = Decimal("0.000")
     net = Decimal("0.000")
@@ -196,8 +197,7 @@ def org_ledger(
 
     for event in db.scalars(select(UsageEvent).where(*usage_filters)).all():
         if event.user_id not in user_cache:
-            user = db.get(User, event.user_id)
-            user_cache[event.user_id] = user.email if user else None
+            user_cache[event.user_id] = db.get(User, event.user_id)
         usage_amount = Decimal(event.amount)
         impact = Decimal("0.000") if event.unlimited_skip else -usage_amount
         total_spent += -impact
@@ -211,9 +211,13 @@ def org_ledger(
                 "usage_amount": money_str(usage_amount),
                 "kind": event.kind,
                 "user_id": event.user_id,
-                "user_email": user_cache[event.user_id],
+                "user_email": user_cache[event.user_id].email if user_cache[event.user_id] else None,
+                "user_display_name": (
+                    user_display_name(user_cache[event.user_id]) if user_cache[event.user_id] else None
+                ),
                 "task_id": event.task_id,
                 "actor_email": None,
+                "actor_display_name": None,
                 "unlimited_skip": event.unlimited_skip,
                 "audio_sec": event.audio_sec,
                 "summary_chars": event.summary_chars,
@@ -232,9 +236,12 @@ def org_ledger(
                 continue
             delta = parse_money(str(payload.get("delta", "0")))
             actor_email = None
+            actor_display_name = None
             if row.actor_user_id:
                 actor = db.get(User, row.actor_user_id)
-                actor_email = actor.email if actor else None
+                if actor:
+                    actor_email = actor.email
+                    actor_display_name = user_display_name(actor)
             if delta > 0:
                 total_topup += delta
             net += delta
@@ -248,8 +255,10 @@ def org_ledger(
                     "kind": None,
                     "user_id": None,
                     "user_email": None,
+                    "user_display_name": None,
                     "task_id": None,
                     "actor_email": actor_email,
+                    "actor_display_name": actor_display_name,
                     "unlimited_skip": False,
                     "audio_sec": None,
                     "summary_chars": None,

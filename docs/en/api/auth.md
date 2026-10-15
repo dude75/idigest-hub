@@ -76,7 +76,7 @@ Public. Redirects (302) to the IdP authorization URL. Errors: `sso_disabled` (40
 
 OAuth callback (`code`, `state` query params). On success: sets session cookie, redirects to `{public_base_url}/app`. Errors: `sso_disabled`, `sso_misconfigured`, `sso_state_invalid`, `sso_email_missing`, `sso_user_wrong_org`.
 
-Auto-provision: first SSO login for an unknown email creates `org_member` in that org (email from IdP claims). Existing users must belong to the same org.
+Auto-provision: first SSO login for an unknown email creates `org_member` in that org (email from IdP claims). Existing users must belong to the same org. When `profile_name_override` is false, `given_name` / `family_name` (or `name`) from the IdP update `first_name` and `last_name` on each login.
 
 **Password login when SSO is configured:** `org_admin` only (break-glass). `org_member` must use SSO once enabled.
 
@@ -214,7 +214,7 @@ Admin reset (clears 2FA without user code): [Org reset-MFA](org.md#post-orgusers
 ```json
 {
   "user": {
-    "id", "email", "locale", "default_route",
+    "id", "email", "first_name", "last_name", "display_name", "locale", "default_route",
     "date_time_format", "timezone",
     "asr_model", "diarization_model", "summarize_model",
     "disabled", "must_change_password", "is_instance_admin", "role"
@@ -261,7 +261,9 @@ When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, 
   "asr_model": "parakeet",
   "diarization_model": "",
   "summarize_model": "llm-b",
-  "capture_bot_display_name": "My bot"
+  "capture_bot_display_name": "My bot",
+  "first_name": "Ada",
+  "last_name": "Lovelace"
 }
 ```
 
@@ -278,6 +280,8 @@ When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, 
 `summarize_model`: name from `summarize_models.summarize_models`, or `null` to inherit the instance default. Resolved value is in `summarize_prefs` (`source`: `user` or `instance`). Unknown name → `validation_error`.
 
 `capture_bot_display_name`: optional override for meeting capture bot display name, or `null` to inherit org/default. Effective name for new capture jobs is in `capture_prefs` (`source`: `user`, `org`, or `default`).
+
+`first_name` / `last_name`: optional profile fields; setting either sets `profile_name_override` so SSO no longer overwrites them. `display_name` on GET is the joined name or `email` when empty.
 
 ## Profile backup
 

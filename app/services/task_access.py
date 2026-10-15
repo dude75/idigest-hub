@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.deps import AuthContext
 from app.models import Audio, Organization, Task, Transcript, User
+from app.services.user_display import user_display_name
 
 
 def can_manage_task(ctx: AuthContext, task: Task) -> bool:
@@ -109,6 +110,7 @@ def task_list_extra(db: Session, rows: list[Task]) -> dict[str, dict]:
             audio_filename = capture_storage_filename(row.meta_json, ".mp3")
         extra[row.id] = {
             "owner_email": user.email if user else None,
+            "owner_display_name": user_display_name(user) if user else None,
             "org_name": org.name if org else None,
             "audio_filename": audio_filename,
         }
