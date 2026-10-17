@@ -29,8 +29,8 @@ from app.presenters import (
     transcript_public,
 )
 from app.services.access import (
-    can_delete_library_object,
     can_read_object,
+    ensure_library_deletable,
     ensure_library_readable,
     ensure_object_share,
     is_hidden,
@@ -277,10 +277,7 @@ def summary_delete_impact(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> LibraryArtifactDeleteImpactResponse:
     row = db.get(Summary, summary_id)
-    if row is None:
-        ctx.raise_error(ErrorCode.not_found)
-    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
-        ctx.raise_error(ErrorCode.forbidden)
+    ensure_library_deletable(ctx, db, "summary", row)
     payload = compute_summary_delete_impact(db, row)
     return LibraryArtifactDeleteImpactResponse.model_validate(payload)
 
@@ -290,10 +287,7 @@ def delete_summary(
     summary_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> OkStatusResponse:
     row = db.get(Summary, summary_id)
-    if row is None:
-        ctx.raise_error(ErrorCode.not_found)
-    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
-        ctx.raise_error(ErrorCode.forbidden)
+    ensure_library_deletable(ctx, db, "summary", row)
     write_audit(db, "summary.delete", ctx, {"summary_id": row.id})
     hard_delete_summary(db, row)
     return OkStatusResponse()

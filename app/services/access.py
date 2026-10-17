@@ -94,6 +94,36 @@ def can_delete_library_object(ctx: AuthContext, owner_user_id: str, org_id: str)
     return owner_user_id == ctx.user.id or ctx.is_org_admin
 
 
+def ensure_library_deletable(
+    ctx: AuthContext,
+    db: Session,
+    object_type: str,
+    row,
+) -> None:
+    """404 when object is missing or not readable; 403 when visible but not deletable."""
+    if row is None or not can_read_object(
+        ctx, db, object_type, row.owner_user_id, row.org_id, row.id
+    ):
+        ctx.raise_error(ErrorCode.not_found)
+    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
+        ctx.raise_error(ErrorCode.forbidden)
+
+
+def guard_library_delete_mcp(
+    ctx: AuthContext,
+    db: Session,
+    object_type: str,
+    row,
+) -> None:
+    """MCP payloads: ValueError not found, PermissionError forbidden."""
+    if row is None or not can_read_object(
+        ctx, db, object_type, row.owner_user_id, row.org_id, row.id
+    ):
+        raise ValueError("not found")
+    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
+        raise PermissionError("forbidden")
+
+
 def audit_instance_admin_library_read(
     ctx: AuthContext,
     db: Session,

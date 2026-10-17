@@ -29,8 +29,8 @@ from app.presenters import (
     transcript_public,
 )
 from app.services.access import (
-    can_delete_library_object,
     can_read_object,
+    ensure_library_deletable,
     ensure_library_readable,
     ensure_object_share,
     is_hidden,
@@ -246,10 +246,7 @@ def transcript_delete_impact(
     transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> LibraryArtifactDeleteImpactResponse:
     row = db.get(Transcript, transcript_id)
-    if row is None:
-        ctx.raise_error(ErrorCode.not_found)
-    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
-        ctx.raise_error(ErrorCode.forbidden)
+    ensure_library_deletable(ctx, db, "transcript", row)
     payload = compute_transcript_delete_impact(db, row)
     return LibraryArtifactDeleteImpactResponse.model_validate(payload)
 
@@ -259,10 +256,7 @@ def delete_transcript(
     transcript_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> OkStatusResponse:
     row = db.get(Transcript, transcript_id)
-    if row is None:
-        ctx.raise_error(ErrorCode.not_found)
-    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
-        ctx.raise_error(ErrorCode.forbidden)
+    ensure_library_deletable(ctx, db, "transcript", row)
     write_audit(db, "transcript.wipe", ctx, {"transcript_id": row.id})
     hard_delete_transcript(db, row)
     return OkStatusResponse()

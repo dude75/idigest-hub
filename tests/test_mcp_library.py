@@ -256,6 +256,12 @@ def test_mcp_audio_delete_forbidden_for_org_member(client):
         json={"email": "mcp-member@example.com", "password": "memberpass1", "role": "org_member"},
     )
     assert member.status_code == 200, member.text
+    peer_id = member.json()["id"]
+    shared = client.post(
+        "/api/v1/shares",
+        json={"object_type": "audio", "object_id": audio_id, "to_user_ids": [peer_id]},
+    )
+    assert shared.status_code == 200, shared.text
 
     import app.db as hub_db
 
@@ -460,8 +466,10 @@ def test_mcp_summary_read_update_delete(client):
             get_summary_payload(db, ctx_read, summary_id)
 
 
-def test_mcp_list_capture_platforms_scope_and_per_org(client):
+def test_mcp_list_capture_platforms_scope_and_per_org(client, fake_workers):
     setup_admin(client)
+    worker = add_worker(client, type="capture", name="cap-mcp-plat", base_url="http://capture-mcp-plat.test")
+    seed_node_health(worker["id"])
     patch = client.patch("/api/v1/instance/settings", json={"capture_enabled": True})
     assert patch.status_code == 200, patch.text
     tariff_id = default_tariff_id(client)

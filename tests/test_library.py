@@ -458,9 +458,16 @@ def test_non_owner_cannot_delete_audio_or_impact(client):
         json={"email": "delmember@example.com", "password": "delmember1", "role": "org_member"},
     )
     assert member.status_code == 200, member.text
+    peer_id = member.json()["id"]
+    shared = client.post(
+        "/api/v1/shares",
+        json={"object_type": "audio", "object_id": audio_id, "to_user_ids": [peer_id]},
+    )
+    assert shared.status_code == 200, shared.text
     logout(client)
     login_ready(client, "delmember@example.com", "delmember1")
 
+    assert client.get(f"/api/v1/audios/{audio_id}").status_code == 200
     assert client.get(f"/api/v1/audios/{audio_id}/delete-impact").status_code == 403
     assert client.delete(f"/api/v1/audios/{audio_id}").status_code == 403
 

@@ -29,8 +29,8 @@ from app.presenters import (
     transcript_public,
 )
 from app.services.access import (
-    can_delete_library_object,
     can_read_object,
+    ensure_library_deletable,
     ensure_library_readable,
     ensure_object_share,
     is_hidden,
@@ -310,10 +310,7 @@ def audio_delete_impact(
     audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> LibraryArtifactDeleteImpactResponse:
     row = db.get(Audio, audio_id)
-    if row is None:
-        ctx.raise_error(ErrorCode.not_found)
-    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
-        ctx.raise_error(ErrorCode.forbidden)
+    ensure_library_deletable(ctx, db, "audio", row)
     payload = compute_audio_delete_impact(db, row)
     return LibraryArtifactDeleteImpactResponse.model_validate(payload)
 
@@ -323,10 +320,7 @@ def delete_audio(
     audio_id: str, db: Session = Depends(get_session, scope="function"), ctx: AuthContext = Depends(require_auth)
 ) -> OkStatusResponse:
     row = db.get(Audio, audio_id)
-    if row is None:
-        ctx.raise_error(ErrorCode.not_found)
-    if not can_delete_library_object(ctx, row.owner_user_id, row.org_id):
-        ctx.raise_error(ErrorCode.forbidden)
+    ensure_library_deletable(ctx, db, "audio", row)
     write_audit(db, "audio.wipe", ctx, {"audio_id": row.id})
     hard_delete_audio(db, row)
     return OkStatusResponse()

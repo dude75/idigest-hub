@@ -33,7 +33,7 @@ from app.routers.tasks import (
     enqueue_transcribe_task,
 )
 from app.services.task_access import can_manage_task, can_see_task, task_list_extra
-from app.services.access import can_read_object, can_use_transcript, is_hidden
+from app.services.access import can_read_object, can_use_transcript, guard_library_delete_mcp, is_hidden
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
 from app.services.audit import write_audit
 from app.services.billing import assert_can_accept_task, snapshot_fields, upload_limit
@@ -323,12 +323,7 @@ async def stop_capture_task_payload(
 def delete_audio_payload(db: Session, ctx: AuthContext, audio_id: str) -> dict:
     _require_oauth_scope(ctx, SCOPE_AUDIO_WRITE)
     row = db.get(Audio, audio_id)
-    if row is None:
-        raise ValueError("not found")
-    if row.owner_user_id != ctx.user.id and not ctx.is_org_admin:
-        raise PermissionError("forbidden")
-    if ctx.org is None or row.org_id != ctx.org.id:
-        raise ValueError("not found")
+    guard_library_delete_mcp(ctx, db, "audio", row)
     write_audit(db, "audio.wipe", ctx, {"audio_id": row.id})
     hard_delete_audio(db, row)
     return {"status": "ok"}
@@ -435,12 +430,7 @@ def update_transcript_payload(
 def delete_transcript_payload(db: Session, ctx: AuthContext, transcript_id: str) -> dict:
     _require_oauth_scope(ctx, SCOPE_TRANSCRIPTS_WRITE)
     row = db.get(Transcript, transcript_id)
-    if row is None:
-        raise ValueError("not found")
-    if row.owner_user_id != ctx.user.id and not ctx.is_org_admin:
-        raise PermissionError("forbidden")
-    if ctx.org is None or row.org_id != ctx.org.id:
-        raise ValueError("not found")
+    guard_library_delete_mcp(ctx, db, "transcript", row)
     write_audit(db, "transcript.wipe", ctx, {"transcript_id": row.id})
     hard_delete_transcript(db, row)
     return {"status": "ok"}
@@ -619,12 +609,7 @@ def update_summary_payload(
 def delete_summary_payload(db: Session, ctx: AuthContext, summary_id: str) -> dict:
     _require_oauth_scope(ctx, SCOPE_SUMMARIES_WRITE)
     row = db.get(Summary, summary_id)
-    if row is None:
-        raise ValueError("not found")
-    if row.owner_user_id != ctx.user.id and not ctx.is_org_admin:
-        raise PermissionError("forbidden")
-    if ctx.org is None or row.org_id != ctx.org.id:
-        raise ValueError("not found")
+    guard_library_delete_mcp(ctx, db, "summary", row)
     write_audit(db, "summary.delete", ctx, {"summary_id": row.id})
     hard_delete_summary(db, row)
     return {"status": "ok"}
