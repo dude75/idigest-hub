@@ -251,24 +251,6 @@ export function OrgPage() {
     load().catch(showError)
   }, [hasOrg])
 
-  if (!hasOrg) return <Navigate to="/app/profile" replace />
-
-  const currentTariff = org?.tariff ?? null
-  const currentSelectable = currentTariff ? tariffSelectable(tariffs, currentTariff) : false
-  const selectedTariff = tariffId ? tariffs.find((tr) => tr.id === tariffId) ?? null : null
-  const canSaveTariff = Boolean(
-    admin && selectedTariff && currentTariff && tariffId !== currentTariff.id,
-  )
-  const profileDirty = Boolean(
-    org
-    && (
-      name.trim() !== org.name
-      || ttl !== org.password_ttl_days
-      || mfaRequired !== org.mfa_required
-      || allowPublicLinks !== org.allow_public_links
-    ),
-  )
-  const captureBotDirty = captureBotDisplayName.trim() !== savedCaptureBotName.trim()
   const captureDraftReady = useMemo(() => {
     if (captureWorkers.length === 0) return false
     const host = normalizeJitsiHostInput(captureDraft.host)
@@ -295,6 +277,25 @@ export function OrgPage() {
     const trimmed = email.trim()
     return trimmed.length > 0 && trimmed.includes('@')
   }, [email])
+
+  if (!hasOrg) return <Navigate to="/app/profile" replace />
+
+  const currentTariff = org?.tariff ?? null
+  const currentSelectable = currentTariff ? tariffSelectable(tariffs, currentTariff) : false
+  const selectedTariff = tariffId ? tariffs.find((tr) => tr.id === tariffId) ?? null : null
+  const canSaveTariff = Boolean(
+    admin && selectedTariff && currentTariff && tariffId !== currentTariff.id,
+  )
+  const profileDirty = Boolean(
+    org
+    && (
+      name.trim() !== org.name
+      || ttl !== org.password_ttl_days
+      || mfaRequired !== org.mfa_required
+      || allowPublicLinks !== org.allow_public_links
+    ),
+  )
+  const captureBotDirty = captureBotDisplayName.trim() !== savedCaptureBotName.trim()
   const ssoBlocksMfa = Boolean(sso?.enabled)
 
   async function saveProfile() {
