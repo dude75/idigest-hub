@@ -302,3 +302,33 @@ def test_password_reset_cooldown_skips_duplicate_email(client, monkeypatch):
     second = client.post("/api/v1/auth/password/reset/request", json={"email": ADMIN_EMAIL})
     assert second.status_code == 200
     assert sent == [ADMIN_EMAIL]
+
+
+def test_auth_login_logout_and_token_lifecycle_audited(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "auditauth@example.com", "auditauthp1", tariff_id).status_code == 200
+    logout(client)
+    login_ready(client, "auditauth@example.com", "auditauthp1")
+
+    created = client.post("/api/v1/auth/tokens", json={"name": "audited-cli"})
+    assert created.status_code == 200, created.text
+    token_id = created.json()["id"]
+
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+    for action in ("auth.login", "auth.token.create", "auth.logout"):
+        rows = client.get("/api/v1/instance/audit", params={"action": action, "limit": 20})
+        assert rows.status_code == 200, rows.text
+        assert any(item["action"] == action for item in rows.json()["items"]), action
+
+    login(client, "auditauth@example.com", "auditauthp1")
+    revoked = client.delete(f"/api/v1/auth/tokens/{token_id}")
+    assert revoked.status_code == 200, revoked.text
+    logout(client)
+
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    revoke_rows = client.get("/api/v1/instance/audit", params={"action": "auth.token.revoke", "limit": 20})
+    assert revoke_rows.status_code == 200, revoke_rows.text
+    assert any(item["action"] == "auth.token.revoke" for item in revoke_rows.json()["items"])

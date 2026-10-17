@@ -153,12 +153,15 @@
 | `summary.update` / `summary.delete` | Изменения summary |
 | `summary.public_link.create` / `summary.public_link.revoke` / `summary.public_link.view` | Гостевые public links |
 | `crypto.dek.create` / `crypto.reencrypt.start` / `crypto.reencrypt.cancel` | Операции с ключами шифрования |
+| `auth.login` / `auth.logout` | Старт сессии (password / SSO); выход по cookie |
+| `auth.token.create` / `auth.token.revoke` | Жизненный цикл PAT (`idg_…`) |
+| `auth.mfa.*` | MFA verify, recovery, enable, disable |
 
 **Доступ:** instance admin → **Security → Audit** или `GET /instance/audit` (фильтры; пагинация; CSV через `/instance/audit/export`).
 
 **Связанные ledger:** `usage_events` (billing), wallet top-ups ↔ `wallet.delta`.
 
-**Gap (раскрыт):** login, logout, failed login и create/revoke API token **не** пишутся в `audit_log`.
+**Gap (раскрыт):** неуспешные login **не** пишутся в `audit_log` (есть rate limit; для brute-force — логи proxy / IdP).
 
 ### 5. Multi-tenancy и изоляция
 
@@ -262,7 +265,7 @@
 | Local users без 2FA | Кража credentials | TOTP в профиле; org `mfa_required`; IdP MFA для SSO |
 | In-memory rate limits, single worker | Нет horizontal scale | nginx rate limiting |
 | Local audio без app-encrypt | Доступ к диску | Encrypted volume, S3+SSE-KMS |
-| Auth events не в audit_log | Неполная forensics login | IdP logs, proxy access logs |
+| Failed login не в audit_log | Неполная brute-force forensics в UI хаба | Rate limits; IdP logs, proxy access logs |
 | Security headers только в nginx | Слабые headers при прямом доступе | Deploy за nginx/TLS proxy |
 | Нет container CVE scan в CI | Уязвимый base image | Trivy/Grype на registry |
 | Нет формальной сертификации | Gaps в опросниках | Этот brief + [SECURITY.ru.md](../../../SECURITY.ru.md) |

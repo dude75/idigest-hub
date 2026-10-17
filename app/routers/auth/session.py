@@ -83,6 +83,7 @@ def login(
         return LoginMfaRequiredResponse(challenge_id=challenge_id)
     raw = create_session(db, user.id)
     issue_auth_cookies(response, raw, max_age=session_ttl_sec_from_db(db))
+    write_audit(db, "auth.login", actor_id=user.id, payload={"method": "password"})
     return LoginOkResponse()
 
 
@@ -187,6 +188,7 @@ def sso_callback(
         max_age=session_ttl_sec_from_db(db),
         samesite=oauth_embedded_session_samesite() if oauth_authorize_query else "lax",
     )
+    write_audit(db, "auth.login", actor_id=user.id, payload={"method": "sso", "org_id": org_id})
     return redirect
 
 
@@ -197,6 +199,8 @@ def logout(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext | None = Depends(optional_auth),
 ) -> OkStatusResponse:
+    if ctx is not None:
+        write_audit(db, "auth.logout", ctx, {})
     token = request.cookies.get(COOKIE_NAME)
     if token:
         db.execute(delete(AuthSession).where(AuthSession.token_hash == hash_secret(token)))

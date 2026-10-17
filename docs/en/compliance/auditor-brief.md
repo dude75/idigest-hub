@@ -153,12 +153,15 @@ Persistent table `audit_log`: `actor_user_id`, optional `on_behalf_of_user_id` (
 | `summary.update` / `summary.delete` | Summary changes |
 | `summary.public_link.create` / `summary.public_link.revoke` / `summary.public_link.view` | Public guest links |
 | `crypto.dek.create` / `crypto.reencrypt.start` / `crypto.reencrypt.cancel` | Encryption key operations |
+| `auth.login` / `auth.logout` | Password or SSO session start; cookie logout |
+| `auth.token.create` / `auth.token.revoke` | Personal access token (`idg_…`) lifecycle |
+| `auth.mfa.*` | MFA verify, recovery, enable, disable |
 
 **Access:** instance admin → **Security → Audit** or `GET /instance/audit` (filters: date, org, user, action; paginated; CSV export via `/instance/audit/export`).
 
 **Correlated ledgers:** `usage_events` (billing per task), wallet top-ups cross-referenced with `wallet.delta` audit entries.
 
-**Gap (disclosed):** login, logout, failed login, and API token create/revoke are **not** written to `audit_log` (session rows and token table provide partial traceability).
+**Gap (disclosed):** failed login attempts are **not** written to `audit_log` (rate limits apply; use reverse proxy / IdP logs for brute-force forensics).
 
 ### 5. Multi-tenancy and isolation
 
@@ -277,7 +280,7 @@ Use this table to map idigest-hub controls to your compliance framework. Status 
 | Password-only local users | Credential theft | Enable TOTP in profile; org `mfa_required`; IdP MFA for SSO |
 | In-memory rate limits, single worker | No horizontal scale; limits reset on restart | nginx rate limiting; single-instance HA acceptance |
 | Local audio not app-encrypted | Disk access exposes files | Encrypted volume, S3 backend with SSE-KMS |
-| Auth events not in audit_log | Incomplete login forensics | IdP logs, reverse proxy access logs |
+| Failed login not in audit_log | Incomplete brute-force forensics in hub UI | Rate limits; IdP logs, reverse proxy access logs |
 | Security headers in nginx only | Weak headers if hub exposed directly | Always deploy behind nginx/TLS proxy |
 | No container image CVE scan in CI | Vulnerable base image | Periodic registry scan (Trivy/Grype) |
 | No formal certification | Questionnaire gaps | Use this brief + [SECURITY.md](../../../SECURITY.md) as evidence pack |

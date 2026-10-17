@@ -77,6 +77,12 @@ def create_token(
     )
     db.add(row)
     db.flush()
+    write_audit(
+        db,
+        "auth.token.create",
+        ctx,
+        {"token_id": row.id, "prefix": row.prefix, "name": row.name},
+    )
     payload = token_public(row)
     payload["token"] = raw
     return ApiTokenCreateResponse.model_validate(payload)
@@ -106,4 +112,10 @@ def revoke_token(
     if row is None or row.user_id != ctx.user.id:
         ctx.raise_error(ErrorCode.not_found)
     row.revoked_at = utcnow()
+    write_audit(
+        db,
+        "auth.token.revoke",
+        ctx,
+        {"token_id": row.id, "prefix": row.prefix, "name": row.name},
+    )
     return OkStatusResponse()
