@@ -35,7 +35,7 @@ web/src/
 │   ├── AcceptAgreementPage, LegalDocumentPage
 │   ├── LibraryPage, AudioPage, TranscriptPage, SummaryPage, PublicLinksPage
 │   ├── TasksPage, TaskPage, SkillsPage, SkillPage
-│   ├── OrgPage, StatsPage, ProfilePage, PublicSummaryPage (guest)
+│   ├── OrgPage, StatsPage, ProfilePage (+ `pages/profile/*` вкладки), PublicSummaryPage (guest)
 │   ├── instance/     # InstancePage + вкладки (workers, tariffs, orgs, …)
 │   └── security/     # SecurityPage (encryption, audit log)
 ├── mfa.ts            # sessionStorage helpers для login challenge_id
@@ -100,7 +100,28 @@ npm run generate:api    # export_openapi.py + generate:api-types
 5. После login / смены пароля / verify или enroll 2FA → `resolveAuthContinuationPath(me)` → home
 6. Instance admin без org → Instance UI
 
-Profile → Security: опциональное включение/отключение 2FA. Диалог API token запрашивает TOTP при `mfa_enabled`. Org admin: переключатель `mfa_required` и reset-MFA участников на Org page. В Profile также переопределяются модели транскрибации и summarize и опциональное имя бота capture (`PATCH /me`); удаление и правка в Instance → Workers открывают `WorkerImpactModal`, если пропадёт модель или connector capture (карты Jitsi host org не привязаны к воркерам). Удаление в Instance → Tariffs открывает `TariffImpactModal`: список org на тарифе и опциональный перенос на другой активный тариф перед DELETE.
+Настройки профиля используют те же API (`PATCH /me`, `/auth/tokens`, `/me/backup`, …); изменилась только вёрстка. Org admin: `mfa_required` и reset-MFA участников — на странице **Org**. Модалки Instance → Workers / Tariffs без изменений (`WorkerImpactModal`, `TariffImpactModal`).
+
+## Страница профиля (`/app/profile`)
+
+Точка входа: `web/src/pages/ProfilePage.tsx`; вкладки и формы — `web/src/pages/profile/` (`useProfilePageModel`, `ProfilePageProvider`).
+
+**Вкладки** (shadcn `Tabs`, обёртка `components/Tabs.tsx` — `TabsRoot` / `TabsContent`):
+
+| Вкладка | Query `?tab=` | Содержимое |
+| ------- | ------------- | ---------- |
+| Аккаунт | *(нет)* или `general` | Имя, раздел по умолчанию, дата/время (`setDefaultRoute`, `PATCH /me` для имён) |
+| ИИ и capture | `models` | Модели транскрибации/summarize, имя бота capture — только если есть что настраивать |
+| Безопасность | `security` | Смена пароля, TOTP 2FA (`MfaSetupPanel`) — только при локальном входе (не SSO-only) |
+| Данные и API | `data` | Личный бэкап ZIP/TGZ, API-токены, удаление аккаунта |
+
+Ссылки для поддержки: `/app/profile`, `/app/profile?tab=data` и т.д. Неизвестная или скрытая вкладка → **Аккаунт**.
+
+**Для поддержки**
+
+- Шапка: организация / 2FA / число активных токенов / API по тарифу — сводка.
+- **API-токены:** по умолчанию в списке только **активные**; «Показать отозванные (N)» раскрывает отозванные (`DELETE /auth/tokens/{id}` по-прежнему только revoke, без удаления строки в БД). При создании токена может запрашиваться TOTP при `mfa_enabled`. MCP-клиенты — OAuth `/oauth/authorize`, не personal access tokens (подсказка на странице).
+- **Бэкап:** `GET /me/backup` / `POST /me/backup/restore` — как в [бэкапе библиотеки](../domain/library.md#резервная-копия-профиля).
 
 ## Ingest на Library
 

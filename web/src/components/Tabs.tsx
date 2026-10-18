@@ -6,7 +6,12 @@ import {
 } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 
-export { TabsList, TabsTrigger } from '@/components/ui/tabs'
+export {
+  Tabs as TabsRoot,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs'
 
 export type TabButtonItem = { id: string; label: string; active: boolean; onClick: () => void }
 

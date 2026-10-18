@@ -12,6 +12,19 @@ export function userDisplayName(user: UserLabelSource | null | undefined): strin
   return (user.email || '').trim()
 }
 
+/** Two letters for avatar fallback. */
+export function userInitials(user: UserLabelSource | null | undefined): string {
+  if (!user) return '?'
+  const name = (user.display_name || '').trim()
+  const parts = name.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) {
+    return `${parts[0]![0] ?? ''}${parts[1]![0] ?? ''}`.toUpperCase()
+  }
+  const single = parts[0] || (user.email || '').trim()
+  if (single.length >= 2) return single.slice(0, 2).toUpperCase()
+  return (single[0] ?? '?').toUpperCase()
+}
+
 export function userHasDistinctDisplayName(user: UserLabelSource | null | undefined): boolean {
   if (!user?.email) return false
   const name = (user.display_name || '').trim()

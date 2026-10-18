@@ -35,7 +35,7 @@ web/src/
 │   ├── AcceptAgreementPage, LegalDocumentPage
 │   ├── LibraryPage, AudioPage, TranscriptPage, SummaryPage, PublicLinksPage
 │   ├── TasksPage, TaskPage, SkillsPage, SkillPage
-│   ├── OrgPage, StatsPage, ProfilePage, PublicSummaryPage (guest)
+│   ├── OrgPage, StatsPage, ProfilePage (+ `pages/profile/*` tabs), PublicSummaryPage (guest)
 │   ├── instance/     # InstancePage + tabs (workers, tariffs, orgs, …)
 │   └── security/     # SecurityPage (encryption, audit log)
 ├── mfa.ts            # sessionStorage helpers for login challenge_id
@@ -100,7 +100,28 @@ Regeneration is covered in CI indirectly via pytest (`tests/test_export_openapi.
 5. After login / password change / 2FA verify or enroll → `resolveAuthContinuationPath(me)` → home
 6. Instance admin without org → Instance UI
 
-Profile → Security: optional 2FA enable/disable. API token dialog prompts for TOTP when `mfa_enabled`. Org admin: `mfa_required` toggle and member reset-MFA on Org page. Profile also overrides transcription, summarize models, and optional capture bot display name (`PATCH /me`); Instance → Workers delete/edit opens `WorkerImpactModal` when a model or capture connector would be lost (org Jitsi host maps are not tied to workers). Instance → Tariffs delete opens `TariffImpactModal` to list orgs on the tariff and optionally move them to another active tariff before DELETE.
+Profile settings use the same APIs as before (`PATCH /me`, `/auth/tokens`, `/me/backup`, …); only the UI layout changed. Org admin: `mfa_required` and member reset-MFA stay on **Org** page. Instance → Workers / Tariffs impact modals unchanged (`WorkerImpactModal`, `TariffImpactModal`).
+
+## Profile page (`/app/profile`)
+
+Entry: `web/src/pages/ProfilePage.tsx`; tab panels and form logic under `web/src/pages/profile/` (`useProfilePageModel` + `ProfilePageProvider`).
+
+**Tabs** (shadcn `Tabs`, bar via `components/Tabs.tsx` — `TabsRoot` / `TabsContent`):
+
+| Tab | Query `?tab=` | Contents |
+| --- | ------------- | -------- |
+| Account | *(omit)* or `general` | Name, default route after login, date/time (`setDefaultRoute`, `PATCH /me` for names) |
+| AI & capture | `models` | Transcription, summarize, capture bot overrides — shown only if the user has something to configure |
+| Security | `security` | Password change, TOTP 2FA (`MfaSetupPanel`) — only for local auth (not SSO-only) |
+| Data & API | `data` | Personal backup ZIP/TGZ, API tokens, delete account |
+
+Deep links for support: `/app/profile`, `/app/profile?tab=data`, etc. Unknown or hidden tab values fall back to **Account**.
+
+**Support notes**
+
+- Header card: org / 2FA / active token count / API tariff — read-only summary.
+- **API tokens:** list shows **active** tokens by default; link **Show revoked (N)** reveals revoked rows (still `DELETE /auth/tokens/{id}` = revoke only; no server-side purge). Creating a token may prompt for TOTP when `mfa_enabled`. MCP/OAuth clients use `/oauth/authorize`, not personal access tokens (hint on the page).
+- **Backup:** `GET /me/backup` / `POST /me/backup/restore` — same as [Library backup](../domain/library.md#profile-backup).
 
 ## Library ingest
 

@@ -19,6 +19,7 @@ const ALLOW_UI_TABS = new Set([
 const ALLOW_RAW_SUBMIT_BUTTON = new Set([
   path.join(SRC, 'pages/instance/WorkerImpactModal.tsx'),
   path.join(SRC, 'components/IngestExtraTagsMultiSelect.tsx'),
+  path.join(SRC, 'pages/profile/ProfileSection.tsx'),
 ])
 
 /** Legacy `.badge` in className — use HubBadge. */
