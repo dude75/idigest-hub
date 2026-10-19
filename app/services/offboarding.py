@@ -9,7 +9,6 @@ from app.models import (
     ApiToken,
     Audio,
     HiddenItem,
-    Session as AuthSession,
     Share,
     Skill,
     Summary,
@@ -18,6 +17,7 @@ from app.models import (
     User,
 )
 from app.services.artifacts import hard_delete_audio, hard_delete_summary, hard_delete_transcript
+from app.session_store import get_session_store
 
 
 def transfer_user(db: Session, user: User, target: User) -> None:
@@ -62,7 +62,7 @@ def transfer_user(db: Session, user: User, target: User) -> None:
 
     delete_all_user_tags(db, user.id)
     db.execute(delete(ApiToken).where(ApiToken.user_id == user.id))
-    db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+    get_session_store().delete_user_sessions(db, user.id)
 
 
 def wipe_user_content(db: Session, user: User) -> None:
@@ -90,4 +90,4 @@ def wipe_user_content(db: Session, user: User) -> None:
 
     delete_all_user_tags(db, user.id)
     db.execute(delete(ApiToken).where(ApiToken.user_id == user.id))
-    db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
+    get_session_store().delete_user_sessions(db, user.id)

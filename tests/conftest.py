@@ -74,8 +74,10 @@ def client(tmp_path, monkeypatch):
     reset_engine()
 
     from app.rate_limit import reset_rate_limiter
+    from app.session_store import reset_session_store
 
     reset_rate_limiter()
+    reset_session_store()
 
     import app.services.dispatcher as dispatcher
 
@@ -111,8 +113,10 @@ def client(tmp_path, monkeypatch):
     dispatcher._inflight_ticks.clear()
 
     from app.rate_limit import reset_rate_limiter
+    from app.session_store import reset_session_store
 
     reset_rate_limiter()
+    reset_session_store()
 
 
 @pytest.fixture

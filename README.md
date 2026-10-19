@@ -174,7 +174,8 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `COOKIE_SECURE`              | Session cookie `Secure` flag. Default `false` (local HTTP). Set `true` behind HTTPS.                                                                             |
 | `TRUSTED_PROXIES`            | Comma-separated IPs/CIDRs of reverse proxies allowed to set `X-Forwarded-For` / `X-Real-IP` for per-IP rate limits. Empty = trust none (TCP peer only).        |
 | `RATE_LIMIT_BACKEND`         | Where rate limit counters are stored: `memory` (default) or `valkey`.                                                                                            |
-| `VALKEY_URL`                 | Redis URL when `RATE_LIMIT_BACKEND=valkey`, e.g. `redis://valkey:6379/0`. Required for Valkey backend.                                                          |
+| `SESSION_STORE`              | Browser sessions: `auto` (default, Valkey when `VALKEY_URL` is set), `db`, or `valkey`.                                                                          |
+| `VALKEY_URL`                 | Redis URL for Valkey-backed rate limits and/or sessions, e.g. `redis://valkey:6379/0`.                                                                             |
 | `METRICS_ENABLED`              | Application Prometheus metrics on `GET /metrics`. Default `true`. `false` / `0` / `no` = process collectors only.                                              |
 | `METRICS_TOKEN`                | Bearer token for Prometheus scrape. Required; empty = `/metrics` returns 401.                                                                                  |
 | `OAUTH_PROVIDER_ENABLED`       | Hub OAuth 2.1 + MCP at `/mcp` (Open WebUI). Default `false`. Requires Public URL when enabled.                                                               |
@@ -283,6 +284,8 @@ In `.env`:
 ```env
 RATE_LIMIT_BACKEND=valkey
 VALKEY_URL=redis://valkey:6379/0
+# Optional: force sessions in Valkey (default SESSION_STORE=auto uses Valkey when VALKEY_URL is set)
+# SESSION_STORE=valkey
 ```
 
 Then:
@@ -292,6 +295,8 @@ docker compose --profile valkey up --build
 ```
 
 Combine with PostgreSQL: `docker compose --profile pg --profile valkey up --build`.
+
+With `VALKEY_URL` set, `SESSION_STORE=auto` (default) stores browser sessions in Valkey too; use `SESSION_STORE=db` to keep sessions in PostgreSQL/SQLite only.
 
 Valkey persists RDB/AOF under `./data/valkey` (bind mount). Rate limit keys still expire by TTL; the directory mainly survives container recreation.
 

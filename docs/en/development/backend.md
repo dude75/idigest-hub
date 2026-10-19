@@ -18,6 +18,7 @@ app/
 ├── i18n.py           # Locale negotiation + translations
 ├── rate_limit.py     # Rate limit enforcement (memory or Valkey via RATE_LIMIT_BACKEND)
 ├── rate_limit_store.py
+├── session_store.py  # Browser sessions (db or Valkey via SESSION_STORE)
 ├── openapi.py        # Swagger security schemes (Bearer + session cookie)
 ├── schemas/          # Pydantic response/request models for OpenAPI (e.g. auth_api, org_api, oauth_api)
 ├── routers/

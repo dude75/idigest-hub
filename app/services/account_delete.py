@@ -6,6 +6,7 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.errors import ApiError, ErrorCode
+from app.session_store import get_session_store
 from app.i18n import t
 from app.models import (
     ApiToken,
@@ -16,7 +17,6 @@ from app.models import (
     Organization,
     PasswordResetToken,
     RecoveryCode,
-    Session as AuthSession,
     Share,
     Skill,
     Summary,
@@ -106,14 +106,9 @@ def _purge_user_owned_data(db: Session, user: User) -> None:
 
 
 def _purge_user_auth(db: Session, user_id: str) -> None:
-    db.execute(
-        update(AuthSession)
-        .where(AuthSession.impersonate_user_id == user_id)
-        .values(impersonate_user_id=None)
-    )
+    get_session_store().clear_impersonation_target(db, user_id)
     revoke_user_auth(db, user_id)
     db.execute(delete(ApiToken).where(ApiToken.user_id == user_id))
-    db.execute(delete(AuthSession).where(AuthSession.user_id == user_id))
     db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user_id))
     db.execute(delete(MfaChallenge).where(MfaChallenge.user_id == user_id))
     db.execute(delete(RecoveryCode).where(RecoveryCode.user_id == user_id))

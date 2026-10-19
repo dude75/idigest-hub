@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     S3_SSE_KMS_KEY_ID: str = ""
     # Rate limit counters: memory (default) or shared Valkey (redis:// URL).
     RATE_LIMIT_BACKEND: str = "memory"
+    # Browser sessions: auto (Valkey when VALKEY_URL is set), db, or valkey.
+    SESSION_STORE: str = "auto"
     VALKEY_URL: str = ""
     DATABASE_URL: str = "sqlite:///./data/hub.db"
     SQLITE_PATH: str = "./data/hub.db"
@@ -120,10 +122,20 @@ class Settings(BaseSettings):
             raise ValueError("RATE_LIMIT_BACKEND must be 'memory' or 'valkey'")
         return normalized
 
+    @field_validator("SESSION_STORE")
+    @classmethod
+    def _session_store(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"auto", "db", "valkey"}:
+            raise ValueError("SESSION_STORE must be 'auto', 'db', or 'valkey'")
+        return normalized
+
     @model_validator(mode="after")
     def _valkey_url_when_valkey_backend(self) -> Self:
         if self.RATE_LIMIT_BACKEND == "valkey" and not self.VALKEY_URL.strip():
             raise ValueError("VALKEY_URL is required when RATE_LIMIT_BACKEND=valkey")
+        if self.SESSION_STORE == "valkey" and not self.VALKEY_URL.strip():
+            raise ValueError("VALKEY_URL is required when SESSION_STORE=valkey")
         return self
 
 

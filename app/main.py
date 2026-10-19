@@ -38,6 +38,7 @@ from app.routers import auth, crypto, instance, library, oauth, org, public, ski
 from app.services.dispatcher import dispatcher_loop
 from app.rate_limit import rate_limit_sweeper
 from app.rate_limit_store import close_rate_limit_store, init_rate_limit_store, rate_limit_uses_memory
+from app.session_store import close_session_store, init_session_store
 from app.version import read_version
 
 log = logging.getLogger("app")
@@ -99,6 +100,7 @@ async def lifespan(app: FastAPI):
 
     await asyncio.to_thread(drain_all_pending_storage_deletes)
     init_rate_limit_store(settings)
+    init_session_store(settings)
     metrics = create_metrics(settings)
     set_active(metrics)
     metrics.bind(settings=settings)
@@ -138,6 +140,7 @@ async def lifespan(app: FastAPI):
             except asyncio.CancelledError:
                 pass
         close_rate_limit_store()
+        close_session_store()
         log.info("service stop")
 
 

@@ -19,7 +19,6 @@ from app.models import (
     Membership,
     Organization,
     PasswordResetToken,
-    Session as AuthSession,
     Tariff,
     User,
     new_id,
@@ -33,6 +32,7 @@ from app.routers.auth._body import (
 from app.routers.auth._helpers import _login_membership_org, _norm_email
 from app.routers.auth._router import router
 from app.security import hash_password, hash_secret, new_api_token, new_reset_token, verify_password
+from app.session_store import get_session_store
 from app.services.audit import write_audit
 from app.services.auth_helpers import create_session, me_payload, me_with_csrf, public_base_url, revoke_user_auth, seed_default_tariff, sso_login_redirect
 from app.timeutil import utcnow
@@ -203,7 +203,7 @@ def logout(
         write_audit(db, "auth.logout", ctx, {})
     token = request.cookies.get(COOKIE_NAME)
     if token:
-        db.execute(delete(AuthSession).where(AuthSession.token_hash == hash_secret(token)))
+        get_session_store().delete_by_raw_token(db, token)
     clear_auth_cookies(response)
     return OkStatusResponse()
 

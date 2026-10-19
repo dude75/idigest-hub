@@ -8,16 +8,16 @@ from urllib.parse import urlencode
 
 from fastapi import Request, Response
 from fastapi.responses import RedirectResponse
-from sqlalchemy import delete, func, select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.constants import DEFAULT_TARIFF_NAME, MAX_UPLOAD_BYTES_CAP
 from app.cookies import bind_csrf_token
 from app.deps import AuthContext, get_instance_settings, session_ttl_sec_from_db
 from app.errors import ErrorCode
-from app.models import ApiToken, Membership, Organization, Session as AuthSession, Tariff, UsageEvent, User, new_id
+from app.models import ApiToken, Membership, Organization, Tariff, UsageEvent, User, new_id
+from app.session_store import get_session_store
 from app.presenters import org_public, user_public
-from app.security import hash_secret, new_session_token
 from app.services.mfa import mfa_enrollment_required, org_mfa_required, totp_enabled
 from app.timeutil import as_utc, utcnow
 
@@ -48,25 +48,12 @@ def seed_default_tariff(db: Session) -> Tariff:
 
 
 def create_session(db: Session, user_id: str) -> str:
-    raw = new_session_token()
-    now = utcnow()
     ttl_sec = session_ttl_sec_from_db(db)
-    db.add(
-        AuthSession(
-            id=new_id(),
-            user_id=user_id,
-            token_hash=hash_secret(raw),
-            impersonate_user_id=None,
-            expires_at=now + timedelta(seconds=ttl_sec),
-            created_at=now,
-            last_seen_at=now,
-        )
-    )
-    return raw
+    return get_session_store().create(db, user_id, ttl_sec)
 
 
 def invalidate_user_sessions(db: Session, user_id: str) -> None:
-    db.execute(delete(AuthSession).where(AuthSession.user_id == user_id))
+    get_session_store().delete_user_sessions(db, user_id)
 
 
 def revoke_user_tokens(db: Session, user_id: str) -> None:

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.models import ApiToken, InstanceSettings, Session as AuthSession
+from app.models import ApiToken, InstanceSettings
+from app.session_store import get_session_store
 
 
 class SecretsConfigError(RuntimeError):
@@ -29,7 +30,7 @@ def validate_secrets_config(db: Session) -> None:
             "Set SESSION_SECRET in .env and restart."
         )
 
-    if db.scalar(select(func.count()).select_from(AuthSession)):
+    if get_session_store().count_active(db):
         raise SecretsConfigError(
             "SESSION_SECRET is empty but active sessions exist in the database. "
             "Set SESSION_SECRET in .env and restart."

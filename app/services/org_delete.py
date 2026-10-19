@@ -5,6 +5,7 @@ from __future__ import annotations
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
+from app.session_store import get_session_store
 from app.models import (
     ApiToken,
     Audio,
@@ -14,7 +15,6 @@ from app.models import (
     Organization,
     PasswordResetToken,
     RecoveryCode,
-    Session as AuthSession,
     Share,
     Skill,
     Summary,
@@ -43,14 +43,9 @@ def _cancel_active_org_tasks(db: Session, org_id: str) -> None:
 def _delete_org_member(db: Session, user: User, membership: Membership) -> None:
     if user.is_instance_admin:
         return
-    db.execute(
-        update(AuthSession)
-        .where(AuthSession.impersonate_user_id == user.id)
-        .values(impersonate_user_id=None)
-    )
+    get_session_store().clear_impersonation_target(db, user.id)
     revoke_user_auth(db, user.id)
     db.execute(delete(ApiToken).where(ApiToken.user_id == user.id))
-    db.execute(delete(AuthSession).where(AuthSession.user_id == user.id))
     db.execute(delete(PasswordResetToken).where(PasswordResetToken.user_id == user.id))
     db.execute(delete(MfaChallenge).where(MfaChallenge.user_id == user.id))
     db.execute(delete(RecoveryCode).where(RecoveryCode.user_id == user.id))

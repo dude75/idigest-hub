@@ -12,6 +12,7 @@ from app.routers.instance._body import ImpersonateBody
 from app.routers.instance._router import router
 from app.schemas.common import OkStatusResponse
 from app.services.audit import write_audit
+from app.session_store import get_session_store
 
 
 
@@ -46,7 +47,7 @@ def impersonate(
         )
         if membership is None:
             ctx.raise_error(ErrorCode.not_found)
-    ctx.session.impersonate_user_id = target.id
+    get_session_store().set_impersonate(db, ctx.session, target.id)
     write_audit(db, "impersonate.start", ctx, {"user_id": target.id}, on_behalf_of=target.id)
     return OkStatusResponse()
 
@@ -60,5 +61,5 @@ def stop_impersonate(
     if not ctx.actor.is_instance_admin and actor_is_org_admin(db, ctx) is None:
         ctx.raise_error(ErrorCode.forbidden)
     write_audit(db, "impersonate.stop", ctx)
-    ctx.session.impersonate_user_id = None
+    get_session_store().set_impersonate(db, ctx.session, None)
     return OkStatusResponse()

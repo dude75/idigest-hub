@@ -174,7 +174,8 @@ Login с 2FA: пароль → `/verify-2fa` (TOTP или recovery code). При
 | `COOKIE_SECURE`              | Флаг `Secure` у session cookie. По умолчанию `false` (локальный HTTP). За HTTPS ставьте `true`.                                                                  |
 | `TRUSTED_PROXIES`            | IP/CIDR reverse proxy через запятую; им доверяют заголовки `X-Forwarded-For` / `X-Real-IP` для per-IP лимитов. Пусто = не доверять (только TCP peer).          |
 | `RATE_LIMIT_BACKEND`         | Где хранить счётчики rate limit: `memory` (по умолчанию) или `valkey`.                                                                                            |
-| `VALKEY_URL`                 | Redis URL при `RATE_LIMIT_BACKEND=valkey`, например `redis://valkey:6379/0`. Обязателен для Valkey.                                                              |
+| `SESSION_STORE`              | Сессии: `auto` (по умолчанию, Valkey при заданном `VALKEY_URL`), `db` или `valkey`.                                                                              |
+| `VALKEY_URL`                 | Redis URL для rate limits и/или сессий в Valkey, например `redis://valkey:6379/0`.                                                                               |
 | `METRICS_ENABLED`              | Прикладные метрики на `GET /metrics`. По умолчанию `true`. `false` / `0` / `no` — только process collectors.                                                     |
 | `METRICS_TOKEN`                | Bearer для Prometheus scrape. Обязателен; пусто — `/metrics` отвечает 401.                                                                                     |
 | `OAUTH_PROVIDER_ENABLED`       | OAuth 2.1 хаба + MCP на `/mcp` (Open WebUI). По умолчанию `false`. При включении нужен Публичный URL.                                                         |
@@ -283,6 +284,8 @@ sudo chown -R 999:999 ./data/pg
 ```env
 RATE_LIMIT_BACKEND=valkey
 VALKEY_URL=redis://valkey:6379/0
+# Опционально: явно сессии в Valkey (по умолчанию SESSION_STORE=auto при VALKEY_URL)
+# SESSION_STORE=valkey
 ```
 
 Затем:
@@ -292,6 +295,8 @@ docker compose --profile valkey up --build
 ```
 
 Вместе с PostgreSQL: `docker compose --profile pg --profile valkey up --build`.
+
+При заданном `VALKEY_URL` режим `SESSION_STORE=auto` (по умолчанию) кладёт cookie-сессии в Valkey; `SESSION_STORE=db` оставляет сессии только в PostgreSQL/SQLite.
 
 Valkey сохраняет RDB/AOF в `./data/valkey` (bind mount). Ключи rate limit по-прежнему истекают по TTL; каталог нужен, чтобы данные переживали пересоздание контейнера.
 

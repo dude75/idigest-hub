@@ -13,7 +13,8 @@ from app.constants import COOKIE_NAME, DEFAULT_SESSION_TTL_HOURS, MAX_SESSION_TT
 from app.db import get_session
 from app.errors import ApiError, ErrorCode
 from app.i18n import negotiate_locale, t
-from app.models import InstanceSettings, Membership, Organization, Session as AuthSession, Tariff, User
+from app.models import InstanceSettings, Membership, Organization, Tariff, User
+from app.session_store import SessionRecord, get_session_store
 from app.security import hash_secret
 from app.timeutil import utcnow, as_utc
 
@@ -56,7 +57,7 @@ class AuthContext:
     actor: User
     org: Organization | None
     membership: Membership | None
-    session: AuthSession | None
+    session: SessionRecord | None
     via_api_token: bool
     locale: str
     impersonating: bool
@@ -121,12 +122,12 @@ def load_org_bundle(db: Session, user: User) -> tuple[Organization | None, Membe
     return membership.org, membership
 
 
-def _effective_user(db: Session, session_row: AuthSession, login_user: User) -> User:
+def _effective_user(db: Session, session_row: SessionRecord, login_user: User) -> User:
     if not session_row.impersonate_user_id:
         return login_user
     target = db.get(User, session_row.impersonate_user_id)
     if target is None or target.disabled_at is not None:
-        session_row.impersonate_user_id = None
+        get_session_store().set_impersonate(db, session_row, None)
         db.flush()
         return login_user
     return target
@@ -220,12 +221,7 @@ def resolve_auth(request: Request, db: Session = Depends(get_session, scope="fun
             )
 
     if token:
-        session_row = db.scalar(
-            select(AuthSession).where(
-                AuthSession.token_hash == hash_secret(token),
-                AuthSession.expires_at > utcnow(),
-            )
-        )
+        session_row = get_session_store().lookup_by_raw_token(db, token)
         if session_row is None:
             return None
         login_user = db.get(User, session_row.user_id)
@@ -234,9 +230,11 @@ def resolve_auth(request: Request, db: Session = Depends(get_session, scope="fun
         effective = _effective_user(db, session_row, login_user)
         locale = locale_from_request(request, effective)
         org, membership = load_org_bundle(db, effective)
-        now = utcnow()
-        session_row.last_seen_at = now
-        session_row.expires_at = now + timedelta(seconds=session_ttl_sec(get_instance_settings(db)))
+        get_session_store().touch(
+            db,
+            session_row,
+            session_ttl_sec(get_instance_settings(db)),
+        )
         return AuthContext(
             user=effective,
             actor=login_user,
