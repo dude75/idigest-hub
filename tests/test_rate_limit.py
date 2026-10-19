@@ -6,7 +6,7 @@ import time
 
 from fastapi.testclient import TestClient
 
-from app.rate_limit import MAX_BUCKETS, _hit, reset_rate_limiter
+from app.rate_limit import _hit, reset_rate_limiter
 from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD, err_code, login, logout, open_db, setup_admin
 
 
@@ -225,15 +225,15 @@ def test_bucket_expires():
 
 def test_max_buckets_eviction():
     reset_rate_limiter()
-    from app import rate_limit as rl
+    from app import rate_limit_store as rls
 
-    original = rl.MAX_BUCKETS
-    rl.MAX_BUCKETS = 5
+    original = rls.MAX_BUCKETS
+    rls.MAX_BUCKETS = 5
     try:
         for index in range(6):
             allowed, _ = _hit(f"fill:{index}", 100, 3600.0)
             assert allowed
-        assert len(rl._buckets) <= 5
+        assert len(rls._buckets) <= 5
     finally:
-        rl.MAX_BUCKETS = original
+        rls.MAX_BUCKETS = original
         reset_rate_limiter()

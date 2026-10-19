@@ -37,6 +37,7 @@ from app.prometheus_metrics import (
 from app.routers import auth, crypto, instance, library, oauth, org, public, skills, tasks
 from app.services.dispatcher import dispatcher_loop
 from app.rate_limit import rate_limit_sweeper
+from app.rate_limit_store import close_rate_limit_store, init_rate_limit_store, rate_limit_uses_memory
 from app.version import read_version
 
 log = logging.getLogger("app")
@@ -97,13 +98,16 @@ async def lifespan(app: FastAPI):
     from app.services.storage_gc import drain_all_pending_storage_deletes
 
     await asyncio.to_thread(drain_all_pending_storage_deletes)
+    init_rate_limit_store(settings)
     metrics = create_metrics(settings)
     set_active(metrics)
     metrics.bind(settings=settings)
     app.state.metrics = metrics
     stop_event = asyncio.Event()
     task = asyncio.create_task(dispatcher_loop(stop_event))
-    rate_limit_task = asyncio.create_task(rate_limit_sweeper(stop_event))
+    rate_limit_task = (
+        asyncio.create_task(rate_limit_sweeper(stop_event)) if rate_limit_uses_memory(settings) else None
+    )
     app.state.dispatcher_stop = stop_event
     app.state.dispatcher_task = task
     app.state.rate_limit_task = rate_limit_task
@@ -122,15 +126,18 @@ async def lifespan(app: FastAPI):
         set_active(None)
         stop_event.set()
         task.cancel()
-        rate_limit_task.cancel()
+        if rate_limit_task is not None:
+            rate_limit_task.cancel()
         try:
             await task
         except asyncio.CancelledError:
             pass
-        try:
-            await rate_limit_task
-        except asyncio.CancelledError:
-            pass
+        if rate_limit_task is not None:
+            try:
+                await rate_limit_task
+            except asyncio.CancelledError:
+                pass
+        close_rate_limit_store()
         log.info("service stop")
 
 

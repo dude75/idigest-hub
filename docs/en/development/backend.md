@@ -16,7 +16,8 @@ app/
 ├── security.py       # Passwords, token hashing
 ├── cookies.py        # Session cookie helpers
 ├── i18n.py           # Locale negotiation + translations
-├── rate_limit.py     # In-memory limiter
+├── rate_limit.py     # Rate limit enforcement (memory or Valkey via RATE_LIMIT_BACKEND)
+├── rate_limit_store.py
 ├── openapi.py        # Swagger security schemes (Bearer + session cookie)
 ├── schemas/          # Pydantic response/request models for OpenAPI (e.g. auth_api, org_api, oauth_api)
 ├── routers/

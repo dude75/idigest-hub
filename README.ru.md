@@ -173,6 +173,8 @@ Login с 2FA: пароль → `/verify-2fa` (TOTP или recovery code). При
 | `LOG_BACKUP_COUNT`           | Сколько архивов хранить (`app.log.1` … `app.log.N`). По умолчанию `5`.                                                                                           |
 | `COOKIE_SECURE`              | Флаг `Secure` у session cookie. По умолчанию `false` (локальный HTTP). За HTTPS ставьте `true`.                                                                  |
 | `TRUSTED_PROXIES`            | IP/CIDR reverse proxy через запятую; им доверяют заголовки `X-Forwarded-For` / `X-Real-IP` для per-IP лимитов. Пусто = не доверять (только TCP peer).          |
+| `RATE_LIMIT_BACKEND`         | Где хранить счётчики rate limit: `memory` (по умолчанию) или `valkey`.                                                                                            |
+| `VALKEY_URL`                 | Redis URL при `RATE_LIMIT_BACKEND=valkey`, например `redis://valkey:6379/0`. Обязателен для Valkey.                                                              |
 | `METRICS_ENABLED`              | Прикладные метрики на `GET /metrics`. По умолчанию `true`. `false` / `0` / `no` — только process collectors.                                                     |
 | `METRICS_TOKEN`                | Bearer для Prometheus scrape. Обязателен; пусто — `/metrics` отвечает 401.                                                                                     |
 | `OAUTH_PROVIDER_ENABLED`       | OAuth 2.1 хаба + MCP на `/mcp` (Open WebUI). По умолчанию `false`. При включении нужен Публичный URL.                                                         |
@@ -272,6 +274,33 @@ PostgreSQL хранит файлы в `./data/pg` (bind mount). Загрузки
 sudo chown -R 999:999 ./data/pg
 ```
 
+### Запуск (Valkey для rate limits)
+
+По умолчанию счётчики rate limit — в памяти процесса. Для общих счётчиков между процессами hub (и сохранения между рестартами) — Valkey.
+
+В `.env`:
+
+```env
+RATE_LIMIT_BACKEND=valkey
+VALKEY_URL=redis://valkey:6379/0
+```
+
+Затем:
+
+```bash
+docker compose --profile valkey up --build
+```
+
+Вместе с PostgreSQL: `docker compose --profile pg --profile valkey up --build`.
+
+Valkey сохраняет RDB/AOF в `./data/valkey` (bind mount). Ключи rate limit по-прежнему истекают по TTL; каталог нужен, чтобы данные переживали пересоздание контейнера.
+
+Если Valkey не стартует из‑за прав, один раз на хосте:
+
+```bash
+sudo chown -R 999:999 ./data/valkey
+```
+
 ### Остановка
 
 ```bash
@@ -282,7 +311,7 @@ docker compose down
 
 ## Ограничение частоты запросов
 
-Хаб опционально ограничивает частоту запросов **в памяти процесса** (один worker Uvicorn — см. [Установка и запуск](#установка-и-запуск)). После рестарта счётчики обнуляются. Фоновая очистка удаляет протухшие bucket'ы; в RAM хранится не более **20 000** bucket'ов (при переполнении удаляются самые старые).
+Хаб опционально ограничивает частоту запросов (**fixed window**). По умолчанию счётчики в **памяти процесса** (`RATE_LIMIT_BACKEND=memory`, один worker Uvicorn — см. [Установка и запуск](#установка-и-запуск)); после рестарта обнуляются. Фоновая очистка удаляет протухшие bucket'ы; в RAM не более **20 000** bucket'ов. Для общих счётчиков: `RATE_LIMIT_BACKEND=valkey` и `VALKEY_URL` (см. [Запуск (Valkey для rate limits)](#запуск-valkey-для-rate-limits)).
 
 **Настройка:** instance admin → **Instance** → **Settings**. Общий переключатель: **Enable rate limiting**. **`0`** отключает конкретное правило.
 

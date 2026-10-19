@@ -1,8 +1,9 @@
 """Настройки процесса из `.env` (ТЗ §2)."""
 
 from functools import lru_cache
+from typing import Self
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,6 +40,9 @@ class Settings(BaseSettings):
     # AWS S3: AES256. Yandex Object Storage: aws:kms + S3_SSE_KMS_KEY_ID, or empty + bucket KMS in console.
     S3_SSE: str = ""
     S3_SSE_KMS_KEY_ID: str = ""
+    # Rate limit counters: memory (default) or shared Valkey (redis:// URL).
+    RATE_LIMIT_BACKEND: str = "memory"
+    VALKEY_URL: str = ""
     DATABASE_URL: str = "sqlite:///./data/hub.db"
     SQLITE_PATH: str = "./data/hub.db"
     LOG_DIR: str = "./data/logs"
@@ -107,6 +111,20 @@ class Settings(BaseSettings):
         if normalized not in {"local", "s3"}:
             raise ValueError("STORAGE_BACKEND must be 'local' or 's3'")
         return normalized
+
+    @field_validator("RATE_LIMIT_BACKEND")
+    @classmethod
+    def _rate_limit_backend(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in {"memory", "valkey"}:
+            raise ValueError("RATE_LIMIT_BACKEND must be 'memory' or 'valkey'")
+        return normalized
+
+    @model_validator(mode="after")
+    def _valkey_url_when_valkey_backend(self) -> Self:
+        if self.RATE_LIMIT_BACKEND == "valkey" and not self.VALKEY_URL.strip():
+            raise ValueError("VALKEY_URL is required when RATE_LIMIT_BACKEND=valkey")
+        return self
 
 
 @lru_cache

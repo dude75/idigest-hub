@@ -1,13 +1,10 @@
-"""In-memory rate limits (fixed window). One Uvicorn worker; counters reset on restart."""
+"""Rate limits (fixed window). Backend: process memory (default) or Valkey."""
 
 from __future__ import annotations
 
 import asyncio
 import logging
-import math
-import time
 from dataclasses import dataclass
-from threading import Lock
 
 from fastapi import Request
 from sqlalchemy.orm import Session
@@ -18,27 +15,17 @@ from app.errors import ApiError, ErrorCode
 from app.i18n import t
 from app.models import InstanceSettings
 from app.proxy import resolve_client_ip, trusted_proxy_entries
+from app.rate_limit_store import MAX_BUCKETS, RateLimitStoreError, get_rate_limit_store
 
 log = logging.getLogger("app.rate_limit")
 
-MAX_BUCKETS = 20_000
-PURGE_EVERY = 100
 WINDOW_MIN = 60.0
 WINDOW_HOUR = 3600.0
 SWEEP_INTERVAL_SEC = 300.0
 
-_lock = Lock()
-_buckets: dict[str, Bucket] = {}
-_hit_count = 0
 _cache_stamp = 0
 _stamp = 0
 _cached_limits: RateLimits | None = None
-
-
-@dataclass
-class Bucket:
-    count: int
-    expires_at: float
 
 
 @dataclass(frozen=True)
@@ -126,53 +113,21 @@ def client_ip(request: Request) -> str:
 
 def reset_rate_limiter() -> None:
     """Tests: clear buckets and settings cache."""
-    global _buckets, _hit_count, _cached_limits, _cache_stamp
-    with _lock:
-        _buckets = {}
-        _hit_count = 0
+    global _cached_limits, _cache_stamp
+    from app.rate_limit_store import close_rate_limit_store, get_rate_limit_store
+
+    try:
+        get_rate_limit_store().reset()
+    except Exception:
+        pass
+    close_rate_limit_store()
     _cached_limits = None
     _cache_stamp = -1
     invalidate_rate_limit_cache()
 
 
-def _purge_expired(now: float) -> None:
-    dead = [key for key, bucket in _buckets.items() if bucket.expires_at <= now]
-    for key in dead:
-        del _buckets[key]
-
-
-def _evict_if_needed() -> None:
-    if len(_buckets) < MAX_BUCKETS:
-        return
-    now = time.monotonic()
-    _purge_expired(now)
-    while len(_buckets) >= MAX_BUCKETS and _buckets:
-        oldest_key = min(_buckets, key=lambda key: _buckets[key].expires_at)
-        del _buckets[oldest_key]
-
-
 def _hit(key: str, limit: int, window_sec: float) -> tuple[bool, int]:
-    if limit <= 0:
-        return True, 0
-    now = time.monotonic()
-    global _hit_count
-    with _lock:
-        _hit_count += 1
-        if _hit_count % PURGE_EVERY == 0:
-            _purge_expired(now)
-
-        bucket = _buckets.get(key)
-        if bucket is None or bucket.expires_at <= now:
-            _evict_if_needed()
-            _buckets[key] = Bucket(count=1, expires_at=now + window_sec)
-            return True, 0
-
-        if bucket.count >= limit:
-            retry_after = max(1, math.ceil(bucket.expires_at - now))
-            return False, retry_after
-
-        bucket.count += 1
-        return True, 0
+    return get_rate_limit_store().hit(key, limit, window_sec)
 
 
 def _raise_rate_limited(locale: str, retry_after: int) -> None:
@@ -186,7 +141,15 @@ def _raise_rate_limited(locale: str, retry_after: int) -> None:
 def enforce_checks(checks: list[tuple[str, int, float]], locale: str) -> None:
     retry_after = 0
     for key, limit, window in checks:
-        allowed, retry = _hit(key, limit, window)
+        try:
+            allowed, retry = _hit(key, limit, window)
+        except RateLimitStoreError:
+            log.exception("rate limit store unavailable")
+            raise ApiError(
+                ErrorCode.worker_unreachable,
+                t(locale, "worker_unreachable"),
+                status_code=503,
+            )
         if not allowed:
             retry_after = max(retry_after, retry)
     if retry_after:
@@ -390,11 +353,7 @@ def enforce_write_limits(request: Request, user_id: str, limits: RateLimits, loc
 
 
 def purge_expired_buckets() -> int:
-    now = time.monotonic()
-    with _lock:
-        before = len(_buckets)
-        _purge_expired(now)
-        return before - len(_buckets)
+    return get_rate_limit_store().purge_expired()
 
 
 async def rate_limit_sweeper(stop: asyncio.Event) -> None:

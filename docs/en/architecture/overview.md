@@ -61,7 +61,7 @@ On startup (`app/main.py` lifespan):
 1. Load settings from `.env`
 2. Create `{DATA_DIR}`, run Alembic migrations (`init_database` → `alembic upgrade head`)
 3. Start `dispatcher_loop` (async background task, polls every `DISPATCH_POLL_SEC`, default 1s)
-4. Start `rate_limit_sweeper` (expires in-memory buckets)
+4. Init rate limit store (`memory` or `Valkey`); start `rate_limit_sweeper` when using memory
 5. If OAuth is enabled, start the MCP Streamable HTTP session manager (`/mcp`)
 
 On shutdown: cancel background tasks cleanly.

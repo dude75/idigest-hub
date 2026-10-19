@@ -1,4 +1,16 @@
 services:
+  valkey:
+    profiles: ["valkey"]
+    restart: always
+    image: valkey/valkey:8
+    volumes:
+      - ./data/valkey:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
   postgres:
     profiles: ["pg"]
     restart: always
@@ -50,5 +62,8 @@ services:
       start_period: 15s
     depends_on:
       postgres:
+        condition: service_healthy
+        required: false
+      valkey:
         condition: service_healthy
         required: false

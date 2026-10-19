@@ -173,6 +173,8 @@ Copy names into `.env`. **Do not put real tokens in git or in this README.** Cha
 | `LOG_BACKUP_COUNT`           | How many rotated files to keep (`app.log.1` … `app.log.N`). Default `5`.                                                                                         |
 | `COOKIE_SECURE`              | Session cookie `Secure` flag. Default `false` (local HTTP). Set `true` behind HTTPS.                                                                             |
 | `TRUSTED_PROXIES`            | Comma-separated IPs/CIDRs of reverse proxies allowed to set `X-Forwarded-For` / `X-Real-IP` for per-IP rate limits. Empty = trust none (TCP peer only).        |
+| `RATE_LIMIT_BACKEND`         | Where rate limit counters are stored: `memory` (default) or `valkey`.                                                                                            |
+| `VALKEY_URL`                 | Redis URL when `RATE_LIMIT_BACKEND=valkey`, e.g. `redis://valkey:6379/0`. Required for Valkey backend.                                                          |
 | `METRICS_ENABLED`              | Application Prometheus metrics on `GET /metrics`. Default `true`. `false` / `0` / `no` = process collectors only.                                              |
 | `METRICS_TOKEN`                | Bearer token for Prometheus scrape. Required; empty = `/metrics` returns 401.                                                                                  |
 | `OAUTH_PROVIDER_ENABLED`       | Hub OAuth 2.1 + MCP at `/mcp` (Open WebUI). Default `false`. Requires Public URL when enabled.                                                               |
@@ -272,6 +274,33 @@ If PostgreSQL fails with permission errors on first start, once on the host:
 sudo chown -R 999:999 ./data/pg
 ```
 
+### Run (Valkey rate limits)
+
+Default rate limit counters live in process memory. To share counters across hub processes (or survive restarts), use Valkey.
+
+In `.env`:
+
+```env
+RATE_LIMIT_BACKEND=valkey
+VALKEY_URL=redis://valkey:6379/0
+```
+
+Then:
+
+```bash
+docker compose --profile valkey up --build
+```
+
+Combine with PostgreSQL: `docker compose --profile pg --profile valkey up --build`.
+
+Valkey persists RDB/AOF under `./data/valkey` (bind mount). Rate limit keys still expire by TTL; the directory mainly survives container recreation.
+
+If Valkey fails with permission errors on first start, once on the host:
+
+```bash
+sudo chown -R 999:999 ./data/valkey
+```
+
 ### Stop
 
 ```bash
@@ -282,7 +311,7 @@ docker compose down
 
 ## Rate limiting
 
-The hub enforces optional rate limits in **process memory** (one Uvicorn worker — see [Install and run](#install-and-run)). Counters reset on restart. A background sweeper drops expired buckets; at most **20 000** buckets are kept in RAM (oldest evicted first).
+The hub enforces optional rate limits with a **fixed window**. By default counters are stored in **process memory** (`RATE_LIMIT_BACKEND=memory`, one Uvicorn worker — see [Install and run](#install-and-run)); counters reset on restart. A background sweeper drops expired buckets; at most **20 000** buckets are kept in RAM (oldest evicted first). Set `RATE_LIMIT_BACKEND=valkey` and `VALKEY_URL` (see [Run (Valkey rate limits)](#run-valkey-rate-limits)) for shared counters across processes.
 
 **Configuration:** instance admin → **Instance** → **Settings**. Master switch: **Enable rate limiting**. **`0`** on a limit disables that rule.
 

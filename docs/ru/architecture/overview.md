@@ -61,7 +61,7 @@ flowchart TB
 1. Загрузка настроек из `.env`
 2. Создание `{DATA_DIR}`, запуск Alembic-миграций (`init_database` → `alembic upgrade head`)
 3. Запуск `dispatcher_loop` (async background task, опрос каждые `DISPATCH_POLL_SEC`, по умолчанию 1s)
-4. Запуск `rate_limit_sweeper` (очистка in-memory buckets)
+4. Инициализация rate limit store (`memory` или Valkey); `rate_limit_sweeper` только для memory
 5. Если OAuth включён — старт MCP Streamable HTTP session manager (`/mcp`)
 
 При shutdown: фоновые задачи отменяются корректно.
