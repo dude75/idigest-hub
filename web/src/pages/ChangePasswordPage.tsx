@@ -82,7 +82,7 @@ export function ChangePasswordPage() {
           <AppSubmitButton
             className="w-full"
             type="submit"
-            ready={current.trim().length > 0 && next.trim().length >= 8}
+            ready={(forced || current.trim().length > 0) && next.trim().length >= 8}
             busy={busy}
           >
             {t('common.save')}
