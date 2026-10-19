@@ -15,7 +15,7 @@ from app.errors import ApiError, ErrorCode
 from app.i18n import t
 from app.models import InstanceSettings
 from app.proxy import resolve_client_ip, trusted_proxy_entries
-from app.rate_limit_store import MAX_BUCKETS, RateLimitStoreError, get_rate_limit_store
+from app.rate_limit_store import RateLimitStoreError, get_rate_limit_store
 
 log = logging.getLogger("app.rate_limit")
 

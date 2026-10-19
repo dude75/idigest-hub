@@ -7,12 +7,12 @@ import math
 import time
 from dataclasses import dataclass
 from threading import Lock
-from typing import Protocol
-
-import redis
-from redis.exceptions import RedisError
+from typing import TYPE_CHECKING, Any, Protocol
 
 from app.config import Settings, get_settings
+
+if TYPE_CHECKING:
+    import redis
 
 log = logging.getLogger("app.rate_limit")
 
@@ -45,12 +45,26 @@ _lock = Lock()
 _buckets: dict[str, Bucket] = {}
 _hit_count = 0
 
-_redis_client: redis.Redis | None = None
+_redis_client: Any | None = None
 _store: RateLimitStore | None = None
 
 
+def _redis_module():
+    import redis
+
+    return redis
+
+
 def _make_redis_client(url: str) -> redis.Redis:
-    return redis.Redis.from_url(url, decode_responses=True)
+    return _redis_module().Redis.from_url(url, decode_responses=True)
+
+
+def _map_redis_error(exc: BaseException) -> RateLimitStoreError:
+    from redis.exceptions import RedisError
+
+    if isinstance(exc, RedisError):
+        return RateLimitStoreError(str(exc))
+    raise exc
 
 
 class MemoryRateLimitStore:
@@ -95,7 +109,7 @@ class MemoryRateLimitStore:
 
 
 class ValkeyRateLimitStore:
-    def __init__(self, client: redis.Redis) -> None:
+    def __init__(self, client: Any) -> None:
         self._client = client
 
     def hit(self, key: str, limit: int, window_sec: float) -> tuple[bool, int]:
@@ -112,8 +126,8 @@ class ValkeyRateLimitStore:
                 if ttl_ms < 0:
                     ttl_ms = window_ms
                 return False, max(1, math.ceil(ttl_ms / 1000))
-        except RedisError as exc:
-            raise RateLimitStoreError(str(exc)) from exc
+        except Exception as exc:
+            raise _map_redis_error(exc) from exc
         return True, 0
 
     def reset(self) -> None:
@@ -125,8 +139,8 @@ class ValkeyRateLimitStore:
                     self._client.delete(*keys)
                 if cursor == 0:
                     break
-        except RedisError as exc:
-            raise RateLimitStoreError(str(exc)) from exc
+        except Exception as exc:
+            raise _map_redis_error(exc) from exc
 
     def purge_expired(self) -> int:
         return 0
@@ -160,7 +174,12 @@ def _build_store(settings: Settings) -> RateLimitStore:
     if settings.RATE_LIMIT_BACKEND == "memory":
         return MemoryRateLimitStore()
     global _redis_client
-    _redis_client = _make_redis_client(settings.VALKEY_URL)
+    try:
+        _redis_client = _make_redis_client(settings.VALKEY_URL)
+    except ModuleNotFoundError as exc:
+        raise RuntimeError(
+            "RATE_LIMIT_BACKEND=valkey requires the redis package; pip install -r requirements.txt"
+        ) from exc
     return ValkeyRateLimitStore(_redis_client)
 
 
@@ -179,8 +198,12 @@ def init_rate_limit_store(settings: Settings) -> None:
         assert _redis_client is not None
         try:
             _redis_client.ping()
-        except RedisError as exc:
-            raise RuntimeError(f"Valkey ping failed ({settings.VALKEY_URL}): {exc}") from exc
+        except Exception as exc:
+            from redis.exceptions import RedisError
+
+            if isinstance(exc, RedisError):
+                raise RuntimeError(f"Valkey ping failed ({settings.VALKEY_URL}): {exc}") from exc
+            raise
         log.info("rate limit backend: valkey")
     else:
         log.info("rate limit backend: memory")
