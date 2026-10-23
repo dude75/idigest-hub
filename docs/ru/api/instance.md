@@ -243,7 +243,7 @@ SMTP host/port/user/from/tls (password не возвращается), `allow_ne
 
 ### POST `/instance/telegram/test-connection`
 
-Проверка токена BotFather и исходящего доступа к API (сохранённые настройки Telegram и прокси). Ответ `{ "status": "ok", "username": "..." }` или ошибка. Режим webhook не меняет.
+Проверка токена BotFather и исходящего доступа к API (сохранённые настройки Telegram и прокси; в теле можно передать `telegram_use_proxy` для теста). Успех: `{ "status": "ok", "username": "...", "bot_url": "..." }`. Ошибка API Telegram или сеть/прокси (например, SOCKS недоступен) — HTTP **400** `validation_error` с текстом, как у SMTP test. Режим webhook не меняет.
 
 ### POST `/instance/smtp/test-connection`
 

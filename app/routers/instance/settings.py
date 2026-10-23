@@ -408,6 +408,8 @@ def telegram_test_connection(
     token = resolve_telegram_test_token(settings, db, body.telegram_bot_token)
     if not token:
         ctx.raise_error(ErrorCode.validation_error)
+    import httpx2
+
     try:
         result = test_telegram_connection_sync(
             db,
@@ -416,6 +418,8 @@ def telegram_test_connection(
             use_proxy=body.telegram_use_proxy,
         )
     except TelegramApiError as exc:
+        telegram_test_error(exc)
+    except httpx2.HTTPError as exc:
         telegram_test_error(exc)
     return TelegramTestConnectionResponse(**result)
 

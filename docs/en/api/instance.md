@@ -243,7 +243,7 @@ Changing rate limits invalidates in-memory limit cache.
 
 ### POST `/instance/telegram/test-connection`
 
-Verifies BotFather token and outbound API reachability (uses saved Telegram settings and optional proxy). Returns `{ "status": "ok", "username": "..." }` or an error message. Does not register or change webhook mode.
+Verifies BotFather token and outbound API reachability (uses saved Telegram settings and optional proxy; body may include `telegram_use_proxy` for the test). Returns `{ "status": "ok", "username": "...", "bot_url": "..." }` on success. On Telegram API errors or network/proxy failures (e.g. SOCKS down), returns HTTP **400** `validation_error` with a message — same pattern as SMTP test. Does not register or change webhook mode.
 
 ### POST `/instance/smtp/test-connection`
 

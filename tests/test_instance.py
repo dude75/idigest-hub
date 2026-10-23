@@ -119,6 +119,17 @@ def test_instance_telegram_test_connection(client, monkeypatch):
     assert err_code(failed) == "validation_error"
     assert "network down" in failed.json()["error"]["message"]
 
+    import httpx2
+
+    async def _connect_fail(*_args, **_kwargs):
+        raise httpx2.ConnectError("proxy refused connection")
+
+    monkeypatch.setattr("app.services.telegram_test.get_me", _connect_fail)
+    proxy_down = client.post("/api/v1/instance/telegram/test-connection", json={})
+    assert proxy_down.status_code == 400, proxy_down.text
+    assert err_code(proxy_down) == "validation_error"
+    assert "proxy refused connection" in proxy_down.json()["error"]["message"]
+
 
 def test_instance_telegram_test_forbidden_for_non_admin(client):
     setup_admin(client)
