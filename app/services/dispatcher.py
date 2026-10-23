@@ -237,7 +237,7 @@ def _worker_error_detail(body: dict[str, Any] | None) -> str | None:
     return text[: _ERROR_DETAIL_MAX_LEN - 3] + "..."
 
 
-def _fail(task: Task, code: str, *, error_detail: str | None = None) -> None:
+def _fail(db: Session, task: Task, code: str, *, error_detail: str | None = None) -> None:
     task.status = "error"
     task.error_code = code
     task.updated_at = utcnow()
@@ -248,17 +248,17 @@ def _fail(task: Task, code: str, *, error_detail: str | None = None) -> None:
         meta["stage"] = "error"
         meta["error_detail"] = error_detail
         task.meta_json = meta
-    from app.prometheus_metrics import observe_task_terminal
+    from app.services.task_terminal import mark_task_terminal
 
-    observe_task_terminal(task)
+    mark_task_terminal(db, task)
 
 
-def _maybe_timeout(task: Task, pool: str, timeout_sec: int) -> bool:
+def _maybe_timeout(db: Session, task: Task, pool: str, timeout_sec: int) -> bool:
     if task.retry_without_timeout or pool != "empty" or timeout_sec <= 0:
         return False
     elapsed = (utcnow() - as_utc(task.queued_at)).total_seconds()
     if elapsed >= timeout_sec:
-        _fail(task, "dispatch_timeout")
+        _fail(db, task, "dispatch_timeout")
         return True
     return False
 
@@ -275,7 +275,7 @@ async def _finish_worker_cleanup(db: Session, node: WorkerNode | None, worker_ta
 
 def _persist_transcript(db: Session, task: Task, payload: dict[str, Any]) -> Transcript | None:
     if task.skip_persist:
-        _fail(task, task.skip_reason or "source_deleted")
+        _fail(db, task, task.skip_reason or "source_deleted")
         return None
     title: str | None = None
     if task.audio_id:
@@ -309,9 +309,9 @@ def _persist_transcript(db: Session, task: Task, payload: dict[str, Any]) -> Tra
     task.status = "success"
     task.error_code = None
     task.updated_at = utcnow()
-    from app.prometheus_metrics import observe_task_terminal
+    from app.services.task_terminal import mark_task_terminal
 
-    observe_task_terminal(task)
+    mark_task_terminal(db, task)
     return row
 
 
@@ -339,6 +339,9 @@ def enqueue_transcribe_after_ingest(db: Session, ingest_task: Task) -> Task | No
 
     skill_ids = list(ingest_task.skill_ids_json or [])
     now = utcnow()
+    from app.services.telegram_bot import telegram_notify_meta
+
+    notify_meta = telegram_notify_meta(meta)
     follow_up = Task(
         id=new_id(),
         type="transcribe",
@@ -350,6 +353,7 @@ def enqueue_transcribe_after_ingest(db: Session, ingest_task: Task) -> Task | No
         queued_at=now,
         created_at=now,
         updated_at=now,
+        meta_json=notify_meta or None,
         snap_unlimited=ingest_task.snap_unlimited,
         snap_price_per_audio_sec=ingest_task.snap_price_per_audio_sec,
         snap_price_per_1k_summary_chars=ingest_task.snap_price_per_1k_summary_chars,
@@ -373,7 +377,11 @@ def _enqueue_summarize_after_transcribe(db: Session, task: Task) -> Task | None:
     skill_ids = list(task.skill_ids_json or [])
     if not skill_ids or not task.produced_transcript_id:
         return None
+    from app.services.telegram_bot import telegram_notify_meta
+
     now = utcnow()
+    parent_meta = task.meta_json or {}
+    notify_meta = telegram_notify_meta(parent_meta)
     follow_up = Task(
         id=new_id(),
         type="summarize",
@@ -385,6 +393,7 @@ def _enqueue_summarize_after_transcribe(db: Session, task: Task) -> Task | None:
         queued_at=now,
         created_at=now,
         updated_at=now,
+        meta_json=notify_meta or None,
         snap_unlimited=task.snap_unlimited,
         snap_price_per_audio_sec=task.snap_price_per_audio_sec,
         snap_price_per_1k_summary_chars=task.snap_price_per_1k_summary_chars,
@@ -402,7 +411,7 @@ def _enqueue_summarize_after_transcribe(db: Session, task: Task) -> Task | None:
 
 def _persist_summary(db: Session, task: Task, body: str) -> Summary | None:
     if task.skip_persist:
-        _fail(task, task.skip_reason or "source_deleted")
+        _fail(db, task, task.skip_reason or "source_deleted")
         return None
     summary_id = new_id()
     transcript = db.get(Transcript, task.transcript_id) if task.transcript_id else None
@@ -450,9 +459,9 @@ def _persist_summary(db: Session, task: Task, body: str) -> Summary | None:
     task.status = "success"
     task.error_code = None
     task.updated_at = utcnow()
-    from app.prometheus_metrics import observe_task_terminal
+    from app.services.task_terminal import mark_task_terminal
 
-    observe_task_terminal(task)
+    mark_task_terminal(db, task)
     return row
 
 
@@ -527,7 +536,7 @@ async def _on_worker_terminal_error(
     detail = _worker_error_detail(body)
     worker_task_id = task.worker_task_id
     log.info("worker terminal error task=%s code=%s detail=%s", task.id, code, detail or "")
-    _fail(task, code, error_detail=detail)
+    _fail(db, task, code, error_detail=detail)
     _commit(db)
     await _finish_worker_cleanup(db, node, worker_task_id)
 
@@ -694,7 +703,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
         task.retry_without_timeout = True
         task.meta_json = {"stage": "waiting_engine"}
         return
-    if _maybe_timeout(task, pool, timeout_sec):
+    if _maybe_timeout(db, task, pool, timeout_sec):
         return
     if not candidates:
         if task.type == "summarize":
@@ -733,7 +742,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
             if task.type == "transcribe":
                 audio = db.get(Audio, task.audio_id) if task.audio_id else None
                 if audio is None:
-                    _fail(task, "source_deleted")
+                    _fail(db, task, "source_deleted")
                     return
                 from app.services.storage import get_storage
 
@@ -751,7 +760,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
             else:
                 transcript = db.get(Transcript, task.transcript_id) if task.transcript_id else None
                 if transcript is None:
-                    _fail(task, "source_deleted")
+                    _fail(db, task, "source_deleted")
                     return
                 from app.crypto import decrypt_str
 
@@ -762,13 +771,13 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
                 for sid in skill_ids:
                     skill = db.get(Skill, sid)
                     if skill is None:
-                        _fail(task, "not_found")
+                        _fail(db, task, "not_found")
                         return
                     skills.append(skill)
                 skill_text = combine_skills(skills)
                 payload_len = len(text.encode()) + len(skill_text.encode())
                 if payload_len > MAX_SUMMARIZE_PAYLOAD_BYTES:
-                    _fail(task, "text_too_long")
+                    _fail(db, task, "text_too_long")
                     return
                 body = await post_summarize(db, node, text, skill_text)
         except WorkerClientError as exc:
@@ -788,7 +797,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
                 continue
             detail = _worker_error_detail(exc.body)
             log.info("worker post error task=%s code=%s detail=%s", task.id, mapped, detail or "")
-            _fail(task, mapped, error_detail=detail)
+            _fail(db, task, mapped, error_detail=detail)
             return
         worker_task_id = body.get("meta", {}).get("task_id") if isinstance(body.get("meta"), dict) else None
         worker_task_id = worker_task_id or body.get("task_id")
@@ -807,7 +816,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
             await _on_worker_terminal_error(db, task, node, body)
         return
     if tried_payload_too_large and tried_payload_too_large >= len(candidates):
-        _fail(task, "payload_too_large")
+        _fail(db, task, "payload_too_large")
 
 
 async def _dispatch_follow_up_task(db: Session, follow_up_id: str) -> None:

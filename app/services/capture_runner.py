@@ -257,9 +257,9 @@ def _fail_task(db: Session, task: Task, code: str, meta: dict[str, Any] | None =
     task.error_code = code
     task.updated_at = utcnow()
     db.flush()
-    from app.prometheus_metrics import observe_task_terminal
+    from app.services.task_terminal import mark_task_terminal
 
-    observe_task_terminal(task)
+    mark_task_terminal(db, task)
 
 
 def _worker_error_code(body: dict[str, Any]) -> str | None:
@@ -471,10 +471,10 @@ async def _persist_capture_artifact_locked(
             "worker_capture_status": "success",
         }
         task.updated_at = utcnow()
-        from app.prometheus_metrics import observe_task_terminal
         from app.services.dispatcher import enqueue_transcribe_after_ingest
+        from app.services.task_terminal import mark_task_terminal
 
-        observe_task_terminal(task)
+        mark_task_terminal(db, task)
         follow_up = enqueue_transcribe_after_ingest(db, task)
         db.commit()
         log.info(

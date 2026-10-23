@@ -88,6 +88,17 @@ def test_telegram_webhook_rejects_bad_secret(client, monkeypatch):
     assert ok.json()["status"] == "ok"
 
 
+def test_telegram_notify_meta_propagation():
+    from app.services.telegram_bot import telegram_notify_meta
+
+    assert telegram_notify_meta({}) == {}
+    assert telegram_notify_meta({"notify_telegram": True}) == {}
+    assert telegram_notify_meta({"notify_telegram": True, "telegram_chat_id": "42"}) == {
+        "notify_telegram": True,
+        "telegram_chat_id": "42",
+    }
+
+
 def test_telegram_link_requires_bot_enabled(client):
     setup_admin(client)
     tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]

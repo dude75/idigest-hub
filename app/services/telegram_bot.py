@@ -243,12 +243,58 @@ async def _handle_file(db: Session, token: str, settings, chat_id: str, user: Us
         await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.upload_failed"))
 
 
+def telegram_notify_meta(source: dict | None) -> dict:
+    if not source or not source.get("notify_telegram"):
+        return {}
+    chat_id = source.get("telegram_chat_id")
+    if not chat_id:
+        return {}
+    return {"notify_telegram": True, "telegram_chat_id": str(chat_id)}
+
+
+def _telegram_chat_id(db: Session, task: Task, meta: dict) -> str | None:
+    raw = meta.get("telegram_chat_id")
+    if raw:
+        return str(raw)
+    if meta.get("notify_telegram"):
+        from app.services.telegram_links import link_for_user
+
+        link = link_for_user(db, task.user_id)
+        if link is not None:
+            return link.chat_id
+    return None
+
+
+def _task_terminal_message(db: Session, task: Task, loc: str) -> str:
+    meta = task.meta_json or {}
+    if task.status != "success":
+        code = task.error_code or "error"
+        return t(loc, "telegram.task_error", task_id=task.id, code=code)
+    if task.type == "import":
+        title = (meta.get("title") or meta.get("platform") or "").strip()
+        audio_id = task.audio_id or ""
+        if title:
+            return t(loc, "telegram.task_import_success", title=title, audio_id=audio_id)
+        return t(loc, "telegram.task_import_success_short", audio_id=audio_id)
+    if task.type == "capture":
+        room = (meta.get("meeting_room") or meta.get("meeting_host") or "").strip()
+        audio_id = task.audio_id or ""
+        return t(loc, "telegram.task_capture_success", room=room or "—", audio_id=audio_id)
+    if task.type == "transcribe":
+        tid = task.produced_transcript_id or ""
+        return t(loc, "telegram.task_transcribe_success", transcript_id=tid)
+    if task.type == "summarize":
+        sid = task.produced_summary_id or ""
+        return t(loc, "telegram.task_summarize_success", summary_id=sid)
+    return t(loc, "telegram.task_success", task_id=task.id, task_type=task.type)
+
+
 def notify_task_terminal(db: Session, task: Task) -> None:
     """Best-effort push when a telegram-originated task finishes."""
     meta = task.meta_json or {}
     if not meta.get("notify_telegram"):
         return
-    chat_id = meta.get("telegram_chat_id")
+    chat_id = _telegram_chat_id(db, task, meta)
     if not chat_id:
         return
     settings = get_instance_settings(db)
@@ -261,11 +307,7 @@ def notify_task_terminal(db: Session, task: Task) -> None:
         return
     user = db.get(User, task.user_id)
     loc = _locale(user)
-    if task.status == "success":
-        text = t(loc, "telegram.task_success", task_id=task.id, task_type=task.type)
-    else:
-        code = task.error_code or "error"
-        text = t(loc, "telegram.task_error", task_id=task.id, code=code)
+    text = _task_terminal_message(db, task, loc)
     import asyncio
 
     try:
