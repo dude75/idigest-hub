@@ -987,6 +987,8 @@
       "link": { "command": "/link", "description": "How to link your hub account" },
       "help": { "command": "/help", "description": "Command list" },
       "status": { "command": "/status", "description": "Active tasks" },
+      "transcribe": { "command": "/transcribe [id]", "description": "Transcribe latest or given audio; optional skill names" },
+      "summary": { "command": "/summary [id]", "description": "Summarize latest or given transcript; optional skills" },
       "url": { "command": "URL", "description": "Import from link (same as UI)" },
       "file": { "command": "File / voice", "description": "Upload audio to library" }
     },

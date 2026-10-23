@@ -130,6 +130,23 @@ async def delete_webhook(token: str, *, settings: InstanceSettings, db) -> None:
     await _request("deleteWebhook", token, settings=settings, db=db, json_body={"drop_pending_updates": False})
 
 
+async def set_my_commands(
+    token: str,
+    *,
+    settings: InstanceSettings,
+    db,
+    commands: list[dict[str, str]],
+) -> None:
+    """Register slash-command hints shown when the user types '/'."""
+    await _request(
+        "setMyCommands",
+        token,
+        settings=settings,
+        db=db,
+        json_body={"commands": commands},
+    )
+
+
 async def get_file_path(token: str, *, settings: InstanceSettings, db, file_id: str) -> str:
     result = await _request("getFile", token, settings=settings, db=db, json_body={"file_id": file_id})
     path = result.get("file_path")

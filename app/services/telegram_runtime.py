@@ -7,7 +7,8 @@ import logging
 
 from app.deps import get_instance_settings
 from app.services.auth_helpers import public_base_url
-from app.services.telegram_api import TelegramApiError, delete_webhook, get_updates, set_webhook
+from app.services.telegram_api import TelegramApiError, delete_webhook, get_updates, set_my_commands, set_webhook
+from app.services.telegram_commands import BOT_MENU_COMMANDS
 from app.services.telegram_bot import handle_update
 from app.services.telegram_identity import bot_token
 
@@ -31,6 +32,10 @@ async def configure_telegram_transport(stop_event: asyncio.Event) -> str:
         from app.services.telegram_identity import fetch_bot_username
 
         await fetch_bot_username(settings, db)
+        try:
+            await set_my_commands(token, settings=settings, db=db, commands=BOT_MENU_COMMANDS)
+        except TelegramApiError as exc:
+            log.warning("telegram setMyCommands: %s", exc)
         db.commit()
         base = public_base_url(db)
         secret = (settings.telegram_webhook_secret or "").strip()

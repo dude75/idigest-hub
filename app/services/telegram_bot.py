@@ -13,8 +13,8 @@ from app.constants import ALLOWED_AUDIO_SUFFIXES, MAX_UPLOAD_BYTES_CAP
 from app.deps import get_instance_settings
 from app.errors import ApiError, ErrorCode
 from app.i18n import t
-from app.models import Audio, Task, User, new_id
-from app.routers.tasks import ImportBody, enqueue_import_task
+from app.models import Audio, Task, Transcript, User, new_id
+from app.routers.tasks import ImportBody, TranscribeBody, enqueue_import_task, enqueue_transcribe_task
 from app.services.billing import upload_limit
 from app.services.dispatcher import schedule_locked_tick_asyncio
 from app.services.storage import PayloadTooLarge, get_storage
@@ -27,6 +27,23 @@ from app.timeutil import utcnow
 log = logging.getLogger("app")
 
 _URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+
+
+def _parse_command(text: str) -> tuple[str, list[str]]:
+    if not text.startswith("/"):
+        return "", []
+    parts = text.split()
+    if not parts:
+        return "", []
+    command = parts[0].split("@", 1)[0].lower()
+    return command, parts[1:]
+
+
+def _attach_telegram_notify(task: Task, chat_id: str) -> None:
+    meta = dict(task.meta_json or {})
+    meta["notify_telegram"] = True
+    meta["telegram_chat_id"] = chat_id
+    task.meta_json = meta
 
 
 def _locale(user: User | None, fallback: str = "en") -> str:
@@ -112,6 +129,14 @@ async def handle_update(db: Session, update: dict, *, token: str, settings, bot_
         await _cmd_status(db, token, settings, chat_id_s, user, loc)
         return
 
+    command, args = _parse_command(text)
+    if command == "/transcribe":
+        await _cmd_transcribe(db, token, settings, chat_id_s, user, loc, args)
+        return
+    if command == "/summary":
+        await _cmd_summary(db, token, settings, chat_id_s, user, loc, args)
+        return
+
     url_match = _URL_RE.search(text) if text else None
     if url_match:
         await _handle_url(db, token, settings, chat_id_s, user, loc, url_match.group(0).rstrip(").,]"))
@@ -123,6 +148,242 @@ async def handle_update(db: Session, update: dict, *, token: str, settings, bot_
 
     if text:
         await send_message(token, settings=settings, db=db, chat_id=chat_id_s, text=t(loc, "telegram.unknown"))
+
+
+def _resolve_audio(db: Session, ctx, org, ref: str | None) -> Audio | None:
+    from app.services.access import can_use_audio
+
+    if ref:
+        exact = db.get(Audio, ref)
+        if exact is not None and exact.org_id == org.id and can_use_audio(ctx, db, exact):
+            return exact
+        prefix = ref.strip().lower()
+        if len(prefix) >= 4:
+            rows = db.scalars(
+                select(Audio).where(Audio.org_id == org.id, Audio.id.startswith(prefix)).limit(20)
+            ).all()
+            matches = [row for row in rows if can_use_audio(ctx, db, row)]
+            if len(matches) == 1:
+                return matches[0]
+        return None
+    rows = db.scalars(
+        select(Audio).where(Audio.org_id == org.id).order_by(Audio.created_at.desc()).limit(40)
+    ).all()
+    for row in rows:
+        if can_use_audio(ctx, db, row):
+            return row
+    return None
+
+
+def _resolve_transcript(db: Session, ctx, org, ref: str | None) -> Transcript | None:
+    from app.services.access import can_use_transcript
+
+    if ref:
+        exact = db.get(Transcript, ref)
+        if exact is not None and exact.org_id == org.id and can_use_transcript(ctx, db, exact):
+            return exact
+        prefix = ref.strip().lower()
+        if len(prefix) >= 4:
+            rows = db.scalars(
+                select(Transcript)
+                .where(Transcript.org_id == org.id, Transcript.id.startswith(prefix))
+                .limit(20)
+            ).all()
+            matches = [row for row in rows if can_use_transcript(ctx, db, row)]
+            if len(matches) == 1:
+                return matches[0]
+        return None
+    rows = db.scalars(
+        select(Transcript).where(Transcript.org_id == org.id).order_by(Transcript.created_at.desc()).limit(40)
+    ).all()
+    for row in rows:
+        if can_use_transcript(ctx, db, row):
+            return row
+    return None
+
+
+def _visible_skill_map(db: Session, ctx):
+    from app.routers.skills import _visible_skills
+
+    return {skill.id: skill for skill, _ in _visible_skills(db, ctx, scope=None)}
+
+
+def _resolve_skill_ids(db: Session, ctx, tokens: list[str]) -> list[str]:
+    if not tokens:
+        return []
+    visible = _visible_skill_map(db, ctx)
+    by_name: dict[str, list[str]] = {}
+    for sid, skill in visible.items():
+        key = (skill.name or "").strip().casefold()
+        if key:
+            by_name.setdefault(key, []).append(sid)
+    resolved: list[str] = []
+    for raw in tokens:
+        token = raw.strip()
+        if not token:
+            continue
+        if token in visible:
+            resolved.append(token)
+            continue
+        prefix = token.lower()
+        id_matches = [sid for sid in visible if sid.lower().startswith(prefix)]
+        if len(id_matches) == 1:
+            resolved.append(id_matches[0])
+            continue
+        name_matches = by_name.get(token.casefold(), [])
+        if len(name_matches) == 1:
+            resolved.append(name_matches[0])
+            continue
+        raise ValueError("ambiguous_skill")
+    return list(dict.fromkeys(resolved))
+
+
+def _skills_from_transcribe_task(db: Session, transcript_id: str) -> list[str]:
+    task = db.scalars(
+        select(Task)
+        .where(
+            Task.type == "transcribe",
+            Task.status == "success",
+            Task.produced_transcript_id == transcript_id,
+        )
+        .order_by(Task.updated_at.desc())
+        .limit(1)
+    ).first()
+    if task is None:
+        return []
+    return list(task.skill_ids_json or [])
+
+
+async def _cmd_transcribe(
+    db: Session,
+    token: str,
+    settings,
+    chat_id: str,
+    user: User,
+    loc: str,
+    args: list[str],
+) -> None:
+    try:
+        ctx = auth_context_for_user(db, user)
+        org, _ = ctx.require_org()
+    except Exception:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.no_org"))
+        return
+    audio_ref: str | None = None
+    skill_tokens = args
+    if args:
+        maybe = _resolve_audio(db, ctx, org, args[0])
+        if maybe is not None:
+            audio_ref = args[0]
+            skill_tokens = args[1:]
+    audio = _resolve_audio(db, ctx, org, audio_ref)
+    if audio is None:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.audio_not_found"))
+        return
+    try:
+        skill_ids = _resolve_skill_ids(db, ctx, skill_tokens)
+    except ValueError:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.skill_ambiguous"))
+        return
+    try:
+        task = enqueue_transcribe_task(db, ctx, TranscribeBody(audio_id=audio.id, skill_ids=skill_ids))
+        _attach_telegram_notify(task, chat_id)
+        db.commit()
+        schedule_locked_tick_asyncio(task.id, refresh_health=False)
+        await send_message(
+            token,
+            settings=settings,
+            db=db,
+            chat_id=chat_id,
+            text=t(loc, "telegram.transcribe_queued", task_id=task.id, audio_id=audio.id),
+        )
+    except ApiError as exc:
+        db.rollback()
+        await send_message(
+            token,
+            settings=settings,
+            db=db,
+            chat_id=chat_id,
+            text=t(loc, "telegram.task_enqueue_failed", code=exc.code.value),
+        )
+    except Exception:
+        db.rollback()
+        log.exception("telegram transcribe failed")
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.transcribe_failed"))
+
+
+async def _cmd_summary(
+    db: Session,
+    token: str,
+    settings,
+    chat_id: str,
+    user: User,
+    loc: str,
+    args: list[str],
+) -> None:
+    try:
+        ctx = auth_context_for_user(db, user)
+        org, _ = ctx.require_org()
+    except Exception:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.no_org"))
+        return
+    transcript_ref: str | None = None
+    skill_tokens = args
+    if args:
+        maybe = _resolve_transcript(db, ctx, org, args[0])
+        if maybe is not None:
+            transcript_ref = args[0]
+            skill_tokens = args[1:]
+    transcript = _resolve_transcript(db, ctx, org, transcript_ref)
+    if transcript is None:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.transcript_not_found"))
+        return
+    try:
+        skill_ids = _resolve_skill_ids(db, ctx, skill_tokens)
+    except ValueError:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.skill_ambiguous"))
+        return
+    if not skill_ids:
+        skill_ids = _skills_from_transcribe_task(db, transcript.id)
+    if not skill_ids:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.summary_no_skills"))
+        return
+    try:
+        from app.services.mcp_library import create_summary_payload
+
+        payload = create_summary_payload(
+            db,
+            ctx,
+            transcript_id=transcript.id,
+            skill_ids=skill_ids,
+        )
+        task = db.get(Task, payload["task_id"])
+        if task is not None:
+            _attach_telegram_notify(task, chat_id)
+        db.commit()
+        task_id = payload["task_id"]
+        schedule_locked_tick_asyncio(task_id, refresh_health=False)
+        await send_message(
+            token,
+            settings=settings,
+            db=db,
+            chat_id=chat_id,
+            text=t(loc, "telegram.summary_queued", task_id=task_id, transcript_id=transcript.id),
+        )
+    except (ApiError, ValueError, PermissionError) as exc:
+        db.rollback()
+        code = getattr(getattr(exc, "code", None), "value", None) or "error"
+        await send_message(
+            token,
+            settings=settings,
+            db=db,
+            chat_id=chat_id,
+            text=t(loc, "telegram.task_enqueue_failed", code=code),
+        )
+    except Exception:
+        db.rollback()
+        log.exception("telegram summary failed")
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.summary_failed"))
 
 
 async def _cmd_status(db: Session, token: str, settings, chat_id: str, user: User, loc: str) -> None:

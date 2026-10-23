@@ -99,6 +99,86 @@ def test_telegram_notify_meta_propagation():
     }
 
 
+def test_telegram_bot_menu_commands():
+    from app.services.telegram_commands import BOT_MENU_COMMANDS
+
+    names = [row["command"] for row in BOT_MENU_COMMANDS]
+    assert "transcribe" in names
+    assert "summary" in names
+
+
+def test_telegram_parse_command():
+    from app.services.telegram_bot import _parse_command
+
+    assert _parse_command("/transcribe@mybot abc") == ("/transcribe", ["abc"])
+    assert _parse_command("/summary") == ("/summary", [])
+
+
+async def test_telegram_cmd_transcribe_queues(client, monkeypatch):
+    monkeypatch.setattr("app.services.telegram_bot.send_message", _noop_send)
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "123456:TEST", "telegram_enabled": True},
+    )
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    signup(client, "tgtr@example.com", "tgtrpass1234", tariff_id)
+    login_ready(client, "tgtr@example.com", "tgtrpass1234")
+    link = client.post("/api/v1/me/telegram/link").json()
+    from sqlalchemy import select
+
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings, load_org_bundle
+    from app.models import Audio, Task, User, new_id
+    from app.services.telegram_bot import handle_update
+    from app.services.telegram_links import consume_link_code
+    from app.timeutil import utcnow
+
+    get_engine()
+    with SessionLocal() as db:
+        consume_link_code(db, code=link["code"], telegram_user_id="888", chat_id="2000")
+        user = db.scalars(select(User).where(User.email == "tgtr@example.com")).one()
+        org, _ = load_org_bundle(db, user)
+        audio = Audio(
+            id=new_id(),
+            org_id=org.id,
+            owner_user_id=user.id,
+            storage_path="test/fake.ogg",
+            original_filename="fake.ogg",
+            created_at=utcnow(),
+        )
+        db.add(audio)
+        db.commit()
+        audio_id = audio.id
+
+    class _FakeStorage:
+        def exists(self, _path: str) -> bool:
+            return True
+
+    monkeypatch.setattr("app.services.storage.get_storage", lambda: _FakeStorage())
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        await handle_update(
+            db,
+            {
+                "message": {
+                    "chat": {"id": 2000},
+                    "from": {"id": 888},
+                    "text": f"/transcribe {audio_id}",
+                }
+            },
+            token="123456:TEST",
+            settings=settings,
+            bot_username=None,
+        )
+        db.commit()
+        task = db.scalars(select(Task).where(Task.type == "transcribe").order_by(Task.created_at.desc())).first()
+        assert task is not None
+        assert task.audio_id == audio_id
+        assert (task.meta_json or {}).get("notify_telegram") is True
+        assert (task.meta_json or {}).get("telegram_chat_id") == "2000"
+
+
 def test_telegram_link_requires_bot_enabled(client):
     setup_admin(client)
     tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
