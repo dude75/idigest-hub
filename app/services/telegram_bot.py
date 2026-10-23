@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from asyncio import AbstractEventLoop
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -13,12 +18,18 @@ from app.constants import ALLOWED_AUDIO_SUFFIXES, MAX_UPLOAD_BYTES_CAP
 from app.deps import get_instance_settings
 from app.errors import ApiError, ErrorCode
 from app.i18n import t
-from app.models import Audio, Task, Transcript, User, new_id
+from app.models import Audio, Skill, Summary, Task, Transcript, User, new_id
 from app.routers.tasks import ImportBody, TranscribeBody, enqueue_import_task, enqueue_transcribe_task
 from app.services.billing import upload_limit
 from app.services.dispatcher import schedule_locked_tick_asyncio
 from app.services.storage import PayloadTooLarge, get_storage
-from app.services.telegram_api import TelegramApiError, download_file_bytes, get_file_path, send_message
+from app.services.telegram_api import (
+    TelegramApiError,
+    answer_callback_query,
+    download_file_bytes,
+    get_file_path,
+    send_message,
+)
 from app.services.telegram_context import auth_context_for_user
 from app.services.telegram_links import consume_link_code, link_for_telegram_user
 from app.services.upload_validation import InvalidAudioContent
@@ -26,7 +37,17 @@ from app.timeutil import utcnow
 
 log = logging.getLogger("app")
 
+_hub_event_loop: AbstractEventLoop | None = None
+
 _URL_RE = re.compile(r"https?://\S+", re.IGNORECASE)
+
+
+def register_hub_event_loop(loop: AbstractEventLoop) -> None:
+    """Main asyncio loop (uvicorn lifespan) — used to deliver task notifications from worker threads."""
+    global _hub_event_loop
+    _hub_event_loop = loop
+_SKILL_CALLBACK_PREFIX = "ss:"
+_pending_summary_transcript: dict[str, str] = {}
 
 
 def _parse_command(text: str) -> tuple[str, list[str]]:
@@ -52,7 +73,90 @@ def _locale(user: User | None, fallback: str = "en") -> str:
     return user.locale or fallback
 
 
+def _short_id(value: str) -> str:
+    return value[:8] if len(value) >= 8 else value
+
+
+def _audio_display_name(db: Session, audio_id: str | None) -> str:
+    if not audio_id:
+        return "—"
+    row = db.get(Audio, audio_id)
+    if row is None:
+        return _short_id(audio_id)
+    name = (row.original_filename or "").strip()
+    if name:
+        return Path(name).name
+    return _short_id(audio_id)
+
+
+def _transcript_display_name(db: Session, transcript_id: str | None) -> str:
+    if not transcript_id:
+        return "—"
+    row = db.get(Transcript, transcript_id)
+    if row is None:
+        return _short_id(transcript_id)
+    title = (row.title or "").strip()
+    if title:
+        return title
+    if row.source_audio_id:
+        return _audio_display_name(db, row.source_audio_id)
+    return _short_id(transcript_id)
+
+
+def _summary_display_name(db: Session, summary_id: str | None) -> str:
+    if not summary_id:
+        return "—"
+    row = db.get(Summary, summary_id)
+    if row is None:
+        return _short_id(summary_id)
+    title = (row.title or "").strip()
+    if title:
+        return title
+    if row.source_transcript_id:
+        return _transcript_display_name(db, row.source_transcript_id)
+    return _short_id(summary_id)
+
+
+def _skill_display_name(db: Session, skill_id: str) -> str:
+    row = db.get(Skill, skill_id)
+    if row is not None and (row.name or "").strip():
+        return row.name.strip()
+    return _short_id(skill_id)
+
+
+def _skill_labels(db: Session, skill_ids: list[str]) -> str:
+    if not skill_ids:
+        return "—"
+    names = [_skill_display_name(db, sid) for sid in skill_ids[:4]]
+    if len(skill_ids) > 4:
+        names.append("…")
+    return ", ".join(names)
+
+
+def _import_source_label(meta: dict) -> str:
+    title = (meta.get("title") or "").strip()
+    if title:
+        return title
+    url = (meta.get("url") or "").strip()
+    if url:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(url)
+        if parsed.netloc:
+            return parsed.netloc
+        return url[:60] + ("…" if len(url) > 60 else "")
+    platform = (meta.get("platform") or "").strip()
+    if platform:
+        return platform
+    return "—"
+
+
 async def handle_update(db: Session, update: dict, *, token: str, settings, bot_username: str | None) -> None:
+    callback = update.get("callback_query")
+    if isinstance(callback, dict):
+        await _handle_callback_query(db, callback, token=token, settings=settings)
+        return
+
     message = update.get("message")
     if not isinstance(message, dict):
         return
@@ -238,20 +342,178 @@ def _resolve_skill_ids(db: Session, ctx, tokens: list[str]) -> list[str]:
     return list(dict.fromkeys(resolved))
 
 
-def _skills_from_transcribe_task(db: Session, transcript_id: str) -> list[str]:
-    task = db.scalars(
-        select(Task)
-        .where(
-            Task.type == "transcribe",
-            Task.status == "success",
-            Task.produced_transcript_id == transcript_id,
+def _filter_usable_skill_ids(db: Session, ctx, org, skill_ids: list[str]) -> list[str]:
+    from app.routers.tasks import _validate_summarize_skills
+
+    kept: list[str] = []
+    for sid in skill_ids:
+        try:
+            _validate_summarize_skills(ctx, db, org, [sid])
+        except ApiError:
+            continue
+        kept.append(sid)
+    return list(dict.fromkeys(kept))
+
+
+def _sorted_visible_skills(db: Session, ctx) -> list[Skill]:
+    return sorted(_visible_skill_map(db, ctx).values(), key=lambda s: (s.name or "").lower())
+
+
+def _skill_inline_keyboard(skills: list[Skill]) -> dict[str, list[list[dict[str, str]]]]:
+    rows: list[list[dict[str, str]]] = []
+    for skill in skills[:20]:
+        name = (skill.name or skill.id).strip()
+        if len(name) > 60:
+            name = name[:57] + "…"
+        rows.append([{"text": name, "callback_data": f"{_SKILL_CALLBACK_PREFIX}{skill.id}"}])
+    return {"inline_keyboard": rows}
+
+
+async def _offer_summary_skill_pick(
+    db: Session,
+    token: str,
+    settings,
+    chat_id: str,
+    ctx,
+    loc: str,
+    transcript: Transcript,
+) -> None:
+    skills = _sorted_visible_skills(db, ctx)
+    if not skills:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.skills_empty"))
+        return
+    _pending_summary_transcript[chat_id] = transcript.id
+    await send_message(
+        token,
+        settings=settings,
+        db=db,
+        chat_id=chat_id,
+        text=t(loc, "telegram.summary_pick_skill"),
+        reply_markup=_skill_inline_keyboard(skills),
+    )
+
+
+async def _enqueue_summary(
+    db: Session,
+    token: str,
+    settings,
+    chat_id: str,
+    ctx,
+    loc: str,
+    transcript: Transcript,
+    skill_ids: list[str],
+) -> None:
+    from app.services.mcp_library import create_summary_payload
+
+    payload = create_summary_payload(
+        db,
+        ctx,
+        transcript_id=transcript.id,
+        skill_ids=skill_ids,
+    )
+    task = db.get(Task, payload["task_id"])
+    if task is not None:
+        _attach_telegram_notify(task, chat_id)
+    db.commit()
+    task_id = payload["task_id"]
+    schedule_locked_tick_asyncio(task_id, refresh_health=False)
+    await send_message(
+        token,
+        settings=settings,
+        db=db,
+        chat_id=chat_id,
+        text=t(
+            loc,
+            "telegram.summary_queued",
+            name=_transcript_display_name(db, transcript.id),
+            skill=_skill_labels(db, skill_ids),
+        ),
+    )
+
+
+async def _handle_callback_query(db: Session, callback: dict, *, token: str, settings) -> None:
+    callback_id = callback.get("id")
+    data = str(callback.get("data") or "")
+    from_user = callback.get("from") or {}
+    telegram_user_id = from_user.get("id")
+    message = callback.get("message") or {}
+    chat = message.get("chat") or {}
+    chat_id = chat.get("id")
+    if not callback_id or telegram_user_id is None or chat_id is None:
+        return
+    chat_id_s = str(chat_id)
+    tg_user_s = str(telegram_user_id)
+
+    async def _answer(text: str | None = None) -> None:
+        try:
+            await answer_callback_query(
+                token,
+                settings=settings,
+                db=db,
+                callback_query_id=str(callback_id),
+                text=text,
+            )
+        except TelegramApiError as exc:
+            log.warning("telegram answerCallbackQuery: %s", exc)
+
+    if not data.startswith(_SKILL_CALLBACK_PREFIX):
+        await _answer()
+        return
+
+    skill_id = data[len(_SKILL_CALLBACK_PREFIX) :]
+    transcript_id = _pending_summary_transcript.get(chat_id_s)
+    if not transcript_id:
+        await _answer(t("en", "telegram.summary_pick_expired"))
+        return
+
+    link = link_for_telegram_user(db, tg_user_s)
+    if link is None:
+        await _answer(t("en", "telegram.need_link"))
+        return
+    user = db.get(User, link.user_id)
+    if user is None or user.disabled_at is not None:
+        await _answer(t("en", "telegram.need_link"))
+        return
+    loc = _locale(user)
+
+    try:
+        ctx = auth_context_for_user(db, user)
+        org, _ = ctx.require_org()
+    except Exception:
+        await _answer(t(loc, "telegram.no_org"))
+        return
+
+    transcript = db.get(Transcript, transcript_id)
+    if transcript is None or transcript.org_id != org.id:
+        _pending_summary_transcript.pop(chat_id_s, None)
+        await _answer(t(loc, "telegram.transcript_not_found"))
+        return
+    from app.services.access import can_use_transcript
+
+    if not can_use_transcript(ctx, db, transcript):
+        _pending_summary_transcript.pop(chat_id_s, None)
+        await _answer(t(loc, "telegram.transcript_not_found"))
+        return
+
+    filtered = _filter_usable_skill_ids(db, ctx, org, [skill_id])
+    if not filtered:
+        await _answer(t(loc, "telegram.skill_ambiguous"))
+        return
+
+    _pending_summary_transcript.pop(chat_id_s, None)
+    try:
+        await _enqueue_summary(db, token, settings, chat_id_s, ctx, loc, transcript, filtered)
+        await _answer(
+            t(loc, "telegram.summary_queued_short", skill=_skill_display_name(db, filtered[0])),
         )
-        .order_by(Task.updated_at.desc())
-        .limit(1)
-    ).first()
-    if task is None:
-        return []
-    return list(task.skill_ids_json or [])
+    except (ApiError, ValueError, PermissionError) as exc:
+        db.rollback()
+        code = getattr(getattr(exc, "code", None), "value", None) or "error"
+        await _answer(t(loc, "telegram.task_enqueue_failed", code=code))
+    except Exception:
+        db.rollback()
+        log.exception("telegram summary callback failed")
+        await _answer(t(loc, "telegram.summary_failed"))
 
 
 async def _cmd_transcribe(
@@ -295,7 +557,7 @@ async def _cmd_transcribe(
             settings=settings,
             db=db,
             chat_id=chat_id,
-            text=t(loc, "telegram.transcribe_queued", task_id=task.id, audio_id=audio.id),
+            text=t(loc, "telegram.transcribe_queued", name=_audio_display_name(db, audio.id)),
         )
     except ApiError as exc:
         db.rollback()
@@ -344,32 +606,10 @@ async def _cmd_summary(
         await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.skill_ambiguous"))
         return
     if not skill_ids:
-        skill_ids = _skills_from_transcribe_task(db, transcript.id)
-    if not skill_ids:
-        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.summary_no_skills"))
+        await _offer_summary_skill_pick(db, token, settings, chat_id, ctx, loc, transcript)
         return
     try:
-        from app.services.mcp_library import create_summary_payload
-
-        payload = create_summary_payload(
-            db,
-            ctx,
-            transcript_id=transcript.id,
-            skill_ids=skill_ids,
-        )
-        task = db.get(Task, payload["task_id"])
-        if task is not None:
-            _attach_telegram_notify(task, chat_id)
-        db.commit()
-        task_id = payload["task_id"]
-        schedule_locked_tick_asyncio(task_id, refresh_health=False)
-        await send_message(
-            token,
-            settings=settings,
-            db=db,
-            chat_id=chat_id,
-            text=t(loc, "telegram.summary_queued", task_id=task_id, transcript_id=transcript.id),
-        )
+        await _enqueue_summary(db, token, settings, chat_id, ctx, loc, transcript, skill_ids)
     except (ApiError, ValueError, PermissionError) as exc:
         db.rollback()
         code = getattr(getattr(exc, "code", None), "value", None) or "error"
@@ -400,7 +640,15 @@ async def _cmd_status(db: Session, token: str, settings, chat_id: str, user: Use
     for row in rows:
         meta = row.meta_json or {}
         stage = meta.get("stage") or row.status
-        lines.append(f"• {row.type} `{row.id[:8]}…` — {stage}")
+        if row.type == "import":
+            label = _import_source_label(meta)
+        elif row.type == "transcribe" and row.audio_id:
+            label = _audio_display_name(db, row.audio_id)
+        elif row.type == "summarize" and row.transcript_id:
+            label = _transcript_display_name(db, row.transcript_id)
+        else:
+            label = row.type
+        lines.append(f"• {row.type}: {label} — {stage}")
     await send_message(token, settings=settings, db=db, chat_id=chat_id, text="\n".join(lines))
 
 
@@ -427,7 +675,7 @@ async def _handle_url(db: Session, token: str, settings, chat_id: str, user: Use
             settings=settings,
             db=db,
             chat_id=chat_id,
-            text=t(loc, "telegram.import_queued", task_id=task.id),
+            text=t(loc, "telegram.import_queued", name=_import_source_label(task.meta_json or {})),
         )
     except ApiError as exc:
         db.rollback()
@@ -489,7 +737,7 @@ async def _handle_file(db: Session, token: str, settings, chat_id: str, user: Us
             settings=settings,
             db=db,
             chat_id=chat_id,
-            text=t(loc, "telegram.upload_ok", audio_id=audio_id),
+            text=t(loc, "telegram.upload_ok", name=_audio_display_name(db, audio_id)),
         )
     except (PayloadTooLarge, InvalidAudioContent):
         db.rollback()
@@ -530,24 +778,91 @@ def _task_terminal_message(db: Session, task: Task, loc: str) -> str:
     meta = task.meta_json or {}
     if task.status != "success":
         code = task.error_code or "error"
-        return t(loc, "telegram.task_error", task_id=task.id, code=code)
+        return t(loc, "telegram.task_error", name=_task_display_name(db, task), code=code)
     if task.type == "import":
-        title = (meta.get("title") or meta.get("platform") or "").strip()
-        audio_id = task.audio_id or ""
-        if title:
-            return t(loc, "telegram.task_import_success", title=title, audio_id=audio_id)
-        return t(loc, "telegram.task_import_success_short", audio_id=audio_id)
+        name = (meta.get("title") or meta.get("platform") or "").strip() or _import_source_label(meta)
+        if name == "—":
+            name = _audio_display_name(db, task.audio_id)
+        return t(loc, "telegram.task_import_success", name=name)
     if task.type == "capture":
         room = (meta.get("meeting_room") or meta.get("meeting_host") or "").strip()
-        audio_id = task.audio_id or ""
-        return t(loc, "telegram.task_capture_success", room=room or "—", audio_id=audio_id)
+        audio_name = _audio_display_name(db, task.audio_id)
+        return t(loc, "telegram.task_capture_success", room=room or "—", name=audio_name)
     if task.type == "transcribe":
-        tid = task.produced_transcript_id or ""
-        return t(loc, "telegram.task_transcribe_success", transcript_id=tid)
+        return t(
+            loc,
+            "telegram.task_transcribe_success",
+            name=_transcript_display_name(db, task.produced_transcript_id),
+        )
     if task.type == "summarize":
-        sid = task.produced_summary_id or ""
-        return t(loc, "telegram.task_summarize_success", summary_id=sid)
-    return t(loc, "telegram.task_success", task_id=task.id, task_type=task.type)
+        return t(
+            loc,
+            "telegram.task_summarize_success",
+            name=_summary_display_name(db, task.produced_summary_id),
+            skill=_skill_labels(db, list(task.skill_ids_json or [])),
+        )
+    return t(loc, "telegram.task_success", name=_task_display_name(db, task))
+
+
+def _task_display_name(db: Session, task: Task) -> str:
+    meta = task.meta_json or {}
+    if task.type == "import":
+        return _import_source_label(meta)
+    if task.type == "transcribe":
+        return _audio_display_name(db, task.audio_id)
+    if task.type == "summarize":
+        return _transcript_display_name(db, task.transcript_id)
+    if task.type == "capture":
+        return (meta.get("meeting_room") or meta.get("meeting_host") or "capture").strip()
+    return task.type
+
+
+async def _deliver_terminal_notification(token: str, chat_id: str, text: str, task_id: str) -> None:
+    from app.db import SessionLocal, get_engine
+
+    get_engine()
+    if SessionLocal is None:
+        return
+    with SessionLocal() as fresh_db:
+        settings = get_instance_settings(fresh_db)
+        try:
+            await send_message(
+                token,
+                settings=settings,
+                db=fresh_db,
+                chat_id=str(chat_id),
+                text=text,
+            )
+        except Exception:
+            log.warning("telegram notify failed task=%s", task_id, exc_info=True)
+
+
+def _schedule_terminal_notification(coro) -> None:
+    def _log_delivery_error(fut: asyncio.Future) -> None:
+        try:
+            fut.result()
+        except Exception:
+            log.warning("telegram notify delivery failed", exc_info=True)
+
+    hub = _hub_event_loop
+    if hub is not None:
+        future = asyncio.run_coroutine_threadsafe(coro, hub)
+        if future is not None:
+            future.add_done_callback(_log_delivery_error)
+        return
+    try:
+        loop = asyncio.get_running_loop()
+
+        def _on_task_done(done: asyncio.Task) -> None:
+            if done.cancelled():
+                return
+            exc = done.exception()
+            if exc is not None:
+                log.warning("telegram notify delivery failed", exc_info=exc)
+
+        loop.create_task(coro).add_done_callback(_on_task_done)
+    except RuntimeError:
+        log.warning("telegram notify skipped: hub event loop not available")
 
 
 def notify_task_terminal(db: Session, task: Task) -> None:
@@ -569,17 +884,6 @@ def notify_task_terminal(db: Session, task: Task) -> None:
     user = db.get(User, task.user_id)
     loc = _locale(user)
     text = _task_terminal_message(db, task, loc)
-    import asyncio
-
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        return
-
-    async def _send() -> None:
-        try:
-            await send_message(token, settings=settings, db=db, chat_id=str(chat_id), text=text)
-        except Exception:
-            log.warning("telegram notify failed task=%s", task.id, exc_info=True)
-
-    loop.create_task(_send())
+    _schedule_terminal_notification(
+        _deliver_terminal_notification(token, str(chat_id), text, task.id),
+    )

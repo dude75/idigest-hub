@@ -992,7 +992,7 @@
       "help": { "command": "/help", "description": "Lista de comandos" },
       "status": { "command": "/status", "description": "Tareas activas" },
       "transcribe": { "command": "/transcribe [id]", "description": "Transcribir último audio o el indicado; skills opcionales" },
-      "summary": { "command": "/summary [id]", "description": "Resumir último transcript o el indicado; skills opcionales" },
+      "summary": { "command": "/summary [id]", "description": "Resumir último transcript o el indicado; elegir skill (botones)" },
       "url": { "command": "URL", "description": "Importar enlace (como en la UI)" },
       "file": { "command": "Archivo / voz", "description": "Subir audio a la biblioteca" }
     },

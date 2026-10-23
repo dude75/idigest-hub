@@ -9,5 +9,5 @@ BOT_MENU_COMMANDS: list[dict[str, str]] = [
     {"command": "help", "description": "Command list"},
     {"command": "status", "description": "Active tasks"},
     {"command": "transcribe", "description": "Transcribe audio (optional id)"},
-    {"command": "summary", "description": "Summarize transcript (optional id, skills)"},
+    {"command": "summary", "description": "Summarize transcript; pick a skill"},
 ]

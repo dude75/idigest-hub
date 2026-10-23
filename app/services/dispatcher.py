@@ -237,17 +237,22 @@ def _worker_error_detail(body: dict[str, Any] | None) -> str | None:
     return text[: _ERROR_DETAIL_MAX_LEN - 3] + "..."
 
 
+def _merge_task_meta(task: Task, **fields: Any) -> None:
+    meta = dict(task.meta_json or {})
+    meta.update(fields)
+    task.meta_json = meta
+
+
 def _fail(db: Session, task: Task, code: str, *, error_detail: str | None = None) -> None:
     task.status = "error"
     task.error_code = code
     task.updated_at = utcnow()
     task.worker_id = None
     task.worker_task_id = None
+    err_meta: dict[str, Any] = {"stage": "error"}
     if error_detail:
-        meta = dict(task.meta_json or {})
-        meta["stage"] = "error"
-        meta["error_detail"] = error_detail
-        task.meta_json = meta
+        err_meta["error_detail"] = error_detail
+    _merge_task_meta(task, **err_meta)
     from app.services.task_terminal import mark_task_terminal
 
     mark_task_terminal(db, task)
@@ -521,7 +526,7 @@ async def _on_summarize_success(
     worker_task_id = task.worker_task_id
     _persist_summary(db, task, text)
     _charge(db, task, None, amount, summary_chars=len(text))
-    task.meta_json = {"stage": "done"}
+    _merge_task_meta(task, stage="done")
     task.worker_task_id = None
     task.worker_id = None
     _commit(db)
@@ -634,7 +639,7 @@ async def _recover_worker_task(db: Session, task: Task, nodes: list[WorkerNode])
         return
     if worker_status in {"queued", "running"}:
         task.status = "running"
-        task.meta_json = {"stage": worker_status}
+        _merge_task_meta(task, stage=worker_status)
         task.updated_at = utcnow()
         return
 
@@ -683,7 +688,7 @@ async def poll_running_task(db: Session, task: Task, nodes: list[WorkerNode]) ->
         return
     if worker_status in {"queued", "running"}:
         task.status = "running"
-        task.meta_json = {"stage": worker_status}
+        _merge_task_meta(task, stage=worker_status)
         task.updated_at = utcnow()
 
 
@@ -701,7 +706,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
         candidates = summarize_candidates(nodes, summarize_model)
     if pool == "waiting":
         task.retry_without_timeout = True
-        task.meta_json = {"stage": "waiting_engine"}
+        _merge_task_meta(task, stage="waiting_engine")
         return
     if _maybe_timeout(db, task, pool, timeout_sec):
         return
@@ -712,9 +717,9 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
             model = (task.snap_summarize_model or "").strip() or None
             enabled = [n for n in nodes if n.enabled and n.type == "summarize"]
             if model and enabled and not any(worker_offers_summarize_model(n, model) for n in enabled):
-                task.meta_json = {"stage": "no_matching_worker", "summarize_model": model}
+                _merge_task_meta(task, stage="no_matching_worker", summarize_model=model)
             else:
-                task.meta_json = {"stage": "queued"}
+                _merge_task_meta(task, stage="queued")
         else:
             from app.services.transcribe_models import worker_offers_model
 
@@ -722,13 +727,14 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
             diar = task.snap_diarization_model
             enabled = [n for n in nodes if n.enabled and n.type == "transcribe"]
             if enabled and not any(worker_offers_model(n, asr=asr, diar=diar) for n in enabled):
-                task.meta_json = {
-                    "stage": "no_matching_worker",
-                    "asr_model": asr,
-                    "diarization_model": diar,
-                }
+                _merge_task_meta(
+                    task,
+                    stage="no_matching_worker",
+                    asr_model=asr,
+                    diarization_model=diar,
+                )
             else:
-                task.meta_json = {"stage": "queued"}
+                _merge_task_meta(task, stage="queued")
         return
 
     tried_payload_too_large = 0
@@ -783,7 +789,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
         except WorkerClientError as exc:
             if exc.kind == "queue_full":
                 task.retry_without_timeout = True
-                task.meta_json = {"stage": "queue_full"}
+                _merge_task_meta(task, stage="queue_full")
                 continue
             if exc.kind == "payload_too_large":
                 tried_payload_too_large += 1
@@ -804,7 +810,7 @@ async def dispatch_queued_task(db: Session, task: Task, nodes: list[WorkerNode],
         task.worker_id = node.id
         task.worker_task_id = str(worker_task_id) if worker_task_id else None
         task.status = "running"
-        task.meta_json = {"stage": "dispatched"}
+        _merge_task_meta(task, stage="dispatched")
         task.updated_at = utcnow()
         worker_status = body.get("status")
         if worker_status == "success":

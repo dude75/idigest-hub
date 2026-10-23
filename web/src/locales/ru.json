@@ -988,7 +988,7 @@
       "help": { "command": "/help", "description": "Список команд" },
       "status": { "command": "/status", "description": "Активные задачи" },
       "transcribe": { "command": "/transcribe [id]", "description": "Транскрибация последнего или указанного audio; навыки опционально" },
-      "summary": { "command": "/summary [id]", "description": "Саммари последнего или указанного transcript; навыки опционально" },
+      "summary": { "command": "/summary [id]", "description": "Саммари последнего или указанного transcript; выбор навыка кнопками" },
       "url": { "command": "URL", "description": "Импорт по ссылке (как в UI)" },
       "file": { "command": "Файл / голос", "description": "Загрузка аудио в библиотеку" }
     },

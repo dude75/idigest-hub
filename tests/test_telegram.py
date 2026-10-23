@@ -95,6 +95,64 @@ def test_telegram_webhook_rejects_bad_secret(client, monkeypatch):
     assert ok.json()["status"] == "ok"
 
 
+def test_notify_task_terminal_uses_hub_loop(client, monkeypatch):
+    import asyncio
+
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+    from app.models import Task, new_id
+    from app.services.telegram_bot import notify_task_terminal, register_hub_event_loop
+    from app.timeutil import utcnow
+
+    loop = asyncio.new_event_loop()
+    register_hub_event_loop(loop)
+    scheduled: list = []
+
+    def _fake_threadsafe(coro, target_loop):
+        scheduled.append(coro)
+        coro.close()
+
+    monkeypatch.setattr(asyncio, "run_coroutine_threadsafe", _fake_threadsafe)
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "123456:TEST", "telegram_enabled": True},
+    )
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    signup(client, "tgnotify@example.com", "tgnotifypass12", tariff_id)
+    get_engine()
+    with SessionLocal() as db:
+        from sqlalchemy import select
+
+        from app.models import User
+
+        from app.deps import load_org_bundle
+
+        user = db.scalars(select(User).where(User.email == "tgnotify@example.com")).one()
+        org, _ = load_org_bundle(db, user)
+        now = utcnow()
+        task = Task(
+            id=new_id(),
+            type="import",
+            status="success",
+            org_id=org.id,
+            user_id=user.id,
+            meta_json={"notify_telegram": True, "telegram_chat_id": "12345"},
+            queued_at=now,
+            created_at=now,
+            updated_at=now,
+            snap_unlimited=org.tariff.unlimited,
+            snap_price_per_audio_sec=org.tariff.price_per_audio_sec,
+            snap_price_per_1k_summary_chars=org.tariff.price_per_1k_summary_chars,
+            snap_max_upload_bytes=org.tariff.max_upload_bytes,
+        )
+        db.add(task)
+        db.flush()
+        notify_task_terminal(db, task)
+    assert len(scheduled) == 1
+    loop.close()
+
+
 def test_telegram_notify_meta_propagation():
     from app.services.telegram_bot import telegram_notify_meta
 
@@ -110,6 +168,7 @@ def test_telegram_bot_menu_commands():
     from app.services.telegram_commands import BOT_MENU_COMMANDS
 
     names = [row["command"] for row in BOT_MENU_COMMANDS]
+    assert "skills" not in names
     assert "transcribe" in names
     assert "summary" in names
 
@@ -119,6 +178,85 @@ def test_telegram_parse_command():
 
     assert _parse_command("/transcribe@mybot abc") == ("/transcribe", ["abc"])
     assert _parse_command("/summary") == ("/summary", [])
+
+
+def test_merge_task_meta_keeps_telegram_notify():
+    from app.models import Task, new_id
+    from app.services.dispatcher import _merge_task_meta
+    from app.timeutil import utcnow
+
+    now = utcnow()
+    task = Task(
+        id=new_id(),
+        type="transcribe",
+        status="queued",
+        org_id="org",
+        user_id="user",
+        meta_json={"notify_telegram": True, "telegram_chat_id": "99"},
+        queued_at=now,
+        created_at=now,
+        updated_at=now,
+        snap_unlimited=True,
+        snap_price_per_audio_sec=0,
+        snap_price_per_1k_summary_chars=0,
+        snap_max_upload_bytes=1,
+    )
+    _merge_task_meta(task, stage="running")
+    assert task.meta_json["notify_telegram"] is True
+    assert task.meta_json["telegram_chat_id"] == "99"
+    assert task.meta_json["stage"] == "running"
+
+
+def test_telegram_display_names(client):
+    from app.db import SessionLocal, get_engine
+    from app.models import Audio, Transcript, new_id
+    from app.services.telegram_bot import _audio_display_name, _transcript_display_name
+    from app.timeutil import utcnow
+
+    setup_admin(client)
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    signup(client, "tgname@example.com", "tgnamepass12", tariff_id)
+    get_engine()
+    with SessionLocal() as db:
+        from sqlalchemy import select
+
+        from app.deps import load_org_bundle
+        from app.models import User
+
+        user = db.scalars(select(User).where(User.email == "tgname@example.com")).one()
+        org, _ = load_org_bundle(db, user)
+        now = utcnow()
+        audio = Audio(
+            id=new_id(),
+            org_id=org.id,
+            owner_user_id=user.id,
+            storage_path="x/y",
+            original_filename="My Podcast Episode.mp3",
+            created_at=now,
+        )
+        db.add(audio)
+        tr = Transcript(
+            id=new_id(),
+            org_id=org.id,
+            owner_user_id=user.id,
+            source_audio_id=audio.id,
+            title="Meeting notes",
+            utterances_encrypted="enc",
+            created_at=now,
+        )
+        db.add(tr)
+        db.commit()
+        assert _audio_display_name(db, audio.id) == "My Podcast Episode.mp3"
+        assert _transcript_display_name(db, tr.id) == "Meeting notes"
+
+
+def test_skill_inline_keyboard_callback_data():
+    from app.models import Skill
+    from app.services.telegram_bot import _SKILL_CALLBACK_PREFIX, _skill_inline_keyboard
+
+    skill = Skill(id="a" * 36, name="Minutes", body="x", scope="base", org_id=None, owner_user_id="u")
+    markup = _skill_inline_keyboard([skill])
+    assert markup["inline_keyboard"][0][0]["callback_data"] == f"{_SKILL_CALLBACK_PREFIX}{skill.id}"
 
 
 async def test_telegram_cmd_transcribe_queues(client, monkeypatch):

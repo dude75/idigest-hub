@@ -117,6 +117,9 @@ async def lifespan(app: FastAPI):
     metrics.bind(settings=settings)
     app.state.metrics = metrics
     stop_event = asyncio.Event()
+    from app.services.telegram_bot import register_hub_event_loop
+
+    register_hub_event_loop(asyncio.get_running_loop())
     task = asyncio.create_task(dispatcher_loop(stop_event))
     rate_limit_task = (
         asyncio.create_task(rate_limit_sweeper(stop_event)) if rate_limit_uses_memory(settings) else None

@@ -70,11 +70,28 @@ async def send_message(
     chat_id: str,
     text: str,
     parse_mode: str | None = None,
+    reply_markup: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     body: dict[str, Any] = {"chat_id": chat_id, "text": text[:4096]}
     if parse_mode:
         body["parse_mode"] = parse_mode
+    if reply_markup:
+        body["reply_markup"] = reply_markup
     return await _request("sendMessage", token, settings=settings, db=db, json_body=body)
+
+
+async def answer_callback_query(
+    token: str,
+    *,
+    settings: InstanceSettings,
+    db,
+    callback_query_id: str,
+    text: str | None = None,
+) -> dict[str, Any]:
+    body: dict[str, Any] = {"callback_query_id": callback_query_id}
+    if text:
+        body["text"] = text[:200]
+    return await _request("answerCallbackQuery", token, settings=settings, db=db, json_body=body)
 
 
 async def get_updates(
@@ -86,7 +103,7 @@ async def get_updates(
     timeout: int = 50,
     secret_token: str | None = None,
 ) -> list[dict[str, Any]]:
-    body: dict[str, Any] = {"timeout": timeout, "allowed_updates": ["message"]}
+    body: dict[str, Any] = {"timeout": timeout, "allowed_updates": ["message", "callback_query"]}
     if offset is not None:
         body["offset"] = offset
     url = f"{API_BASE}/bot{token}/getUpdates"
@@ -120,7 +137,7 @@ async def set_webhook(
         json_body={
             "url": webhook_url,
             "secret_token": secret_token,
-            "allowed_updates": ["message"],
+            "allowed_updates": ["message", "callback_query"],
             "drop_pending_updates": False,
         },
     )
