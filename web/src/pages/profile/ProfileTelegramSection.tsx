@@ -128,7 +128,7 @@ export function ProfileTelegramSection() {
                 </p>
               ) : null}
               <p className="font-medium">{t('profile.telegramCodeLabel')}</p>
-              <AppUrlCopyRow value={link.start_command} />
+              <AppUrlCopyRow value={link.start_command} className="public-link-url-row-compact" />
               <p className="muted">
                 {t('profile.telegramCodeExpires')} {formatWhen(link.expires_at)}
               </p>

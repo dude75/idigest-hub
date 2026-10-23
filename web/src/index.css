@@ -2234,6 +2234,15 @@ th { color: var(--hub-muted); font-weight: 550; }
   border: 1px solid var(--line);
   border-radius: var(--radius-md, 0.5rem);
 }
+.public-link-url-row-compact {
+  flex: none;
+  width: fit-content;
+  max-width: 100%;
+  padding-right: 0.35rem;
+}
+.public-link-url-row-compact .public-link-url {
+  flex: 0 1 auto;
+}
 .public-link-url {
   flex: 1;
   min-width: 0;
