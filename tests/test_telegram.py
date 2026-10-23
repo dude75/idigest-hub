@@ -5,6 +5,13 @@ from __future__ import annotations
 from tests.conftest import err_code, login_ready, setup_admin, signup  # noqa: F401
 
 
+def test_instance_admin_without_org_cannot_use_me_telegram(client):
+    setup_admin(client)
+    denied = client.get("/api/v1/me/telegram")
+    assert denied.status_code == 403
+    assert err_code(denied) == "forbidden"
+
+
 def test_telegram_link_flow(client):
     setup_admin(client)
     client.patch(

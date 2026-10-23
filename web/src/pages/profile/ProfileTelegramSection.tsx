@@ -30,6 +30,7 @@ export function ProfileTelegramSection() {
   const [status, setStatus] = useState<MeTelegramStatus | null>(null)
   const [link, setLink] = useState<MeTelegramLink | null>(null)
   const [busy, setBusy] = useState(false)
+  const orgReady = Boolean(me?.org)
 
   function formatWhen(iso: string) {
     if (!me) return iso
@@ -37,17 +38,19 @@ export function ProfileTelegramSection() {
   }
 
   const load = useCallback(async () => {
+    if (!orgReady) return
     try {
       const data = await api<MeTelegramStatus>('/me/telegram')
       setStatus(data)
     } catch (e) {
       showError(e)
     }
-  }, [])
+  }, [orgReady])
 
   useEffect(() => {
+    if (!orgReady) return
     void load()
-  }, [load])
+  }, [load, orgReady])
 
   async function createLink() {
     setBusy(true)
@@ -77,7 +80,7 @@ export function ProfileTelegramSection() {
     }
   }
 
-  if (!status) return null
+  if (!orgReady || !status) return null
 
   const botUsername = link?.bot_username ?? status.bot_username
   const botUrl = link?.bot_url ?? status.bot_url

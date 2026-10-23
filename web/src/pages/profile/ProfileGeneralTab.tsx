@@ -42,8 +42,12 @@ export function ProfileGeneralTab() {
     <Card className="admin-form-card">
       <ProfileCardHeader title={t('profile.tabGeneral')} lead={t('profile.tabGeneralLead')} />
       <CardContent className="flex flex-col gap-6">
-        <ProfileTelegramSection />
-        <ProfileSectionDivider />
+        {me?.org ? (
+          <>
+            <ProfileTelegramSection />
+            <ProfileSectionDivider />
+          </>
+        ) : null}
         <ProfileSection
           title={t('profile.names')}
           description={t('profile.namesHint')}
