@@ -319,11 +319,23 @@ def patch_settings(
     for key, value in data.items():
         setattr(s, key, value)
     patch_fields = body.model_dump(exclude_unset=True)
+    _telegram_transport_keys = {
+        "telegram_bot_token",
+        "telegram_enabled",
+        "telegram_use_proxy",
+        "public_base_url",
+        "outbound_proxy_enabled",
+        "download_proxy_enabled",
+        "download_proxy_url",
+        "download_proxy_password",
+    }
     if s.telegram_enabled and (s.telegram_bot_token_encrypted or "").strip():
-        if "telegram_bot_token" in patch_fields or "telegram_enabled" in patch_fields or "telegram_use_proxy" in patch_fields:
+        if _telegram_transport_keys & set(patch_fields):
             from app.services.telegram_identity import refresh_bot_username_sync
+            from app.services.telegram_runtime import schedule_telegram_reconfigure
 
             refresh_bot_username_sync(db, s)
+            schedule_telegram_reconfigure()
     if "asr_model" in body.model_dump(exclude_unset=True) or "diarization_model" in body.model_dump(exclude_unset=True):
         from app.services.transcribe_models import validate_instance_models
 

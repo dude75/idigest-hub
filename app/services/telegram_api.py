@@ -147,6 +147,10 @@ async def delete_webhook(token: str, *, settings: InstanceSettings, db) -> None:
     await _request("deleteWebhook", token, settings=settings, db=db, json_body={"drop_pending_updates": False})
 
 
+async def get_webhook_info(token: str, *, settings: InstanceSettings, db) -> dict[str, Any]:
+    return await _request("getWebhookInfo", token, settings=settings, db=db)
+
+
 async def set_my_commands(
     token: str,
     *,

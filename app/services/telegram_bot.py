@@ -46,6 +46,15 @@ def register_hub_event_loop(loop: AbstractEventLoop) -> None:
     """Main asyncio loop (uvicorn lifespan) — used to deliver task notifications from worker threads."""
     global _hub_event_loop
     _hub_event_loop = loop
+
+
+def run_on_hub_loop(coro) -> bool:
+    """Schedule a coroutine on the hub loop from a sync context (e.g. settings PATCH)."""
+    loop = _hub_event_loop
+    if loop is None or loop.is_closed():
+        return False
+    asyncio.run_coroutine_threadsafe(coro, loop)
+    return True
 _SKILL_CALLBACK_PREFIX = "ss:"
 _pending_summary_transcript: dict[str, str] = {}
 

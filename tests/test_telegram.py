@@ -113,6 +113,7 @@ def test_notify_task_terminal_uses_hub_loop(client, monkeypatch):
         coro.close()
 
     monkeypatch.setattr(asyncio, "run_coroutine_threadsafe", _fake_threadsafe)
+    monkeypatch.setattr("app.services.telegram_runtime.schedule_telegram_reconfigure", lambda: None)
     setup_admin(client)
     client.patch(
         "/api/v1/instance/settings",
