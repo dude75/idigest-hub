@@ -3054,6 +3054,8 @@ export interface components {
             telegram_bot_username?: string | null;
             /** Telegram Use Proxy */
             telegram_use_proxy: boolean;
+            /** Telegram Use Webhook */
+            telegram_use_webhook: boolean;
             /** Download Cookies Path */
             download_cookies_path?: string | null;
             /** Import Audio Bitrate Kbps */
@@ -4020,6 +4022,8 @@ export interface components {
             telegram_bot_token?: string | null;
             /** Telegram Use Proxy */
             telegram_use_proxy?: boolean | null;
+            /** Telegram Use Webhook */
+            telegram_use_webhook?: boolean | null;
             /** Download Cookies Path */
             download_cookies_path?: string | null;
             /** Import Audio Bitrate Kbps */

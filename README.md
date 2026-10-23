@@ -107,6 +107,19 @@ After `/setup`, set **Public URL** in **Instance → Settings**. It is the hub�
 
 Use the same URL users and Keycloak use to reach the hub. In production prefer **HTTPS** and set `COOKIE_SECURE=true`. Local dev over HTTP works with `COOKIE_SECURE=false` (default).
 
+## Telegram bot (instance admin)
+
+Enable the bot under **Instance → Settings → Telegram** (BotFather token, optional outbound proxy with `httpx2[socks]` / `socksio` in the image). Link users via **Profile → Telegram**.
+
+**Updates delivery** (checkbox **Deliver updates via webhook**):
+
+| Mode | When to use |
+| ---- | ----------- |
+| **Webhook** (default, needs Public URL) | Telegram POSTs to `{public_url}/api/v1/integrations/telegram/webhook`. Requires **HTTPS reachable from the public internet** (reverse proxy on 443 → hub). |
+| **Long polling** (webhook off) | Hub pulls updates outbound only. Use when `getWebhookInfo` shows `Connection timed out` but **Check connection** succeeds. **Public URL can stay set** for SSO and public links. |
+
+After changing the mode, save settings (the hub reconfigures transport; restart if the bot stays silent). **POST** `/instance/telegram/test-connection` verifies the token and API reachability. See [Troubleshooting — Telegram](docs/en/operations/troubleshooting.md#telegram-bot).
+
 ## Single sign-on (SSO)
 
 Each organization can enable **OIDC SSO** (tested with **Keycloak**). **Org admin** → **Org** → **Single sign-on (Keycloak)**:

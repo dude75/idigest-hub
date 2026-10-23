@@ -107,6 +107,19 @@ curl -sS -X POST http://127.0.0.1:8080/api/v1/setup \
 
 URL должен совпадать с тем, как хаб видят пользователи и Keycloak. В проде — **HTTPS** и `COOKIE_SECURE=true`. Локально по HTTP достаточно `COOKIE_SECURE=false` (по умолчанию).
 
+## Telegram-бот (instance admin)
+
+Включение: **Instance → Settings → Telegram** (токен BotFather, при необходимости исходящий прокси; в образе нужен `socksio` через `httpx2[socks]`). Привязка пользователей: **Profile → Telegram**.
+
+**Доставка апдейтов** (галочка **Доставка через webhook**):
+
+| Режим | Когда |
+| ----- | ----- |
+| **Webhook** (по умолчанию, нужен публичный URL) | Telegram шлёт POST на `{public_url}/api/v1/integrations/telegram/webhook`. Нужен **HTTPS с интернета** (reverse proxy на 443 → хаб). |
+| **Long polling** (webhook выкл.) | Хаб сам тянет `getUpdates` наружу. Если в `getWebhookInfo` — `Connection timed out`, а **Проверить соединение** ок. **Публичный URL можно не убирать** (SSO, публичные ссылки). |
+
+После смены режима — сохранить настройки (хаб переконфигурирует транспорт; при молчании бота — рестарт). **POST** `/instance/telegram/test-connection` проверяет токен и API. См. [Troubleshooting — Telegram](docs/ru/operations/troubleshooting.md#telegram-бот).
+
 ## Single sign-on (SSO)
 
 У каждой организации может быть **OIDC SSO** (ориентир — **Keycloak**). **Org admin** → **Org** → **Single sign-on (Keycloak)**:

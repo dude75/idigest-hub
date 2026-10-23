@@ -223,13 +223,14 @@ Names come from each worker’s last `/health` (`model`, `llm_model`, or `llm`).
 
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, default transcription models (`asr_model`, `diarization_model`), available transcription lists (`asr_models[]`, `diarization_models[]`), default summarize model (`summarize_model`) and `summarize_models[]`, import settings, `capture_enabled`, `capture_connectors[]` (worker-reported catalog with `enabled` flags for instance-allowed ids), `date_time_format`, `timezone`, rate limit matrix. Also `smtp_configured`: true only when host, from-address, **and** `public_base_url` are set (required for password reset emails and public summary links).
+SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_base_url`, Telegram (`telegram_enabled`, `telegram_bot_token` masked, `telegram_proxy_*`, `telegram_use_webhook`), default transcription models (`asr_model`, `diarization_model`), available transcription lists (`asr_models[]`, `diarization_models[]`), default summarize model (`summarize_model`) and `summarize_models[]`, import settings, `capture_enabled`, `capture_connectors[]` (worker-reported catalog with `enabled` flags for instance-allowed ids), `date_time_format`, `timezone`, rate limit matrix. Also `smtp_configured`: true only when host, from-address, **and** `public_base_url` are set (required for password reset emails and public summary links).
 
 ### PATCH `/instance/settings`
 
 Partial update. Fields include:
 
 - `allow_new_orgs`, `public_base_url`
+- Telegram: `telegram_enabled`, `telegram_bot_token`, `telegram_proxy_url`, `telegram_use_webhook` (when `false`, hub uses long polling even if `public_base_url` is set; changing Telegram fields triggers transport reconfigure)
 - SMTP: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`
 - Models: `asr_model`, `diarization_model` (must be in aggregated worker lists when workers exist; empty `diarization_model` disables diarization); `summarize_model` (must be in `summarize_models` when workers report names)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)
@@ -239,6 +240,10 @@ Partial update. Fields include:
 - Rate limits: `rate_limit_enabled`, `rate_limit_login_email`, `rate_limit_public_link_ip`, `rate_limit_public_pin_ip`, … (see README)
 
 Changing rate limits invalidates in-memory limit cache.
+
+### POST `/instance/telegram/test-connection`
+
+Verifies BotFather token and outbound API reachability (uses saved Telegram settings and optional proxy). Returns `{ "status": "ok", "username": "..." }` or an error message. Does not register or change webhook mode.
 
 ### POST `/instance/smtp/test-connection`
 

@@ -65,6 +65,8 @@ server {
         # For HTTPS upstream (remote hub): proxy_pass https://idigest_hub;
         #   proxy_ssl_verify on;
         #   proxy_ssl_trusted_certificate /etc/ssl/certs/hub.crt;
+        # Self-signed hub cert on LAN: proxy_ssl_verify off;
+        # Telegram webhooks hit /api/v1/integrations/telegram/webhook (same location /).
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;

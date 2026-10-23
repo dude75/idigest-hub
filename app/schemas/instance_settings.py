@@ -38,6 +38,7 @@ class InstanceSettingsResponse(BaseModel):
     telegram_bot_token_configured: bool
     telegram_bot_username: str | None = None
     telegram_use_proxy: bool
+    telegram_use_webhook: bool
     download_cookies_path: str | None = None
     import_audio_bitrate_kbps: int
     import_max_concurrent: int

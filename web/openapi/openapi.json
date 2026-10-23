@@ -9966,6 +9966,10 @@
             "type": "boolean",
             "title": "Telegram Use Proxy"
           },
+          "telegram_use_webhook": {
+            "type": "boolean",
+            "title": "Telegram Use Webhook"
+          },
           "download_cookies_path": {
             "anyOf": [
               {
@@ -10536,6 +10540,7 @@
           "telegram_enabled",
           "telegram_bot_token_configured",
           "telegram_use_proxy",
+          "telegram_use_webhook",
           "import_audio_bitrate_kbps",
           "import_max_concurrent",
           "session_ttl_hours",
@@ -13409,6 +13414,17 @@
               }
             ],
             "title": "Telegram Use Proxy"
+          },
+          "telegram_use_webhook": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Use Webhook"
           },
           "download_cookies_path": {
             "anyOf": [

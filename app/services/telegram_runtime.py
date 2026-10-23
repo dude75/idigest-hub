@@ -22,6 +22,14 @@ from app.services.telegram_identity import bot_token
 log = logging.getLogger("app")
 
 _offset: int | None = None
+_transport_recheck: asyncio.Event | None = None
+
+
+def _recheck_event() -> asyncio.Event:
+    global _transport_recheck
+    if _transport_recheck is None:
+        _transport_recheck = asyncio.Event()
+    return _transport_recheck
 
 
 async def configure_telegram_transport(stop_event: asyncio.Event) -> str:
@@ -48,7 +56,8 @@ async def configure_telegram_transport(stop_event: asyncio.Event) -> str:
         secret = (settings.telegram_webhook_secret or "").strip()
         use_proxy = bool(settings.outbound_proxy_enabled and settings.telegram_use_proxy)
         bot_label = f"@{username}" if username else "bot"
-        if base and secret:
+        use_webhook = bool(settings.telegram_use_webhook)
+        if use_webhook and base and secret:
             webhook_url = f"{base.rstrip('/')}/api/v1/integrations/telegram/webhook"
             try:
                 await set_webhook(token, settings=settings, db=db, webhook_url=webhook_url, secret_token=secret)
@@ -84,6 +93,10 @@ async def configure_telegram_transport(stop_event: asyncio.Event) -> str:
                 return "webhook"
             except TelegramApiError as exc:
                 log.warning("telegram setWebhook failed, falling back to long poll: %s", exc)
+        elif use_webhook and not base:
+            log.info("telegram webhook skipped (no public URL); long polling (%s)", bot_label)
+        elif not use_webhook:
+            log.info("telegram webhook disabled in settings; long polling (%s)", bot_label)
         try:
             await delete_webhook(token, settings=settings, db=db)
         except TelegramApiError as exc:
@@ -138,12 +151,29 @@ async def telegram_poll_loop(stop_event: asyncio.Event) -> None:
                     db.rollback()
 
 
+async def _wait_webhook_recheck(stop_event: asyncio.Event, *, timeout_sec: float = 300.0) -> bool:
+    """Wait until stop, transport reconfigure, or timeout. Returns True if stop_event is set."""
+    if stop_event.is_set():
+        return True
+    recheck = asyncio.create_task(_recheck_event().wait())
+    stop = asyncio.create_task(stop_event.wait())
+    timer = asyncio.create_task(asyncio.sleep(timeout_sec))
+    done, pending = await asyncio.wait({recheck, stop, timer}, return_when=asyncio.FIRST_COMPLETED)
+    for task in pending:
+        task.cancel()
+    return stop_event.is_set()
+
+
 async def _telegram_webhook_wait(stop_event: asyncio.Event) -> None:
     while not stop_event.is_set():
-        try:
-            await asyncio.wait_for(stop_event.wait(), timeout=300.0)
-        except asyncio.TimeoutError:
-            pass
+        if await _wait_webhook_recheck(stop_event):
+            return
+        mode = await configure_telegram_transport(asyncio.Event())
+        if mode == "poll":
+            await telegram_poll_loop(stop_event)
+            return
+        if mode == "off":
+            return
 
 
 def schedule_telegram_reconfigure() -> None:
@@ -151,6 +181,7 @@ def schedule_telegram_reconfigure() -> None:
     from app.services.telegram_bot import run_on_hub_loop
 
     async def _run() -> None:
+        _recheck_event().set()
         try:
             await configure_telegram_transport(asyncio.Event())
         except Exception:

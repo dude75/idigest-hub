@@ -95,6 +95,8 @@ location / {
 
 **Публичный URL** в Instance → Settings — адрес **внешнего** nginx (`https://hub.example.com`), не внутренний `:8443`.
 
+**Webhook Telegram** использует тот же публичный хост: Telegram должен достучаться до `https://…/api/v1/integrations/telegram/webhook` на **443**. Если с вашей сети путь открыт, а в `getWebhookInfo` — `Connection timed out`, снимите **Доставка через webhook** в Instance → Telegram (long polling). См. [Troubleshooting — Telegram](troubleshooting.md#telegram-бот).
+
 ### Заголовки безопасности (HSTS, CSP)
 
 Полный пример nginx включает рекомендуемые заголовки в HTTPS-блоке:

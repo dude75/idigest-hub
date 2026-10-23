@@ -223,13 +223,14 @@ Query (те же правила дат, что у stats):
 
 ### GET `/instance/settings`
 
-SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, модели транскрибации по умолчанию (`asr_model`, `diarization_model`), списки доступных моделей транскрибации (`asr_models[]`, `diarization_models[]`), модель summarize по умолчанию (`summarize_model`) и `summarize_models[]`, import settings, `capture_enabled`, `capture_connectors[]` (каталог с воркеров с флагами `enabled` для разрешённых на инстансе id), `date_time_format`, `timezone`, rate limit matrix. Также `smtp_configured`: true только при host, from-address **и** `public_base_url` (нужно для писем сброса пароля и public summary links).
+SMTP host/port/user/from/tls (password не возвращается), `allow_new_orgs`, `public_base_url`, Telegram (`telegram_enabled`, маскированный `telegram_bot_token`, `telegram_proxy_*`, `telegram_use_webhook`), модели транскрибации по умолчанию (`asr_model`, `diarization_model`), списки доступных моделей транскрибации (`asr_models[]`, `diarization_models[]`), модель summarize по умолчанию (`summarize_model`) и `summarize_models[]`, import settings, `capture_enabled`, `capture_connectors[]` (каталог с воркеров с флагами `enabled` для разрешённых на инстансе id), `date_time_format`, `timezone`, rate limit matrix. Также `smtp_configured`: true только при host, from-address **и** `public_base_url` (нужно для писем сброса пароля и public summary links).
 
 ### PATCH `/instance/settings`
 
 Частичное обновление. Поля включают:
 
 - `allow_new_orgs`, `public_base_url`
+- Telegram: `telegram_enabled`, `telegram_bot_token`, `telegram_proxy_url`, `telegram_use_webhook` (при `false` — long polling даже с `public_base_url`; смена полей Telegram переконфигурирует транспорт)
 - SMTP: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`
 - Models: `asr_model`, `diarization_model` (должны быть в объединённом списке воркеров, если воркеры есть; пустой `diarization_model` отключает диаризацию); `summarize_model` (должен быть в `summarize_models`, если воркеры отдают имена)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)
@@ -239,6 +240,10 @@ SMTP host/port/user/from/tls (password не возвращается), `allow_ne
 - Rate limits: `rate_limit_enabled`, `rate_limit_login_email`, `rate_limit_public_link_ip`, `rate_limit_public_pin_ip`, … (см. README)
 
 Изменение rate limits инвалидирует in-memory limit cache.
+
+### POST `/instance/telegram/test-connection`
+
+Проверка токена BotFather и исходящего доступа к API (сохранённые настройки Telegram и прокси). Ответ `{ "status": "ok", "username": "..." }` или ошибка. Режим webhook не меняет.
 
 ### POST `/instance/smtp/test-connection`
 

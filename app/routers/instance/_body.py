@@ -138,6 +138,7 @@ class SettingsPatch(BaseModel):
     telegram_enabled: bool | None = None
     telegram_bot_token: str | None = None
     telegram_use_proxy: bool | None = None
+    telegram_use_webhook: bool | None = None
     download_cookies_path: str | None = None
     import_audio_bitrate_kbps: int | None = None
     import_max_concurrent: int | None = None

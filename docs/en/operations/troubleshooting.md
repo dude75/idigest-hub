@@ -70,6 +70,35 @@ Application logs: `{LOG_DIR}/app.log` (rotating). Disable with `LOG_ENABLED=fals
 
 Dispatcher logs worker failures at INFO: `worker health failed`, `worker poll network error`, `worker 404 redispatch`.
 
+## Telegram bot
+
+| Symptom | Cause | Fix |
+| ------- | ----- | --- |
+| Bot silent, logs `telegram getMe failed` / `socksio` | SOCKS proxy without optional dependency | Rebuild image with `httpx2[socks]`; `pip show socksio` in container |
+| `getWebhookInfo` → `Connection timed out`, pending updates grow | Telegram cannot reach `{public_url}` on **443** (perimeter firewall, not hub) | Fix reverse proxy path to hub; or **Instance → Telegram** → disable **Deliver updates via webhook** (long polling; Public URL unchanged) |
+| Webhook POST returns **403** | Wrong/missing `X-Telegram-Bot-Api-Secret-Token` | Secret is in DB (`telegram_webhook_secret`); re-save Telegram settings or restart hub to re-register |
+| **Check connection** OK, bot still silent on webhook | Hub stuck in webhook wait mode | Save Telegram settings again or `docker compose restart idigest-hub` after switching to long polling |
+
+Diagnostics on the hub host (use `import app.db as hub_db`, then `hub_db.get_engine()` before `SessionLocal()`):
+
+```bash
+docker compose exec idigest-hub python -c "
+import asyncio, app.db as hub_db
+from app.deps import get_instance_settings
+from app.services.telegram_identity import bot_token
+from app.services.telegram_api import get_me, get_webhook_info
+hub_db.get_engine()
+with hub_db.SessionLocal() as db:
+    s = get_instance_settings(db)
+    t = bot_token(s, db)
+    print('use_webhook', s.telegram_use_webhook, 'public_base_url', s.public_base_url)
+    print('getMe', asyncio.run(get_me(t, settings=s, db=db)))
+    print('webhook', asyncio.run(get_webhook_info(t, settings=s, db=db)))
+"
+```
+
+Nginx must proxy **all** of `/` (including `/api/v1/integrations/telegram/webhook`) to the hub. For HTTPS upstream to a self-signed hub, set `proxy_ssl_verify off`. See [README — Telegram bot](../../../README.md#telegram-bot-instance-admin).
+
 ## Health check
 
 ```bash

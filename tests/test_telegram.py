@@ -261,6 +261,46 @@ def test_skill_inline_keyboard_callback_data():
     assert markup["inline_keyboard"][0][0]["callback_data"] == f"{_SKILL_CALLBACK_PREFIX}{skill.id}"
 
 
+async def test_configure_skips_webhook_when_disabled(client, monkeypatch):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "public_base_url": "https://hub.example.com",
+            "telegram_bot_token": "123456:TEST",
+            "telegram_enabled": True,
+            "telegram_use_webhook": False,
+        },
+    )
+    calls: list[str] = []
+
+    async def _set_webhook(*_args, **_kwargs):
+        calls.append("set")
+        return None
+
+    async def _delete_webhook(*_args, **_kwargs):
+        calls.append("delete")
+        return None
+
+    async def _username(_settings, _db):
+        return "test_bot"
+
+    async def _set_cmds(*_args, **_kwargs):
+        return None
+
+    monkeypatch.setattr("app.services.telegram_runtime.set_webhook", _set_webhook)
+    monkeypatch.setattr("app.services.telegram_runtime.delete_webhook", _delete_webhook)
+    monkeypatch.setattr("app.services.telegram_identity.fetch_bot_username", _username)
+    monkeypatch.setattr("app.services.telegram_runtime.set_my_commands", _set_cmds)
+
+    from app.services.telegram_runtime import configure_telegram_transport
+
+    mode = await configure_telegram_transport(__import__("asyncio").Event())
+    assert mode == "poll"
+    assert calls == ["delete"]
+    assert "set" not in calls
+
+
 def test_view_summary_inline_keyboard_callback_data():
     from unittest.mock import MagicMock
 

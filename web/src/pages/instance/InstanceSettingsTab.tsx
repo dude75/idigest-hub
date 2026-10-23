@@ -50,6 +50,7 @@ export function InstanceSettingsTab() {
       capture_connectors: data.capture_connectors ?? [],
       smtp_password_configured: data.smtp_password_configured ?? false,
       task_history_retention_days: data.task_history_retention_days ?? 0,
+      telegram_use_webhook: data.telegram_use_webhook ?? true,
     }
   }
 
@@ -226,6 +227,7 @@ export function InstanceSettingsTab() {
           download_proxy_enabled: settings.download_proxy_enabled,
           telegram_enabled: settings.telegram_enabled,
           telegram_use_proxy: settings.telegram_use_proxy,
+          telegram_use_webhook: settings.telegram_use_webhook,
           download_cookies_path: settings.download_cookies_path,
           import_audio_bitrate_kbps: settings.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
           import_max_concurrent: settings.import_max_concurrent ?? DEFAULT_IMPORT_MAX_CONCURRENT,
@@ -616,6 +618,14 @@ export function InstanceSettingsTab() {
             onCheckedChange={(checked) => setSettings({ ...settings, telegram_use_proxy: checked })}
           />
           <p className="muted">{t('instance.telegramUseProxyHint')}</p>
+          <AppCheckboxRow
+            id="instance-telegram-use-webhook"
+            label={t('instance.telegramUseWebhook')}
+            checked={settings.telegram_use_webhook}
+            disabled={!settings.public_base_url?.trim()}
+            onCheckedChange={(checked) => setSettings({ ...settings, telegram_use_webhook: checked })}
+          />
+          <p className="muted">{t('instance.telegramUseWebhookHint')}</p>
           <AppInputField
             label={t('instance.telegramBotToken')}
             htmlFor="instance-telegram-bot-token"

@@ -70,6 +70,35 @@ Application logs: `{LOG_DIR}/app.log` (rotating). Отключить: `LOG_ENABL
 
 Dispatcher логирует сбои воркеров на INFO: `worker health failed`, `worker poll network error`, `worker 404 redispatch`.
 
+## Telegram-бот
+
+| Симптом | Причина | Решение |
+| ------- | ------- | ------- |
+| Бот молчит, в логах `getMe failed` / `socksio` | SOCKS без `socksio` | Пересобрать образ с `httpx2[socks]`; в контейнере `pip show socksio` |
+| `getWebhookInfo` → `Connection timed out`, растёт `pending_update_count` | Telegram не достучался до `{public_url}` на **443** (периметр, не хаб) | Починить reverse proxy; или **Instance → Telegram** → снять **Доставка через webhook** (long polling; публичный URL не трогать) |
+| Webhook POST **403** | Неверный `X-Telegram-Bot-Api-Secret-Token` | Секрет в БД; пересохранить настройки Telegram или рестарт хаба |
+| **Проверить соединение** ок, webhook не работает | Хаб в режиме ожидания webhook | Снова сохранить настройки или `docker compose restart idigest-hub` после перехода на long polling |
+
+Диагностика на хосте хаба (`import app.db as hub_db`, затем `hub_db.get_engine()` перед `SessionLocal()`):
+
+```bash
+docker compose exec idigest-hub python -c "
+import asyncio, app.db as hub_db
+from app.deps import get_instance_settings
+from app.services.telegram_identity import bot_token
+from app.services.telegram_api import get_me, get_webhook_info
+hub_db.get_engine()
+with hub_db.SessionLocal() as db:
+    s = get_instance_settings(db)
+    t = bot_token(s, db)
+    print('use_webhook', s.telegram_use_webhook, 'public_base_url', s.public_base_url)
+    print('getMe', asyncio.run(get_me(t, settings=s, db=db)))
+    print('webhook', asyncio.run(get_webhook_info(t, settings=s, db=db)))
+"
+```
+
+Nginx должен проксировать весь `/`, включая `/api/v1/integrations/telegram/webhook`. Для HTTPS-бэкенда с самоподписанным сертификатом — `proxy_ssl_verify off`. См. [README — Telegram-бот](../../../README.ru.md#telegram-бот-instance-admin).
+
 ## Health check
 
 ```bash

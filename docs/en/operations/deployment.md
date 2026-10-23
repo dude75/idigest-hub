@@ -95,6 +95,8 @@ location / {
 
 Set **Public URL** in Instance → Settings to the **external** nginx address (`https://hub.example.com`), not the internal `:8443`.
 
+**Telegram webhooks** use the same public hostname: Telegram must reach `https://…/api/v1/integrations/telegram/webhook` on port **443**. If the path works from your network but `getWebhookInfo` reports `Connection timed out`, disable **Deliver updates via webhook** in Instance → Telegram (long polling). See [Troubleshooting — Telegram](troubleshooting.md#telegram-bot).
+
 ### Security headers (HSTS, CSP)
 
 The full nginx example adds recommended headers on the HTTPS `server` block:

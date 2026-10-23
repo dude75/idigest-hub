@@ -85,6 +85,7 @@ class InstanceSettings(Base):
     telegram_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     telegram_bot_token_encrypted: Mapped[str | None] = mapped_column(Text)
     telegram_use_proxy: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    telegram_use_webhook: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     telegram_webhook_secret: Mapped[str | None] = mapped_column(String(64))
     telegram_bot_username: Mapped[str | None] = mapped_column(String(64))
     download_cookies_path: Mapped[str | None] = mapped_column(String(512))

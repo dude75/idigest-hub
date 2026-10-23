@@ -440,6 +440,7 @@ export type InstanceSettings = {
   telegram_bot_token_configured: boolean
   telegram_bot_username: string | null
   telegram_use_proxy: boolean
+  telegram_use_webhook: boolean
   download_cookies_path: string | null
   import_audio_bitrate_kbps: number
   import_max_concurrent: number
