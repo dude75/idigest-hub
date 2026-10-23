@@ -574,6 +574,14 @@ export function InstanceSettingsTab() {
             }
             onCheckedChange={(checked) => setSettings({ ...settings, telegram_enabled: checked })}
           />
+          <AppCheckboxRow
+            id="instance-telegram-use-proxy"
+            label={t('instance.telegramUseProxy')}
+            checked={settings.telegram_use_proxy}
+            disabled={!settings.outbound_proxy_enabled || !proxyUrlReady}
+            onCheckedChange={(checked) => setSettings({ ...settings, telegram_use_proxy: checked })}
+          />
+          <p className="muted">{t('instance.telegramUseProxyHint')}</p>
           <AppInputField
             label={t('instance.telegramBotToken')}
             htmlFor="instance-telegram-bot-token"
@@ -585,14 +593,6 @@ export function InstanceSettingsTab() {
             onChange={(e) => setTelegramBotToken(e.target.value)}
             description={t('instance.telegramBotTokenHint')}
           />
-          <AppCheckboxRow
-            id="instance-telegram-use-proxy"
-            label={t('instance.telegramUseProxy')}
-            checked={settings.telegram_use_proxy}
-            disabled={!settings.outbound_proxy_enabled || !proxyUrlReady}
-            onCheckedChange={(checked) => setSettings({ ...settings, telegram_use_proxy: checked })}
-          />
-          <p className="muted">{t('instance.telegramUseProxyHint')}</p>
           <p className="muted">{t('instance.telegramPublicUrlHint')}</p>
           <h4 className="text-sm font-medium">{t('instance.telegramCommandsTitle')}</h4>
           <table className="admin-data-table w-full text-sm">
