@@ -42,7 +42,7 @@ def _has_encrypted_data(db: Session) -> bool:
         return True
     inst = db.get(InstanceSettings, 1)
     if inst is not None:
-        if inst.smtp_password_encrypted or inst.download_proxy_password_encrypted:
+        if inst.smtp_password_encrypted or inst.download_proxy_password_encrypted or inst.telegram_bot_token_encrypted:
             return True
     if db.scalar(
         select(func.count())

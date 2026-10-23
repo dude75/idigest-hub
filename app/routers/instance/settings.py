@@ -91,9 +91,13 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "capture_connectors": __import__(
             "app.services.capture_platforms", fromlist=["admin_connectors"]
         ).admin_connectors(s, db),
+        "outbound_proxy_enabled": s.outbound_proxy_enabled,
         "download_proxy_url": s.download_proxy_url,
         "download_proxy_configured": bool(proxy_url.strip()),
         "download_proxy_enabled": s.download_proxy_enabled,
+        "telegram_enabled": s.telegram_enabled,
+        "telegram_bot_token_configured": bool((s.telegram_bot_token_encrypted or "").strip()),
+        "telegram_use_proxy": s.telegram_use_proxy,
         "download_cookies_path": s.download_cookies_path,
         "import_audio_bitrate_kbps": bitrate,
         "import_max_concurrent": normalize_import_max_concurrent(s.import_max_concurrent),
@@ -209,22 +213,46 @@ def patch_settings(
         raw_proxy = data.get("download_proxy_url")
         if raw_proxy is None or not str(raw_proxy).strip():
             s.download_proxy_url = None
+            s.outbound_proxy_enabled = False
             s.download_proxy_enabled = False
+            s.telegram_use_proxy = False
         else:
             try:
                 s.download_proxy_url = normalize_download_proxy_url(str(raw_proxy))
             except ValueError:
                 ctx.raise_error(ErrorCode.validation_error)
         data.pop("download_proxy_url", None)
+    if "outbound_proxy_enabled" in data:
+        enabled = bool(data.pop("outbound_proxy_enabled"))
+        if enabled and not (s.download_proxy_url or "").strip():
+            ctx.raise_error(ErrorCode.validation_error)
+        s.outbound_proxy_enabled = enabled
+        if not enabled:
+            s.download_proxy_enabled = False
+            s.telegram_use_proxy = False
     if "download_proxy_enabled" in data:
         enabled = bool(data.pop("download_proxy_enabled"))
-        if enabled and not (s.download_proxy_url or "").strip():
+        if enabled and (not s.outbound_proxy_enabled or not (s.download_proxy_url or "").strip()):
             ctx.raise_error(ErrorCode.validation_error)
         s.download_proxy_enabled = enabled
     if "download_proxy_password" in data:
         proxy_password = data.pop("download_proxy_password")
         if proxy_password:
             s.download_proxy_password_encrypted = encrypt_str(proxy_password, db)
+    if "telegram_bot_token" in data:
+        token = data.pop("telegram_bot_token")
+        if token:
+            s.telegram_bot_token_encrypted = encrypt_str(token, db)
+    if "telegram_enabled" in data:
+        enabled = bool(data.pop("telegram_enabled"))
+        if enabled and not (s.telegram_bot_token_encrypted or "").strip():
+            ctx.raise_error(ErrorCode.validation_error)
+        s.telegram_enabled = enabled
+    if "telegram_use_proxy" in data:
+        use_proxy = bool(data.pop("telegram_use_proxy"))
+        if use_proxy and (not s.outbound_proxy_enabled or not (s.download_proxy_url or "").strip()):
+            ctx.raise_error(ErrorCode.validation_error)
+        s.telegram_use_proxy = use_proxy
     if "import_audio_bitrate_kbps" in data:
         from app.services.import_platforms import normalize_import_audio_bitrate_kbps
 

@@ -30,6 +30,7 @@ export function InstanceSettingsTab() {
   const [savedSettings, setSavedSettings] = useState<InstanceSettings | null>(null)
   const [smtpPassword, setSmtpPassword] = useState('')
   const [proxyPassword, setProxyPassword] = useState('')
+  const [telegramBotToken, setTelegramBotToken] = useState('')
   const [smtpTestEmail, setSmtpTestEmail] = useState('')
   const [smtpTestingConnection, setSmtpTestingConnection] = useState(false)
   const [saveBusy, setSaveBusy] = useState(false)
@@ -80,9 +81,9 @@ export function InstanceSettingsTab() {
 
   const settingsDirty = useMemo(() => {
     if (!settings || !savedSettings) return false
-    if (smtpPassword.trim() || proxyPassword.trim()) return true
+    if (smtpPassword.trim() || proxyPassword.trim() || telegramBotToken.trim()) return true
     return jsonDirty(settings, savedSettings)
-  }, [settings, savedSettings, smtpPassword, proxyPassword])
+  }, [settings, savedSettings, smtpPassword, proxyPassword, telegramBotToken])
 
   const settingsReady = settingsDirty && serviceModelsValid && !saveBusy
 
@@ -186,8 +187,11 @@ export function InstanceSettingsTab() {
           rate_limit_oauth_token_global: settings.rate_limit_oauth_token_global,
           import_enabled: settings.import_enabled,
           import_allowed_extractors: settings.import_platforms.filter((p) => p.enabled).map((p) => p.id),
+          outbound_proxy_enabled: settings.outbound_proxy_enabled,
           download_proxy_url: settings.download_proxy_url,
           download_proxy_enabled: settings.download_proxy_enabled,
+          telegram_enabled: settings.telegram_enabled,
+          telegram_use_proxy: settings.telegram_use_proxy,
           download_cookies_path: settings.download_cookies_path,
           import_audio_bitrate_kbps: settings.import_audio_bitrate_kbps ?? DEFAULT_IMPORT_AUDIO_BITRATE_KBPS,
           import_max_concurrent: settings.import_max_concurrent ?? DEFAULT_IMPORT_MAX_CONCURRENT,
@@ -199,6 +203,7 @@ export function InstanceSettingsTab() {
           timezone: settings.timezone,
           ...(smtpPassword ? { smtp_password: smtpPassword } : {}),
           ...(proxyPassword ? { download_proxy_password: proxyPassword } : {}),
+          ...(telegramBotToken ? { telegram_bot_token: telegramBotToken } : {}),
         }),
       })
       const normalized = normalizeSettings(data)
@@ -206,6 +211,7 @@ export function InstanceSettingsTab() {
       setSavedSettings(normalized)
       setSmtpPassword('')
       setProxyPassword('')
+      setTelegramBotToken('')
       toast.success(t('profile.saved'))
       await refresh()
     } catch (e) {
@@ -216,6 +222,10 @@ export function InstanceSettingsTab() {
   }
 
   if (!settings) return null
+
+  const proxyUrlReady = Boolean(
+    (settings.download_proxy_url || '').trim() || settings.download_proxy_configured,
+  )
 
   return (
     <AdminPage>
@@ -384,6 +394,58 @@ export function InstanceSettingsTab() {
       </details>
       <details className="fold org-fold-section">
         <summary className="org-fold-summary">
+          <SettingsFoldSummary title={t('instance.proxyTitle')} />
+        </summary>
+        <div className="flex flex-col gap-3 fold-body">
+          <AppInputField
+            label={t('instance.downloadProxyUrl')}
+            htmlFor="instance-download-proxy-url"
+            value={settings.download_proxy_url || ''}
+            onChange={(e) => {
+              const url = e.target.value || null
+              const hasUrl = Boolean((url || '').trim())
+              setSettings({
+                ...settings,
+                download_proxy_url: url,
+                outbound_proxy_enabled: hasUrl ? settings.outbound_proxy_enabled : false,
+                download_proxy_enabled: hasUrl ? settings.download_proxy_enabled : false,
+                telegram_use_proxy: hasUrl ? settings.telegram_use_proxy : false,
+              })
+            }}
+            placeholder="socks5://host:1080 or http://host:8080"
+            description={t('instance.downloadProxyHint')}
+          />
+          <AppInputField
+            label={t('instance.downloadProxyPassword')}
+            htmlFor="instance-download-proxy-password"
+            type="password"
+            value={proxyPassword}
+            onChange={(e) => setProxyPassword(e.target.value)}
+            description={
+              settings.download_proxy_configured && !proxyPassword
+                ? t('instance.smtpPasswordSavedHint')
+                : undefined
+            }
+          />
+          <AppCheckboxRow
+            id="instance-outbound-proxy-enabled"
+            label={t('instance.outboundProxyEnabled')}
+            checked={settings.outbound_proxy_enabled}
+            disabled={!proxyUrlReady}
+            onCheckedChange={(checked) =>
+              setSettings({
+                ...settings,
+                outbound_proxy_enabled: checked,
+                download_proxy_enabled: checked ? settings.download_proxy_enabled : false,
+                telegram_use_proxy: checked ? settings.telegram_use_proxy : false,
+              })
+            }
+          />
+          <p className="muted">{t('instance.outboundProxyHint')}</p>
+        </div>
+      </details>
+      <details className="fold org-fold-section">
+        <summary className="org-fold-summary">
           <SettingsFoldSummary title={t('instance.importTitle')} />
         </summary>
         <div className="flex flex-col gap-3 fold-body">
@@ -393,39 +455,14 @@ export function InstanceSettingsTab() {
             checked={settings.import_enabled}
             onCheckedChange={(checked) => setSettings({ ...settings, import_enabled: checked })}
           />
-          <AppInputField
-            label={t('instance.downloadProxyUrl')}
-            htmlFor="instance-download-proxy-url"
-            value={settings.download_proxy_url || ''}
-            onChange={(e) => {
-              const url = e.target.value || null
-              setSettings({
-                ...settings,
-                download_proxy_url: url,
-                download_proxy_enabled: url ? settings.download_proxy_enabled : false,
-              })
-            }}
-            placeholder="socks5://host:1080 or http://host:8080"
-            description={t('instance.downloadProxyHint')}
-          />
           <AppCheckboxRow
             id="instance-download-proxy-enabled"
-            label={t('instance.downloadProxyEnabled')}
+            label={t('instance.importUseProxy')}
             checked={settings.download_proxy_enabled}
-            disabled={
-              !settings.import_enabled ||
-              !(settings.download_proxy_configured || (settings.download_proxy_url || '').trim())
-            }
+            disabled={!settings.import_enabled || !settings.outbound_proxy_enabled || !proxyUrlReady}
             onCheckedChange={(checked) => setSettings({ ...settings, download_proxy_enabled: checked })}
           />
-          <p className="muted">{t('instance.downloadProxyEnabledHint')}</p>
-          <AppInputField
-            label={t('instance.downloadProxyPassword')}
-            htmlFor="instance-download-proxy-password"
-            type="password"
-            value={proxyPassword}
-            onChange={(e) => setProxyPassword(e.target.value)}
-          />
+          <p className="muted">{t('instance.importUseProxyHint')}</p>
           <AppInputField
             label={t('instance.downloadCookiesPath')}
             htmlFor="instance-download-cookies-path"
@@ -521,6 +558,61 @@ export function InstanceSettingsTab() {
               {t('instance.importResetDefaults')}
             </Button>
           </div>
+        </div>
+      </details>
+      <details className="fold org-fold-section">
+        <summary className="org-fold-summary">
+          <SettingsFoldSummary title={t('instance.telegramTitle')} />
+        </summary>
+        <div className="flex flex-col gap-3 fold-body">
+          <AppCheckboxRow
+            id="instance-telegram-enabled"
+            label={t('instance.telegramEnabled')}
+            checked={settings.telegram_enabled}
+            disabled={
+              !settings.telegram_bot_token_configured && !telegramBotToken.trim()
+            }
+            onCheckedChange={(checked) => setSettings({ ...settings, telegram_enabled: checked })}
+          />
+          <AppInputField
+            label={t('instance.telegramBotToken')}
+            htmlFor="instance-telegram-bot-token"
+            type="password"
+            value={telegramBotToken}
+            placeholder={
+              settings.telegram_bot_token_configured ? t('instance.telegramBotTokenSaved') : ''
+            }
+            onChange={(e) => setTelegramBotToken(e.target.value)}
+            description={t('instance.telegramBotTokenHint')}
+          />
+          <AppCheckboxRow
+            id="instance-telegram-use-proxy"
+            label={t('instance.telegramUseProxy')}
+            checked={settings.telegram_use_proxy}
+            disabled={!settings.outbound_proxy_enabled || !proxyUrlReady}
+            onCheckedChange={(checked) => setSettings({ ...settings, telegram_use_proxy: checked })}
+          />
+          <p className="muted">{t('instance.telegramUseProxyHint')}</p>
+          <p className="muted">{t('instance.telegramPublicUrlHint')}</p>
+          <h4 className="text-sm font-medium">{t('instance.telegramCommandsTitle')}</h4>
+          <table className="admin-data-table w-full text-sm">
+            <thead>
+              <tr>
+                <th scope="col">{t('instance.telegramCommandsColCommand')}</th>
+                <th scope="col">{t('instance.telegramCommandsColDescription')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(['start', 'link', 'help', 'status', 'url', 'file'] as const).map((key) => (
+                <tr key={key}>
+                  <td>
+                    <code>{t(`instance.telegramCommands.${key}.command`)}</code>
+                  </td>
+                  <td className="muted">{t(`instance.telegramCommands.${key}.description`)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </details>
       <details className="fold org-fold-section">

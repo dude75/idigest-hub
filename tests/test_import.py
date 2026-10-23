@@ -71,6 +71,7 @@ def test_download_proxy_status_respects_enabled_flag():
     db = MagicMock()
     settings = InstanceSettings(
         id=1,
+        outbound_proxy_enabled=True,
         download_proxy_url="socks5://127.0.0.1:1080",
         download_proxy_enabled=False,
     )
@@ -89,6 +90,7 @@ def test_create_import_blocked_when_proxy_required_and_unavailable(client, monke
         "/api/v1/instance/settings",
         json={
             "download_proxy_url": "socks5://127.0.0.1:1",
+            "outbound_proxy_enabled": True,
             "download_proxy_enabled": True,
         },
     )
@@ -320,6 +322,39 @@ def test_import_max_concurrent_settings():
     assert normalize_import_max_concurrent(99) == 16
 
 
+def test_instance_telegram_and_outbound_proxy_settings(client):
+    setup_admin(client)
+    bad = client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_enabled": True},
+    )
+    assert bad.status_code == 400
+    assert err_code(bad) == "validation_error"
+
+    ok = client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "telegram_bot_token": "123456:ABC-DEF",
+            "telegram_enabled": True,
+            "telegram_use_proxy": True,
+            "download_proxy_url": "socks5://127.0.0.1:1080",
+            "outbound_proxy_enabled": True,
+        },
+    )
+    assert ok.status_code == 200, ok.text
+    body = ok.json()
+    assert body["telegram_enabled"] is True
+    assert body["telegram_bot_token_configured"] is True
+    assert body["telegram_use_proxy"] is True
+    assert body["outbound_proxy_enabled"] is True
+
+    no_proxy = client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_use_proxy": True, "outbound_proxy_enabled": False},
+    )
+    assert no_proxy.status_code == 400
+
+
 def test_instance_settings_import_max_concurrent(client):
     setup_admin(client)
     response = client.get("/api/v1/instance/settings")
@@ -408,6 +443,7 @@ def test_effective_download_proxy_respects_enabled_flag():
     db = MagicMock()
     settings = InstanceSettings(
         id=1,
+        outbound_proxy_enabled=True,
         download_proxy_url="socks5://127.0.0.1:1080",
         download_proxy_enabled=False,
     )
@@ -448,7 +484,7 @@ def test_instance_settings_import_whitelist(client):
     assert body["download_proxy_enabled"] is False
     enabled = client.patch(
         "/api/v1/instance/settings",
-        json={"download_proxy_enabled": True},
+        json={"outbound_proxy_enabled": True, "download_proxy_enabled": True},
     )
     assert enabled.status_code == 200, enabled.text
     assert enabled.json()["download_proxy_enabled"] is True

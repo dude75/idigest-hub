@@ -213,6 +213,7 @@ def test_download_proxy_metrics(metrics_client: TestClient, monkeypatch):
         "/api/v1/instance/settings",
         json={
             "download_proxy_url": "socks5://127.0.0.1:1",
+            "outbound_proxy_enabled": True,
             "download_proxy_enabled": True,
         },
     )

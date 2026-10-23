@@ -9774,6 +9774,10 @@
             "type": "array",
             "title": "Capture Connectors"
           },
+          "outbound_proxy_enabled": {
+            "type": "boolean",
+            "title": "Outbound Proxy Enabled"
+          },
           "download_proxy_url": {
             "anyOf": [
               {
@@ -9792,6 +9796,18 @@
           "download_proxy_enabled": {
             "type": "boolean",
             "title": "Download Proxy Enabled"
+          },
+          "telegram_enabled": {
+            "type": "boolean",
+            "title": "Telegram Enabled"
+          },
+          "telegram_bot_token_configured": {
+            "type": "boolean",
+            "title": "Telegram Bot Token Configured"
+          },
+          "telegram_use_proxy": {
+            "type": "boolean",
+            "title": "Telegram Use Proxy"
           },
           "download_cookies_path": {
             "anyOf": [
@@ -10357,8 +10373,12 @@
           "smtp_tls",
           "import_enabled",
           "capture_enabled",
+          "outbound_proxy_enabled",
           "download_proxy_configured",
           "download_proxy_enabled",
+          "telegram_enabled",
+          "telegram_bot_token_configured",
+          "telegram_use_proxy",
           "import_audio_bitrate_kbps",
           "import_max_concurrent",
           "session_ttl_hours",
@@ -13060,6 +13080,17 @@
             ],
             "title": "Capture Allowed Connectors"
           },
+          "outbound_proxy_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outbound Proxy Enabled"
+          },
           "download_proxy_url": {
             "anyOf": [
               {
@@ -13092,6 +13123,39 @@
               }
             ],
             "title": "Download Proxy Enabled"
+          },
+          "telegram_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Enabled"
+          },
+          "telegram_bot_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Bot Token"
+          },
+          "telegram_use_proxy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Use Proxy"
           },
           "download_cookies_path": {
             "anyOf": [

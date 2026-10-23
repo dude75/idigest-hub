@@ -126,9 +126,13 @@ class SettingsPatch(BaseModel):
     import_allowed_extractors: list[str] | None = None
     capture_enabled: bool | None = None
     capture_allowed_connectors: list[str] | None = None
+    outbound_proxy_enabled: bool | None = None
     download_proxy_url: str | None = None
     download_proxy_password: str | None = None
     download_proxy_enabled: bool | None = None
+    telegram_enabled: bool | None = None
+    telegram_bot_token: str | None = None
+    telegram_use_proxy: bool | None = None
     download_cookies_path: str | None = None
     import_audio_bitrate_kbps: int | None = None
     import_max_concurrent: int | None = None

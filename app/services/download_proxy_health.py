@@ -68,7 +68,7 @@ def is_download_proxy_available(proxy_url: str, *, force: bool = False) -> bool:
 
 
 def download_proxy_status(settings: InstanceSettings, db: Session) -> dict[str, bool]:
-    required = bool(settings.download_proxy_enabled)
+    required = bool(settings.outbound_proxy_enabled and settings.download_proxy_enabled)
     if not required:
         return {"download_proxy_required": False, "download_proxy_available": True}
     proxy = effective_download_proxy(settings, db)

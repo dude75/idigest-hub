@@ -432,9 +432,13 @@ export type InstanceSettings = {
   import_platforms: ImportPlatform[]
   capture_enabled: boolean
   capture_connectors: CaptureConnector[]
+  outbound_proxy_enabled: boolean
   download_proxy_url: string | null
   download_proxy_configured: boolean
   download_proxy_enabled: boolean
+  telegram_enabled: boolean
+  telegram_bot_token_configured: boolean
+  telegram_use_proxy: boolean
   download_cookies_path: string | null
   import_audio_bitrate_kbps: number
   import_max_concurrent: number

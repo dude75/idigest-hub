@@ -32,6 +32,7 @@ ENCRYPTED_COLUMNS: list[EncryptedColumn] = [
     ("worker_nodes", "api_token_encrypted"),
     ("instance_settings", "smtp_password_encrypted"),
     ("instance_settings", "download_proxy_password_encrypted"),
+    ("instance_settings", "telegram_bot_token_encrypted"),
     ("organizations", "sso_client_secret_encrypted"),
     ("users", "totp_secret_encrypted"),
     ("transcripts", "utterances_encrypted"),

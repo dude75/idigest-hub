@@ -30,9 +30,13 @@ class InstanceSettingsResponse(BaseModel):
     import_platforms: list[dict[str, Any]] = Field(default_factory=list)
     capture_enabled: bool
     capture_connectors: list[dict[str, Any]] = Field(default_factory=list)
+    outbound_proxy_enabled: bool
     download_proxy_url: str | None = None
     download_proxy_configured: bool
     download_proxy_enabled: bool
+    telegram_enabled: bool
+    telegram_bot_token_configured: bool
+    telegram_use_proxy: bool
     download_cookies_path: str | None = None
     import_audio_bitrate_kbps: int
     import_max_concurrent: int

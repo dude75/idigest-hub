@@ -2969,12 +2969,20 @@ export interface components {
             capture_connectors?: {
                 [key: string]: unknown;
             }[];
+            /** Outbound Proxy Enabled */
+            outbound_proxy_enabled: boolean;
             /** Download Proxy Url */
             download_proxy_url?: string | null;
             /** Download Proxy Configured */
             download_proxy_configured: boolean;
             /** Download Proxy Enabled */
             download_proxy_enabled: boolean;
+            /** Telegram Enabled */
+            telegram_enabled: boolean;
+            /** Telegram Bot Token Configured */
+            telegram_bot_token_configured: boolean;
+            /** Telegram Use Proxy */
+            telegram_use_proxy: boolean;
             /** Download Cookies Path */
             download_cookies_path?: string | null;
             /** Import Audio Bitrate Kbps */
@@ -3901,12 +3909,20 @@ export interface components {
             capture_enabled?: boolean | null;
             /** Capture Allowed Connectors */
             capture_allowed_connectors?: string[] | null;
+            /** Outbound Proxy Enabled */
+            outbound_proxy_enabled?: boolean | null;
             /** Download Proxy Url */
             download_proxy_url?: string | null;
             /** Download Proxy Password */
             download_proxy_password?: string | null;
             /** Download Proxy Enabled */
             download_proxy_enabled?: boolean | null;
+            /** Telegram Enabled */
+            telegram_enabled?: boolean | null;
+            /** Telegram Bot Token */
+            telegram_bot_token?: string | null;
+            /** Telegram Use Proxy */
+            telegram_use_proxy?: boolean | null;
             /** Download Cookies Path */
             download_cookies_path?: string | null;
             /** Import Audio Bitrate Kbps */

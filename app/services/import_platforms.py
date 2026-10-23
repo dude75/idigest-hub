@@ -215,6 +215,12 @@ def resolve_download_proxy_url(settings: InstanceSettings, db: Session) -> str |
 
 
 def effective_download_proxy(settings: InstanceSettings, db: Session) -> str | None:
-    if not settings.download_proxy_enabled:
+    if not settings.outbound_proxy_enabled or not settings.download_proxy_enabled:
+        return None
+    return resolve_download_proxy_url(settings, db)
+
+
+def effective_telegram_proxy(settings: InstanceSettings, db: Session) -> str | None:
+    if not settings.outbound_proxy_enabled or not settings.telegram_use_proxy:
         return None
     return resolve_download_proxy_url(settings, db)
