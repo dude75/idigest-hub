@@ -1245,6 +1245,82 @@
         }
       }
     },
+    "/api/v1/me/telegram": {
+      "get": {
+        "summary": "Me Telegram Status",
+        "operationId": "me_telegram_status_api_v1_me_telegram_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeTelegramStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "Me Telegram Unlink",
+        "operationId": "me_telegram_unlink_api_v1_me_telegram_delete",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkStatusResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/telegram/link": {
+      "post": {
+        "summary": "Me Telegram Link",
+        "operationId": "me_telegram_link_api_v1_me_telegram_link_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeTelegramLinkResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/tokens": {
       "get": {
         "summary": "List Tokens",
@@ -7957,6 +8033,30 @@
         ]
       }
     },
+    "/api/v1/integrations/telegram/webhook": {
+      "post": {
+        "summary": "Telegram Webhook",
+        "operationId": "telegram_webhook_api_v1_integrations_telegram_webhook_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
     "/{full_path}": {
       "get": {
         "summary": "Spa",
@@ -11049,6 +11149,102 @@
           "user_agreement_required"
         ],
         "title": "MeResponse"
+      },
+      "MeTelegramLinkResponse": {
+        "properties": {
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "expires_at": {
+            "type": "string",
+            "title": "Expires At"
+          },
+          "start_command": {
+            "type": "string",
+            "title": "Start Command"
+          },
+          "bot_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bot Username"
+          },
+          "bot_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bot Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "code",
+          "expires_at",
+          "start_command"
+        ],
+        "title": "MeTelegramLinkResponse"
+      },
+      "MeTelegramStatusResponse": {
+        "properties": {
+          "bot_enabled": {
+            "type": "boolean",
+            "title": "Bot Enabled"
+          },
+          "bot_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bot Username"
+          },
+          "bot_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bot Url"
+          },
+          "linked": {
+            "type": "boolean",
+            "title": "Linked"
+          },
+          "linked_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Linked At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bot_enabled",
+          "linked"
+        ],
+        "title": "MeTelegramStatusResponse"
       },
       "MfaConfirmBody": {
         "properties": {

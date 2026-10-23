@@ -34,7 +34,7 @@ from app.prometheus_metrics import (
     render,
     set_active,
 )
-from app.routers import auth, crypto, instance, library, oauth, org, public, skills, tasks
+from app.routers import auth, crypto, instance, integrations, library, oauth, org, public, skills, tasks
 from app.services.dispatcher import dispatcher_loop
 from app.rate_limit import rate_limit_sweeper
 from app.rate_limit_store import close_rate_limit_store, init_rate_limit_store, rate_limit_uses_memory
@@ -43,6 +43,17 @@ from app.version import read_version
 
 log = logging.getLogger("app")
 WEB_DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
+
+
+async def _telegram_runtime_wrapper(stop_event: asyncio.Event) -> None:
+    from app.services.telegram_runtime import telegram_runtime
+
+    try:
+        await telegram_runtime(stop_event)
+    except asyncio.CancelledError:
+        raise
+    except Exception:
+        log.exception("telegram runtime stopped with error")
 
 SpaResolution = Literal["not_found", "index"] | Path
 
@@ -113,6 +124,8 @@ async def lifespan(app: FastAPI):
     app.state.dispatcher_stop = stop_event
     app.state.dispatcher_task = task
     app.state.rate_limit_task = rate_limit_task
+    telegram_task = asyncio.create_task(_telegram_runtime_wrapper(stop_event))
+    app.state.telegram_task = telegram_task
     log.info("service start")
     from app.services.mcp_integration import get_mcp_starlette_app, mcp_enabled, mcp_session_manager_lifecycle
 
@@ -130,6 +143,9 @@ async def lifespan(app: FastAPI):
         task.cancel()
         if rate_limit_task is not None:
             rate_limit_task.cancel()
+        telegram_task = getattr(app.state, "telegram_task", None)
+        if telegram_task is not None:
+            telegram_task.cancel()
         try:
             await task
         except asyncio.CancelledError:
@@ -137,6 +153,11 @@ async def lifespan(app: FastAPI):
         if rate_limit_task is not None:
             try:
                 await rate_limit_task
+            except asyncio.CancelledError:
+                pass
+        if telegram_task is not None:
+            try:
+                await telegram_task
             except asyncio.CancelledError:
                 pass
         close_rate_limit_store()
@@ -273,6 +294,7 @@ def _register_routes(application: FastAPI) -> None:
     application.include_router(tasks.router, prefix="/api/v1")
     application.include_router(skills.router, prefix="/api/v1")
     application.include_router(public.router, prefix="/api/v1")
+    application.include_router(integrations.router, prefix="/api/v1")
 
     from app.services.mcp_integration import mcp_enabled, register_mcp_http_routes
 

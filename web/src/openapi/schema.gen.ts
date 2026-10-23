@@ -516,6 +516,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/telegram": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me Telegram Status */
+        get: operations["me_telegram_status_api_v1_me_telegram_get"];
+        put?: never;
+        post?: never;
+        /** Me Telegram Unlink */
+        delete: operations["me_telegram_unlink_api_v1_me_telegram_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/telegram/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Me Telegram Link */
+        post: operations["me_telegram_link_api_v1_me_telegram_link_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/tokens": {
         parameters: {
             query?: never;
@@ -2312,6 +2347,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrations/telegram/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Telegram Webhook */
+        post: operations["telegram_webhook_api_v1_integrations_telegram_webhook_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/{full_path}": {
         parameters: {
             query?: never;
@@ -3306,6 +3358,24 @@ export interface components {
             }[] | null;
             /** Csrf Token */
             csrf_token?: string | null;
+        };
+        /** MeTelegramLinkResponse */
+        MeTelegramLinkResponse: {
+            /** Code */
+            code: string;
+            /** Expires At */
+            expires_at: string;
+            /** Start Command */
+            start_command: string;
+        };
+        /** MeTelegramStatusResponse */
+        MeTelegramStatusResponse: {
+            /** Bot Enabled */
+            bot_enabled: boolean;
+            /** Linked */
+            linked: boolean;
+            /** Linked At */
+            linked_at?: string | null;
         };
         /** MfaConfirmBody */
         MfaConfirmBody: {
@@ -6036,6 +6106,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SetupStatusResponse"];
+                };
+            };
+        };
+    };
+    me_telegram_status_api_v1_me_telegram_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeTelegramStatusResponse"];
+                };
+            };
+        };
+    };
+    me_telegram_unlink_api_v1_me_telegram_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkStatusResponse"];
+                };
+            };
+        };
+    };
+    me_telegram_link_api_v1_me_telegram_link_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeTelegramLinkResponse"];
                 };
             };
         };
@@ -10088,6 +10218,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    telegram_webhook_api_v1_integrations_telegram_webhook_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
         };

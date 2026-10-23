@@ -7,6 +7,7 @@ import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../../util/timezones'
 import { useProfilePage } from './ProfilePageContext'
 import { ProfileSection, ProfileSectionDivider } from './ProfileSection'
+import { ProfileTelegramSection } from './ProfileTelegramSection'
 
 export function ProfileGeneralTab() {
   const {
@@ -41,6 +42,8 @@ export function ProfileGeneralTab() {
     <Card className="admin-form-card">
       <ProfileCardHeader title={t('profile.tabGeneral')} lead={t('profile.tabGeneralLead')} />
       <CardContent className="flex flex-col gap-6">
+        <ProfileTelegramSection />
+        <ProfileSectionDivider />
         <ProfileSection
           title={t('profile.names')}
           description={t('profile.namesHint')}

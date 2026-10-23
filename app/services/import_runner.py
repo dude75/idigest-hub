@@ -208,6 +208,9 @@ async def _run_import_task(task_id: str) -> None:
         observe_task_terminal(task)
         enqueue_transcribe_after_import(db, task)
         db.commit()
+        from app.services.telegram_bot import notify_task_terminal
+
+        notify_task_terminal(db, task)
     except UrlImportError as exc:
         db.rollback()
         task = db.get(Task, task_id)
@@ -217,6 +220,9 @@ async def _run_import_task(task_id: str) -> None:
                 meta.setdefault("max_bytes", int(task.snap_max_upload_bytes))
             _fail_task(db, task, exc.code, meta)
             db.commit()
+            from app.services.telegram_bot import notify_task_terminal
+
+            notify_task_terminal(db, task)
     except Exception as exc:
         log.exception("import task failed task=%s", task_id)
         db.rollback()
@@ -232,6 +238,9 @@ async def _run_import_task(task_id: str) -> None:
                 {"error_detail": detail} if detail else None,
             )
             db.commit()
+            from app.services.telegram_bot import notify_task_terminal
+
+            notify_task_terminal(db, task)
     finally:
         if source_path is not None:
             cleanup_import_path(source_path)

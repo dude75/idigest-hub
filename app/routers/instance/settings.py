@@ -240,14 +240,25 @@ def patch_settings(
         if proxy_password:
             s.download_proxy_password_encrypted = encrypt_str(proxy_password, db)
     if "telegram_bot_token" in data:
+        import secrets
+
         token = data.pop("telegram_bot_token")
         if token:
             s.telegram_bot_token_encrypted = encrypt_str(token, db)
+            if s.telegram_enabled and not (s.telegram_webhook_secret or "").strip():
+                s.telegram_webhook_secret = secrets.token_urlsafe(24)
     if "telegram_enabled" in data:
+        import secrets
+
         enabled = bool(data.pop("telegram_enabled"))
         if enabled and not (s.telegram_bot_token_encrypted or "").strip():
             ctx.raise_error(ErrorCode.validation_error)
         s.telegram_enabled = enabled
+        if enabled and not (s.telegram_webhook_secret or "").strip():
+            s.telegram_webhook_secret = secrets.token_urlsafe(24)
+        if not enabled:
+            s.telegram_webhook_secret = None
+            s.telegram_bot_username = None
     if "telegram_use_proxy" in data:
         use_proxy = bool(data.pop("telegram_use_proxy"))
         if use_proxy and (not s.outbound_proxy_enabled or not (s.download_proxy_url or "").strip()):
@@ -307,6 +318,12 @@ def patch_settings(
     apply_legal_documents_patch(s, data, db=db, created_by_user_id=ctx.user.id)
     for key, value in data.items():
         setattr(s, key, value)
+    patch_fields = body.model_dump(exclude_unset=True)
+    if s.telegram_enabled and (s.telegram_bot_token_encrypted or "").strip():
+        if "telegram_bot_token" in patch_fields or "telegram_enabled" in patch_fields or "telegram_use_proxy" in patch_fields:
+            from app.services.telegram_identity import refresh_bot_username_sync
+
+            refresh_bot_username_sync(db, s)
     if "asr_model" in body.model_dump(exclude_unset=True) or "diarization_model" in body.model_dump(exclude_unset=True):
         from app.services.transcribe_models import validate_instance_models
 

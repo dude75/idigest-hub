@@ -85,6 +85,8 @@ class InstanceSettings(Base):
     telegram_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     telegram_bot_token_encrypted: Mapped[str | None] = mapped_column(Text)
     telegram_use_proxy: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    telegram_webhook_secret: Mapped[str | None] = mapped_column(String(64))
+    telegram_bot_username: Mapped[str | None] = mapped_column(String(64))
     download_cookies_path: Mapped[str | None] = mapped_column(String(512))
     import_audio_bitrate_kbps: Mapped[int] = mapped_column(Integer, default=64, nullable=False)
     import_max_concurrent: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
@@ -112,6 +114,27 @@ class InstanceSettings(Base):
     landing_footer_text_es: Mapped[str | None] = mapped_column(Text)
     landing_footer_published: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     active_dek_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("data_encryption_keys.id"))
+
+
+class TelegramLink(Base):
+    __tablename__ = "telegram_links"
+    __table_args__ = (UniqueConstraint("telegram_user_id", name="uq_telegram_links_telegram_user_id"),)
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    telegram_user_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    chat_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    linked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class TelegramLinkChallenge(Base):
+    __tablename__ = "telegram_link_challenges"
+    __table_args__ = (UniqueConstraint("user_id", name="uq_telegram_link_challenges_user_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    code_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class LegalDocumentVersion(Base):
