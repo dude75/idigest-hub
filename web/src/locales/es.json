@@ -998,6 +998,7 @@
       "status": { "command": "/status", "description": "Tareas activas" },
       "transcribe": { "command": "/transcribe [id]", "description": "Transcribir último audio o el indicado; skills opcionales" },
       "summary": { "command": "/summary [id]", "description": "Resumir último transcript o el indicado; elegir skill (botones)" },
+      "viewsummary": { "command": "/viewsummary", "description": "Elegir uno de los 10 resúmenes recientes para leer en el chat" },
       "url": { "command": "URL", "description": "Importar enlace (como en la UI)" },
       "file": { "command": "Archivo / voz", "description": "Subir audio a la biblioteca" }
     },

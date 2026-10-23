@@ -994,6 +994,7 @@
       "status": { "command": "/status", "description": "Active tasks" },
       "transcribe": { "command": "/transcribe [id]", "description": "Transcribe latest or given audio; optional skill names" },
       "summary": { "command": "/summary [id]", "description": "Summarize latest or given transcript; pick a skill (buttons)" },
+      "viewsummary": { "command": "/viewsummary", "description": "Pick one of your last 10 summaries to read in chat" },
       "url": { "command": "URL", "description": "Import from link (same as UI)" },
       "file": { "command": "File / voice", "description": "Upload audio to library" }
     },

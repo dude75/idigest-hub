@@ -654,7 +654,9 @@ export function InstanceSettingsTab() {
               </tr>
             </thead>
             <tbody>
-              {(['start', 'link', 'help', 'status', 'transcribe', 'summary', 'url', 'file'] as const).map((key) => (
+              {(
+                ['start', 'link', 'help', 'status', 'transcribe', 'summary', 'viewsummary', 'url', 'file'] as const
+              ).map((key) => (
                 <tr key={key}>
                   <td>
                     <code>{t(`instance.telegramCommands.${key}.command`)}</code>

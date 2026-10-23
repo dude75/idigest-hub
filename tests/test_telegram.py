@@ -172,6 +172,7 @@ def test_telegram_bot_menu_commands():
     assert "skills" not in names
     assert "transcribe" in names
     assert "summary" in names
+    assert "viewsummary" in names
 
 
 def test_telegram_parse_command():
@@ -258,6 +259,29 @@ def test_skill_inline_keyboard_callback_data():
     skill = Skill(id="a" * 36, name="Minutes", body="x", scope="base", org_id=None, owner_user_id="u")
     markup = _skill_inline_keyboard([skill])
     assert markup["inline_keyboard"][0][0]["callback_data"] == f"{_SKILL_CALLBACK_PREFIX}{skill.id}"
+
+
+def test_view_summary_inline_keyboard_callback_data():
+    from unittest.mock import MagicMock
+
+    from app.models import Summary
+    from app.services.telegram_bot import _VIEW_SUMMARY_CALLBACK_PREFIX, _view_summary_inline_keyboard
+    from app.timeutil import utcnow
+
+    summary = Summary(
+        id="b" * 36,
+        org_id="org",
+        owner_user_id="u",
+        source_transcript_id=None,
+        skill_ids_json=[],
+        title="Weekly notes",
+        body_encrypted="enc",
+        created_at=utcnow(),
+    )
+    db = MagicMock()
+    db.get.return_value = summary
+    markup = _view_summary_inline_keyboard([summary], db)
+    assert markup["inline_keyboard"][0][0]["callback_data"] == f"{_VIEW_SUMMARY_CALLBACK_PREFIX}{summary.id}"
 
 
 async def test_telegram_cmd_transcribe_queues(client, monkeypatch):

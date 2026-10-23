@@ -56,6 +56,8 @@ def run_on_hub_loop(coro) -> bool:
     asyncio.run_coroutine_threadsafe(coro, loop)
     return True
 _SKILL_CALLBACK_PREFIX = "ss:"
+_VIEW_SUMMARY_CALLBACK_PREFIX = "vs:"
+_VIEW_SUMMARY_LIST_LIMIT = 10
 _pending_summary_transcript: dict[str, str] = {}
 
 
@@ -249,6 +251,9 @@ async def handle_update(db: Session, update: dict, *, token: str, settings, bot_
     if command == "/summary":
         await _cmd_summary(db, token, settings, chat_id_s, user, loc, args)
         return
+    if command == "/viewsummary":
+        await _cmd_viewsummary(db, token, settings, chat_id_s, user, loc)
+        return
 
     url_match = _URL_RE.search(text) if text else None
     if url_match:
@@ -368,6 +373,39 @@ def _sorted_visible_skills(db: Session, ctx) -> list[Skill]:
     return sorted(_visible_skill_map(db, ctx).values(), key=lambda s: (s.name or "").lower())
 
 
+def _telegram_text_chunks(text: str, max_len: int = 4096) -> list[str]:
+    if len(text) <= max_len:
+        return [text]
+    return [text[i : i + max_len] for i in range(0, len(text), max_len)]
+
+
+def _summary_button_label(db: Session, summary: Summary) -> str:
+    title = _summary_display_name(db, summary.id)
+    raw_skills = summary.skill_ids_json or []
+    skill_ids = [str(sid) for sid in raw_skills if sid]
+    if skill_ids:
+        label = f"{title} ({_skill_labels(db, skill_ids)})"
+    else:
+        label = title
+    if len(label) > 60:
+        return label[:57] + "…"
+    return label
+
+
+def _view_summary_inline_keyboard(summaries: list[Summary], db: Session) -> dict[str, list[list[dict[str, str]]]]:
+    rows: list[list[dict[str, str]]] = []
+    for summary in summaries:
+        rows.append(
+            [
+                {
+                    "text": _summary_button_label(db, summary),
+                    "callback_data": f"{_VIEW_SUMMARY_CALLBACK_PREFIX}{summary.id}",
+                }
+            ]
+        )
+    return {"inline_keyboard": rows}
+
+
 def _skill_inline_keyboard(skills: list[Skill]) -> dict[str, list[list[dict[str, str]]]]:
     rows: list[list[dict[str, str]]] = []
     for skill in skills[:20]:
@@ -465,6 +503,18 @@ async def _handle_callback_query(db: Session, callback: dict, *, token: str, set
         except TelegramApiError as exc:
             log.warning("telegram answerCallbackQuery: %s", exc)
 
+    if data.startswith(_VIEW_SUMMARY_CALLBACK_PREFIX):
+        await _handle_view_summary_callback(
+            db,
+            data[len(_VIEW_SUMMARY_CALLBACK_PREFIX) :],
+            token=token,
+            settings=settings,
+            chat_id_s=chat_id_s,
+            tg_user_s=tg_user_s,
+            answer=_answer,
+        )
+        return
+
     if not data.startswith(_SKILL_CALLBACK_PREFIX):
         await _answer()
         return
@@ -523,6 +573,110 @@ async def _handle_callback_query(db: Session, callback: dict, *, token: str, set
         db.rollback()
         log.exception("telegram summary callback failed")
         await _answer(t(loc, "telegram.summary_failed"))
+
+
+def _list_recent_summaries(db: Session, ctx, limit: int = _VIEW_SUMMARY_LIST_LIMIT) -> list[Summary]:
+    from app.services.access import ensure_library_readable
+    from app.services.library_helpers import list_filter
+
+    rows = list_filter(ctx, db, Summary, "summary", include_hidden=False, limit=limit)
+    out: list[Summary] = []
+    for row in rows:
+        if ensure_library_readable(ctx, db, row, "summary"):
+            out.append(row)
+    return out
+
+
+async def _send_summary_content(
+    db: Session,
+    token: str,
+    settings,
+    chat_id: str,
+    summary: Summary,
+    loc: str,
+) -> None:
+    from app.crypto import decrypt_str
+
+    body = decrypt_str(summary.body_encrypted, db)
+    header = t(loc, "telegram.viewsummary_body_header", name=_summary_display_name(db, summary.id))
+    full = f"{header}\n\n{body}".strip() if body.strip() else header
+    for chunk in _telegram_text_chunks(full):
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=chunk)
+
+
+async def _cmd_viewsummary(
+    db: Session,
+    token: str,
+    settings,
+    chat_id: str,
+    user: User,
+    loc: str,
+) -> None:
+    try:
+        ctx = auth_context_for_user(db, user)
+        ctx.require_org()
+    except Exception:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.no_org"))
+        return
+
+    summaries = _list_recent_summaries(db, ctx)
+    if not summaries:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.viewsummary_empty"))
+        return
+
+    await send_message(
+        token,
+        settings=settings,
+        db=db,
+        chat_id=chat_id,
+        text=t(loc, "telegram.viewsummary_intro"),
+        reply_markup=_view_summary_inline_keyboard(summaries, db),
+    )
+
+
+async def _handle_view_summary_callback(
+    db: Session,
+    summary_id: str,
+    *,
+    token: str,
+    settings,
+    chat_id_s: str,
+    tg_user_s: str,
+    answer,
+) -> None:
+    from app.services.access import ensure_library_readable
+
+    link = link_for_telegram_user(db, tg_user_s)
+    if link is None:
+        await answer(t("en", "telegram.need_link"))
+        return
+    user = db.get(User, link.user_id)
+    if user is None or user.disabled_at is not None:
+        await answer(t("en", "telegram.need_link"))
+        return
+    loc = _locale(user)
+
+    try:
+        ctx = auth_context_for_user(db, user)
+        org, _ = ctx.require_org()
+    except Exception:
+        await answer(t(loc, "telegram.no_org"))
+        return
+
+    summary = db.get(Summary, summary_id)
+    if summary is None or summary.org_id != org.id or not ensure_library_readable(ctx, db, summary, "summary"):
+        await answer(t(loc, "telegram.viewsummary_not_found"))
+        return
+
+    try:
+        await _send_summary_content(db, token, settings, chat_id_s, summary, loc)
+        await answer()
+    except TelegramApiError as exc:
+        log.warning("telegram viewsummary send: %s", exc)
+        await answer(t(loc, "telegram.viewsummary_send_failed"))
+    except Exception:
+        log.exception("telegram viewsummary failed")
+        await answer(t(loc, "telegram.viewsummary_send_failed"))
 
 
 async def _cmd_transcribe(
