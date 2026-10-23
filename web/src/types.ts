@@ -438,6 +438,7 @@ export type InstanceSettings = {
   download_proxy_enabled: boolean
   telegram_enabled: boolean
   telegram_bot_token_configured: boolean
+  telegram_bot_username: string | null
   telegram_use_proxy: boolean
   download_cookies_path: string | null
   import_audio_bitrate_kbps: number

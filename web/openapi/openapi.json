@@ -2748,6 +2748,52 @@
         ]
       }
     },
+    "/api/v1/instance/telegram/test-connection": {
+      "post": {
+        "summary": "Telegram Test Connection",
+        "operationId": "telegram_test_connection_api_v1_instance_telegram_test_connection_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelegramTestBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelegramTestConnectionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          },
+          {
+            "SessionCookie": []
+          }
+        ]
+      }
+    },
     "/api/v1/instance/smtp/test-connection": {
       "post": {
         "summary": "Smtp Test Connection",
@@ -9905,6 +9951,17 @@
             "type": "boolean",
             "title": "Telegram Bot Token Configured"
           },
+          "telegram_bot_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Bot Username"
+          },
           "telegram_use_proxy": {
             "type": "boolean",
             "title": "Telegram Use Proxy"
@@ -15195,6 +15252,78 @@
           "deleted"
         ],
         "title": "TaskPurgeResponse"
+      },
+      "TelegramTestBody": {
+        "properties": {
+          "telegram_bot_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Bot Token"
+          },
+          "telegram_use_proxy": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Telegram Use Proxy"
+          }
+        },
+        "type": "object",
+        "title": "TelegramTestBody"
+      },
+      "TelegramTestConnectionResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "default": "ok"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Name"
+          },
+          "bot_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bot Url"
+          }
+        },
+        "type": "object",
+        "title": "TelegramTestConnectionResponse"
       },
       "TitlePatch": {
         "properties": {

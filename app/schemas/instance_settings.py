@@ -36,6 +36,7 @@ class InstanceSettingsResponse(BaseModel):
     download_proxy_enabled: bool
     telegram_enabled: bool
     telegram_bot_token_configured: bool
+    telegram_bot_username: str | None = None
     telegram_use_proxy: bool
     download_cookies_path: str | None = None
     import_audio_bitrate_kbps: int
@@ -121,3 +122,10 @@ class LegalDocumentVersionDetailResponse(LegalDocumentVersionSummary):
 class SmtpTestSendResponse(BaseModel):
     status: str = "ok"
     to: str
+
+
+class TelegramTestConnectionResponse(BaseModel):
+    status: str = "ok"
+    username: str | None = None
+    first_name: str | None = None
+    bot_url: str | None = None

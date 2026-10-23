@@ -895,6 +895,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/instance/telegram/test-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Telegram Test Connection */
+        post: operations["telegram_test_connection_api_v1_instance_telegram_test_connection_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/instance/smtp/test-connection": {
         parameters: {
             query?: never;
@@ -3033,6 +3050,8 @@ export interface components {
             telegram_enabled: boolean;
             /** Telegram Bot Token Configured */
             telegram_bot_token_configured: boolean;
+            /** Telegram Bot Username */
+            telegram_bot_username?: string | null;
             /** Telegram Use Proxy */
             telegram_use_proxy: boolean;
             /** Download Cookies Path */
@@ -3367,11 +3386,19 @@ export interface components {
             expires_at: string;
             /** Start Command */
             start_command: string;
+            /** Bot Username */
+            bot_username?: string | null;
+            /** Bot Url */
+            bot_url?: string | null;
         };
         /** MeTelegramStatusResponse */
         MeTelegramStatusResponse: {
             /** Bot Enabled */
             bot_enabled: boolean;
+            /** Bot Username */
+            bot_username?: string | null;
+            /** Bot Url */
+            bot_url?: string | null;
             /** Linked */
             linked: boolean;
             /** Linked At */
@@ -4560,6 +4587,27 @@ export interface components {
         TaskPurgeResponse: {
             /** Deleted */
             deleted: number;
+        };
+        /** TelegramTestBody */
+        TelegramTestBody: {
+            /** Telegram Bot Token */
+            telegram_bot_token?: string | null;
+            /** Telegram Use Proxy */
+            telegram_use_proxy?: boolean | null;
+        };
+        /** TelegramTestConnectionResponse */
+        TelegramTestConnectionResponse: {
+            /**
+             * Status
+             * @default ok
+             */
+            status: string;
+            /** Username */
+            username?: string | null;
+            /** First Name */
+            first_name?: string | null;
+            /** Bot Url */
+            bot_url?: string | null;
         };
         /** TitlePatch */
         TitlePatch: {
@@ -6917,6 +6965,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LegalDocumentVersionDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    telegram_test_connection_api_v1_instance_telegram_test_connection_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelegramTestBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelegramTestConnectionResponse"];
                 };
             };
             /** @description Validation Error */

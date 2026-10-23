@@ -33,6 +33,7 @@ export function InstanceSettingsTab() {
   const [telegramBotToken, setTelegramBotToken] = useState('')
   const [smtpTestEmail, setSmtpTestEmail] = useState('')
   const [smtpTestingConnection, setSmtpTestingConnection] = useState(false)
+  const [telegramTestingConnection, setTelegramTestingConnection] = useState(false)
   const [saveBusy, setSaveBusy] = useState(false)
 
   function normalizeSettings(data: InstanceSettings): InstanceSettings {
@@ -121,6 +122,39 @@ export function InstanceSettingsTab() {
     } catch (e) {
       showError(e)
       return false
+    }
+  }
+
+  function telegramTokenReady() {
+    return Boolean(telegramBotToken.trim() || settings?.telegram_bot_token_configured)
+  }
+
+  async function testTelegramConnection() {
+    if (!settings) return
+    setTelegramTestingConnection(true)
+    try {
+      const body: { telegram_use_proxy: boolean; telegram_bot_token?: string } = {
+        telegram_use_proxy: settings.telegram_use_proxy,
+      }
+      if (telegramBotToken.trim()) body.telegram_bot_token = telegramBotToken.trim()
+      const result = await api<{
+        username: string | null
+        first_name: string | null
+        bot_url: string | null
+      }>('/instance/telegram/test-connection', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      })
+      setSettings({
+        ...settings,
+        telegram_bot_username: result.username,
+      })
+      const label = result.username ? `@${result.username}` : result.first_name || t('instance.telegramBotNameUnknown')
+      toast.success(t('instance.telegramTestConnectionOk', { name: label }))
+    } catch (e) {
+      showError(e)
+    } finally {
+      setTelegramTestingConnection(false)
     }
   }
 
@@ -593,6 +627,23 @@ export function InstanceSettingsTab() {
             onChange={(e) => setTelegramBotToken(e.target.value)}
             description={t('instance.telegramBotTokenHint')}
           />
+          {settings.telegram_bot_username ? (
+            <p className="text-sm">
+              {t('instance.telegramBotName')}{' '}
+              <a href={`https://t.me/${settings.telegram_bot_username}`} target="_blank" rel="noreferrer">
+                @{settings.telegram_bot_username}
+              </a>
+            </p>
+          ) : null}
+          <Button
+            type="button"
+            disabled={telegramTestingConnection || !telegramTokenReady()}
+            onClick={() => void testTelegramConnection()}
+          >
+            {telegramTestingConnection
+              ? t('instance.telegramTestingConnection')
+              : t('instance.telegramTestConnection')}
+          </Button>
           <p className="muted">{t('instance.telegramPublicUrlHint')}</p>
           <h4 className="text-sm font-medium">{t('instance.telegramCommandsTitle')}</h4>
           <table className="admin-data-table w-full text-sm">

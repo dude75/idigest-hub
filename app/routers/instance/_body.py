@@ -79,6 +79,11 @@ class SmtpTestSendBody(SmtpTestBody):
     to: str | None = None
 
 
+class TelegramTestBody(BaseModel):
+    telegram_bot_token: str | None = None
+    telegram_use_proxy: bool | None = None
+
+
 class AgreementPreviewBody(BaseModel):
     text: str = ""
 

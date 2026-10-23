@@ -16,7 +16,7 @@ from app.deps import (
 from app.errors import ApiError, ErrorCode
 from app.models import User
 from app.rate_limit import invalidate_rate_limit_cache, rate_limits_public
-from app.routers.instance._body import AgreementPreviewBody, SettingsPatch, SmtpTestBody, SmtpTestSendBody
+from app.routers.instance._body import AgreementPreviewBody, SettingsPatch, SmtpTestBody, SmtpTestSendBody, TelegramTestBody
 from app.routers.instance._router import router
 from app.schemas.common import OkStatusResponse
 from app.schemas.instance_settings import (
@@ -26,6 +26,7 @@ from app.schemas.instance_settings import (
     LegalDocumentVersionListResponse,
     LegalDocumentVersionSummary,
     SmtpTestSendResponse,
+    TelegramTestConnectionResponse,
 )
 from app.services.instance_helpers import require_instance_admin
 
@@ -97,6 +98,7 @@ def get_settings_ep(db: Session = Depends(get_session, scope="function"), ctx: A
         "download_proxy_enabled": s.download_proxy_enabled,
         "telegram_enabled": s.telegram_enabled,
         "telegram_bot_token_configured": bool((s.telegram_bot_token_encrypted or "").strip()),
+        "telegram_bot_username": (s.telegram_bot_username or "").strip().lstrip("@") or None,
         "telegram_use_proxy": s.telegram_use_proxy,
         "download_cookies_path": s.download_cookies_path,
         "import_audio_bitrate_kbps": bitrate,
@@ -379,6 +381,41 @@ def smtp_test_error(exc: Exception) -> None:
 
     log.warning("smtp test failed: %s", exc)
     raise ApiError(ErrorCode.validation_error, str(exc)) from exc
+
+
+def telegram_test_error(exc: Exception) -> None:
+    log = __import__("logging").getLogger("app")
+    log.warning("telegram test failed: %s", exc)
+    raise ApiError(ErrorCode.validation_error, str(exc)) from exc
+
+
+@router.post("/instance/telegram/test-connection", response_model=TelegramTestConnectionResponse)
+def telegram_test_connection(
+    body: TelegramTestBody,
+    db: Session = Depends(get_session, scope="function"),
+    ctx: AuthContext = Depends(require_auth),
+) -> TelegramTestConnectionResponse:
+    from app.services.telegram_test import (
+        TelegramApiError,
+        resolve_telegram_test_token,
+        test_telegram_connection_sync,
+    )
+
+    require_instance_admin(ctx)
+    settings = get_instance_settings(db)
+    token = resolve_telegram_test_token(settings, db, body.telegram_bot_token)
+    if not token:
+        ctx.raise_error(ErrorCode.validation_error)
+    try:
+        result = test_telegram_connection_sync(
+            db,
+            settings,
+            token=token,
+            use_proxy=body.telegram_use_proxy,
+        )
+    except TelegramApiError as exc:
+        telegram_test_error(exc)
+    return TelegramTestConnectionResponse(**result)
 
 
 @router.post("/instance/smtp/test-connection", response_model=OkStatusResponse)

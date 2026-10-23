@@ -79,6 +79,57 @@ def test_instance_smtp_test_endpoints(client, monkeypatch):
     assert sent_to[-1] == "ops@example.com"
 
 
+def test_instance_telegram_test_connection(client, monkeypatch):
+    setup_admin(client)
+
+    missing = client.post("/api/v1/instance/telegram/test-connection", json={})
+    assert missing.status_code == 400
+    assert err_code(missing) == "validation_error"
+
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "123456:TEST", "telegram_enabled": True},
+    )
+
+    async def _me(*_args, **_kwargs):
+        return {"id": 1, "username": "idigest_test_bot", "first_name": "Test"}
+
+    monkeypatch.setattr("app.services.telegram_test.get_me", _me)
+    ok = client.post(
+        "/api/v1/instance/telegram/test-connection",
+        json={"telegram_use_proxy": False},
+    )
+    assert ok.status_code == 200, ok.text
+    body = ok.json()
+    assert body["status"] == "ok"
+    assert body["username"] == "idigest_test_bot"
+    assert body["bot_url"] == "https://t.me/idigest_test_bot"
+
+    settings = client.get("/api/v1/instance/settings").json()
+    assert settings["telegram_bot_username"] == "idigest_test_bot"
+
+    from app.services.telegram_api import TelegramApiError
+
+    async def _fail(*_args, **_kwargs):
+        raise TelegramApiError("network down")
+
+    monkeypatch.setattr("app.services.telegram_test.get_me", _fail)
+    failed = client.post("/api/v1/instance/telegram/test-connection", json={})
+    assert failed.status_code == 400, failed.text
+    assert err_code(failed) == "validation_error"
+    assert "network down" in failed.json()["error"]["message"]
+
+
+def test_instance_telegram_test_forbidden_for_non_admin(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "tgmember@example.com", "tgmemberpass", tariff_id).status_code == 200
+    response = client.post("/api/v1/instance/telegram/test-connection", json={})
+    assert response.status_code == 403
+    assert err_code(response) == "forbidden"
+
+
 def test_instance_smtp_test_forbidden_for_non_admin(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

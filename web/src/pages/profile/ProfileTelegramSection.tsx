@@ -6,6 +6,7 @@ import { useAuth } from '../../auth'
 import { Button } from '@/components/ui/button'
 import { showError } from '../../util'
 import { formatDateTime } from '../../util/datetimeFormat'
+import { AppUrlCopyRow } from '../../components/app/AppUrlCopyRow'
 import { ProfileSection } from './ProfileSection'
 
 type MeTelegramStatus = {
@@ -127,9 +128,7 @@ export function ProfileTelegramSection() {
                 </p>
               ) : null}
               <p className="font-medium">{t('profile.telegramCodeLabel')}</p>
-              <p>
-                <code>{link.start_command}</code>
-              </p>
+              <AppUrlCopyRow value={link.start_command} />
               <p className="muted">
                 {t('profile.telegramCodeExpires')} {formatWhen(link.expires_at)}
               </p>
