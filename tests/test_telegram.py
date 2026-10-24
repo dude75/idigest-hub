@@ -324,6 +324,48 @@ def test_view_summary_inline_keyboard_callback_data():
     assert markup["inline_keyboard"][0][0]["callback_data"] == f"{_VIEW_SUMMARY_CALLBACK_PREFIX}{summary.id}"
 
 
+def test_transcribe_and_summary_inline_keyboard_callback_data():
+    from unittest.mock import MagicMock
+
+    from app.models import Audio, Transcript
+    from app.services.telegram_bot import (
+        _SUMMARY_TRANSCRIPT_CALLBACK_PREFIX,
+        _TRANSCRIBE_AUDIO_CALLBACK_PREFIX,
+        _audio_inline_keyboard,
+        _transcript_inline_keyboard,
+    )
+    from app.timeutil import utcnow
+
+    audio_id = "a" * 36
+    transcript_id = "c" * 36
+    audio = Audio(
+        id=audio_id,
+        org_id="org",
+        owner_user_id="u",
+        storage_path="x.ogg",
+        original_filename="clip.ogg",
+        created_at=utcnow(),
+    )
+    transcript = Transcript(
+        id=transcript_id,
+        org_id="org",
+        owner_user_id="u",
+        source_audio_id=None,
+        title="Notes",
+        utterances_encrypted="enc",
+        created_at=utcnow(),
+    )
+    db = MagicMock()
+    db.get.side_effect = lambda model, pk: audio if pk == audio_id else transcript if pk == transcript_id else None
+    audio_markup = _audio_inline_keyboard([audio], db)
+    assert audio_markup["inline_keyboard"][0][0]["callback_data"] == f"{_TRANSCRIBE_AUDIO_CALLBACK_PREFIX}{audio_id}"
+    transcript_markup = _transcript_inline_keyboard([transcript], db)
+    assert (
+        transcript_markup["inline_keyboard"][0][0]["callback_data"]
+        == f"{_SUMMARY_TRANSCRIPT_CALLBACK_PREFIX}{transcript_id}"
+    )
+
+
 async def test_telegram_cmd_transcribe_queues(client, monkeypatch):
     monkeypatch.setattr("app.services.telegram_bot.send_message", _noop_send)
     setup_admin(client)

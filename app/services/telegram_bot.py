@@ -57,7 +57,9 @@ def run_on_hub_loop(coro) -> bool:
     return True
 _SKILL_CALLBACK_PREFIX = "ss:"
 _VIEW_SUMMARY_CALLBACK_PREFIX = "vs:"
-_VIEW_SUMMARY_LIST_LIMIT = 10
+_TRANSCRIBE_AUDIO_CALLBACK_PREFIX = "ta:"
+_SUMMARY_TRANSCRIPT_CALLBACK_PREFIX = "tr:"
+_TELEGRAM_PICK_LIST_LIMIT = 10
 _pending_summary_transcript: dict[str, str] = {}
 
 
@@ -392,6 +394,12 @@ def _summary_button_label(db: Session, summary: Summary) -> str:
     return label
 
 
+def _pick_list_button_label(label: str) -> str:
+    if len(label) > 60:
+        return label[:57] + "…"
+    return label
+
+
 def _view_summary_inline_keyboard(summaries: list[Summary], db: Session) -> dict[str, list[list[dict[str, str]]]]:
     rows: list[list[dict[str, str]]] = []
     for summary in summaries:
@@ -400,6 +408,34 @@ def _view_summary_inline_keyboard(summaries: list[Summary], db: Session) -> dict
                 {
                     "text": _summary_button_label(db, summary),
                     "callback_data": f"{_VIEW_SUMMARY_CALLBACK_PREFIX}{summary.id}",
+                }
+            ]
+        )
+    return {"inline_keyboard": rows}
+
+
+def _audio_inline_keyboard(audios: list[Audio], db: Session) -> dict[str, list[list[dict[str, str]]]]:
+    rows: list[list[dict[str, str]]] = []
+    for audio in audios:
+        rows.append(
+            [
+                {
+                    "text": _pick_list_button_label(_audio_display_name(db, audio.id)),
+                    "callback_data": f"{_TRANSCRIBE_AUDIO_CALLBACK_PREFIX}{audio.id}",
+                }
+            ]
+        )
+    return {"inline_keyboard": rows}
+
+
+def _transcript_inline_keyboard(transcripts: list[Transcript], db: Session) -> dict[str, list[list[dict[str, str]]]]:
+    rows: list[list[dict[str, str]]] = []
+    for transcript in transcripts:
+        rows.append(
+            [
+                {
+                    "text": _pick_list_button_label(_transcript_display_name(db, transcript.id)),
+                    "callback_data": f"{_SUMMARY_TRANSCRIPT_CALLBACK_PREFIX}{transcript.id}",
                 }
             ]
         )
@@ -515,6 +551,30 @@ async def _handle_callback_query(db: Session, callback: dict, *, token: str, set
         )
         return
 
+    if data.startswith(_TRANSCRIBE_AUDIO_CALLBACK_PREFIX):
+        await _handle_transcribe_audio_callback(
+            db,
+            data[len(_TRANSCRIBE_AUDIO_CALLBACK_PREFIX) :],
+            token=token,
+            settings=settings,
+            chat_id_s=chat_id_s,
+            tg_user_s=tg_user_s,
+            answer=_answer,
+        )
+        return
+
+    if data.startswith(_SUMMARY_TRANSCRIPT_CALLBACK_PREFIX):
+        await _handle_summary_transcript_callback(
+            db,
+            data[len(_SUMMARY_TRANSCRIPT_CALLBACK_PREFIX) :],
+            token=token,
+            settings=settings,
+            chat_id_s=chat_id_s,
+            tg_user_s=tg_user_s,
+            answer=_answer,
+        )
+        return
+
     if not data.startswith(_SKILL_CALLBACK_PREFIX):
         await _answer()
         return
@@ -575,7 +635,7 @@ async def _handle_callback_query(db: Session, callback: dict, *, token: str, set
         await _answer(t(loc, "telegram.summary_failed"))
 
 
-def _list_recent_summaries(db: Session, ctx, limit: int = _VIEW_SUMMARY_LIST_LIMIT) -> list[Summary]:
+def _list_recent_summaries(db: Session, ctx, limit: int = _TELEGRAM_PICK_LIST_LIMIT) -> list[Summary]:
     from app.services.access import ensure_library_readable
     from app.services.library_helpers import list_filter
 
@@ -583,6 +643,30 @@ def _list_recent_summaries(db: Session, ctx, limit: int = _VIEW_SUMMARY_LIST_LIM
     out: list[Summary] = []
     for row in rows:
         if ensure_library_readable(ctx, db, row, "summary"):
+            out.append(row)
+    return out
+
+
+def _list_recent_audios(db: Session, ctx, limit: int = _TELEGRAM_PICK_LIST_LIMIT) -> list[Audio]:
+    from app.services.access import can_use_audio
+    from app.services.library_helpers import list_filter
+
+    rows = list_filter(ctx, db, Audio, "audio", include_hidden=False, limit=limit)
+    out: list[Audio] = []
+    for row in rows:
+        if can_use_audio(ctx, db, row):
+            out.append(row)
+    return out
+
+
+def _list_recent_transcripts(db: Session, ctx, limit: int = _TELEGRAM_PICK_LIST_LIMIT) -> list[Transcript]:
+    from app.services.access import can_use_transcript
+    from app.services.library_helpers import list_filter
+
+    rows = list_filter(ctx, db, Transcript, "transcript", include_hidden=False, limit=limit)
+    out: list[Transcript] = []
+    for row in rows:
+        if can_use_transcript(ctx, db, row):
             out.append(row)
     return out
 
@@ -679,6 +763,113 @@ async def _handle_view_summary_callback(
         await answer(t(loc, "telegram.viewsummary_send_failed"))
 
 
+async def _enqueue_transcribe(
+    db: Session,
+    token: str,
+    settings,
+    chat_id: str,
+    ctx,
+    loc: str,
+    audio: Audio,
+    skill_ids: list[str],
+) -> None:
+    task = enqueue_transcribe_task(db, ctx, TranscribeBody(audio_id=audio.id, skill_ids=skill_ids))
+    _attach_telegram_notify(task, chat_id)
+    db.commit()
+    schedule_locked_tick_asyncio(task.id, refresh_health=False)
+    await send_message(
+        token,
+        settings=settings,
+        db=db,
+        chat_id=chat_id,
+        text=t(loc, "telegram.transcribe_queued", name=_audio_display_name(db, audio.id)),
+    )
+
+
+async def _handle_transcribe_audio_callback(
+    db: Session,
+    audio_id: str,
+    *,
+    token: str,
+    settings,
+    chat_id_s: str,
+    tg_user_s: str,
+    answer,
+) -> None:
+    from app.services.access import can_use_audio
+
+    link = link_for_telegram_user(db, tg_user_s)
+    if link is None:
+        await answer(t("en", "telegram.need_link"))
+        return
+    user = db.get(User, link.user_id)
+    if user is None or user.disabled_at is not None:
+        await answer(t("en", "telegram.need_link"))
+        return
+    loc = _locale(user)
+
+    try:
+        ctx = auth_context_for_user(db, user)
+        org, _ = ctx.require_org()
+    except Exception:
+        await answer(t(loc, "telegram.no_org"))
+        return
+
+    audio = db.get(Audio, audio_id)
+    if audio is None or audio.org_id != org.id or not can_use_audio(ctx, db, audio):
+        await answer(t(loc, "telegram.transcribe_not_found"))
+        return
+
+    try:
+        await _enqueue_transcribe(db, token, settings, chat_id_s, ctx, loc, audio, [])
+        await answer()
+    except ApiError as exc:
+        db.rollback()
+        await answer(t(loc, "telegram.task_enqueue_failed", code=exc.code.value))
+    except Exception:
+        db.rollback()
+        log.exception("telegram transcribe callback failed")
+        await answer(t(loc, "telegram.transcribe_failed"))
+
+
+async def _handle_summary_transcript_callback(
+    db: Session,
+    transcript_id: str,
+    *,
+    token: str,
+    settings,
+    chat_id_s: str,
+    tg_user_s: str,
+    answer,
+) -> None:
+    from app.services.access import can_use_transcript
+
+    link = link_for_telegram_user(db, tg_user_s)
+    if link is None:
+        await answer(t("en", "telegram.need_link"))
+        return
+    user = db.get(User, link.user_id)
+    if user is None or user.disabled_at is not None:
+        await answer(t("en", "telegram.need_link"))
+        return
+    loc = _locale(user)
+
+    try:
+        ctx = auth_context_for_user(db, user)
+        org, _ = ctx.require_org()
+    except Exception:
+        await answer(t(loc, "telegram.no_org"))
+        return
+
+    transcript = db.get(Transcript, transcript_id)
+    if transcript is None or transcript.org_id != org.id or not can_use_transcript(ctx, db, transcript):
+        await answer(t(loc, "telegram.transcript_not_found"))
+        return
+
+    await answer()
+    await _offer_summary_skill_pick(db, token, settings, chat_id_s, ctx, loc, transcript)
+
+
 async def _cmd_transcribe(
     db: Session,
     token: str,
@@ -694,47 +885,46 @@ async def _cmd_transcribe(
     except Exception:
         await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.no_org"))
         return
-    audio_ref: str | None = None
-    skill_tokens = args
     if args:
         maybe = _resolve_audio(db, ctx, org, args[0])
         if maybe is not None:
-            audio_ref = args[0]
             skill_tokens = args[1:]
-    audio = _resolve_audio(db, ctx, org, audio_ref)
-    if audio is None:
+            try:
+                skill_ids = _resolve_skill_ids(db, ctx, skill_tokens)
+            except ValueError:
+                await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.skill_ambiguous"))
+                return
+            try:
+                await _enqueue_transcribe(db, token, settings, chat_id, ctx, loc, maybe, skill_ids)
+            except ApiError as exc:
+                db.rollback()
+                await send_message(
+                    token,
+                    settings=settings,
+                    db=db,
+                    chat_id=chat_id,
+                    text=t(loc, "telegram.task_enqueue_failed", code=exc.code.value),
+                )
+            except Exception:
+                db.rollback()
+                log.exception("telegram transcribe failed")
+                await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.transcribe_failed"))
+            return
         await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.audio_not_found"))
         return
-    try:
-        skill_ids = _resolve_skill_ids(db, ctx, skill_tokens)
-    except ValueError:
-        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.skill_ambiguous"))
+
+    audios = _list_recent_audios(db, ctx)
+    if not audios:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.transcribe_empty"))
         return
-    try:
-        task = enqueue_transcribe_task(db, ctx, TranscribeBody(audio_id=audio.id, skill_ids=skill_ids))
-        _attach_telegram_notify(task, chat_id)
-        db.commit()
-        schedule_locked_tick_asyncio(task.id, refresh_health=False)
-        await send_message(
-            token,
-            settings=settings,
-            db=db,
-            chat_id=chat_id,
-            text=t(loc, "telegram.transcribe_queued", name=_audio_display_name(db, audio.id)),
-        )
-    except ApiError as exc:
-        db.rollback()
-        await send_message(
-            token,
-            settings=settings,
-            db=db,
-            chat_id=chat_id,
-            text=t(loc, "telegram.task_enqueue_failed", code=exc.code.value),
-        )
-    except Exception:
-        db.rollback()
-        log.exception("telegram transcribe failed")
-        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.transcribe_failed"))
+    await send_message(
+        token,
+        settings=settings,
+        db=db,
+        chat_id=chat_id,
+        text=t(loc, "telegram.transcribe_intro"),
+        reply_markup=_audio_inline_keyboard(audios, db),
+    )
 
 
 async def _cmd_summary(
@@ -752,41 +942,50 @@ async def _cmd_summary(
     except Exception:
         await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.no_org"))
         return
-    transcript_ref: str | None = None
-    skill_tokens = args
     if args:
         maybe = _resolve_transcript(db, ctx, org, args[0])
         if maybe is not None:
-            transcript_ref = args[0]
             skill_tokens = args[1:]
-    transcript = _resolve_transcript(db, ctx, org, transcript_ref)
-    if transcript is None:
+            try:
+                skill_ids = _resolve_skill_ids(db, ctx, skill_tokens)
+            except ValueError:
+                await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.skill_ambiguous"))
+                return
+            if not skill_ids:
+                await _offer_summary_skill_pick(db, token, settings, chat_id, ctx, loc, maybe)
+                return
+            try:
+                await _enqueue_summary(db, token, settings, chat_id, ctx, loc, maybe, skill_ids)
+            except (ApiError, ValueError, PermissionError) as exc:
+                db.rollback()
+                code = getattr(getattr(exc, "code", None), "value", None) or "error"
+                await send_message(
+                    token,
+                    settings=settings,
+                    db=db,
+                    chat_id=chat_id,
+                    text=t(loc, "telegram.task_enqueue_failed", code=code),
+                )
+            except Exception:
+                db.rollback()
+                log.exception("telegram summary failed")
+                await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.summary_failed"))
+            return
         await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.transcript_not_found"))
         return
-    try:
-        skill_ids = _resolve_skill_ids(db, ctx, skill_tokens)
-    except ValueError:
-        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.skill_ambiguous"))
+
+    transcripts = _list_recent_transcripts(db, ctx)
+    if not transcripts:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.summary_empty"))
         return
-    if not skill_ids:
-        await _offer_summary_skill_pick(db, token, settings, chat_id, ctx, loc, transcript)
-        return
-    try:
-        await _enqueue_summary(db, token, settings, chat_id, ctx, loc, transcript, skill_ids)
-    except (ApiError, ValueError, PermissionError) as exc:
-        db.rollback()
-        code = getattr(getattr(exc, "code", None), "value", None) or "error"
-        await send_message(
-            token,
-            settings=settings,
-            db=db,
-            chat_id=chat_id,
-            text=t(loc, "telegram.task_enqueue_failed", code=code),
-        )
-    except Exception:
-        db.rollback()
-        log.exception("telegram summary failed")
-        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.summary_failed"))
+    await send_message(
+        token,
+        settings=settings,
+        db=db,
+        chat_id=chat_id,
+        text=t(loc, "telegram.summary_intro"),
+        reply_markup=_transcript_inline_keyboard(transcripts, db),
+    )
 
 
 async def _cmd_status(db: Session, token: str, settings, chat_id: str, user: User, loc: str) -> None:

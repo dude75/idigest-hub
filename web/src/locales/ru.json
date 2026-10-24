@@ -994,8 +994,8 @@
       "link": { "command": "/link", "description": "Как привязать аккаунт хаба" },
       "help": { "command": "/help", "description": "Список команд" },
       "status": { "command": "/status", "description": "Активные задачи" },
-      "transcribe": { "command": "/transcribe [id]", "description": "Транскрибация последнего или указанного audio; навыки опционально" },
-      "summary": { "command": "/summary [id]", "description": "Саммари последнего или указанного transcript; выбор навыка кнопками" },
+      "transcribe": { "command": "/transcribe [id]", "description": "Выбор из 10 последних audio или id; навыки опционально" },
+      "summary": { "command": "/summary [id]", "description": "Выбор из 10 последних transcript, затем навык; или id" },
       "viewsummary": { "command": "/viewsummary", "description": "Выбор одного из 10 последних саммари для просмотра в чате" },
       "url": { "command": "URL", "description": "Импорт по ссылке (как в UI)" },
       "file": { "command": "Файл / голос", "description": "Загрузка аудио в библиотеку" }
