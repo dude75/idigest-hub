@@ -247,13 +247,13 @@ async def handle_update(db: Session, update: dict, *, token: str, settings, bot_
         return
 
     command, args = _parse_command(text)
-    if command == "/transcribe":
+    if command == "/make_transcribe":
         await _cmd_transcribe(db, token, settings, chat_id_s, user, loc, args)
         return
-    if command == "/summary":
+    if command == "/make_summary":
         await _cmd_summary(db, token, settings, chat_id_s, user, loc, args)
         return
-    if command == "/viewsummary":
+    if command == "/view_summary":
         await _cmd_viewsummary(db, token, settings, chat_id_s, user, loc)
         return
 

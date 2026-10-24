@@ -998,9 +998,9 @@
       "link": { "command": "/link", "description": "Cómo vincular la cuenta del hub" },
       "help": { "command": "/help", "description": "Lista de comandos" },
       "status": { "command": "/status", "description": "Tareas activas" },
-      "transcribe": { "command": "/transcribe [id]", "description": "Elija uno de los 10 audios últimos o pase id; skills opcionales" },
-      "summary": { "command": "/summary [id]", "description": "Elija uno de los 10 transcripts últimos y skill; o pase id" },
-      "viewsummary": { "command": "/viewsummary", "description": "Elegir uno de los 10 resúmenes recientes para leer en el chat" },
+      "make_transcribe": { "command": "/make_transcribe [id]", "description": "Elija uno de los 10 audios últimos o pase id; skills opcionales" },
+      "make_summary": { "command": "/make_summary [id]", "description": "Elija uno de los 10 transcripts últimos y skill; o pase id" },
+      "view_summary": { "command": "/view_summary", "description": "Elegir uno de los 10 resúmenes recientes para leer en el chat" },
       "url": { "command": "URL", "description": "Importar enlace (como en la UI)" },
       "file": { "command": "Archivo / voz", "description": "Subir audio a la biblioteca" }
     },

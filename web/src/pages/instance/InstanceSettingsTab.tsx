@@ -665,7 +665,17 @@ export function InstanceSettingsTab() {
             </thead>
             <tbody>
               {(
-                ['start', 'link', 'help', 'status', 'transcribe', 'summary', 'viewsummary', 'url', 'file'] as const
+                [
+                  'start',
+                  'link',
+                  'help',
+                  'status',
+                  'make_transcribe',
+                  'make_summary',
+                  'view_summary',
+                  'url',
+                  'file',
+                ] as const
               ).map((key) => (
                 <tr key={key}>
                   <td>

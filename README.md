@@ -120,7 +120,7 @@ Enable the bot under **Instance → Settings → Telegram** (BotFather token, op
 
 After changing the mode, save settings (the hub reconfigures transport; restart if the bot stays silent). **POST** `/instance/telegram/test-connection` verifies the token and API reachability. See [Troubleshooting — Telegram](docs/en/operations/troubleshooting.md#telegram-bot).
 
-**Linked users:** `/transcribe` and `/summary` show inline buttons for the **last 10** library items (newest first), then queue work on the chosen row; optional `[id]` still works for a direct target. `/viewsummary` uses the same pick-list pattern for summaries.
+**Linked users:** `/make_transcribe` and `/make_summary` show inline buttons for the **last 10** library items (newest first), then queue work on the chosen row; optional `[id]` still works for a direct target. `/view_summary` uses the same pick-list pattern for summaries.
 
 ## Single sign-on (SSO)
 

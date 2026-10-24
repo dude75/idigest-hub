@@ -170,16 +170,16 @@ def test_telegram_bot_menu_commands():
 
     names = [row["command"] for row in BOT_MENU_COMMANDS]
     assert "skills" not in names
-    assert "transcribe" in names
-    assert "summary" in names
-    assert "viewsummary" in names
+    assert "make_transcribe" in names
+    assert "make_summary" in names
+    assert "view_summary" in names
 
 
 def test_telegram_parse_command():
     from app.services.telegram_bot import _parse_command
 
-    assert _parse_command("/transcribe@mybot abc") == ("/transcribe", ["abc"])
-    assert _parse_command("/summary") == ("/summary", [])
+    assert _parse_command("/make_transcribe@mybot abc") == ("/make_transcribe", ["abc"])
+    assert _parse_command("/make_summary") == ("/make_summary", [])
 
 
 def test_merge_task_meta_keeps_telegram_notify():
@@ -416,7 +416,7 @@ async def test_telegram_cmd_transcribe_queues(client, monkeypatch):
                 "message": {
                     "chat": {"id": 2000},
                     "from": {"id": 888},
-                    "text": f"/transcribe {audio_id}",
+                    "text": f"/make_transcribe {audio_id}",
                 }
             },
             token="123456:TEST",
