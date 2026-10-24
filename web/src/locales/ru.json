@@ -16,6 +16,9 @@
   },
   "wallet": { "unlimited": "Безлимит", "balance": "Баланс" },
   "impersonate": { "banner": "Имперсонация {{email}}", "stop": "Стоп" },
+  "shell": {
+    "telegramLinkHint": "Настройки Telegram в профиле"
+  },
   "common": {
     "save": "Сохранить",
     "create": "Создать",
@@ -671,6 +674,9 @@
     "title": "Профиль",
     "tabGeneral": "Аккаунт",
     "tabGeneralLead": "Имя, раздел по умолчанию, дата и время.",
+    "tabUi": "Интерфейс",
+    "tabUiLead": "Плавающие кнопки справа и другие настройки оболочки.",
+    "tabUiOrgRequired": "Вступите в организацию, чтобы настраивать интерфейс.",
     "telegramTitle": "Telegram",
     "telegramLead": "Привяжите бота инстанса, чтобы импортировать ссылки и загружать аудио из чата.",
     "telegramBotDisabled": "Бот не включён администратором инстанса.",
@@ -685,6 +691,11 @@
     "telegramCodeExpires": "Действует до",
     "telegramCodeOk": "Код создан.",
     "telegramUnlinked": "Telegram отвязан.",
+    "shellShowMic": "Показывать кнопку микрофона",
+    "shellShowMicHint": "Запись с любой страницы с отправкой в библиотеку.",
+    "shellShowTelegramLink": "Показывать подсказку привязки Telegram",
+    "shellShowTelegramLinkHint": "Если выключено, иконка Telegram скрыта, даже когда аккаунт ещё не привязан. Включите снова здесь, когда захотите привязать бота.",
+    "shellShowTelegramLinkLinkedHint": "Telegram уже привязан — иконка-подсказка не показывается.",
     "tabModels": "ИИ и capture",
     "tabModelsLead": "Переопределения транскрибации, суммаризации и имени бота для ваших задач.",
     "tabSecurity": "Безопасность",

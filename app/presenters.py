@@ -48,6 +48,8 @@ def user_public(
         "summarize_model": user.summarize_model,
         "capture_bot_display_name": user.capture_bot_display_name,
         "show_only_my_items": user.show_only_my_items,
+        "shell_show_mic": user.shell_show_mic,
+        "shell_show_telegram_link": user.shell_show_telegram_link,
         "disabled": user.disabled_at is not None,
         "must_change_password": user.must_change_password,
         "mfa_enabled": user.totp_enabled_at is not None,

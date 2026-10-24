@@ -16,6 +16,9 @@
   },
   "wallet": { "unlimited": "Unlimited", "balance": "Balance" },
   "impersonate": { "banner": "Impersonating {{email}}", "stop": "Stop" },
+  "shell": {
+    "telegramLinkHint": "Telegram settings in profile"
+  },
   "common": {
     "save": "Save",
     "create": "Create",
@@ -671,6 +674,9 @@
     "title": "Profile",
     "tabGeneral": "Account",
     "tabGeneralLead": "Name, default section, date and time.",
+    "tabUi": "Interface",
+    "tabUiLead": "Floating quick-action buttons on the right and other shell preferences.",
+    "tabUiOrgRequired": "Join an organization to customize the interface.",
     "telegramTitle": "Telegram",
     "telegramLead": "Link the instance bot to import URLs and upload audio from chat.",
     "telegramBotDisabled": "The bot is not enabled by the instance admin.",
@@ -685,6 +691,11 @@
     "telegramCodeExpires": "Valid until",
     "telegramCodeOk": "Code created.",
     "telegramUnlinked": "Telegram unlinked.",
+    "shellShowMic": "Show microphone button",
+    "shellShowMicHint": "Record audio from any page and send it to the library.",
+    "shellShowTelegramLink": "Show Telegram link prompt",
+    "shellShowTelegramLinkHint": "When off, the Telegram icon is hidden even if your account is not linked yet. Turn it back on in profile to link later.",
+    "shellShowTelegramLinkLinkedHint": "Telegram is already linked — the prompt icon is not shown.",
     "tabModels": "AI & capture",
     "tabModelsLead": "Transcription, summarization, and meeting capture overrides for your tasks.",
     "tabSecurity": "Security",

@@ -6,6 +6,8 @@ import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
 
 type ProfileSectionProps = {
   title: string
+  /** In-page anchor on the section heading (`#id` in URL). */
+  headingId?: string
   description?: ReactNode
   children: ReactNode
   saveReady?: boolean
@@ -18,6 +20,7 @@ type ProfileSectionProps = {
 
 export function ProfileSection({
   title,
+  headingId,
   description,
   children,
   saveReady,
@@ -35,7 +38,11 @@ export function ProfileSection({
   return (
     <FieldSet className="gap-3">
       <div className="profile-section-head">
-        <FieldLegend variant="label" className="profile-section-title mb-0">
+        <FieldLegend
+          id={headingId}
+          variant="label"
+          className="profile-section-title profile-section-heading-anchor mb-0"
+        >
           {title}
         </FieldLegend>
         {description ? <p className="profile-section-lead admin-lead">{description}</p> : null}

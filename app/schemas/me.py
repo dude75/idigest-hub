@@ -27,6 +27,8 @@ class UserPublic(BaseModel):
     summarize_model: str | None = None
     capture_bot_display_name: str | None = None
     show_only_my_items: bool
+    shell_show_mic: bool
+    shell_show_telegram_link: bool
     disabled: bool
     must_change_password: bool
     mfa_enabled: bool

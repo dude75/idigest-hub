@@ -199,6 +199,8 @@ class User(Base):
     profile_name_override: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     tone_analytics_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     show_only_my_items: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    shell_show_mic: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    shell_show_telegram_link: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     disabled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     password_changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     must_change_password: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

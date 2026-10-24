@@ -76,6 +76,8 @@ class MePatchBody(BaseModel):
     summarize_model: str | None = None
     capture_bot_display_name: str | None = None
     tone_analytics_enabled: bool | None = None
+    shell_show_mic: bool | None = None
+    shell_show_telegram_link: bool | None = None
 
 
 class AccountDeleteBody(BaseModel):

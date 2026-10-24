@@ -16,6 +16,9 @@
   },
   "wallet": { "unlimited": "Ilimitado", "balance": "Saldo" },
   "impersonate": { "banner": "Suplantando a {{email}}", "stop": "Detener" },
+  "shell": {
+    "telegramLinkHint": "Ajustes de Telegram en el perfil"
+  },
   "common": {
     "save": "Guardar",
     "create": "Crear",
@@ -671,6 +674,9 @@
     "title": "Perfil",
     "tabGeneral": "Cuenta",
     "tabGeneralLead": "Nombre, sección por defecto, fecha y hora.",
+    "tabUi": "Interfaz",
+    "tabUiLead": "Botones flotantes a la derecha y otras preferencias de la interfaz.",
+    "tabUiOrgRequired": "Únase a una organización para personalizar la interfaz.",
     "telegramTitle": "Telegram",
     "telegramLead": "Vincule el bot del instancia para importar URLs y subir audio desde el chat.",
     "telegramBotDisabled": "El bot no está activado por el administrador.",
@@ -685,6 +691,11 @@
     "telegramCodeExpires": "Válido hasta",
     "telegramCodeOk": "Código creado.",
     "telegramUnlinked": "Telegram desvinculado.",
+    "shellShowMic": "Mostrar botón del micrófono",
+    "shellShowMicHint": "Grabe audio desde cualquier página y envíelo a la biblioteca.",
+    "shellShowTelegramLink": "Mostrar aviso de vincular Telegram",
+    "shellShowTelegramLinkHint": "Si está desactivado, el icono de Telegram se oculta aunque la cuenta no esté vinculada. Actívelo aquí cuando quiera vincular el bot.",
+    "shellShowTelegramLinkLinkedHint": "Telegram ya está vinculado: no se muestra el icono de aviso.",
     "tabModels": "IA y capture",
     "tabModelsLead": "Transcripción, resumen y nombre del bot de reuniones para tus tareas.",
     "tabSecurity": "Seguridad",

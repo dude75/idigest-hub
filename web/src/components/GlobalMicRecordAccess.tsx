@@ -3,8 +3,12 @@ import { MicIcon } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth'
+import { useMeTelegram } from '../context/meTelegram'
+import { PROFILE_TELEGRAM_SECTION_ID } from '../shell/constants'
+import { shellShowsTelegramPrompt } from '../shell/telegramPrompt'
 import { MicrophoneRecordModal } from './MicrophoneRecordModal'
 import { AppHoverHint } from './app/AppHoverHint'
+import { TelegramIcon } from './TelegramIcon'
 import { loadIngestExtraTags, saveIngestExtraTags } from '../ingestExtraTags'
 import { uploadMicrophoneRecording } from '../util/microphoneUpload'
 import { showError } from '../util'
@@ -14,13 +18,16 @@ import { Button } from '@/components/ui/button'
 export function GlobalMicRecordAccess() {
   const { t } = useTranslation()
   const { me } = useAuth()
+  const { status } = useMeTelegram()
   const nav = useNavigate()
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
-  const showMic = Boolean(me?.org)
+  const showMicButton = Boolean(me?.org) && (me?.user.shell_show_mic ?? true)
+  const showTelegramLink = shellShowsTelegramPrompt(me, status)
+  const showShellActions = showMicButton || showTelegramLink
 
   useLayoutEffect(() => {
-    if (!showMic) return
+    if (!showShellActions) return
 
     const shell = document.querySelector('.app-shell')
     const topbar = document.querySelector('.app-shell > .topbar')
@@ -43,7 +50,7 @@ export function GlobalMicRecordAccess() {
       ro.disconnect()
       window.removeEventListener('resize', sync)
     }
-  }, [showMic])
+  }, [showShellActions])
 
   async function uploadFromMic(file: File) {
     setBusy(true)
@@ -62,28 +69,48 @@ export function GlobalMicRecordAccess() {
     }
   }
 
-  if (!showMic) {
+  if (!showShellActions) {
     return null
   }
 
   return (
     <>
       <div className="shell-global-mic">
-        <AppHoverHint content={t('library.recordMic')}>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="shrink-0 bg-card text-emerald-600/80 shadow-xs hover:text-emerald-700"
-            disabled={busy}
-            aria-label={t('library.recordMic')}
-            onClick={() => setOpen(true)}
-          >
-            <MicIcon className="size-4" aria-hidden="true" />
-          </Button>
-        </AppHoverHint>
+        <div className="shell-global-mic-stack">
+          {showMicButton ? (
+            <AppHoverHint content={t('library.recordMic')}>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0 bg-card text-emerald-600/80 shadow-xs hover:text-emerald-700"
+                disabled={busy}
+                aria-label={t('library.recordMic')}
+                onClick={() => setOpen(true)}
+              >
+                <MicIcon className="size-4" aria-hidden="true" />
+              </Button>
+            </AppHoverHint>
+          ) : null}
+          {showTelegramLink ? (
+            <AppHoverHint content={t('shell.telegramLinkHint')}>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0 bg-card text-[#2CA5E0] shadow-xs hover:text-[#229ED9]"
+                aria-label={t('shell.telegramLinkHint')}
+                onClick={() =>
+                  nav({ pathname: '/app/profile', hash: `#${PROFILE_TELEGRAM_SECTION_ID}` })
+                }
+              >
+                <TelegramIcon className="size-4" />
+              </Button>
+            </AppHoverHint>
+          ) : null}
+        </div>
       </div>
-      {open ? (
+      {open && showMicButton ? (
         <MicrophoneRecordModal
           busy={busy}
           onClose={() => setOpen(false)}

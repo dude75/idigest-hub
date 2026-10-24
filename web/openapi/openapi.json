@@ -11066,6 +11066,28 @@
               }
             ],
             "title": "Tone Analytics Enabled"
+          },
+          "shell_show_mic": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shell Show Mic"
+          },
+          "shell_show_telegram_link": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shell Show Telegram Link"
           }
         },
         "type": "object",
@@ -16051,6 +16073,14 @@
             "type": "boolean",
             "title": "Show Only My Items"
           },
+          "shell_show_mic": {
+            "type": "boolean",
+            "title": "Shell Show Mic"
+          },
+          "shell_show_telegram_link": {
+            "type": "boolean",
+            "title": "Shell Show Telegram Link"
+          },
           "disabled": {
             "type": "boolean",
             "title": "Disabled"
@@ -16129,6 +16159,8 @@
           "default_route",
           "tone_analytics_enabled",
           "show_only_my_items",
+          "shell_show_mic",
+          "shell_show_telegram_link",
           "disabled",
           "must_change_password",
           "mfa_enabled",

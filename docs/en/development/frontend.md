@@ -39,11 +39,18 @@ web/src/
 │   ├── instance/     # InstancePage + tabs (workers, tariffs, orgs, …)
 │   └── security/     # SecurityPage (encryption, audit log)
 ├── mfa.ts            # sessionStorage helpers for login challenge_id
+├── context/
+│   └── meTelegram.tsx        # Shared /me/telegram status + link polling
+├── shell/
+│   ├── constants.ts          # PROFILE_TELEGRAM_SECTION_ID (profile hash anchor)
+│   └── telegramPrompt.ts     # When to show shell Telegram icon
 └── components/
     ├── ui/           # shadcn primitives
     ├── app/          # AppField, AppFormActions, AdminDataTable, …
     ├── auth/         # Auth card/field chrome
-    ├── Shell.tsx     # Nav layout
+    ├── Shell.tsx     # Nav layout; MeTelegramProvider wrapper
+    ├── GlobalMicRecordAccess.tsx  # Floating mic + Telegram link prompt
+    ├── TelegramIcon.tsx
     ├── AdminSection.tsx
     ├── MicrophoneRecordModal.tsx   # Library mic capture → POST /audios
     ├── IngestExtraTagsMultiSelect.tsx  # Library URL ingest: extra tags modal → user_tags on import/capture
@@ -110,18 +117,32 @@ Entry: `web/src/pages/ProfilePage.tsx`; tab panels and form logic under `web/src
 
 | Tab | Query `?tab=` | Contents |
 | --- | ------------- | -------- |
-| Account | *(omit)* or `general` | Name, default route after login, date/time (`setDefaultRoute`, `PATCH /me` for names) |
+| Account | *(omit)* or `general` | Name, default route after login, date/time; **Telegram** bot linking (`ProfileTelegramSection`, `GET/POST/DELETE /me/telegram`) |
 | AI & capture | `models` | Transcription, summarize, capture bot overrides — shown only if the user has something to configure |
 | Security | `security` | Password change, TOTP 2FA (`MfaSetupPanel`) — only for local auth (not SSO-only) |
 | Data & API | `data` | Personal backup ZIP/TGZ, API tokens, delete account |
+| Interface | `ui` | Shell quick actions: show/hide floating mic and Telegram link prompt (`PATCH /me` `shell_show_mic`, `shell_show_telegram_link`) |
 
-Deep links for support: `/app/profile`, `/app/profile?tab=data`, etc. Unknown or hidden tab values fall back to **Account**.
+Deep links for support: `/app/profile`, `/app/profile?tab=data`, `/app/profile?tab=ui`, etc. Unknown or hidden tab values fall back to **Account**.
+
+Telegram deep link from the shell icon: `/app/profile#profile-telegram` (hash scrolls to the **Telegram** heading on **Account**; any `?tab=` query is cleared).
 
 **Support notes**
 
 - Header card: org / 2FA / active token count / API tariff — read-only summary.
 - **API tokens:** list shows **active** tokens by default; link **Show revoked (N)** reveals revoked rows (still `DELETE /auth/tokens/{id}` = revoke only; no server-side purge). Creating a token may prompt for TOTP when `mfa_enabled`. MCP/OAuth clients use `/oauth/authorize`, not personal access tokens (hint on the page).
 - **Backup:** `GET /me/backup` / `POST /me/backup/restore` — same as [Library backup](../domain/library.md#profile-backup).
+
+## App shell quick actions
+
+For org members, **`GlobalMicRecordAccess`** renders fixed buttons under the top bar (CSS `--shell-mic-top`):
+
+| Control | Default | User override |
+| ------- | ------- | ------------- |
+| Microphone | Shown | Profile → **Interface** → `shell_show_mic` |
+| Telegram (link prompt) | Shown while bot enabled and account not linked | `shell_show_telegram_link`; hidden automatically after link |
+
+**`MeTelegramProvider`** (`context/meTelegram.tsx`) loads `GET /me/telegram` once per session, polls every 3s while a link code is pending (`sessionStorage` `idigest:telegram-link-awaiting` survives refresh), and updates the shell icon, profile Telegram block, and Interface tab checkbox together. Instance bot setup remains in [README — Telegram bot](../../../README.md#telegram-bot-instance-admin).
 
 ## Library ingest
 

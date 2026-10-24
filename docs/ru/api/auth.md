@@ -281,6 +281,24 @@ Access token (JWT) принимается в **REST** `/api/v1` как `Authoriz
 
 `capture_bot_display_name`: опциональное имя бота для capture, или `null` — наследовать org/default. Эффективное имя для новых capture job — в `capture_prefs` (`source`: `user`, `org` или `default`).
 
+`shell_show_mic`, `shell_show_telegram_link`: булевы (по умолчанию `true`) — показывать ли плавающие кнопки микрофона и подсказки привязки Telegram в shell. В `GET /me` → `user` оба поля присутствуют.
+
+## Привязка Telegram
+
+Только участники org. Нужен включённый бот инстанса ([Telegram в Instance](instance.md)).
+
+### GET `/me/telegram`
+
+`{ "bot_enabled", "bot_username", "bot_url", "linked", "linked_at" }`
+
+### POST `/me/telegram/link`
+
+Создаёт одноразовую команду `/start <code>`. Ответ: `{ "code", "expires_at", "start_command", "bot_username", "bot_url" }`. Пользователь отправляет `start_command` боту; UI опрашивает GET, пока `linked` не станет `true`.
+
+### DELETE `/me/telegram`
+
+Отвязывает Telegram от текущего пользователя. `{ "status": "ok" }`.
+
 ## Резервная копия профиля
 
 ### GET `/me/backup`

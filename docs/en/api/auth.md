@@ -283,6 +283,24 @@ When `mfa_enrollment_required` is true, only password change, MFA setup, `/me`, 
 
 `first_name` / `last_name`: optional profile fields; setting either sets `profile_name_override` so SSO no longer overwrites them. `display_name` on GET is the joined name or `email` when empty.
 
+`shell_show_mic`, `shell_show_telegram_link`: booleans (default `true`) — whether to show the floating microphone and Telegram link-prompt buttons in the app shell. `GET /me` → `user` includes both fields.
+
+## Telegram account linking
+
+Org members only. Requires instance Telegram bot enabled ([Instance Telegram](instance.md)).
+
+### GET `/me/telegram`
+
+`{ "bot_enabled", "bot_username", "bot_url", "linked", "linked_at" }`
+
+### POST `/me/telegram/link`
+
+Creates a one-time `/start <code>` command. Returns `{ "code", "expires_at", "start_command", "bot_username", "bot_url" }`. User sends `start_command` to the bot; UI polls GET until `linked` is true.
+
+### DELETE `/me/telegram`
+
+Unlinks the Telegram account for the current user. `{ "status": "ok" }`.
+
 ## Profile backup
 
 ### GET `/me/backup`

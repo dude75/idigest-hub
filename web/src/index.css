@@ -369,6 +369,13 @@ button:not([data-slot='button']):not([data-slot='tabs-trigger']):not([data-slot=
   z-index: 20;
   pointer-events: none;
 }
+.shell-global-mic-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: stretch;
+  pointer-events: auto;
+}
 .shell-global-mic > * {
   pointer-events: auto;
 }
@@ -3658,6 +3665,9 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 }
 .profile-section-title {
   flex-shrink: 0;
+}
+.profile-section-heading-anchor {
+  scroll-margin-top: calc(var(--shell-mic-top, 5rem) + 0.5rem);
 }
 .profile-section-lead {
   flex: 1 1 12rem;

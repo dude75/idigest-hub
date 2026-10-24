@@ -3325,6 +3325,10 @@ export interface components {
             capture_bot_display_name?: string | null;
             /** Tone Analytics Enabled */
             tone_analytics_enabled?: boolean | null;
+            /** Shell Show Mic */
+            shell_show_mic?: boolean | null;
+            /** Shell Show Telegram Link */
+            shell_show_telegram_link?: boolean | null;
         };
         /** MeResponse */
         MeResponse: {
@@ -4829,6 +4833,10 @@ export interface components {
             capture_bot_display_name?: string | null;
             /** Show Only My Items */
             show_only_my_items: boolean;
+            /** Shell Show Mic */
+            shell_show_mic: boolean;
+            /** Shell Show Telegram Link */
+            shell_show_telegram_link: boolean;
             /** Disabled */
             disabled: boolean;
             /** Must Change Password */

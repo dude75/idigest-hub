@@ -64,6 +64,7 @@ export function useProfilePageModel() {
   })
 
   const hasOrg = Boolean(me?.org)
+
   const showLocalAuth = localAuthProfileVisible(me)
   const apiAllowed = !me?.org || Boolean(me.org.tariff.api_enabled)
   const activeTokens = tokens.filter((tok) => !tok.revoked)

@@ -39,11 +39,18 @@ web/src/
 │   ├── instance/     # InstancePage + вкладки (workers, tariffs, orgs, …)
 │   └── security/     # SecurityPage (encryption, audit log)
 ├── mfa.ts            # sessionStorage helpers для login challenge_id
+├── context/
+│   └── meTelegram.tsx        # Общий статус /me/telegram и опрос при привязке
+├── shell/
+│   ├── constants.ts          # PROFILE_TELEGRAM_SECTION_ID (якорь в профиле)
+│   └── telegramPrompt.ts     # Когда показывать иконку Telegram в shell
 └── components/
     ├── ui/           # shadcn primitives
     ├── app/          # AppField, AppFormActions, AdminDataTable, …
     ├── auth/         # Auth card/field chrome
-    ├── Shell.tsx     # Nav layout
+    ├── Shell.tsx     # Nav layout; оборачивает MeTelegramProvider
+    ├── GlobalMicRecordAccess.tsx # Плавающие микрофон и подсказка Telegram (участники org)
+    ├── TelegramIcon.tsx
     ├── AdminSection.tsx
     ├── MicrophoneRecordModal.tsx   # Запись с микрофона → POST /audios
     ├── IngestExtraTagsMultiSelect.tsx  # Library URL ingest: модалка доп. тегов → user_tags на import/capture
@@ -110,18 +117,32 @@ npm run generate:api    # export_openapi.py + generate:api-types
 
 | Вкладка | Query `?tab=` | Содержимое |
 | ------- | ------------- | ---------- |
-| Аккаунт | *(нет)* или `general` | Имя, раздел по умолчанию, дата/время (`setDefaultRoute`, `PATCH /me` для имён) |
+| Аккаунт | *(нет)* или `general` | Имя, раздел по умолчанию, дата/время; **Telegram** — привязка бота (`ProfileTelegramSection`, `GET/POST/DELETE /me/telegram`) |
 | ИИ и capture | `models` | Модели транскрибации/summarize, имя бота capture — только если есть что настраивать |
 | Безопасность | `security` | Смена пароля, TOTP 2FA (`MfaSetupPanel`) — только при локальном входе (не SSO-only) |
 | Данные и API | `data` | Личный бэкап ZIP/TGZ, API-токены, удаление аккаунта |
+| Интерфейс | `ui` | Быстрые действия shell: микрофон и подсказка Telegram (`PATCH /me` — `shell_show_mic`, `shell_show_telegram_link`) |
 
-Ссылки для поддержки: `/app/profile`, `/app/profile?tab=data` и т.д. Неизвестная или скрытая вкладка → **Аккаунт**.
+Ссылки для поддержки: `/app/profile`, `/app/profile?tab=data`, `/app/profile?tab=ui` и т.д. Неизвестная или скрытая вкладка → **Аккаунт**.
+
+Переход с иконки Telegram в shell: `/app/profile#profile-telegram` (прокрутка к заголовку **Telegram** на **Аккаунт**; `?tab=` сбрасывается).
 
 **Для поддержки**
 
 - Шапка: организация / 2FA / число активных токенов / API по тарифу — сводка.
 - **API-токены:** по умолчанию в списке только **активные**; «Показать отозванные (N)» раскрывает отозванные (`DELETE /auth/tokens/{id}` по-прежнему только revoke, без удаления строки в БД). При создании токена может запрашиваться TOTP при `mfa_enabled`. MCP-клиенты — OAuth `/oauth/authorize`, не personal access tokens (подсказка на странице).
 - **Бэкап:** `GET /me/backup` / `POST /me/backup/restore` — как в [бэкапе библиотеки](../domain/library.md#резервная-копия-профиля).
+
+## Быстрые действия в shell
+
+Для участников org **`GlobalMicRecordAccess`** рисует фиксированные кнопки под топбаром (CSS `--shell-mic-top`):
+
+| Элемент | По умолчанию | Настройка пользователя |
+| ------- | ------------ | ---------------------- |
+| Микрофон | Показан | Профиль → **Интерфейс** → `shell_show_mic` |
+| Telegram (подсказка привязки) | Показана, пока бот включён и аккаунт не привязан | `shell_show_telegram_link`; после привязки скрывается |
+
+**`MeTelegramProvider`** (`context/meTelegram.tsx`) один раз грузит `GET /me/telegram`, при ожидании кода опрашивает API каждые 3 с (`sessionStorage` `idigest:telegram-link-awaiting` переживает F5) и синхронно обновляет иконку в shell, блок Telegram в профиле и чекбокс на вкладке **Интерфейс**. Настройка бота на инстансе — [README — Telegram-бот](../../../README.ru.md#telegram-бот-instance-admin).
 
 ## Ingest на Library
 

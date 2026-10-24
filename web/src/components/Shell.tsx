@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { AppBrand } from './AppBrand'
 import { GlobalMicRecordAccess } from './GlobalMicRecordAccess'
+import { MeTelegramProvider } from '../context/meTelegram'
 import { GitHubLink } from './GitHubLink'
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { userDisplayName } from '../userDisplay'
@@ -102,10 +103,12 @@ export function Shell() {
           </Button>
         </div>
       </header>
-      <GlobalMicRecordAccess />
-      <main className="page">
-        <Outlet />
-      </main>
+      <MeTelegramProvider>
+        <GlobalMicRecordAccess />
+        <main className="page">
+          <Outlet />
+        </main>
+      </MeTelegramProvider>
     </div>
   )
 }

@@ -172,6 +172,16 @@ def patch_me(
         if raw is not None:
             ctx.user.tone_analytics_enabled = bool(raw)
             ctx.user.updated_at = utcnow()
+    if "shell_show_mic" in data:
+        raw = data["shell_show_mic"]
+        if raw is not None:
+            ctx.user.shell_show_mic = bool(raw)
+            ctx.user.updated_at = utcnow()
+    if "shell_show_telegram_link" in data:
+        raw = data["shell_show_telegram_link"]
+        if raw is not None:
+            ctx.user.shell_show_telegram_link = bool(raw)
+            ctx.user.updated_at = utcnow()
     if "capture_bot_display_name" in data:
         from app.services.capture_meeting import normalize_capture_bot_display_name
 

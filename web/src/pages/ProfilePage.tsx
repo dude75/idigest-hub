@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo } from 'react'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '../components/Tabs'
 import { AdminPage } from '../components/AdminSection'
 import { PROFILE_TABS, resolveProfileTab, type ProfileTab } from './profile/constants'
@@ -10,9 +10,12 @@ import { ProfileHeader } from './profile/ProfileHeader'
 import { ProfileModelsTab } from './profile/ProfileModelsTab'
 import { ProfilePageProvider, useProfilePage } from './profile/ProfilePageContext'
 import { ProfileSecurityTab } from './profile/ProfileSecurityTab'
+import { ProfileUiTab } from './profile/ProfileUiTab'
+import { PROFILE_TELEGRAM_SECTION_ID } from './profile/constants'
 
 function ProfilePageTabs() {
   const { t, showModelsTab, showLocalAuth } = useProfilePage()
+  const location = useLocation()
   const [search, setSearch] = useSearchParams()
 
   const tabItems = useMemo(() => {
@@ -20,11 +23,19 @@ function ProfilePageTabs() {
     if (showModelsTab) items.push({ id: 'models', label: t('profile.tabModels') })
     if (showLocalAuth) items.push({ id: 'security', label: t('profile.tabSecurity') })
     items.push({ id: 'data', label: t('profile.tabData') })
+    items.push({ id: 'ui', label: t('profile.tabUi') })
     return items
   }, [t, showModelsTab, showLocalAuth])
 
   const requested = resolveProfileTab(search.get('tab'))
   const tab = tabItems.some((item) => item.id === requested) ? requested : 'general'
+
+  useEffect(() => {
+    if (location.hash !== `#${PROFILE_TELEGRAM_SECTION_ID}`) return
+    if (search.get('tab')) {
+      setSearch({}, { replace: true })
+    }
+  }, [location.hash, search, setSearch])
 
   function setTab(id: ProfileTab) {
     setSearch(id === 'general' ? {} : { tab: id }, { replace: true })
@@ -60,6 +71,9 @@ function ProfilePageTabs() {
       )}
       <TabsContent value="data">
         <ProfileDataTab />
+      </TabsContent>
+      <TabsContent value="ui">
+        <ProfileUiTab />
       </TabsContent>
     </TabsRoot>
   )

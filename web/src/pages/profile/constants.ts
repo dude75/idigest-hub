@@ -1,4 +1,6 @@
-export const PROFILE_TABS = ['general', 'models', 'security', 'data'] as const
+export { PROFILE_TELEGRAM_SECTION_ID } from '../../shell/constants'
+
+export const PROFILE_TABS = ['general', 'models', 'security', 'data', 'ui'] as const
 export type ProfileTab = (typeof PROFILE_TABS)[number]
 
 export function resolveProfileTab(raw: string | null): ProfileTab {

@@ -257,6 +257,24 @@ def test_patch_default_route(client):
     assert encryption.json()["user"]["default_route"] == "security/encryption"
 
 
+def test_patch_me_shell_prefs(client):
+    setup_admin(client)
+    tariff_id = default_tariff_id(client)
+    assert signup(client, "shell@example.com", "shellpass1", tariff_id).status_code == 200
+    user = me(client)["user"]
+    assert user["shell_show_mic"] is True
+    assert user["shell_show_telegram_link"] is True
+
+    patched = client.patch(
+        "/api/v1/me",
+        json={"shell_show_mic": False, "shell_show_telegram_link": False},
+    )
+    assert patched.status_code == 200, patched.text
+    user2 = patched.json()["user"]
+    assert user2["shell_show_mic"] is False
+    assert user2["shell_show_telegram_link"] is False
+
+
 def test_password_reset_routes_recovery_disabled_without_smtp(client):
     setup_admin(client)
     request = client.post("/api/v1/auth/password/reset/request", json={"email": ADMIN_EMAIL})
