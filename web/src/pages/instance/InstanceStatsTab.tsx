@@ -53,6 +53,7 @@ export function InstanceStatsTab() {
         setSnapshot({
           orgs: r.orgs,
           users: r.users,
+          telegram_users: r.telegram_users,
           tasks_queued: r.tasks_queued,
           tasks_running: r.tasks_running,
           download_proxy_status: r.download_proxy_status,
@@ -81,6 +82,11 @@ export function InstanceStatsTab() {
         <StatGrid>
           <StatCard label={t('instance.orgs')} value={formatInteger(snapshot.orgs)} tone="ops" />
           <StatCard label={t('instance.users')} value={formatInteger(snapshot.users)} tone="ops" />
+          <StatCard
+            label={t('instance.telegramUsers')}
+            value={formatInteger(snapshot.telegram_users)}
+            tone="ops"
+          />
           <StatCard label={t('instance.queued')} value={formatInteger(snapshot.tasks_queued)} tone="ops" />
           <StatCard label={t('instance.running')} value={formatInteger(snapshot.tasks_running)} tone="ops" />
           <StatCard

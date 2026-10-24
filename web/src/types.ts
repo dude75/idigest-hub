@@ -515,6 +515,7 @@ export type DownloadProxyStatus = 'up' | 'down' | 'na'
 export type InstanceSnapshot = {
   orgs: number
   users: number
+  telegram_users: number
   tasks_queued: number
   tasks_running: number
   download_proxy_status: DownloadProxyStatus

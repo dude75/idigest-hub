@@ -1030,7 +1030,8 @@
     "snapshotLive": "En vivo en la instancia",
     "queued": "Tareas en cola",
     "running": "Tareas en curso",
-    "downloadProxyStatus": "Proxy de descarga",
+    "telegramUsers": "Telegram",
+    "downloadProxyStatus": "Proxy",
     "downloadProxyStatusValue": {
       "up": "UP",
       "down": "DOWN",

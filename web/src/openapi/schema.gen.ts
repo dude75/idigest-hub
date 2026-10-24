@@ -3203,6 +3203,8 @@ export interface components {
             orgs: number;
             /** Users */
             users: number;
+            /** Telegram Users */
+            telegram_users: number;
             /** Tasks Queued */
             tasks_queued: number;
             /** Tasks Running */

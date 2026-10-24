@@ -30,6 +30,7 @@ class UsageStatsResponse(BaseModel):
 class InstanceUsageStatsResponse(UsageStatsResponse):
     orgs: int
     users: int
+    telegram_users: int
     tasks_queued: int
     tasks_running: int
     download_proxy_status: Literal["up", "down", "na"]

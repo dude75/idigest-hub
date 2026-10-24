@@ -10666,6 +10666,10 @@
             "type": "integer",
             "title": "Users"
           },
+          "telegram_users": {
+            "type": "integer",
+            "title": "Telegram Users"
+          },
           "tasks_queued": {
             "type": "integer",
             "title": "Tasks Queued"
@@ -10698,6 +10702,7 @@
           "days",
           "orgs",
           "users",
+          "telegram_users",
           "tasks_queued",
           "tasks_running",
           "download_proxy_status",

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.db import get_session
 from app.deps import AuthContext, get_instance_settings, require_auth
 from app.errors import ErrorCode
-from app.models import Organization, Task, User
+from app.models import Organization, Task, TelegramLink, User
 from app.routers.instance._router import router
 from app.schemas.audit_api import AuditLogListResponse
 from app.schemas.stats import InstanceUsageStatsResponse
@@ -117,6 +117,7 @@ def stats(
     running = int(db.scalar(select(func.count()).select_from(Task).where(Task.status == "running")) or 0)
     orgs = int(db.scalar(select(func.count()).select_from(Organization)) or 0)
     users = int(db.scalar(select(func.count()).select_from(User)) or 0)
+    telegram_users = int(db.scalar(select(func.count()).select_from(TelegramLink)) or 0)
     from app.deps import get_instance_settings
     from app.services.download_proxy_health import download_proxy_card_status
 
@@ -125,6 +126,7 @@ def stats(
         {
             "orgs": orgs,
             "users": users,
+            "telegram_users": telegram_users,
             "tasks_queued": queued,
             "tasks_running": running,
             "download_proxy_status": download_proxy_card_status(settings, db),

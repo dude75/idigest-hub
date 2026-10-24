@@ -1026,7 +1026,8 @@
     "snapshotLive": "Live on instance",
     "queued": "Queued tasks",
     "running": "Running tasks",
-    "downloadProxyStatus": "Download proxy",
+    "telegramUsers": "Telegram",
+    "downloadProxyStatus": "Proxy",
     "downloadProxyStatusValue": {
       "up": "UP",
       "down": "DOWN",

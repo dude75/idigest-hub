@@ -159,6 +159,7 @@ def test_instance_stats_includes_download_proxy_status(client, monkeypatch):
     empty = client.get("/api/v1/instance/stats")
     assert empty.status_code == 200, empty.text
     assert empty.json()["download_proxy_status"] == "na"
+    assert empty.json()["telegram_users"] == 0
 
     client.patch(
         "/api/v1/instance/settings",
