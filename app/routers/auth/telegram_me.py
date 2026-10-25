@@ -10,7 +10,7 @@ from app.routers.auth._router import router
 from app.schemas.common import OkStatusResponse
 from app.schemas.telegram import MeTelegramLinkResponse, MeTelegramStatusResponse
 from app.services.telegram_identity import telegram_bot_public_resolved
-from app.services.telegram_links import generate_link_challenge, link_for_user, unlink_user
+from app.services.telegram_links import effective_link_for_user, generate_link_challenge, unlink_user
 
 
 @router.get("/me/telegram", response_model=MeTelegramStatusResponse)
@@ -20,9 +20,9 @@ def me_telegram_status(
 ) -> MeTelegramStatusResponse:
     ctx.require_org()
     settings = get_instance_settings(db)
-    link = link_for_user(db, ctx.user.id)
     bot_on = bool(settings.telegram_enabled and (settings.telegram_bot_token_encrypted or "").strip())
     username, bot_url = telegram_bot_public_resolved(db, settings) if bot_on else (None, None)
+    link = effective_link_for_user(db, ctx.user.id, settings)
     return MeTelegramStatusResponse(
         bot_enabled=bot_on,
         bot_username=username,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -31,6 +32,32 @@ def telegram_bot_public(settings: InstanceSettings) -> tuple[str | None, str | N
     return raw, f"https://t.me/{raw}"
 
 
+def _telegram_bot_id_from_me(me: dict[str, Any]) -> int | None:
+    raw = me.get("id")
+    if isinstance(raw, int):
+        return raw
+    if isinstance(raw, str) and raw.strip().isdigit():
+        return int(raw.strip())
+    return None
+
+
+def apply_telegram_bot_me(db: Session, settings: InstanceSettings, me: dict[str, Any]) -> None:
+    from app.services.telegram_links import clear_all_telegram_links
+
+    new_id = _telegram_bot_id_from_me(me)
+    old_id = settings.telegram_bot_id
+    if new_id is not None and old_id is not None and old_id != new_id:
+        clear_all_telegram_links(db)
+        log.info("telegram bot id changed %s -> %s; cleared user links", old_id, new_id)
+    if new_id is not None:
+        settings.telegram_bot_id = new_id
+    username = me.get("username")
+    if isinstance(username, str) and username.strip():
+        settings.telegram_bot_username = username.strip().lstrip("@")
+    else:
+        settings.telegram_bot_username = None
+
+
 def telegram_bot_public_resolved(db: Session, settings: InstanceSettings) -> tuple[str | None, str | None]:
     """Cached username for UI; refresh from Telegram when missing but bot token is configured."""
     username, url = telegram_bot_public(settings)
@@ -46,18 +73,15 @@ async def fetch_bot_username(settings: InstanceSettings, db: Session) -> str | N
     token = bot_token(settings, db)
     if not token:
         settings.telegram_bot_username = None
+        settings.telegram_bot_id = None
         return None
     try:
         me = await get_me(token, settings=settings, db=db)
     except Exception as exc:
         log.warning("telegram getMe failed: %s", exc)
         return (settings.telegram_bot_username or "").strip().lstrip("@") or None
-    username = me.get("username")
-    if isinstance(username, str) and username.strip():
-        settings.telegram_bot_username = username.strip().lstrip("@")
-        return settings.telegram_bot_username
-    settings.telegram_bot_username = None
-    return None
+    apply_telegram_bot_me(db, settings, me)
+    return (settings.telegram_bot_username or "").strip().lstrip("@") or None
 
 
 def refresh_bot_username_sync(db: Session, settings: InstanceSettings) -> str | None:

@@ -131,6 +131,88 @@ def test_instance_telegram_test_connection(client, monkeypatch):
     assert "proxy refused connection" in proxy_down.json()["error"]["message"]
 
 
+def test_instance_telegram_token_change_clears_user_links(client, monkeypatch):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "123456:OLD", "telegram_enabled": True},
+    )
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+
+    get_engine()
+    with SessionLocal() as db:
+        get_instance_settings(db).telegram_bot_username = "old_bot"
+        get_instance_settings(db).telegram_bot_id = 100
+        db.commit()
+
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "tgclear@example.com", "tgclearpass1", tariff_id).status_code == 200
+    login(client, "tgclear@example.com", "tgclearpass1")
+    assert client.get("/api/v1/me/telegram").json()["linked"] is False
+    assert client.post("/api/v1/me/telegram/link").status_code == 200
+    from app.services.telegram_links import consume_link_code
+
+    with SessionLocal() as db:
+        code = client.post("/api/v1/me/telegram/link").json()["code"]
+        consume_link_code(db, code=code, telegram_user_id="777001", chat_id="7001")
+        db.commit()
+    assert client.get("/api/v1/me/telegram").json()["linked"] is True
+
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+    async def _me(*_args, **_kwargs):
+        return {"id": 200, "username": "new_audio_bot"}
+
+    monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
+    client.patch("/api/v1/instance/settings", json={"telegram_bot_token": "789012:NEW"})
+
+    logout(client)
+    login(client, "tgclear@example.com", "tgclearpass1")
+    assert client.get("/api/v1/me/telegram").json()["linked"] is False
+
+
+def test_instance_telegram_token_rotation_keeps_user_links(client, monkeypatch):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "123456:OLD", "telegram_enabled": True},
+    )
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+    from app.services.telegram_links import consume_link_code
+
+    get_engine()
+    with SessionLocal() as db:
+        get_instance_settings(db).telegram_bot_id = 100
+        db.commit()
+
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "tgkeep@example.com", "tgkeeppass12", tariff_id).status_code == 200
+    login(client, "tgkeep@example.com", "tgkeeppass12")
+    code = client.post("/api/v1/me/telegram/link").json()["code"]
+    with SessionLocal() as db:
+        consume_link_code(db, code=code, telegram_user_id="777002", chat_id="7002")
+        db.commit()
+    assert client.get("/api/v1/me/telegram").json()["linked"] is True
+
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+    async def _me(*_args, **_kwargs):
+        return {"id": 100, "username": "same_bot"}
+
+    monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
+    client.patch("/api/v1/instance/settings", json={"telegram_bot_token": "789012:ROTATED"})
+
+    logout(client)
+    login(client, "tgkeep@example.com", "tgkeeppass12")
+    assert client.get("/api/v1/me/telegram").json()["linked"] is True
+
+
 def test_instance_telegram_token_change_updates_me_bot_username(client, monkeypatch):
     setup_admin(client)
     client.patch(

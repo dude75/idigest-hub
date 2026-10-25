@@ -27,6 +27,11 @@ export function ProfileTelegramSection() {
     if (status?.linked) setLink(null)
   }, [status?.linked])
 
+  useEffect(() => {
+    if (!status?.bot_username || !link?.bot_username) return
+    if (status.bot_username !== link.bot_username) setLink(null)
+  }, [status?.bot_username, link?.bot_username])
+
   function formatWhen(iso: string) {
     if (!me) return iso
     return formatDateTime(iso, me.date_time_prefs, i18n.language)

@@ -9,6 +9,7 @@ from typing import Any
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     DateTime,
     ForeignKey,
@@ -88,6 +89,7 @@ class InstanceSettings(Base):
     telegram_use_webhook: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     telegram_webhook_secret: Mapped[str | None] = mapped_column(String(64))
     telegram_bot_username: Mapped[str | None] = mapped_column(String(64))
+    telegram_bot_id: Mapped[int | None] = mapped_column(BigInteger)
     download_cookies_path: Mapped[str | None] = mapped_column(String(512))
     import_audio_bitrate_kbps: Mapped[int] = mapped_column(Integer, default=64, nullable=False)
     import_max_concurrent: Mapped[int] = mapped_column(Integer, default=2, nullable=False)
@@ -125,6 +127,7 @@ class TelegramLink(Base):
     telegram_user_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     chat_id: Mapped[str] = mapped_column(String(32), nullable=False)
     linked_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    instance_bot_id: Mapped[int | None] = mapped_column(BigInteger)
 
 
 class TelegramLinkChallenge(Base):
