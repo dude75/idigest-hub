@@ -97,15 +97,16 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
   const awaitingBotLink = linkAwaitingBot && Boolean(status && !status.linked)
 
   useEffect(() => {
-    if (!awaitingBotLink) return
-    const poll = () => void refresh({ toastOnLink: true })
-    const interval = window.setInterval(poll, TELEGRAM_LINK_POLL_MS)
-    const onFocus = () => poll()
+    if (!member) return
+    const onFocus = () => void refresh(awaitingBotLink ? { toastOnLink: true } : undefined)
     window.addEventListener('focus', onFocus)
-    return () => {
-      window.clearInterval(interval)
-      window.removeEventListener('focus', onFocus)
-    }
+    return () => window.removeEventListener('focus', onFocus)
+  }, [member, awaitingBotLink, refresh])
+
+  useEffect(() => {
+    if (!awaitingBotLink) return
+    const interval = window.setInterval(() => void refresh({ toastOnLink: true }), TELEGRAM_LINK_POLL_MS)
+    return () => window.clearInterval(interval)
   }, [awaitingBotLink, refresh])
 
   const linked = member ? (status === null ? null : status.linked) : null

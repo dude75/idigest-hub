@@ -131,6 +131,41 @@ def test_instance_telegram_test_connection(client, monkeypatch):
     assert "proxy refused connection" in proxy_down.json()["error"]["message"]
 
 
+def test_instance_telegram_token_change_updates_me_bot_username(client, monkeypatch):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "123456:OLD", "telegram_enabled": True},
+    )
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+
+    get_engine()
+    with SessionLocal() as db:
+        get_instance_settings(db).telegram_bot_username = "idigesthub_bot"
+        db.commit()
+
+    async def _me(*_args, **_kwargs):
+        return {"username": "idigestaudio_bot"}
+
+    monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
+
+    patched = client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "789012:NEW"},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["telegram_bot_username"] == "idigestaudio_bot"
+
+    tariff_id = default_tariff_id(client)
+    logout(client)
+    assert signup(client, "tgbotname@example.com", "tgbotnamepass", tariff_id).status_code == 200
+    login(client, "tgbotname@example.com", "tgbotnamepass")
+    status = client.get("/api/v1/me/telegram")
+    assert status.status_code == 200
+    assert status.json()["bot_username"] == "idigestaudio_bot"
+
+
 def test_instance_telegram_test_forbidden_for_non_admin(client):
     setup_admin(client)
     tariff_id = default_tariff_id(client)

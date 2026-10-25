@@ -64,8 +64,8 @@ export function ProfileTelegramSection() {
 
   if (!orgReady) return null
 
-  const botUsername = link?.bot_username ?? status?.bot_username
-  const botUrl = link?.bot_url ?? status?.bot_url
+  const botUsername = status?.bot_username ?? link?.bot_username
+  const botUrl = status?.bot_url ?? link?.bot_url
 
   return (
     <ProfileSection

@@ -248,6 +248,7 @@ def patch_settings(
         token = data.pop("telegram_bot_token")
         if token:
             s.telegram_bot_token_encrypted = encrypt_str(token, db)
+            s.telegram_bot_username = None
             if s.telegram_enabled and not (s.telegram_webhook_secret or "").strip():
                 s.telegram_webhook_secret = secrets.token_urlsafe(24)
     if "telegram_enabled" in data:
