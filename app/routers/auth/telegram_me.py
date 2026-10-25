@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import Depends
+from fastapi import Depends, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_session
@@ -9,7 +9,7 @@ from app.errors import ErrorCode
 from app.routers.auth._router import router
 from app.schemas.common import OkStatusResponse
 from app.schemas.telegram import MeTelegramLinkResponse, MeTelegramStatusResponse
-from app.services.telegram_identity import telegram_bot_public_fresh
+from app.services.telegram_identity import telegram_bot_public_fresh, telegram_bot_public_resolved
 from app.services.telegram_links import effective_link_for_user, generate_link_challenge, unlink_user
 
 
@@ -17,14 +17,23 @@ from app.services.telegram_links import effective_link_for_user, generate_link_c
 def me_telegram_status(
     db: Session = Depends(get_session, scope="function"),
     ctx: AuthContext = Depends(require_auth),
+    fresh: bool = Query(False, description="Reconcile bot @username with Telegram getMe"),
 ) -> MeTelegramStatusResponse:
     ctx.require_org()
     settings = get_instance_settings(db)
     bot_on = bool(settings.telegram_enabled and (settings.telegram_bot_token_encrypted or "").strip())
-    username, bot_url = telegram_bot_public_fresh(db, settings) if bot_on else (None, None)
+    if bot_on:
+        username, bot_url = (
+            telegram_bot_public_fresh(db, settings)
+            if fresh
+            else telegram_bot_public_resolved(db, settings)
+        )
+    else:
+        username, bot_url = None, None
     link = effective_link_for_user(db, ctx.user.id, settings)
     return MeTelegramStatusResponse(
         bot_enabled=bot_on,
+        bot_revision=int(settings.telegram_bot_revision or 0),
         bot_instance_id=settings.telegram_bot_id,
         bot_username=username,
         bot_url=bot_url,

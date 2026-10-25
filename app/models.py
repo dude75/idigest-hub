@@ -90,6 +90,7 @@ class InstanceSettings(Base):
     telegram_webhook_secret: Mapped[str | None] = mapped_column(String(64))
     telegram_bot_username: Mapped[str | None] = mapped_column(String(64))
     telegram_bot_id: Mapped[int | None] = mapped_column(BigInteger)
+    telegram_bot_revision: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     download_cookies_path: Mapped[str | None] = mapped_column(String(512))
     import_audio_bitrate_kbps: Mapped[int] = mapped_column(Integer, default=64, nullable=False)
     import_max_concurrent: Mapped[int] = mapped_column(Integer, default=2, nullable=False)

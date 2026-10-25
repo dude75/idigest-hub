@@ -93,11 +93,62 @@ def test_me_telegram_refreshes_stale_bot_username(client, monkeypatch):
         return {"id": 200, "username": "new_audio_bot"}
 
     monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
-    body = client.get("/api/v1/me/telegram").json()
+    body = client.get("/api/v1/me/telegram", params={"fresh": True}).json()
     assert calls >= 1
     assert body["bot_username"] == "new_audio_bot"
     assert body["bot_instance_id"] == 200
     assert body["bot_url"] == "https://t.me/new_audio_bot"
+
+
+def test_me_telegram_cached_skips_getme_when_identity_complete(client, monkeypatch):
+    setup_admin(client)
+    _enable_telegram(client)
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+
+    get_engine()
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        settings.telegram_bot_username = "cached_bot"
+        settings.telegram_bot_id = 42
+        settings.telegram_bot_revision = 3
+        db.commit()
+
+    calls = 0
+
+    async def _me(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        return {"id": 42, "username": "cached_bot"}
+
+    monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "tgcached@example.com", "tgcachedpass12", tariff_id).status_code == 200
+    login_ready(client, "tgcached@example.com", "tgcachedpass12")
+
+    body = client.get("/api/v1/me/telegram").json()
+    assert calls == 0
+    assert body["bot_username"] == "cached_bot"
+    assert body["bot_revision"] == 3
+
+
+def test_token_patch_bumps_telegram_bot_revision(client, monkeypatch):
+    setup_admin(client)
+    _enable_telegram(client, token="123456:FIRST")
+
+    async def _me(*_args, **_kwargs):
+        return {"id": 100, "username": "bot_a"}
+
+    monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
+    client.patch("/api/v1/instance/settings", json={"telegram_bot_token": "789012:SECOND"})
+
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+
+    get_engine()
+    with SessionLocal() as db:
+        assert get_instance_settings(db).telegram_bot_revision >= 1
 
 
 def test_me_telegram_invalidates_link_without_instance_bot_id(client, monkeypatch):

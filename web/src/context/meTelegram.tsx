@@ -16,8 +16,6 @@ import type { SchemaMeTelegramStatusResponse } from '../openapi'
 export type MeTelegramStatus = SchemaMeTelegramStatusResponse
 
 const TELEGRAM_LINK_POLL_MS = 3000
-/** Keep bot name / link state in sync when admin changes the instance bot. */
-const TELEGRAM_STATUS_IDLE_POLL_MS = 15_000
 const TELEGRAM_LINK_AWAITING_STORAGE_KEY = 'idigest:telegram-link-awaiting'
 
 function readLinkAwaitingFromSession(): boolean {
@@ -37,15 +35,25 @@ function writeLinkAwaitingToSession(awaiting: boolean) {
   }
 }
 
+export type MeTelegramRefreshOpts = {
+  toastOnLink?: boolean
+  /** Hit Telegram getMe (use when opening link flow or after bot_revision changed). */
+  fresh?: boolean
+}
+
 type MeTelegramContextValue = {
   status: MeTelegramStatus | null
   /** `null` until the first status fetch finishes. */
   linked: boolean | null
-  refresh: (opts?: { toastOnLink?: boolean }) => Promise<MeTelegramStatus | null>
+  refresh: (opts?: MeTelegramRefreshOpts) => Promise<MeTelegramStatus | null>
   setLinkAwaitingBot: (awaiting: boolean) => void
 }
 
 const MeTelegramCtx = createContext<MeTelegramContextValue | null>(null)
+
+function telegramStatusPath(fresh?: boolean) {
+  return fresh ? '/me/telegram?fresh=1' : '/me/telegram'
+}
 
 export function MeTelegramProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
@@ -55,39 +63,64 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
   const [linkAwaitingBot, setLinkAwaitingBotState] = useState(false)
   const linkedRef = useRef(false)
   const botInstanceIdRef = useRef<number | null | undefined>(undefined)
+  const botRevisionRef = useRef<number | undefined>(undefined)
 
   const setLinkAwaitingBot = useCallback((awaiting: boolean) => {
     writeLinkAwaitingToSession(awaiting)
     setLinkAwaitingBotState(awaiting)
   }, [])
 
+  const applyStatus = useCallback(
+    (data: MeTelegramStatus, opts?: MeTelegramRefreshOpts) => {
+      const wasLinked = linkedRef.current
+      linkedRef.current = data.linked
+      const prevBotId = botInstanceIdRef.current
+      botInstanceIdRef.current = data.bot_instance_id ?? null
+      const prevRevision = botRevisionRef.current
+      botRevisionRef.current = data.bot_revision ?? 0
+      if (prevBotId !== undefined && prevBotId !== botInstanceIdRef.current) {
+        setLinkAwaitingBot(false)
+      }
+      if (prevRevision !== undefined && prevRevision !== botRevisionRef.current) {
+        setLinkAwaitingBot(false)
+      }
+      setStatus(data)
+      if (data.linked) setLinkAwaitingBot(false)
+      if (opts?.toastOnLink && !wasLinked && data.linked) {
+        toast.success(t('profile.telegramLinked'))
+      }
+    },
+    [setLinkAwaitingBot, t],
+  )
+
   const refresh = useCallback(
-    async (opts?: { toastOnLink?: boolean }) => {
+    async (opts?: MeTelegramRefreshOpts) => {
       if (!member) {
         setStatus(null)
         linkedRef.current = false
+        botInstanceIdRef.current = undefined
+        botRevisionRef.current = undefined
         return null
       }
       try {
-        const data = await api<MeTelegramStatus>('/me/telegram')
-        const wasLinked = linkedRef.current
-        linkedRef.current = data.linked
-        const prevBotId = botInstanceIdRef.current
-        botInstanceIdRef.current = data.bot_instance_id ?? null
-        if (prevBotId !== undefined && prevBotId !== botInstanceIdRef.current) {
-          setLinkAwaitingBot(false)
+        const data = await api<MeTelegramStatus>(telegramStatusPath(opts?.fresh))
+        const prevRevision = botRevisionRef.current
+        if (
+          !opts?.fresh &&
+          prevRevision !== undefined &&
+          (data.bot_revision ?? 0) !== prevRevision
+        ) {
+          const freshData = await api<MeTelegramStatus>(telegramStatusPath(true))
+          applyStatus(freshData, opts)
+          return freshData
         }
-        setStatus(data)
-        if (data.linked) setLinkAwaitingBot(false)
-        if (opts?.toastOnLink && !wasLinked && data.linked) {
-          toast.success(t('profile.telegramLinked'))
-        }
+        applyStatus(data, opts)
         return data
       } catch {
         return null
       }
     },
-    [member, setLinkAwaitingBot, t],
+    [applyStatus, member],
   )
 
   useEffect(() => {
@@ -96,6 +129,7 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
       setLinkAwaitingBot(false)
       linkedRef.current = false
       botInstanceIdRef.current = undefined
+      botRevisionRef.current = undefined
       return
     }
     if (readLinkAwaitingFromSession()) setLinkAwaitingBotState(true)
@@ -116,20 +150,6 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
     const interval = window.setInterval(() => void refresh({ toastOnLink: true }), TELEGRAM_LINK_POLL_MS)
     return () => window.clearInterval(interval)
   }, [awaitingBotLink, refresh])
-
-  useEffect(() => {
-    if (!member) return
-    const tick = () => {
-      if (document.visibilityState !== 'visible') return
-      void refresh()
-    }
-    const interval = window.setInterval(tick, TELEGRAM_STATUS_IDLE_POLL_MS)
-    document.addEventListener('visibilitychange', tick)
-    return () => {
-      window.clearInterval(interval)
-      document.removeEventListener('visibilitychange', tick)
-    }
-  }, [member, refresh])
 
   const linked = member ? (status === null ? null : status.linked) : null
 

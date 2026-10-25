@@ -9,6 +9,7 @@ class MeTelegramStatusResponse(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     bot_enabled: bool
+    bot_revision: int = 0
     bot_instance_id: int | None = None
     bot_username: str | None = None
     bot_url: str | None = None

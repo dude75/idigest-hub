@@ -1249,6 +1249,19 @@
       "get": {
         "summary": "Me Telegram Status",
         "operationId": "me_telegram_status_api_v1_me_telegram_get",
+        "parameters": [
+          {
+            "name": "fresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Fresh"
+            },
+            "description": "Reconcile bot @username with Telegram getMe"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -11300,6 +11313,11 @@
               }
             ],
             "title": "Bot Instance Id"
+          },
+          "bot_revision": {
+            "type": "integer",
+            "title": "Bot Revision",
+            "default": 0
           },
           "bot_username": {
             "anyOf": [

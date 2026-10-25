@@ -339,7 +339,7 @@ def patch_settings(
     }
     if s.telegram_enabled and (s.telegram_bot_token_encrypted or "").strip():
         if _telegram_transport_keys & set(patch_fields):
-            from app.services.telegram_identity import refresh_bot_username_sync
+            from app.services.telegram_identity import bump_telegram_bot_revision, refresh_bot_username_sync
             from app.services.telegram_links import clear_all_telegram_links
             from app.services.telegram_runtime import schedule_telegram_reconfigure
 
@@ -351,6 +351,8 @@ def patch_settings(
                 and prior_bot_id_before_token_patch != s.telegram_bot_id
             ):
                 clear_all_telegram_links(db)
+            if "telegram_bot_token" in patch_fields:
+                bump_telegram_bot_revision(s)
             schedule_telegram_reconfigure()
     if "asr_model" in body.model_dump(exclude_unset=True) or "diarization_model" in body.model_dump(exclude_unset=True):
         from app.services.transcribe_models import validate_instance_models

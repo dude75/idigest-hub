@@ -41,6 +41,11 @@ def _telegram_bot_id_from_me(me: dict[str, Any]) -> int | None:
     return None
 
 
+def bump_telegram_bot_revision(settings: InstanceSettings) -> int:
+    settings.telegram_bot_revision = int(settings.telegram_bot_revision or 0) + 1
+    return settings.telegram_bot_revision
+
+
 def apply_telegram_bot_me(db: Session, settings: InstanceSettings, me: dict[str, Any]) -> bool:
     """Apply getMe fields. Returns True if telegram_bot_id changed."""
     from app.services.telegram_links import clear_all_telegram_links
@@ -50,6 +55,7 @@ def apply_telegram_bot_me(db: Session, settings: InstanceSettings, me: dict[str,
     id_changed = new_id is not None and old_id is not None and old_id != new_id
     if id_changed:
         clear_all_telegram_links(db)
+        bump_telegram_bot_revision(settings)
         log.info("telegram bot id changed %s -> %s; cleared user links", old_id, new_id)
     if new_id is not None:
         settings.telegram_bot_id = new_id

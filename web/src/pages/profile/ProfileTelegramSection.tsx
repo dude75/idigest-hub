@@ -13,6 +13,8 @@ import { PROFILE_TELEGRAM_SECTION_ID } from '../../shell/constants'
 import { ProfileSection } from './ProfileSection'
 import { useProfileHashScroll } from './useProfileHashScroll'
 
+const PROFILE_TELEGRAM_POLL_MS = 15_000
+
 export function ProfileTelegramSection() {
   const { t, i18n } = useTranslation()
   const { me } = useAuth()
@@ -22,6 +24,21 @@ export function ProfileTelegramSection() {
   const orgReady = Boolean(me?.org)
 
   useProfileHashScroll(PROFILE_TELEGRAM_SECTION_ID, orgReady, status)
+
+  useEffect(() => {
+    if (!orgReady) return
+    void refresh({ fresh: true })
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return
+      void refresh()
+    }
+    const interval = window.setInterval(tick, PROFILE_TELEGRAM_POLL_MS)
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', tick)
+    }
+  }, [orgReady, refresh])
 
   useEffect(() => {
     if (status?.linked) setLink(null)

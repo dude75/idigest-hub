@@ -518,7 +518,9 @@ export interface paths {
     };
     "/api/v1/me/telegram": {
         parameters: {
-            query?: never;
+            query?: {
+                fresh?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3403,6 +3405,8 @@ export interface components {
         MeTelegramStatusResponse: {
             /** Bot Enabled */
             bot_enabled: boolean;
+            /** Bot Revision */
+            bot_revision?: number;
             /** Bot Instance Id */
             bot_instance_id?: number | null;
             /** Bot Username */
@@ -6176,7 +6180,9 @@ export interface operations {
     };
     me_telegram_status_api_v1_me_telegram_get: {
         parameters: {
-            query?: never;
+            query?: {
+                fresh?: boolean;
+            };
             header?: never;
             path?: never;
             cookie?: never;
