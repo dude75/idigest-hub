@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "idigest-hub",
-    "version": "0.1.11"
+    "version": "0.1.12"
   },
   "paths": {
     "/api/v1/health": {
@@ -1256,6 +1256,7 @@
             "required": false,
             "schema": {
               "type": "boolean",
+              "description": "Reconcile bot @username with Telegram getMe",
               "default": false,
               "title": "Fresh"
             },
@@ -1269,6 +1270,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MeTelegramStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -11303,6 +11314,11 @@
             "type": "boolean",
             "title": "Bot Enabled"
           },
+          "bot_revision": {
+            "type": "integer",
+            "title": "Bot Revision",
+            "default": 0
+          },
           "bot_instance_id": {
             "anyOf": [
               {
@@ -11313,11 +11329,6 @@
               }
             ],
             "title": "Bot Instance Id"
-          },
-          "bot_revision": {
-            "type": "integer",
-            "title": "Bot Revision",
-            "default": 0
           },
           "bot_username": {
             "anyOf": [
