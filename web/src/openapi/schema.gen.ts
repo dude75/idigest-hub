@@ -3403,6 +3403,8 @@ export interface components {
         MeTelegramStatusResponse: {
             /** Bot Enabled */
             bot_enabled: boolean;
+            /** Bot Instance Id */
+            bot_instance_id?: number | null;
             /** Bot Username */
             bot_username?: string | null;
             /** Bot Url */

@@ -76,6 +76,14 @@ def telegram_bot_public_resolved(db: Session, settings: InstanceSettings) -> tup
     return telegram_bot_public(settings)
 
 
+def telegram_bot_public_fresh(db: Session, settings: InstanceSettings) -> tuple[str | None, str | None]:
+    """Username for /me/telegram — always reconcile with Telegram getMe."""
+    if not bot_token(settings, db):
+        return None, None
+    refresh_bot_username_sync(db, settings)
+    return telegram_bot_public(settings)
+
+
 async def fetch_bot_username(settings: InstanceSettings, db: Session) -> str | None:
     token = bot_token(settings, db)
     if not token:

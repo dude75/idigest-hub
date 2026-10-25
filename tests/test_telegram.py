@@ -2,7 +2,24 @@
 
 from __future__ import annotations
 
-from tests.conftest import err_code, login_ready, setup_admin, signup  # noqa: F401
+from sqlalchemy import select
+
+from app.models import TelegramLink
+from tests.conftest import ADMIN_EMAIL, ADMIN_PASSWORD, err_code, login, login_ready, logout, setup_admin, signup  # noqa: F401
+
+
+def _mock_telegram_get_me(monkeypatch, *, bot_id: int, username: str) -> None:
+    async def _me(*_args, **_kwargs):
+        return {"id": bot_id, "username": username}
+
+    monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
+
+
+def _enable_telegram(client, token: str = "123456:TEST") -> None:
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": token, "telegram_enabled": True},
+    )
 
 
 def test_instance_admin_without_org_cannot_use_me_telegram(client):
@@ -48,6 +65,41 @@ def test_me_telegram_resolves_missing_bot_username(client, monkeypatch):
     assert link.json()["bot_username"] == "idigest_test_bot"
 
 
+def test_me_telegram_refreshes_stale_bot_username(client, monkeypatch):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "123456:TEST", "telegram_enabled": True},
+    )
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+
+    get_engine()
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        settings.telegram_bot_username = "stale_bot"
+        settings.telegram_bot_id = 100
+        db.commit()
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "tgfresh@example.com", "tgfreshpass12", tariff_id).status_code == 200
+    login_ready(client, "tgfresh@example.com", "tgfreshpass12")
+
+    calls = 0
+
+    async def _me(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        return {"id": 200, "username": "new_audio_bot"}
+
+    monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
+    body = client.get("/api/v1/me/telegram").json()
+    assert calls >= 1
+    assert body["bot_username"] == "new_audio_bot"
+    assert body["bot_instance_id"] == 200
+    assert body["bot_url"] == "https://t.me/new_audio_bot"
+
+
 def test_me_telegram_invalidates_link_without_instance_bot_id(client, monkeypatch):
     setup_admin(client)
     client.patch(
@@ -86,6 +138,139 @@ def test_me_telegram_invalidates_link_without_instance_bot_id(client, monkeypatc
 
     monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
     assert client.get("/api/v1/me/telegram").json()["linked"] is False
+
+
+def test_me_telegram_wrong_instance_bot_id_shows_unlinked(client, monkeypatch):
+    """Привязка к bot_id=100 не считается валидной, когда инстанс уже на bot_id=200."""
+    setup_admin(client)
+    _enable_telegram(client)
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+    from app.services.telegram_links import consume_link_code
+
+    get_engine()
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        settings.telegram_bot_username = "bot_a"
+        settings.telegram_bot_id = 100
+        db.commit()
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "tgwrongid@example.com", "tgwrongidpass", tariff_id).status_code == 200
+    login_ready(client, "tgwrongid@example.com", "tgwrongidpass")
+    code = client.post("/api/v1/me/telegram/link").json()["code"]
+    with SessionLocal() as db:
+        consume_link_code(db, code=code, telegram_user_id="888002", chat_id="8002")
+        db.commit()
+
+    with SessionLocal() as db:
+        row = db.scalar(select(TelegramLink).where(TelegramLink.telegram_user_id == "888002"))
+        assert row is not None
+        row.instance_bot_id = 100
+        settings = get_instance_settings(db)
+        settings.telegram_bot_id = 200
+        settings.telegram_bot_username = "bot_b"
+        db.commit()
+
+    _mock_telegram_get_me(monkeypatch, bot_id=200, username="bot_b")
+    body = client.get("/api/v1/me/telegram").json()
+    assert body["linked"] is False
+    assert body["bot_instance_id"] == 200
+    assert body["bot_username"] == "bot_b"
+
+
+def test_me_telegram_bot_swap_user_relinks_with_new_instance_bot_id(client, monkeypatch):
+    """Смена бота админом: сброс привязки, новое имя в API, повторная привязка с новым instance_bot_id."""
+    setup_admin(client)
+    _enable_telegram(client, token="123456:OLDBOT")
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+    from app.services.telegram_links import consume_link_code
+
+    get_engine()
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        settings.telegram_bot_username = "old_audio"
+        settings.telegram_bot_id = 100
+        db.commit()
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "tgswap@example.com", "tgswappass12", tariff_id).status_code == 200
+    login_ready(client, "tgswap@example.com", "tgswappass12")
+    code_a = client.post("/api/v1/me/telegram/link").json()["code"]
+    with SessionLocal() as db:
+        consume_link_code(db, code=code_a, telegram_user_id="999100", chat_id="9100")
+        db.commit()
+    assert client.get("/api/v1/me/telegram").json()["linked"] is True
+
+    logout(client)
+    login(client, ADMIN_EMAIL, ADMIN_PASSWORD)
+    _mock_telegram_get_me(monkeypatch, bot_id=200, username="new_audio")
+    client.patch("/api/v1/instance/settings", json={"telegram_bot_token": "789012:NEWBOT"})
+
+    logout(client)
+    login_ready(client, "tgswap@example.com", "tgswappass12")
+    status = client.get("/api/v1/me/telegram").json()
+    assert status["linked"] is False
+    assert status["bot_username"] == "new_audio"
+    assert status["bot_instance_id"] == 200
+
+    link = client.post("/api/v1/me/telegram/link").json()
+    assert link["bot_username"] == "new_audio"
+    with SessionLocal() as db:
+        consume_link_code(db, code=link["code"], telegram_user_id="999100", chat_id="9100")
+        db.commit()
+        row = db.scalar(select(TelegramLink).where(TelegramLink.telegram_user_id == "999100"))
+        assert row is not None
+        assert row.instance_bot_id == 200
+    assert client.get("/api/v1/me/telegram").json()["linked"] is True
+
+
+def test_me_telegram_link_fresh_username_when_db_stale(client, monkeypatch):
+    """POST /me/telegram/link отдаёт имя с getMe, а не устаревший кэш в БД."""
+    setup_admin(client)
+    _enable_telegram(client)
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+
+    get_engine()
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        settings.telegram_bot_username = "cached_old_name"
+        settings.telegram_bot_id = 200
+        db.commit()
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "tglinkfresh@example.com", "tglinkfreshpass", tariff_id).status_code == 200
+    login_ready(client, "tglinkfresh@example.com", "tglinkfreshpass")
+
+    _mock_telegram_get_me(monkeypatch, bot_id=200, username="live_from_api")
+    link = client.post("/api/v1/me/telegram/link").json()
+    assert link["bot_username"] == "live_from_api"
+    assert link["bot_url"] == "https://t.me/live_from_api"
+
+
+def test_token_patch_clears_bot_identity_then_refresh(client, monkeypatch):
+    """Сохранение нового токена сбрасывает id/username до getMe на том же запросе."""
+    setup_admin(client)
+    _enable_telegram(client, token="123456:FIRST")
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+
+    get_engine()
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        settings.telegram_bot_username = "before"
+        settings.telegram_bot_id = 100
+        db.commit()
+
+    _mock_telegram_get_me(monkeypatch, bot_id=200, username="after_save")
+    client.patch("/api/v1/instance/settings", json={"telegram_bot_token": "789012:SECOND"})
+
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        assert settings.telegram_bot_id == 200
+        assert settings.telegram_bot_username == "after_save"
 
 
 def test_telegram_link_flow(client):

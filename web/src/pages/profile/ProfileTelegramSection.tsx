@@ -28,9 +28,11 @@ export function ProfileTelegramSection() {
   }, [status?.linked])
 
   useEffect(() => {
-    if (!status?.bot_username || !link?.bot_username) return
-    if (status.bot_username !== link.bot_username) setLink(null)
-  }, [status?.bot_username, link?.bot_username])
+    if (!link) return
+    if (status?.bot_username && link.bot_username && status.bot_username !== link.bot_username) {
+      setLink(null)
+    }
+  }, [status?.bot_username, status?.bot_instance_id, link?.bot_username])
 
   function formatWhen(iso: string) {
     if (!me) return iso
