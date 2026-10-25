@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { api } from '../../api'
@@ -27,12 +27,23 @@ export function ProfileTelegramSection() {
     if (status?.linked) setLink(null)
   }, [status?.linked])
 
+  const prevBotInstanceId = useRef<number | null | undefined>(undefined)
+
+  useEffect(() => {
+    const cur = status?.bot_instance_id ?? null
+    if (prevBotInstanceId.current !== undefined && prevBotInstanceId.current !== cur) {
+      setLink(null)
+      setLinkAwaitingBot(false)
+    }
+    prevBotInstanceId.current = cur
+  }, [status?.bot_instance_id, setLinkAwaitingBot])
+
   useEffect(() => {
     if (!link) return
     if (status?.bot_username && link.bot_username && status.bot_username !== link.bot_username) {
       setLink(null)
     }
-  }, [status?.bot_username, status?.bot_instance_id, link?.bot_username])
+  }, [status?.bot_username, link?.bot_username])
 
   function formatWhen(iso: string) {
     if (!me) return iso

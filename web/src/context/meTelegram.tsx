@@ -16,6 +16,8 @@ import type { SchemaMeTelegramStatusResponse } from '../openapi'
 export type MeTelegramStatus = SchemaMeTelegramStatusResponse
 
 const TELEGRAM_LINK_POLL_MS = 3000
+/** Keep bot name / link state in sync when admin changes the instance bot. */
+const TELEGRAM_STATUS_IDLE_POLL_MS = 15_000
 const TELEGRAM_LINK_AWAITING_STORAGE_KEY = 'idigest:telegram-link-awaiting'
 
 function readLinkAwaitingFromSession(): boolean {
@@ -52,6 +54,7 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<MeTelegramStatus | null>(null)
   const [linkAwaitingBot, setLinkAwaitingBotState] = useState(false)
   const linkedRef = useRef(false)
+  const botInstanceIdRef = useRef<number | null | undefined>(undefined)
 
   const setLinkAwaitingBot = useCallback((awaiting: boolean) => {
     writeLinkAwaitingToSession(awaiting)
@@ -69,6 +72,11 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
         const data = await api<MeTelegramStatus>('/me/telegram')
         const wasLinked = linkedRef.current
         linkedRef.current = data.linked
+        const prevBotId = botInstanceIdRef.current
+        botInstanceIdRef.current = data.bot_instance_id ?? null
+        if (prevBotId !== undefined && prevBotId !== botInstanceIdRef.current) {
+          setLinkAwaitingBot(false)
+        }
         setStatus(data)
         if (data.linked) setLinkAwaitingBot(false)
         if (opts?.toastOnLink && !wasLinked && data.linked) {
@@ -87,6 +95,7 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
       setStatus(null)
       setLinkAwaitingBot(false)
       linkedRef.current = false
+      botInstanceIdRef.current = undefined
       return
     }
     if (readLinkAwaitingFromSession()) setLinkAwaitingBotState(true)
@@ -107,6 +116,20 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
     const interval = window.setInterval(() => void refresh({ toastOnLink: true }), TELEGRAM_LINK_POLL_MS)
     return () => window.clearInterval(interval)
   }, [awaitingBotLink, refresh])
+
+  useEffect(() => {
+    if (!member) return
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return
+      void refresh()
+    }
+    const interval = window.setInterval(tick, TELEGRAM_STATUS_IDLE_POLL_MS)
+    document.addEventListener('visibilitychange', tick)
+    return () => {
+      window.clearInterval(interval)
+      document.removeEventListener('visibilitychange', tick)
+    }
+  }, [member, refresh])
 
   const linked = member ? (status === null ? null : status.linked) : null
 
