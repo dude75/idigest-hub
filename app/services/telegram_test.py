@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from app.crypto import decrypt_str
 from app.models import InstanceSettings
 from app.services.telegram_api import TelegramApiError, get_me
-from app.services.telegram_identity import apply_telegram_bot_me, telegram_bot_public
 
 
 def resolve_telegram_test_token(settings: InstanceSettings, db: Session, override: str | None) -> str | None:
@@ -36,14 +35,13 @@ async def test_telegram_connection(
         me = await get_me(token, settings=settings, db=db)
     finally:
         settings.telegram_use_proxy = prev_proxy
-    apply_telegram_bot_me(db, settings, me)
-    db.commit()
-    username = (settings.telegram_bot_username or "").strip().lstrip("@") or None
+    username_raw = me.get("username")
+    username = None
+    if isinstance(username_raw, str) and username_raw.strip():
+        username = username_raw.strip().lstrip("@")
     first_name = me.get("first_name")
     first = first_name.strip() if isinstance(first_name, str) and first_name.strip() else None
-    _, bot_url = telegram_bot_public(settings) if username else (None, None)
-    if username and not bot_url:
-        bot_url = f"https://t.me/{username}"
+    bot_url = f"https://t.me/{username}" if username else None
     return {"username": username, "first_name": first, "bot_url": bot_url}
 
 

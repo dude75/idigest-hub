@@ -94,6 +94,7 @@ def test_instance_telegram_test_connection(client, monkeypatch):
     async def _me(*_args, **_kwargs):
         return {"id": 1, "username": "idigest_test_bot", "first_name": "Test"}
 
+    settings_before = client.get("/api/v1/instance/settings").json()
     monkeypatch.setattr("app.services.telegram_test.get_me", _me)
     ok = client.post(
         "/api/v1/instance/telegram/test-connection",
@@ -105,8 +106,40 @@ def test_instance_telegram_test_connection(client, monkeypatch):
     assert body["username"] == "idigest_test_bot"
     assert body["bot_url"] == "https://t.me/idigest_test_bot"
 
-    settings = client.get("/api/v1/instance/settings").json()
-    assert settings["telegram_bot_username"] == "idigest_test_bot"
+    settings_after = client.get("/api/v1/instance/settings").json()
+    assert settings_after["telegram_bot_username"] == settings_before["telegram_bot_username"]
+
+
+def test_instance_telegram_test_connection_does_not_persist_override_token(client, monkeypatch):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "123456:SAVED", "telegram_enabled": True},
+    )
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+
+    get_engine()
+    with SessionLocal() as db:
+        get_instance_settings(db).telegram_bot_username = "saved_bot"
+        get_instance_settings(db).telegram_bot_id = 10
+        db.commit()
+
+    async def _me(*_args, **_kwargs):
+        return {"id": 99, "username": "probe_only_bot", "first_name": "Probe"}
+
+    monkeypatch.setattr("app.services.telegram_test.get_me", _me)
+    ok = client.post(
+        "/api/v1/instance/telegram/test-connection",
+        json={"telegram_bot_token": "789012:PROBE", "telegram_use_proxy": False},
+    )
+    assert ok.status_code == 200
+    assert ok.json()["username"] == "probe_only_bot"
+
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        assert settings.telegram_bot_username == "saved_bot"
+        assert settings.telegram_bot_id == 10
 
     from app.services.telegram_api import TelegramApiError
 
