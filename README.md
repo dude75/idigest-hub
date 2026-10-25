@@ -118,6 +118,14 @@ Enable the bot under **Instance → Settings → Telegram** (BotFather token, op
 | **Webhook** (default, needs Public URL) | Telegram POSTs to `{public_url}/api/v1/integrations/telegram/webhook`. Requires **HTTPS reachable from the public internet** (reverse proxy on 443 → hub). |
 | **Long polling** (webhook off) | Hub pulls updates outbound only. Use when `getWebhookInfo` shows `Connection timed out` but **Check connection** succeeds. **Public URL can stay set** for SSO and public links. |
 
+**Multiple hub processes** (several uvicorn workers, replicas behind a load balancer):
+
+- One bot token per deployment; transport starts in **every** process.
+- **Webhook** with a single public URL behind a reverse proxy is the right mode if you ever run more than one replica: Telegram POSTs to any process; handlers use the shared database.
+- **Long polling** only with **one** hub process (see [deployment](docs/en/operations/deployment.md#runtime-requirements): `workers: 1`). Multiple processes calling `getUpdates` on the same token race → missed or duplicate updates and API errors.
+- Some bot flows keep state **in process memory** (multi-step inline buttons); without sticky sessions, the next request may land on another replica and stall the dialog.
+- There is no `update_id` deduplication — a rare Telegram webhook retry could theoretically repeat an action.
+
 After changing the mode, save settings (the hub reconfigures transport; restart if the bot stays silent). **POST** `/instance/telegram/test-connection` verifies the token and API reachability. See [Troubleshooting — Telegram](docs/en/operations/troubleshooting.md#telegram-bot).
 
 **Linked users:** `/make_transcribe` and `/make_summary` show inline buttons for the **last 10** library items (newest first), then queue work on the chosen row; optional `[id]` still works for a direct target. `/view_summary` uses the same pick-list pattern for summaries.

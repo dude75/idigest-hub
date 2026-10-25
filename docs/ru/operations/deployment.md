@@ -10,7 +10,7 @@
 | Node.js | 22+ (только на этапе сборки) |
 | Uvicorn workers | **1** всегда |
 
-Несколько воркеров ломают in-memory rate limits и допущения блокировки dispatcher.
+Несколько воркеров ломают in-memory rate limits, допущения блокировки dispatcher и **long polling Telegram** (на каждом процессе свой `getUpdates` и offset в памяти).
 
 ## Локальный запуск, похожий на production
 
@@ -95,7 +95,7 @@ location / {
 
 **Публичный URL** в Instance → Settings — адрес **внешнего** nginx (`https://hub.example.com`), не внутренний `:8443`.
 
-**Webhook Telegram** использует тот же публичный хост: Telegram должен достучаться до `https://…/api/v1/integrations/telegram/webhook` на **443**. Если с вашей сети путь открыт, а в `getWebhookInfo` — `Connection timed out`, снимите **Доставка через webhook** в Instance → Telegram (long polling). См. [Troubleshooting — Telegram](troubleshooting.md#telegram-бот).
+**Webhook Telegram** использует тот же публичный хост: Telegram должен достучаться до `https://…/api/v1/integrations/telegram/webhook` на **443**. Если с вашей сети путь открыт, а в `getWebhookInfo` — `Connection timed out`, снимите **Доставка через webhook** в Instance → Telegram (long polling; только при **одном** процессе хаба). При **нескольких репликах** за балансировщиком оставляйте webhook включённым — long polling при `replicas > 1` или `workers > 1` не поддерживается. См. [Troubleshooting — Telegram](troubleshooting.md#telegram-бот).
 
 ### Заголовки безопасности (HSTS, CSP)
 
@@ -217,8 +217,9 @@ Auth-трафик: email + IP + global buckets. Bearer API: user + IP + global. 
 - Один цикл dispatcher
 - In-memory rate limiter
 - Локальная ФС или S3-compatible object storage для audio (`STORAGE_BACKEND`)
+- **Telegram:** webhook допустим при общей БД и балансировщике на один публичный URL; long polling — только single-process. In-memory состояние бота (многошаговые сценарии) не шарится между репликами.
 
-Горизонтальное масштабирование потребует общего store для rate limit и одного лидера dispatcher — S3 убирает необходимость shared filesystem для uploads, но multi-replica hub из коробки не поддерживается.
+Горизонтальное масштабирование потребует общего store для rate limit и одного лидера dispatcher — S3 убирает необходимость shared filesystem для uploads, но multi-replica hub из коробки не поддерживается. Если позже поднимете несколько реплик, для бота нужен режим **webhook**, не long polling.
 
 ## Исследование API
 

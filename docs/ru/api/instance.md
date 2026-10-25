@@ -230,7 +230,7 @@ SMTP host/port/user/from/tls (password не возвращается), `allow_ne
 Частичное обновление. Поля включают:
 
 - `allow_new_orgs`, `public_base_url`
-- Telegram: `telegram_enabled`, `telegram_bot_token`, `telegram_proxy_url`, `telegram_use_webhook` (при `false` — long polling даже с `public_base_url`; смена полей Telegram переконфигурирует транспорт)
+- Telegram: `telegram_enabled`, `telegram_bot_token`, `telegram_proxy_url`, `telegram_use_webhook` (при `false` — long polling даже с `public_base_url`, только при **одном** процессе хаба; при горизонтальном масштабировании нужен webhook и HTTPS с интернета; смена полей Telegram переконфигурирует транспорт)
 - SMTP: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`
 - Models: `asr_model`, `diarization_model` (должны быть в объединённом списке воркеров, если воркеры есть; пустой `diarization_model` отключает диаризацию); `summarize_model` (должен быть в `summarize_models`, если воркеры отдают имена)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)

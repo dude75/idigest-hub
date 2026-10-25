@@ -78,6 +78,8 @@ Dispatcher логирует сбои воркеров на INFO: `worker health 
 | `getWebhookInfo` → `Connection timed out`, растёт `pending_update_count` | Telegram не достучался до `{public_url}` на **443** (периметр, не хаб) | Починить reverse proxy; или **Instance → Telegram** → снять **Доставка через webhook** (long polling; публичный URL не трогать) |
 | Webhook POST **403** | Неверный `X-Telegram-Bot-Api-Secret-Token` | Секрет в БД; пересохранить настройки Telegram или рестарт хаба |
 | **Проверить соединение** ок, webhook не работает | Хаб в режиме ожидания webhook | Снова сохранить настройки или `docker compose restart idigest-hub` после перехода на long polling |
+| Дубли команд, пропуски, ошибки `getUpdates` | Несколько процессов на long polling (`workers > 1` или несколько реплик) | Один процесс / `workers: 1`, либо включить **Доставка через webhook** |
+| После выбора в inline-кнопках бот «молчит» | Следующий запрос попал на другую реплику (состояние в памяти процесса) | Пока single-node; при нескольких репликах — sticky sessions к одной реплике или webhook + осознание ограничения |
 
 Диагностика на хосте хаба (`import app.db as hub_db`, затем `hub_db.get_engine()` перед `SessionLocal()`):
 

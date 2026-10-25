@@ -230,7 +230,7 @@ SMTP host/port/user/from/tls (password not returned), `allow_new_orgs`, `public_
 Partial update. Fields include:
 
 - `allow_new_orgs`, `public_base_url`
-- Telegram: `telegram_enabled`, `telegram_bot_token`, `telegram_proxy_url`, `telegram_use_webhook` (when `false`, hub uses long polling even if `public_base_url` is set; changing Telegram fields triggers transport reconfigure)
+- Telegram: `telegram_enabled`, `telegram_bot_token`, `telegram_proxy_url`, `telegram_use_webhook` (when `false`, hub uses long polling even if `public_base_url` is set — **single hub process only**; horizontal scaling requires webhook and internet-reachable HTTPS; changing Telegram fields triggers transport reconfigure)
 - SMTP: `smtp_host`, `smtp_port`, `smtp_user`, `smtp_password`, `smtp_from`, `smtp_tls`
 - Models: `asr_model`, `diarization_model` (must be in aggregated worker lists when workers exist; empty `diarization_model` disables diarization); `summarize_model` (must be in `summarize_models` when workers report names)
 - Display: `date_time_format` (`eu_24h` | `us_12h` | `iso` | `relative`), `timezone` (`GMT-12` … `GMT+14`)

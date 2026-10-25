@@ -10,7 +10,7 @@ Quick start lives in the project [README](../../../README.md). This page adds pr
 | Node.js | 22+ (build time only) |
 | Uvicorn workers | **1** always |
 
-Multi-worker breaks in-memory rate limits and dispatcher locking assumptions.
+Multi-worker breaks in-memory rate limits, dispatcher locking assumptions, and **Telegram long polling** (each process runs its own `getUpdates` loop with an in-memory offset).
 
 ## Local production-like run
 
@@ -95,7 +95,7 @@ location / {
 
 Set **Public URL** in Instance → Settings to the **external** nginx address (`https://hub.example.com`), not the internal `:8443`.
 
-**Telegram webhooks** use the same public hostname: Telegram must reach `https://…/api/v1/integrations/telegram/webhook` on port **443**. If the path works from your network but `getWebhookInfo` reports `Connection timed out`, disable **Deliver updates via webhook** in Instance → Telegram (long polling). See [Troubleshooting — Telegram](troubleshooting.md#telegram-bot).
+**Telegram webhooks** use the same public hostname: Telegram must reach `https://…/api/v1/integrations/telegram/webhook` on port **443**. If the path works from your network but `getWebhookInfo` reports `Connection timed out`, disable **Deliver updates via webhook** in Instance → Telegram (long polling — only with a **single** hub process). With **multiple replicas** behind a load balancer, keep webhook enabled; long polling is not supported when `replicas > 1` or `workers > 1`. See [Troubleshooting — Telegram](troubleshooting.md#telegram-bot).
 
 ### Security headers (HSTS, CSP)
 
@@ -217,8 +217,9 @@ Current architecture targets **single-node** deployment:
 - One dispatcher loop
 - In-memory rate limiter
 - Local filesystem or S3-compatible object storage for audio (`STORAGE_BACKEND`)
+- **Telegram:** webhook is fine with a shared database and one public URL behind a load balancer; long polling requires a single process. Bot in-memory state (multi-step flows) is not shared across replicas.
 
-Horizontal scaling would require shared rate-limit store and single dispatcher leader — S3 removes the need for shared filesystem for uploads, but multi-replica hub is still not supported out of the box.
+Horizontal scaling would require shared rate-limit store and single dispatcher leader — S3 removes the need for shared filesystem for uploads, but multi-replica hub is still not supported out of the box. If you later run multiple replicas, use **webhook** delivery for the bot, not long polling.
 
 ## API exploration
 

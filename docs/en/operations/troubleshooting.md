@@ -78,6 +78,8 @@ Dispatcher logs worker failures at INFO: `worker health failed`, `worker poll ne
 | `getWebhookInfo` → `Connection timed out`, pending updates grow | Telegram cannot reach `{public_url}` on **443** (perimeter firewall, not hub) | Fix reverse proxy path to hub; or **Instance → Telegram** → disable **Deliver updates via webhook** (long polling; Public URL unchanged) |
 | Webhook POST returns **403** | Wrong/missing `X-Telegram-Bot-Api-Secret-Token` | Secret is in DB (`telegram_webhook_secret`); re-save Telegram settings or restart hub to re-register |
 | **Check connection** OK, bot still silent on webhook | Hub stuck in webhook wait mode | Save Telegram settings again or `docker compose restart idigest-hub` after switching to long polling |
+| Duplicate commands, missed updates, `getUpdates` errors | Multiple processes on long polling (`workers > 1` or several replicas) | Single process / `workers: 1`, or enable **Deliver updates via webhook** |
+| Bot goes silent after an inline button choice | Next request hit another replica (in-process bot state) | Stay single-node for now; with multiple replicas use sticky sessions to one replica, or webhook and accept the limitation |
 
 Diagnostics on the hub host (use `import app.db as hub_db`, then `hub_db.get_engine()` before `SessionLocal()`):
 
