@@ -201,6 +201,7 @@ def patch_settings(
 ) -> InstanceSettingsResponse:
     require_instance_admin(ctx)
     s = get_instance_settings(db)
+    prior_bot_id_before_token_patch: int | None = None
     data = body.model_dump(exclude_unset=True)
     if "diarization_model" in data:
         value = data["diarization_model"]
@@ -247,6 +248,7 @@ def patch_settings(
 
         token = data.pop("telegram_bot_token")
         if token:
+            prior_bot_id_before_token_patch = s.telegram_bot_id
             s.telegram_bot_token_encrypted = encrypt_str(token, db)
             s.telegram_bot_username = None
             if s.telegram_enabled and not (s.telegram_webhook_secret or "").strip():
@@ -337,9 +339,17 @@ def patch_settings(
     if s.telegram_enabled and (s.telegram_bot_token_encrypted or "").strip():
         if _telegram_transport_keys & set(patch_fields):
             from app.services.telegram_identity import refresh_bot_username_sync
+            from app.services.telegram_links import clear_all_telegram_links
             from app.services.telegram_runtime import schedule_telegram_reconfigure
 
             refresh_bot_username_sync(db, s)
+            if (
+                "telegram_bot_token" in patch_fields
+                and prior_bot_id_before_token_patch is not None
+                and s.telegram_bot_id is not None
+                and prior_bot_id_before_token_patch != s.telegram_bot_id
+            ):
+                clear_all_telegram_links(db)
             schedule_telegram_reconfigure()
     if "asr_model" in body.model_dump(exclude_unset=True) or "diarization_model" in body.model_dump(exclude_unset=True):
         from app.services.transcribe_models import validate_instance_models

@@ -28,11 +28,11 @@ def clear_all_telegram_links(db: Session) -> None:
 
 def link_matches_current_bot(link: TelegramLink, settings: InstanceSettings) -> bool:
     current = settings.telegram_bot_id
-    if current is None:
-        return True
     stored = link.instance_bot_id
+    if current is None:
+        return stored is None
     if stored is None:
-        return True
+        return False
     return stored == current
 
 

@@ -48,6 +48,46 @@ def test_me_telegram_resolves_missing_bot_username(client, monkeypatch):
     assert link.json()["bot_username"] == "idigest_test_bot"
 
 
+def test_me_telegram_invalidates_link_without_instance_bot_id(client, monkeypatch):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={"telegram_bot_token": "123456:TEST", "telegram_enabled": True},
+    )
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+    from app.services.telegram_links import consume_link_code
+
+    get_engine()
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        settings.telegram_bot_username = "idigest_test_bot"
+        settings.telegram_bot_id = 100
+        db.commit()
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "tglegacy@example.com", "tglegacypass1", tariff_id).status_code == 200
+    login_ready(client, "tglegacy@example.com", "tglegacypass1")
+    code = client.post("/api/v1/me/telegram/link").json()["code"]
+    with SessionLocal() as db:
+        consume_link_code(db, code=code, telegram_user_id="888001", chat_id="8001")
+        db.commit()
+    assert client.get("/api/v1/me/telegram").json()["linked"] is True
+
+    with SessionLocal() as db:
+        link = db.execute(
+            __import__("sqlalchemy").select(__import__("app.models", fromlist=["TelegramLink"]).TelegramLink)
+        ).scalar_one()
+        link.instance_bot_id = None
+        db.commit()
+
+    async def _me(*_args, **_kwargs):
+        return {"id": 100, "username": "idigest_test_bot"}
+
+    monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
+    assert client.get("/api/v1/me/telegram").json()["linked"] is False
+
+
 def test_telegram_link_flow(client):
     setup_admin(client)
     client.patch(

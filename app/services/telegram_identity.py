@@ -41,12 +41,14 @@ def _telegram_bot_id_from_me(me: dict[str, Any]) -> int | None:
     return None
 
 
-def apply_telegram_bot_me(db: Session, settings: InstanceSettings, me: dict[str, Any]) -> None:
+def apply_telegram_bot_me(db: Session, settings: InstanceSettings, me: dict[str, Any]) -> bool:
+    """Apply getMe fields. Returns True if telegram_bot_id changed."""
     from app.services.telegram_links import clear_all_telegram_links
 
     new_id = _telegram_bot_id_from_me(me)
     old_id = settings.telegram_bot_id
-    if new_id is not None and old_id is not None and old_id != new_id:
+    id_changed = new_id is not None and old_id is not None and old_id != new_id
+    if id_changed:
         clear_all_telegram_links(db)
         log.info("telegram bot id changed %s -> %s; cleared user links", old_id, new_id)
     if new_id is not None:
@@ -56,16 +58,21 @@ def apply_telegram_bot_me(db: Session, settings: InstanceSettings, me: dict[str,
         settings.telegram_bot_username = username.strip().lstrip("@")
     else:
         settings.telegram_bot_username = None
+    return id_changed
+
+
+def ensure_telegram_bot_identity(db: Session, settings: InstanceSettings) -> None:
+    """Load bot @username and numeric id from Telegram when not cached."""
+    if not bot_token(settings, db):
+        return
+    if (settings.telegram_bot_username or "").strip() and settings.telegram_bot_id is not None:
+        return
+    refresh_bot_username_sync(db, settings)
 
 
 def telegram_bot_public_resolved(db: Session, settings: InstanceSettings) -> tuple[str | None, str | None]:
-    """Cached username for UI; refresh from Telegram when missing but bot token is configured."""
-    username, url = telegram_bot_public(settings)
-    if url:
-        return username, url
-    if not bot_token(settings, db):
-        return None, None
-    refresh_bot_username_sync(db, settings)
+    """Cached username for UI; refresh from Telegram when identity incomplete."""
+    ensure_telegram_bot_identity(db, settings)
     return telegram_bot_public(settings)
 
 
