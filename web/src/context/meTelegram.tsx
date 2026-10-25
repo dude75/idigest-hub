@@ -76,7 +76,6 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
         }
         return data
       } catch {
-        setStatus(null)
         return null
       }
     },
@@ -94,7 +93,7 @@ export function MeTelegramProvider({ children }: { children: ReactNode }) {
     void refresh()
   }, [member, me?.user.shell_show_telegram_link, refresh, setLinkAwaitingBot])
 
-  const awaitingBotLink = linkAwaitingBot && Boolean(status && !status.linked)
+  const awaitingBotLink = linkAwaitingBot && status?.linked !== true
 
   useEffect(() => {
     if (!member) return

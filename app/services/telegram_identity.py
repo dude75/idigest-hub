@@ -31,6 +31,17 @@ def telegram_bot_public(settings: InstanceSettings) -> tuple[str | None, str | N
     return raw, f"https://t.me/{raw}"
 
 
+def telegram_bot_public_resolved(db: Session, settings: InstanceSettings) -> tuple[str | None, str | None]:
+    """Cached username for UI; refresh from Telegram when missing but bot token is configured."""
+    username, url = telegram_bot_public(settings)
+    if url:
+        return username, url
+    if not bot_token(settings, db):
+        return None, None
+    refresh_bot_username_sync(db, settings)
+    return telegram_bot_public(settings)
+
+
 async def fetch_bot_username(settings: InstanceSettings, db: Session) -> str | None:
     token = bot_token(settings, db)
     if not token:

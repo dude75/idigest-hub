@@ -9,7 +9,7 @@ from app.errors import ErrorCode
 from app.routers.auth._router import router
 from app.schemas.common import OkStatusResponse
 from app.schemas.telegram import MeTelegramLinkResponse, MeTelegramStatusResponse
-from app.services.telegram_identity import telegram_bot_public
+from app.services.telegram_identity import telegram_bot_public_resolved
 from app.services.telegram_links import generate_link_challenge, link_for_user, unlink_user
 
 
@@ -22,7 +22,7 @@ def me_telegram_status(
     settings = get_instance_settings(db)
     link = link_for_user(db, ctx.user.id)
     bot_on = bool(settings.telegram_enabled and (settings.telegram_bot_token_encrypted or "").strip())
-    username, bot_url = telegram_bot_public(settings) if bot_on else (None, None)
+    username, bot_url = telegram_bot_public_resolved(db, settings) if bot_on else (None, None)
     return MeTelegramStatusResponse(
         bot_enabled=bot_on,
         bot_username=username,
@@ -42,7 +42,7 @@ def me_telegram_link(
     if not settings.telegram_enabled or not (settings.telegram_bot_token_encrypted or "").strip():
         ctx.raise_error(ErrorCode.validation_error)
     code, expires_at = generate_link_challenge(db, ctx.user.id)
-    username, bot_url = telegram_bot_public(settings)
+    username, bot_url = telegram_bot_public_resolved(db, settings)
     db.commit()
     return MeTelegramLinkResponse(
         code=code,

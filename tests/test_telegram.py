@@ -12,6 +12,42 @@ def test_instance_admin_without_org_cannot_use_me_telegram(client):
     assert err_code(denied) == "forbidden"
 
 
+def test_me_telegram_resolves_missing_bot_username(client, monkeypatch):
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "telegram_bot_token": "123456:TEST",
+            "telegram_enabled": True,
+        },
+    )
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+
+    get_engine()
+    with SessionLocal() as db:
+        get_instance_settings(db).telegram_bot_username = None
+        db.commit()
+
+    async def _me(*_args, **_kwargs):
+        return {"username": "idigest_test_bot"}
+
+    monkeypatch.setattr("app.services.telegram_identity.get_me", _me)
+
+    tariff_id = client.get("/api/v1/tariffs").json()["items"][0]["id"]
+    assert signup(client, "tgresolve@example.com", "tgresolvepass1", tariff_id).status_code == 200
+    login_ready(client, "tgresolve@example.com", "tgresolvepass1")
+
+    status = client.get("/api/v1/me/telegram")
+    assert status.status_code == 200
+    assert status.json()["bot_username"] == "idigest_test_bot"
+    assert status.json()["bot_url"] == "https://t.me/idigest_test_bot"
+
+    link = client.post("/api/v1/me/telegram/link")
+    assert link.status_code == 200
+    assert link.json()["bot_username"] == "idigest_test_bot"
+
+
 def test_telegram_link_flow(client):
     setup_admin(client)
     client.patch(

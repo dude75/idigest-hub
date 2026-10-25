@@ -65,7 +65,8 @@ export function ProfileTelegramSection() {
   if (!orgReady) return null
 
   const botUsername = status?.bot_username ?? link?.bot_username
-  const botUrl = status?.bot_url ?? link?.bot_url
+  const botUrl =
+    status?.bot_url ?? link?.bot_url ?? (botUsername ? `https://t.me/${botUsername}` : null)
 
   return (
     <ProfileSection
