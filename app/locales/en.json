@@ -119,6 +119,7 @@
   "telegram.welcome_unlinked": "Welcome! Link your hub account: open Profile in the web UI, generate a code, then send /start CODE here.",
   "telegram.welcome_linked": "Your account is linked. Send a URL to import, or a voice/audio file to upload. /make_transcribe and /make_summary after that. /help for commands.",
   "telegram.need_link": "Link your account first: Profile → Telegram → generate a code, then /start CODE.",
+  "telegram.site_url": "Open the hub: {site_url}",
   "telegram.link_help": "In the hub: Profile → Telegram → «Get link code», then send /start CODE here (valid 15 minutes).",
   "telegram.help": "Commands:\n/start — link account\n/link — linking help\n/status — active tasks\n/make_transcribe — pick audio from last 10, or /make_transcribe [audio_id] [skills…]\n/make_summary — pick transcript from last 10, then skill; or /make_summary [transcript_id] [skills…]\n/view_summary — read one of your last 10 summaries\nSend a URL to import\nSend audio/voice to upload",
   "telegram.link_ok": "Account linked. Send a URL or audio file to get started.",

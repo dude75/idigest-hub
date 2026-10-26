@@ -120,6 +120,7 @@
   "telegram.welcome_unlinked": "¡Hola! Vincule su cuenta: Perfil → Telegram en la web, código y /start CÓDIGO.",
   "telegram.welcome_linked": "Cuenta vinculada. URL importa, audio/voz sube; luego /make_transcribe y /make_summary. /help",
   "telegram.need_link": "Vincule primero: Perfil → Telegram → código, luego /start CÓDIGO.",
+  "telegram.site_url": "Abra el hub: {site_url}",
   "telegram.link_help": "En el hub: Perfil → Telegram → código, luego /start CÓDIGO (15 min).",
   "telegram.help": "Comandos:\n/start — vincular\n/link — ayuda\n/status — tareas\n/make_transcribe — elija audio de los 10 últimos o /make_transcribe [audio_id] [skills…]\n/make_summary — elija transcript de los 10 últimos y skill; o /make_summary [transcript_id] [skills…]\n/view_summary — ver uno de los 10 resúmenes recientes\nURL importa; audio/voz sube",
   "telegram.link_ok": "Cuenta vinculada.",

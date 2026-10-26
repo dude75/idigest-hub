@@ -378,6 +378,47 @@ async def _noop_send(*_args, **_kwargs):
     return {}
 
 
+async def test_telegram_unlinked_message_includes_public_url(client, monkeypatch):
+    captured: list[str] = []
+
+    async def _capture(*_args, **kwargs):
+        captured.append(kwargs["text"])
+        return {}
+
+    monkeypatch.setattr("app.services.telegram_bot.send_message", _capture)
+    setup_admin(client)
+    client.patch(
+        "/api/v1/instance/settings",
+        json={
+            "telegram_bot_token": "123456:TEST",
+            "telegram_enabled": True,
+            "public_base_url": "https://hub.example.com",
+        },
+    )
+    from app.db import SessionLocal, get_engine
+    from app.deps import get_instance_settings
+    from app.services.telegram_bot import handle_update
+
+    get_engine()
+    with SessionLocal() as db:
+        settings = get_instance_settings(db)
+        await handle_update(
+            db,
+            {
+                "message": {
+                    "chat": {"id": 42},
+                    "from": {"id": 99},
+                    "text": "/start",
+                }
+            },
+            token="123456:TEST",
+            settings=settings,
+            bot_username=None,
+        )
+    assert captured
+    assert "https://hub.example.com" in captured[0]
+
+
 def test_telegram_webhook_rejects_bad_secret(client, monkeypatch):
     monkeypatch.setattr("app.services.telegram_bot.send_message", _noop_send)
     setup_admin(client)

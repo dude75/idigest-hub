@@ -30,6 +30,7 @@ from app.services.telegram_api import (
     get_file_path,
     send_message,
 )
+from app.services.auth_helpers import public_base_url
 from app.services.telegram_context import auth_context_for_user
 from app.services.telegram_links import consume_link_code, link_for_telegram_user
 from app.services.upload_validation import InvalidAudioContent
@@ -84,6 +85,14 @@ def _locale(user: User | None, fallback: str = "en") -> str:
     if user is None:
         return fallback
     return user.locale or fallback
+
+
+def _need_link_text(db: Session, loc: str, key: str = "telegram.need_link") -> str:
+    text = t(loc, key)
+    site = public_base_url(db)
+    if site:
+        text = f"{text}\n\n{t(loc, 'telegram.site_url', site_url=site.rstrip('/'))}"
+    return text
 
 
 def _short_id(value: str) -> str:
@@ -211,7 +220,13 @@ async def handle_update(db: Session, update: dict, *, token: str, settings, bot_
         link = link_for_telegram_user(db, tg_user_s)
         loc = _locale(db.get(User, link.user_id) if link else None)
         if link is None:
-            await send_message(token, settings=settings, db=db, chat_id=chat_id_s, text=t(loc, "telegram.welcome_unlinked"))
+            await send_message(
+                token,
+                settings=settings,
+                db=db,
+                chat_id=chat_id_s,
+                text=_need_link_text(db, loc, "telegram.welcome_unlinked"),
+            )
         else:
             await send_message(token, settings=settings, db=db, chat_id=chat_id_s, text=t(loc, "telegram.welcome_linked"))
         return
@@ -223,13 +238,13 @@ async def handle_update(db: Session, update: dict, *, token: str, settings, bot_
             settings=settings,
             db=db,
             chat_id=chat_id_s,
-            text=t("en", "telegram.need_link"),
+            text=_need_link_text(db, "en"),
         )
         return
 
     user = db.get(User, link.user_id)
     if user is None or user.disabled_at is not None:
-        await send_message(token, settings=settings, db=db, chat_id=chat_id_s, text=t("en", "telegram.need_link"))
+        await send_message(token, settings=settings, db=db, chat_id=chat_id_s, text=_need_link_text(db, "en"))
         return
 
     loc = _locale(user)
@@ -587,11 +602,11 @@ async def _handle_callback_query(db: Session, callback: dict, *, token: str, set
 
     link = link_for_telegram_user(db, tg_user_s)
     if link is None:
-        await _answer(t("en", "telegram.need_link"))
+        await _answer(_need_link_text(db, "en"))
         return
     user = db.get(User, link.user_id)
     if user is None or user.disabled_at is not None:
-        await _answer(t("en", "telegram.need_link"))
+        await _answer(_need_link_text(db, "en"))
         return
     loc = _locale(user)
 
@@ -732,11 +747,11 @@ async def _handle_view_summary_callback(
 
     link = link_for_telegram_user(db, tg_user_s)
     if link is None:
-        await answer(t("en", "telegram.need_link"))
+        await answer(_need_link_text(db, "en"))
         return
     user = db.get(User, link.user_id)
     if user is None or user.disabled_at is not None:
-        await answer(t("en", "telegram.need_link"))
+        await answer(_need_link_text(db, "en"))
         return
     loc = _locale(user)
 
@@ -800,11 +815,11 @@ async def _handle_transcribe_audio_callback(
 
     link = link_for_telegram_user(db, tg_user_s)
     if link is None:
-        await answer(t("en", "telegram.need_link"))
+        await answer(_need_link_text(db, "en"))
         return
     user = db.get(User, link.user_id)
     if user is None or user.disabled_at is not None:
-        await answer(t("en", "telegram.need_link"))
+        await answer(_need_link_text(db, "en"))
         return
     loc = _locale(user)
 
@@ -846,11 +861,11 @@ async def _handle_summary_transcript_callback(
 
     link = link_for_telegram_user(db, tg_user_s)
     if link is None:
-        await answer(t("en", "telegram.need_link"))
+        await answer(_need_link_text(db, "en"))
         return
     user = db.get(User, link.user_id)
     if user is None or user.disabled_at is not None:
-        await answer(t("en", "telegram.need_link"))
+        await answer(_need_link_text(db, "en"))
         return
     loc = _locale(user)
 

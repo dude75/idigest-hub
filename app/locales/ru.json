@@ -119,6 +119,7 @@
   "telegram.welcome_unlinked": "Привет! Привяжите аккаунт: в веб-интерфейсе Профиль → Telegram, получите код и отправьте /start КОД.",
   "telegram.welcome_linked": "Аккаунт привязан. URL — импорт, аудио/голос — загрузка, затем /make_transcribe и /make_summary. /help — команды.",
   "telegram.need_link": "Сначала привяжите аккаунт: Профиль → Telegram → код, затем /start КОД.",
+  "telegram.site_url": "Сайт: {site_url}",
   "telegram.link_help": "В хабе: Профиль → Telegram → «Получить код», затем /start КОД (15 минут).",
   "telegram.help": "Команды:\n/start — привязка\n/link — как привязать\n/status — задачи\n/make_transcribe — выбор audio из 10 последних или /make_transcribe [audio_id] [навыки…]\n/make_summary — выбор transcript из 10, затем навык; или /make_summary [transcript_id] [навыки…]\n/view_summary — просмотр одного из 10 последних саммари\nURL — импорт\nАудио/голос — загрузка",
   "telegram.link_ok": "Аккаунт привязан.",
