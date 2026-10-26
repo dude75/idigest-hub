@@ -27,6 +27,7 @@ from app.services.telegram_api import (
     TelegramApiError,
     answer_callback_query,
     download_file_bytes,
+    edit_message_text,
     get_file_path,
     send_message,
 )
@@ -60,6 +61,10 @@ _SKILL_CALLBACK_PREFIX = "ss:"
 _VIEW_SUMMARY_CALLBACK_PREFIX = "vs:"
 _TRANSCRIBE_AUDIO_CALLBACK_PREFIX = "ta:"
 _SUMMARY_TRANSCRIPT_CALLBACK_PREFIX = "tr:"
+_PICK_PAGE_PREFIX = "pg:"
+_PICK_PAGE_KIND_VIEW_SUMMARY = "vs"
+_PICK_PAGE_KIND_TRANSCRIBE = "ta"
+_PICK_PAGE_KIND_SUMMARY = "tr"
 _TELEGRAM_PICK_LIST_LIMIT = 10
 _pending_summary_transcript: dict[str, str] = {}
 
@@ -415,7 +420,40 @@ def _pick_list_button_label(label: str) -> str:
     return label
 
 
-def _view_summary_inline_keyboard(summaries: list[Summary], db: Session) -> dict[str, list[list[dict[str, str]]]]:
+def _pick_page_callback(kind: str, page: int) -> str:
+    return f"{_PICK_PAGE_PREFIX}{kind}:{page}"
+
+
+def _pagination_row(loc: str, kind: str, page: int, has_prev: bool, has_more: bool) -> list[dict[str, str]] | None:
+    buttons: list[dict[str, str]] = []
+    if has_prev:
+        buttons.append({"text": t(loc, "telegram.page_prev"), "callback_data": _pick_page_callback(kind, page - 1)})
+    if has_more:
+        buttons.append({"text": t(loc, "telegram.page_next"), "callback_data": _pick_page_callback(kind, page + 1)})
+    return buttons or None
+
+
+def _pick_list_caption(loc: str, kind: str, page: int) -> str:
+    intro_key = {
+        _PICK_PAGE_KIND_TRANSCRIBE: "telegram.transcribe_intro",
+        _PICK_PAGE_KIND_SUMMARY: "telegram.summary_intro",
+        _PICK_PAGE_KIND_VIEW_SUMMARY: "telegram.viewsummary_intro",
+    }[kind]
+    text = t(loc, intro_key)
+    if page > 0:
+        text = f"{text}\n{t(loc, 'telegram.pick_page', page=page + 1)}"
+    return text
+
+
+def _view_summary_inline_keyboard(
+    summaries: list[Summary],
+    db: Session,
+    loc: str,
+    page: int,
+    *,
+    has_prev: bool,
+    has_more: bool,
+) -> dict[str, list[list[dict[str, str]]]]:
     rows: list[list[dict[str, str]]] = []
     for summary in summaries:
         rows.append(
@@ -426,10 +464,21 @@ def _view_summary_inline_keyboard(summaries: list[Summary], db: Session) -> dict
                 }
             ]
         )
+    nav = _pagination_row(loc, _PICK_PAGE_KIND_VIEW_SUMMARY, page, has_prev, has_more)
+    if nav:
+        rows.append(nav)
     return {"inline_keyboard": rows}
 
 
-def _audio_inline_keyboard(audios: list[Audio], db: Session) -> dict[str, list[list[dict[str, str]]]]:
+def _audio_inline_keyboard(
+    audios: list[Audio],
+    db: Session,
+    loc: str,
+    page: int,
+    *,
+    has_prev: bool,
+    has_more: bool,
+) -> dict[str, list[list[dict[str, str]]]]:
     rows: list[list[dict[str, str]]] = []
     for audio in audios:
         rows.append(
@@ -440,10 +489,21 @@ def _audio_inline_keyboard(audios: list[Audio], db: Session) -> dict[str, list[l
                 }
             ]
         )
+    nav = _pagination_row(loc, _PICK_PAGE_KIND_TRANSCRIBE, page, has_prev, has_more)
+    if nav:
+        rows.append(nav)
     return {"inline_keyboard": rows}
 
 
-def _transcript_inline_keyboard(transcripts: list[Transcript], db: Session) -> dict[str, list[list[dict[str, str]]]]:
+def _transcript_inline_keyboard(
+    transcripts: list[Transcript],
+    db: Session,
+    loc: str,
+    page: int,
+    *,
+    has_prev: bool,
+    has_more: bool,
+) -> dict[str, list[list[dict[str, str]]]]:
     rows: list[list[dict[str, str]]] = []
     for transcript in transcripts:
         rows.append(
@@ -454,6 +514,9 @@ def _transcript_inline_keyboard(transcripts: list[Transcript], db: Session) -> d
                 }
             ]
         )
+    nav = _pagination_row(loc, _PICK_PAGE_KIND_SUMMARY, page, has_prev, has_more)
+    if nav:
+        rows.append(nav)
     return {"inline_keyboard": rows}
 
 
@@ -554,6 +617,19 @@ async def _handle_callback_query(db: Session, callback: dict, *, token: str, set
         except TelegramApiError as exc:
             log.warning("telegram answerCallbackQuery: %s", exc)
 
+    if data.startswith(_PICK_PAGE_PREFIX):
+        await _handle_pick_page_callback(
+            db,
+            data[len(_PICK_PAGE_PREFIX) :],
+            token=token,
+            settings=settings,
+            chat_id_s=chat_id_s,
+            tg_user_s=tg_user_s,
+            message_id=message.get("message_id"),
+            answer=_answer,
+        )
+        return
+
     if data.startswith(_VIEW_SUMMARY_CALLBACK_PREFIX):
         await _handle_view_summary_callback(
             db,
@@ -650,40 +726,191 @@ async def _handle_callback_query(db: Session, callback: dict, *, token: str, set
         await _answer(t(loc, "telegram.summary_failed"))
 
 
-def _list_recent_summaries(db: Session, ctx, limit: int = _TELEGRAM_PICK_LIST_LIMIT) -> list[Summary]:
+def _list_recent_summaries(
+    db: Session,
+    ctx,
+    *,
+    page: int = 0,
+    page_size: int = _TELEGRAM_PICK_LIST_LIMIT,
+) -> tuple[list[Summary], bool, bool]:
     from app.services.access import ensure_library_readable
     from app.services.library_helpers import list_filter
 
-    rows = list_filter(ctx, db, Summary, "summary", include_hidden=False, limit=limit)
+    offset = page * page_size
+    rows = list_filter(ctx, db, Summary, "summary", include_hidden=False, limit=page_size + 1, offset=offset)
     out: list[Summary] = []
     for row in rows:
         if ensure_library_readable(ctx, db, row, "summary"):
             out.append(row)
-    return out
+    has_more = len(out) > page_size
+    return out[:page_size], page > 0, has_more
 
 
-def _list_recent_audios(db: Session, ctx, limit: int = _TELEGRAM_PICK_LIST_LIMIT) -> list[Audio]:
+def _list_recent_audios(
+    db: Session,
+    ctx,
+    *,
+    page: int = 0,
+    page_size: int = _TELEGRAM_PICK_LIST_LIMIT,
+) -> tuple[list[Audio], bool, bool]:
     from app.services.access import can_use_audio
     from app.services.library_helpers import list_filter
 
-    rows = list_filter(ctx, db, Audio, "audio", include_hidden=False, limit=limit)
+    offset = page * page_size
+    rows = list_filter(ctx, db, Audio, "audio", include_hidden=False, limit=page_size + 1, offset=offset)
     out: list[Audio] = []
     for row in rows:
         if can_use_audio(ctx, db, row):
             out.append(row)
-    return out
+    has_more = len(out) > page_size
+    return out[:page_size], page > 0, has_more
 
 
-def _list_recent_transcripts(db: Session, ctx, limit: int = _TELEGRAM_PICK_LIST_LIMIT) -> list[Transcript]:
+def _list_recent_transcripts(
+    db: Session,
+    ctx,
+    *,
+    page: int = 0,
+    page_size: int = _TELEGRAM_PICK_LIST_LIMIT,
+) -> tuple[list[Transcript], bool, bool]:
     from app.services.access import can_use_transcript
     from app.services.library_helpers import list_filter
 
-    rows = list_filter(ctx, db, Transcript, "transcript", include_hidden=False, limit=limit)
+    offset = page * page_size
+    rows = list_filter(ctx, db, Transcript, "transcript", include_hidden=False, limit=page_size + 1, offset=offset)
     out: list[Transcript] = []
     for row in rows:
         if can_use_transcript(ctx, db, row):
             out.append(row)
-    return out
+    has_more = len(out) > page_size
+    return out[:page_size], page > 0, has_more
+
+
+async def _present_pick_list(
+    db: Session,
+    token: str,
+    settings,
+    chat_id: str,
+    ctx,
+    loc: str,
+    kind: str,
+    page: int,
+    *,
+    message_id: int | None = None,
+) -> None:
+    empty_key = {
+        _PICK_PAGE_KIND_TRANSCRIBE: "telegram.transcribe_empty",
+        _PICK_PAGE_KIND_SUMMARY: "telegram.summary_empty",
+        _PICK_PAGE_KIND_VIEW_SUMMARY: "telegram.viewsummary_empty",
+    }[kind]
+    if kind == _PICK_PAGE_KIND_TRANSCRIBE:
+        items, has_prev, has_more = _list_recent_audios(db, ctx, page=page)
+        markup = _audio_inline_keyboard(items, db, loc, page, has_prev=has_prev, has_more=has_more)
+    elif kind == _PICK_PAGE_KIND_SUMMARY:
+        items, has_prev, has_more = _list_recent_transcripts(db, ctx, page=page)
+        markup = _transcript_inline_keyboard(items, db, loc, page, has_prev=has_prev, has_more=has_more)
+    else:
+        items, has_prev, has_more = _list_recent_summaries(db, ctx, page=page)
+        markup = _view_summary_inline_keyboard(items, db, loc, page, has_prev=has_prev, has_more=has_more)
+
+    if not items:
+        if page > 0:
+            await _present_pick_list(db, token, settings, chat_id, ctx, loc, kind, 0, message_id=message_id)
+            return
+        if message_id is not None:
+            await edit_message_text(
+                token,
+                settings=settings,
+                db=db,
+                chat_id=chat_id,
+                message_id=message_id,
+                text=t(loc, empty_key),
+                reply_markup={"inline_keyboard": []},
+            )
+        else:
+            await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, empty_key))
+        return
+
+    text = _pick_list_caption(loc, kind, page)
+    if message_id is not None:
+        await edit_message_text(
+            token,
+            settings=settings,
+            db=db,
+            chat_id=chat_id,
+            message_id=message_id,
+            text=text,
+            reply_markup=markup,
+        )
+    else:
+        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=text, reply_markup=markup)
+
+
+async def _handle_pick_page_callback(
+    db: Session,
+    payload: str,
+    *,
+    token: str,
+    settings,
+    chat_id_s: str,
+    tg_user_s: str,
+    message_id: int | None,
+    answer,
+) -> None:
+    parts = payload.split(":", 1)
+    if len(parts) != 2 or message_id is None:
+        await answer()
+        return
+    kind, page_raw = parts[0], parts[1]
+    if kind not in (
+        _PICK_PAGE_KIND_TRANSCRIBE,
+        _PICK_PAGE_KIND_SUMMARY,
+        _PICK_PAGE_KIND_VIEW_SUMMARY,
+    ):
+        await answer()
+        return
+    try:
+        page = int(page_raw)
+    except ValueError:
+        await answer()
+        return
+    if page < 0:
+        await answer()
+        return
+
+    link = link_for_telegram_user(db, tg_user_s)
+    if link is None:
+        await answer(_need_link_text(db, "en"))
+        return
+    user = db.get(User, link.user_id)
+    if user is None or user.disabled_at is not None:
+        await answer(_need_link_text(db, "en"))
+        return
+    loc = _locale(user)
+
+    try:
+        ctx = auth_context_for_user(db, user)
+        ctx.require_org()
+    except Exception:
+        await answer(t(loc, "telegram.no_org"))
+        return
+
+    try:
+        await _present_pick_list(
+            db,
+            token,
+            settings,
+            chat_id_s,
+            ctx,
+            loc,
+            kind,
+            page,
+            message_id=int(message_id),
+        )
+        await answer()
+    except TelegramApiError as exc:
+        log.warning("telegram pick list page: %s", exc)
+        await answer(t(loc, "telegram.pick_page_failed"))
 
 
 async def _send_summary_content(
@@ -718,19 +945,7 @@ async def _cmd_viewsummary(
         await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.no_org"))
         return
 
-    summaries = _list_recent_summaries(db, ctx)
-    if not summaries:
-        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.viewsummary_empty"))
-        return
-
-    await send_message(
-        token,
-        settings=settings,
-        db=db,
-        chat_id=chat_id,
-        text=t(loc, "telegram.viewsummary_intro"),
-        reply_markup=_view_summary_inline_keyboard(summaries, db),
-    )
+    await _present_pick_list(db, token, settings, chat_id, ctx, loc, _PICK_PAGE_KIND_VIEW_SUMMARY, 0)
 
 
 async def _handle_view_summary_callback(
@@ -928,18 +1143,7 @@ async def _cmd_transcribe(
         await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.audio_not_found"))
         return
 
-    audios = _list_recent_audios(db, ctx)
-    if not audios:
-        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.transcribe_empty"))
-        return
-    await send_message(
-        token,
-        settings=settings,
-        db=db,
-        chat_id=chat_id,
-        text=t(loc, "telegram.transcribe_intro"),
-        reply_markup=_audio_inline_keyboard(audios, db),
-    )
+    await _present_pick_list(db, token, settings, chat_id, ctx, loc, _PICK_PAGE_KIND_TRANSCRIBE, 0)
 
 
 async def _cmd_summary(
@@ -989,18 +1193,7 @@ async def _cmd_summary(
         await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.transcript_not_found"))
         return
 
-    transcripts = _list_recent_transcripts(db, ctx)
-    if not transcripts:
-        await send_message(token, settings=settings, db=db, chat_id=chat_id, text=t(loc, "telegram.summary_empty"))
-        return
-    await send_message(
-        token,
-        settings=settings,
-        db=db,
-        chat_id=chat_id,
-        text=t(loc, "telegram.summary_intro"),
-        reply_markup=_transcript_inline_keyboard(transcripts, db),
-    )
+    await _present_pick_list(db, token, settings, chat_id, ctx, loc, _PICK_PAGE_KIND_SUMMARY, 0)
 
 
 async def _cmd_status(db: Session, token: str, settings, chat_id: str, user: User, loc: str) -> None:

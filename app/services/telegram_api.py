@@ -80,6 +80,26 @@ async def send_message(
     return await _request("sendMessage", token, settings=settings, db=db, json_body=body)
 
 
+async def edit_message_text(
+    token: str,
+    *,
+    settings: InstanceSettings,
+    db,
+    chat_id: str,
+    message_id: int,
+    text: str,
+    reply_markup: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    body: dict[str, Any] = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text[:4096],
+    }
+    if reply_markup:
+        body["reply_markup"] = reply_markup
+    return await _request("editMessageText", token, settings=settings, db=db, json_body=body)
+
+
 async def answer_callback_query(
     token: str,
     *,

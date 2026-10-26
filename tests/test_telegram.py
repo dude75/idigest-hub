@@ -378,6 +378,22 @@ async def _noop_send(*_args, **_kwargs):
     return {}
 
 
+def test_telegram_pick_list_keyboard_pagination():
+    from unittest.mock import MagicMock
+
+    from app.models import Audio
+    from app.services.telegram_bot import _audio_inline_keyboard
+
+    db = MagicMock()
+    audios = [Audio(id=f"a{i:02d}", org_id="o", owner_user_id="u", storage_path="p", original_filename=f"f{i}.mp3") for i in range(10)]
+    markup = _audio_inline_keyboard(audios, db, "en", 0, has_prev=False, has_more=True)
+    callbacks = [btn["callback_data"] for row in markup["inline_keyboard"] for btn in row]
+    assert "pg:ta:1" in callbacks
+    markup2 = _audio_inline_keyboard(audios, db, "en", 2, has_prev=True, has_more=False)
+    callbacks2 = [btn["callback_data"] for row in markup2["inline_keyboard"] for btn in row]
+    assert "pg:ta:1" in callbacks2
+
+
 async def test_telegram_unlinked_message_includes_public_url(client, monkeypatch):
     captured: list[str] = []
 
@@ -673,7 +689,7 @@ def test_view_summary_inline_keyboard_callback_data():
     )
     db = MagicMock()
     db.get.return_value = summary
-    markup = _view_summary_inline_keyboard([summary], db)
+    markup = _view_summary_inline_keyboard([summary], db, "en", 0, has_prev=False, has_more=False)
     assert markup["inline_keyboard"][0][0]["callback_data"] == f"{_VIEW_SUMMARY_CALLBACK_PREFIX}{summary.id}"
 
 
@@ -710,9 +726,9 @@ def test_transcribe_and_summary_inline_keyboard_callback_data():
     )
     db = MagicMock()
     db.get.side_effect = lambda model, pk: audio if pk == audio_id else transcript if pk == transcript_id else None
-    audio_markup = _audio_inline_keyboard([audio], db)
+    audio_markup = _audio_inline_keyboard([audio], db, "en", 0, has_prev=False, has_more=False)
     assert audio_markup["inline_keyboard"][0][0]["callback_data"] == f"{_TRANSCRIBE_AUDIO_CALLBACK_PREFIX}{audio_id}"
-    transcript_markup = _transcript_inline_keyboard([transcript], db)
+    transcript_markup = _transcript_inline_keyboard([transcript], db, "en", 0, has_prev=False, has_more=False)
     assert (
         transcript_markup["inline_keyboard"][0][0]["callback_data"]
         == f"{_SUMMARY_TRANSCRIPT_CALLBACK_PREFIX}{transcript_id}"
