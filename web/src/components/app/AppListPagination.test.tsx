@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { renderWithI18n } from '@/test/renderWithI18n'
+import { renderWithI18n } from '@/test/render'
 import { AppListPagination } from './AppListPagination'
 import type { ListPageSize } from './selectOptions'
 

@@ -54,8 +54,17 @@ describe('Typeset UI contract', () => {
     const indexCss = await readWeb('src/index.css')
     expect(indexCss).toContain('--hub-content-scale: 1.2')
     expect(indexCss).toContain('--hub-page-max: calc(67.5rem * var(--hub-content-scale))')
+    expect(indexCss).toContain('--hub-shell-max: var(--hub-page-max)')
     expect(indexCss).toMatch(/\.page\s*\{[^}]*max-width:\s*var\(--hub-page-max\)/)
     expect(indexCss).not.toContain('max-width: 1080px')
+  })
+
+  it('keeps entity back layout on CSS grid without JS offset', async () => {
+    const indexCss = await readWeb('src/index.css')
+    expect(indexCss).toMatch(/\.entity-page-main\s*\{[^}]*display:\s*contents/)
+    expect(indexCss).toMatch(/\.entity-page-layout:has\([\s\S]*?\)\s*\.entity-back\s*\{[^}]*grid-row:\s*2/)
+    expect(indexCss).not.toContain('--entity-back-offset')
+    expect(indexCss).not.toContain('entity-back-offset')
   })
 
   it('declares Geist Mono in theme and package deps', async () => {

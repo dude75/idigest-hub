@@ -21,6 +21,7 @@ import {
   EntityBodyCard,
   EntityDetailCard,
   EntityPage,
+  EntityPageLoading,
 } from '../components/app/EntityUi'
 
 export function SummaryPage() {
@@ -118,7 +119,7 @@ export function SummaryPage() {
     }
   }
 
-  if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
+  if (!item && !loadFailed) return <EntityPageLoading backTo={libraryPath('summaries')} />
 
   return (
     <EntityPage backTo={libraryPath('summaries')}>

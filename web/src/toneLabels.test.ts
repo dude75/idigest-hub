@@ -1,16 +1,12 @@
-import { describe, expect, it } from 'vitest'
-import i18n from 'i18next'
-import { initReactI18next } from 'react-i18next'
-import en from './locales/en.json'
-import ru from './locales/ru.json'
+import { beforeAll, describe, expect, it } from 'vitest'
+import i18n from '@/i18n'
 import { formatToneLayers, toneEmotionLabel } from './toneLabels'
 
-void i18n.use(initReactI18next).init({
-  lng: 'ru',
-  resources: { en: { translation: en }, ru: { translation: ru } },
-})
-
 describe('toneLabels', () => {
+  beforeAll(async () => {
+    await i18n.changeLanguage('ru')
+  })
+
   it('localizes known emotions', () => {
     expect(toneEmotionLabel(i18n.t.bind(i18n), 'joy')).toBe('Радость')
   })

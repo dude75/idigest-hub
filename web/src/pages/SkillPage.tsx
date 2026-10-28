@@ -19,6 +19,7 @@ import {
   EntityBodyCard,
   EntityDetailCard,
   EntityPage,
+  EntityPageLoading,
 } from '../components/app/EntityUi'
 
 function skillPath(skill: SchemaSkillPublicResponse): string {
@@ -140,7 +141,7 @@ export function SkillPage() {
     }
   }
 
-  if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
+  if (!item && !loadFailed) return <EntityPageLoading backTo={backTo} />
 
   return (
     <EntityPage backTo={backTo}>

@@ -11,6 +11,7 @@ import { ShareDialog } from '../components/ShareDialog'
 import {
   EntityDetailCard,
   EntityPage,
+  EntityPageLoading,
   ListSection,
 } from '../components/app/EntityUi'
 import { AppHoverHint } from '../components/app/AppHoverHint'
@@ -106,7 +107,7 @@ export function AudioPage() {
     }
   }
 
-  if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
+  if (!item && !loadFailed) return <EntityPageLoading backTo={libraryPath('audio')} />
 
   return (
     <EntityPage backTo={libraryPath('audio')}>

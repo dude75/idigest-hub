@@ -13,6 +13,26 @@ type EntityPageProps = {
   backTo?: string
 }
 
+type EntityPageLoadingProps = {
+  backTo: string
+  className?: string
+}
+
+/** Library entity detail shell while the record is loading (stable back + grid). */
+export function EntityPageLoading({ backTo, className }: EntityPageLoadingProps) {
+  const { t } = useTranslation()
+  return (
+    <EntityPage backTo={backTo} className={className}>
+      <div className="entity-page-skeleton-title" aria-hidden />
+      <EntityDetailCard>
+        <p className="muted" aria-live="polite">
+          {t('common.loading')}
+        </p>
+      </EntityDetailCard>
+    </EntityPage>
+  )
+}
+
 /** Member entity pages (audio, transcript, summary, skill). */
 export function EntityPage({ children, className, backTo }: EntityPageProps) {
   const { t } = useTranslation()

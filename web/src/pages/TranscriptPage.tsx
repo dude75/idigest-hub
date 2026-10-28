@@ -40,6 +40,7 @@ import {
   EntityBodyCard,
   EntityDetailCard,
   EntityPage,
+  EntityPageLoading,
 } from '../components/app/EntityUi'
 
 function skillNamesForSummary(summary: Summary, skills: SchemaSkillPublicResponse[]): string {
@@ -192,7 +193,7 @@ export function TranscriptPage() {
     ? 'transcript.skillsNone'
     : 'transcript.skillsPicked'
 
-  if (!item && !loadFailed) return <p className="muted">{t('common.loading')}</p>
+  if (!item && !loadFailed) return <EntityPageLoading backTo={libraryPath('transcripts')} />
 
   const utteranceActions = (
     <div className="transcript-utterance-actions flex flex-wrap items-center justify-end gap-2">

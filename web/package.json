@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run --config vitest.config.ts",
-    "test:ui": "vitest run --config vitest.config.ts src/ui/typesetUi.test.ts src/typography.test.ts src/markdown.test.ts src/components/app/EntityUi.test.tsx && npm run check:ui",
+    "test:ui": "vitest run --config vitest.config.ts src/ui/typesetUi.test.ts src/typography.test.ts src/markdown.test.ts src/toneLabels.test.ts src/components/app/EntityUi.test.tsx src/components/app/AppListPagination.test.tsx src/components/StatCard.test.tsx src/components/ui/pagination.test.tsx && npm run check:ui",
     "check:ui": "node scripts/check-ui-migration.mjs",
     "generate:openapi": "cd .. && ./.venv/bin/python scripts/export_openapi.py",
     "generate:api-types": "openapi-typescript openapi/openapi.json -o src/openapi/schema.gen.ts",

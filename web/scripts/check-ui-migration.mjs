@@ -190,6 +190,18 @@ if (!indexCss.includes('max-width: var(--hub-page-max)')) {
 if (indexCss.includes('max-width: 1080px')) {
   issues.push('index.css: use var(--hub-page-max) instead of hard-coded 1080px')
 }
+if (!indexCss.includes('--hub-shell-max: var(--hub-page-max)')) {
+  issues.push('index.css :root must set --hub-shell-max: var(--hub-page-max)')
+}
+if (!/\.entity-page-main\s*\{[^}]*display:\s*contents/.test(indexCss)) {
+  issues.push('index.css .entity-page-main must use display: contents for entity back grid')
+}
+if (indexCss.includes('entity-back-offset')) {
+  issues.push('index.css must not use JS entity-back-offset — use entity-page grid')
+}
+if (!/\.entity-page-layout:has\([\s\S]*?\)\s*\.entity-back/.test(indexCss)) {
+  issues.push('index.css must align entity back on row 2 when a title precedes cards')
+}
 if (!indexCss.includes('--font-sans: var(--font-geist)')) {
   issues.push('index.css :root must define --font-sans from Geist')
 }
@@ -255,6 +267,19 @@ for (const file of files) {
       `${rel(file)}: dashboard gradient surfaces need bg-gradient-to-t and from-primary/5 (see StatCard / library ingest)`,
     )
   }
+}
+
+for (const file of files) {
+  if (!file.endsWith('.test.tsx')) continue
+  const text = await readFile(file, 'utf8')
+  if (!/from ['"]react-i18next['"]/.test(text)) continue
+  if (!/\brender\s*\(/.test(text)) continue
+  if (text.includes('@/test/render') || text.includes('renderWithI18n') || text.includes('renderWithRouter')) {
+    continue
+  }
+  issues.push(
+    `${rel(file)}: components with useTranslation in tests must use renderWithI18n/renderWithRouter from @/test/render`,
+  )
 }
 
 if (issues.length) {
