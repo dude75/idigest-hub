@@ -177,7 +177,7 @@ export function SummaryPage() {
                 )}
               </EntityToolbar>
           </EntityDetailCard>
-          <EntityBodyCard title={t('summary.body')}>
+          <EntityBodyCard>
             {editing ? (
               <div className="flex flex-col gap-3">
                 <textarea

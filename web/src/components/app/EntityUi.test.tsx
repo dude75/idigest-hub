@@ -52,4 +52,15 @@ describe('EntityBodyCard', () => {
     expect(screen.getByText('Prose here')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
   })
+
+  it('renders body without card header when title is omitted', () => {
+    render(
+      <EntityBodyCard>
+        <p>Markdown body</p>
+      </EntityBodyCard>,
+    )
+
+    expect(screen.queryByRole('heading')).not.toBeInTheDocument()
+    expect(screen.getByText('Markdown body')).toBeInTheDocument()
+  })
 })

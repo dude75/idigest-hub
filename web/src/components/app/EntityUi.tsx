@@ -73,20 +73,23 @@ export function EntityDetailCard({ children, className }: { children: ReactNode;
 }
 
 type EntityBodyCardProps = {
-  title: string
+  title?: string
   children: ReactNode
   className?: string
   actions?: ReactNode
 }
 
 export function EntityBodyCard({ title, children, className, actions }: EntityBodyCardProps) {
+  const showHeader = Boolean(title || actions)
   return (
     <Card className={cn('entity-body-card', className)}>
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-3">
-        <CardTitle className="font-medium">{title}</CardTitle>
-        {actions}
-      </CardHeader>
-      <CardContent className={cn(hubReadingSurface, 'pt-0')}>{children}</CardContent>
+      {showHeader ? (
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-3">
+          {title ? <CardTitle className="font-medium">{title}</CardTitle> : <span />}
+          {actions}
+        </CardHeader>
+      ) : null}
+      <CardContent className={cn(hubReadingSurface, showHeader && 'pt-0')}>{children}</CardContent>
     </Card>
   )
 }
