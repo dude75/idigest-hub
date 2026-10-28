@@ -7,6 +7,7 @@ import type { InstanceSettings } from '../../types'
 import { AdminFormCard, AdminPage } from '../../components/AdminSection'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
 import { Segmented } from '../../components/Segmented'
+import { agreementText } from '../../typography'
 import { MarkdownBody } from '../../markdown'
 import { Button } from '@/components/ui/button'
 import { AppTabs, TabsTrigger } from '../../components/Tabs'
@@ -89,7 +90,7 @@ function AgreementEditorPair({
       </div>
       <div className="agreement-editor-field">
         <span className="muted">{t('instance.userAgreementPreview')}</span>
-        <div className="agreement-text agreement-preview" style={paneStyle}>
+        <div className={`${agreementText} agreement-preview`} style={paneStyle}>
           {preview.trim() ? (
             <MarkdownBody text={preview} />
           ) : (

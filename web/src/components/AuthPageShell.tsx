@@ -6,7 +6,7 @@ import { LanguageSwitcher } from './LanguageSwitcher'
 
 type Props = {
   children: ReactNode
-  /** Same content column as `/app/*` (`main.page`, 1080px). */
+  /** Same content column as `/app/*` (`main.page`, `--hub-page-max`). */
   appPage?: boolean
 }
 

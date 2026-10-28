@@ -859,7 +859,7 @@
     "configurationTitle": "Instance settings",
     "workersTotal": "Workers",
     "workersEnabled": "Enabled",
-    "workersAvailable": "Available for jobs",
+    "workersAvailable": "For jobs",
     "workersAvailableOfEnabled": "of {{enabled}} enabled",
     "workersHubImportLimit": "Hub URL import parallel limit: {{count}}",
     "workersCaptureCapacity": "Capture: {{available}} / {{max}} workers",

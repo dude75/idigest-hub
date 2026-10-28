@@ -37,7 +37,7 @@ export function LandingFooter() {
         </nav>
       ) : null}
       {footerText ? (
-        <div className="landing-footer-extra agreement-text">
+        <div className="landing-footer-extra">
           <MarkdownBody text={footerText} />
         </div>
       ) : null}

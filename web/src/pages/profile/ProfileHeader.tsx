@@ -45,7 +45,7 @@ export function ProfileHeader() {
   const apiTone: MetricTone = apiAllowed ? 'ok' : 'muted'
 
   return (
-    <Card className="profile-identity font-sans bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none">
+    <Card className="profile-identity bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none">
       <CardContent className="flex flex-col gap-4 pt-6">
         <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-center">
           <div

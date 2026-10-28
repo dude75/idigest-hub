@@ -63,7 +63,7 @@ export function SkillCreatePage() {
           <AppField label={t('skills.body')} htmlFor="skill-create-body">
             <textarea
               id="skill-create-body"
-              className="skill-editor min-h-[12rem] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm"
+              className="skill-editor font-mono min-h-[12rem] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm"
               value={body}
               disabled={busy}
               onChange={(e) => setBody(e.target.value)}

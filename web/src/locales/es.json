@@ -863,7 +863,7 @@
     "configurationTitle": "Ajustes de instancia",
     "workersTotal": "Workers",
     "workersEnabled": "Activos",
-    "workersAvailable": "Disponibles para tareas",
+    "workersAvailable": "Para tareas",
     "workersAvailableOfEnabled": "de {{enabled}} activos",
     "workersHubImportLimit": "Límite paralelo de import URL en el hub: {{count}}",
     "workersCaptureCapacity": "Capture: {{available}} / {{max}} workers",

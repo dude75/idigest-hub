@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import type { Components } from 'react-markdown'
 
 const FENCE = /^```(?:markdown|md)?\r?\n([\s\S]*?)\r?\n```$/
 
@@ -12,11 +13,19 @@ export function unwrapMarkdownFence(text: string): string {
   return text
 }
 
+const markdownComponents: Components = {
+  table: ({ node: _node, children, ...props }) => (
+    <div className="typeset-scroll">
+      <table {...props}>{children}</table>
+    </div>
+  ),
+}
+
 export function MarkdownBody({ text }: { text: string }) {
   return (
-    <div className="summary-md">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{unwrapMarkdownFence(text)}</ReactMarkdown>
-    </div>
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      {unwrapMarkdownFence(text)}
+    </ReactMarkdown>
   )
 }
 

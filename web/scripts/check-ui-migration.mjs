@@ -178,6 +178,38 @@ if (legacyBadgeCount > MAX_LEGACY_BADGE) {
 }
 
 const indexCss = await readFile(path.join(SRC, 'index.css'), 'utf8')
+if (indexCss.includes('calc(14px * 1.05)')) {
+  issues.push('index.css :root must use 16px Typeset base, not calc(14px * 1.05)')
+}
+if (!indexCss.includes('--hub-content-scale: 1.2')) {
+  issues.push('index.css :root must define --hub-content-scale: 1.2 for app content width')
+}
+if (!indexCss.includes('max-width: var(--hub-page-max)')) {
+  issues.push('index.css .page must use max-width: var(--hub-page-max)')
+}
+if (indexCss.includes('max-width: 1080px')) {
+  issues.push('index.css: use var(--hub-page-max) instead of hard-coded 1080px')
+}
+if (!indexCss.includes('--font-sans: var(--font-geist)')) {
+  issues.push('index.css :root must define --font-sans from Geist')
+}
+if (!indexCss.includes('--font-mono: var(--font-geist-mono)')) {
+  issues.push('index.css :root must define --font-mono from Geist Mono')
+}
+if (/\bInter,/.test(indexCss)) {
+  issues.push('index.css must not reference Inter — use --font-sans')
+}
+if (/font-family:\s*ui-monospace/.test(indexCss)) {
+  issues.push('index.css: use var(--font-mono) instead of raw ui-monospace stacks')
+}
+if (indexCss.includes('.summary-md')) {
+  issues.push('remove legacy .summary-md — use Typeset + hub-reading-surface')
+}
+if (
+  !/\.hub-reading-surface,\s*\n\s*\.summary-body,\s*\n\s*\.agreement-text/.test(indexCss)
+) {
+  issues.push('index.css must unify reading typography on hub-reading-surface, summary-body, agreement-text')
+}
 const authShell = await readFile(path.join(import.meta.dirname, '../public/auth-shell.css'), 'utf8')
 const hubAccent = indexCss.match(/--hub-accent:\s*([^;]+);/)?.[1]?.trim()
 const authPrimary = authShell.match(/^\s*--primary:\s*([^;]+);/m)?.[1]?.trim()

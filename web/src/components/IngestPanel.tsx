@@ -554,7 +554,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
 
   return (
     <>
-      <Card className="library-ingest font-sans shadow-md">
+      <Card className="library-ingest shadow-md">
         <CardContent className="flex flex-col gap-3">
           {progressBlock}
           <div className={`library-ingest-toolbar${ingestEnabled ? '' : ' upload-only'}`}>

@@ -7,6 +7,7 @@ import { InlineRename } from '../components/InlineRename'
 import { EntityToolbar } from '../components/EntityToolbar'
 import { ShareDialog } from '../components/ShareDialog'
 import { MarkdownBody } from '../markdown'
+import { summaryBody } from '../typography'
 import type { SchemaSkillListResponse, SchemaSkillPublicResponse } from '../openapi'
 import { libraryPath } from '../routes'
 import { fmtDate, showError } from '../util'
@@ -204,7 +205,7 @@ export function SkillPage() {
             <div className="flex flex-col gap-3">
               <AppInputField label={t('common.name')} htmlFor="skill-edit-name" value={name} onChange={(e) => setName(e.target.value)} />
               <AppField label={t('skills.body')} htmlFor="skill-edit-body">
-                <textarea id="skill-edit-body" className="skill-editor min-h-[12rem] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm" value={draft} onChange={(e) => setDraft(e.target.value)} />
+                <textarea id="skill-edit-body" className="skill-editor font-mono min-h-[12rem] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm" value={draft} onChange={(e) => setDraft(e.target.value)} />
               </AppField>
               <AdminFormActions>
                 <AppSubmitButton ready={skillEditReady} busy={busy} onClick={() => void save()}>
@@ -216,7 +217,7 @@ export function SkillPage() {
               </AdminFormActions>
             </div>
           ) : (
-            <div className="summary-body">
+            <div className={summaryBody}>
               <MarkdownBody text={item.body || ''} />
             </div>
           )}

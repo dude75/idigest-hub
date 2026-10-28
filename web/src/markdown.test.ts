@@ -34,4 +34,19 @@ describe('MarkdownBody', () => {
     expect(html).toContain('<table>')
     expect(html).toContain('Uploads')
   })
+
+  it('wraps tables in typeset-scroll for wide markdown', () => {
+    const text = '| A | B |\n| --- | --- |\n| 1 | 2 |'
+    const html = renderToStaticMarkup(createElement(MarkdownBody, { text }))
+    expect(html).toContain('class="typeset-scroll"')
+    expect(html).toContain('<table>')
+  })
+
+  it('renders GFM task lists', () => {
+    const text = '- [x] Done\n- [ ] Todo'
+    const html = renderToStaticMarkup(createElement(MarkdownBody, { text }))
+    expect(html).toContain('type="checkbox"')
+    expect(html).toContain('Done')
+    expect(html).toContain('Todo')
+  })
 })

@@ -339,7 +339,7 @@ export function MicrophoneRecordModal({ onClose, onSave, busy }: Props) {
       description={t('library.recordHint')}
       onClose={handleClose}
       closeOnBackdrop={!recording && !paused}
-      panelClassName="mic-record-modal sm:max-w-xl font-sans bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none"
+      panelClassName="mic-record-modal sm:max-w-xl bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none"
     >
       <div className="flex min-w-0 flex-col gap-4">
         <div

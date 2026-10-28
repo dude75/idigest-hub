@@ -7,6 +7,7 @@ import { AuthPageShell } from '../components/AuthPageShell'
 import { BackToLandingLink } from '../components/BackToLandingLink'
 import { MarkdownBody } from '../markdown'
 import { showError } from '../util'
+import { hubReadingSurface, summaryBody } from '../typography'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Card, CardContent } from '@/components/ui/card'
 import { AppInputField } from '../components/app/AppFormControls'
@@ -106,7 +107,7 @@ export function PublicSummaryPage() {
   return (
     <AuthPageShell appPage={summaryContent}>
       <Card className={`public-summary-card w-full${summaryContent ? '' : ' max-w-3xl'}`}>
-        <CardContent className="flex flex-col gap-4 pt-6">
+        <CardContent className={`flex flex-col gap-4 pt-6${summaryContent ? ` ${hubReadingSurface}` : ''}`}>
         {data?.pin_required && (
           <form className="flex flex-col gap-3" onSubmit={(e) => void unlock(e)}>
             <h1>{t('publicSummary.pinTitle')}</h1>
@@ -131,7 +132,7 @@ export function PublicSummaryPage() {
         {data && !data.pin_required && (
           <>
             <h1>{title || t('summary.title')}</h1>
-            <div className="summary-body">
+            <div className={summaryBody}>
               <MarkdownBody text={data.body || ''} />
             </div>
           </>

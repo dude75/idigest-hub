@@ -50,7 +50,7 @@ export function StatCard({
   const card = (
     <Card
       className={cn(
-        '@container/card stat-card font-sans bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none',
+        '@container/card stat-card bg-gradient-to-t from-primary/5 to-card shadow-xs dark:bg-card dark:bg-none',
         title && 'cursor-help',
       )}
     >

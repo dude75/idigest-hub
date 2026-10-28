@@ -859,7 +859,7 @@
     "configurationTitle": "Настройки инстанса",
     "workersTotal": "Воркеров",
     "workersEnabled": "Включено",
-    "workersAvailable": "Доступно для задач",
+    "workersAvailable": "Для задач",
     "workersAvailableOfEnabled": "из {{enabled}} включённых",
     "workersHubImportLimit": "Параллельный лимит URL-import на hub: {{count}}",
     "workersCaptureCapacity": "Capture: {{available}} / {{max}} workers",

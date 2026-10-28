@@ -13,6 +13,7 @@ import { libraryPath } from '../routes'
 import type { Summary } from '../types'
 import { UserTagsEditor } from '../components/UserTagsEditor'
 import { ShareBadges, fmtDate, showError } from '../util'
+import { summaryBody } from '../typography'
 import { Button } from '@/components/ui/button'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import { AdminFormActions, AppSubmitButton } from '../components/app/AdminUi'
@@ -179,7 +180,7 @@ export function SummaryPage() {
             {editing ? (
               <div className="flex flex-col gap-3">
                 <textarea
-                  className="summary-editor min-h-[12rem] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm"
+                  className="summary-editor font-mono min-h-[12rem] w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm"
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                 />
@@ -193,7 +194,7 @@ export function SummaryPage() {
                 </AdminFormActions>
               </div>
             ) : (
-              <div className="summary-body">
+              <div className={summaryBody}>
                 <MarkdownBody text={item.body || ''} />
               </div>
             )}

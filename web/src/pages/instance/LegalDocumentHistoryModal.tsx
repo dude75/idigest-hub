@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../../api'
 import { Modal } from '../../components/Modal'
 import { Segmented } from '../../components/Segmented'
+import { agreementText } from '../../typography'
 import { MarkdownBody } from '../../markdown'
 import {
   LEGAL_DOC_LOCALES,
@@ -116,7 +117,7 @@ export function LegalDocumentHistoryModal({ documentKey, onClose }: Props) {
             label: t(`lang.${value}`),
           }))}
         />
-        <div className="agreement-text agreement-preview legal-doc-history-body max-h-[50vh] overflow-y-auto rounded-md border p-4">
+        <div className={`${agreementText} agreement-preview legal-doc-history-body max-h-[50vh] overflow-y-auto rounded-md border p-4`}>
           {detailText.trim() ? (
             <MarkdownBody text={detailText} />
           ) : (

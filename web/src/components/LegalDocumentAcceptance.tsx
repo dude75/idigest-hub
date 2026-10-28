@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LEGAL_DOCUMENT_I18N, type LegalDocumentKey } from '../legalDocuments'
+import { agreementText } from '../typography'
 import { MarkdownBody } from '../markdown'
 import { Modal } from './Modal'
 import { Button } from '@/components/ui/button'
@@ -58,7 +59,7 @@ export function LegalDocumentAcceptance({ documents, checked, onCheckedChange, d
             <h2>{t(`legalDocuments.tabs.${LEGAL_DOCUMENT_I18N[viewing.key]}`)}</h2>
           </header>
           <div className="modal-body">
-            <div className="agreement-text">
+            <div className={agreementText}>
               {viewing.text ? <MarkdownBody text={viewing.text} /> : t('agreement.empty')}
             </div>
           </div>

@@ -22,6 +22,7 @@ import { UserTagsEditor } from '../components/UserTagsEditor'
 import { ShareBadges, fmtDate, showError } from '../util'
 import { utteranceDisplayText, utteranceStart, utteranceTimeLabel } from '../util/utteranceMedia'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AppCheckboxRow } from '../components/app/AppFormControls'
 import {
@@ -31,6 +32,7 @@ import {
   utteranceValenceStripeClass,
 } from '../components/TranscriptTonePanel'
 import { HubBadge } from '../components/app/AdminUi'
+import { summaryBody } from '../typography'
 import { skillScopeLabel } from '../skillScope'
 import { AppCursorHint } from '../components/app/AppCursorHint'
 import { AppHoverHint } from '../components/app/AppHoverHint'
@@ -296,7 +298,10 @@ export function TranscriptPage() {
           <EntityBodyCard title={t('transcript.utterances')} actions={utteranceActions}>
             {openText ? (
               <div
-                className={`summary-body${showToneOnUtterances && item.has_tone_analytics ? ' transcript-utterances-show-tone' : ''}`}
+                className={cn(
+                  summaryBody,
+                  showToneOnUtterances && item.has_tone_analytics && 'transcript-utterances-show-tone',
+                )}
               >
                 {(item.utterances || []).length === 0 ? <p className="muted">{t('common.empty')}</p> : null}
                 {(item.utterances || []).map((u, i) => {

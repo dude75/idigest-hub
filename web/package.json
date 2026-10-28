@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run --config vitest.config.ts",
+    "test:ui": "vitest run --config vitest.config.ts src/ui/typesetUi.test.ts src/typography.test.ts src/markdown.test.ts src/components/app/EntityUi.test.tsx && npm run check:ui",
     "check:ui": "node scripts/check-ui-migration.mjs",
     "generate:openapi": "cd .. && ./.venv/bin/python scripts/export_openapi.py",
     "generate:api-types": "openapi-typescript openapi/openapi.json -o src/openapi/schema.gen.ts",
@@ -17,6 +18,7 @@
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@fontsource-variable/geist": "^5.3.0",
+    "@fontsource-variable/geist-mono": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",

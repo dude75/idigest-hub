@@ -99,7 +99,7 @@ export function InstanceBaseSkillsTab() {
             <AppField label={t('skills.body')} htmlFor="base-skill-body">
               <textarea
                 id="base-skill-body"
-                className="skill-editor"
+                className="skill-editor font-mono"
                 value={sbody}
                 disabled={saveBusy}
                 onChange={(e) => setSbody(e.target.value)}

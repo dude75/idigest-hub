@@ -7,6 +7,7 @@ import { BackToLandingLink } from '../components/BackToLandingLink'
 import { LandingHeader } from '../components/LandingHeader'
 import type { SchemaPublicLegalDocumentDetailResponse } from '../openapi'
 import { LEGAL_DOCUMENT_I18N, legalDocKeyFromSlug, type PublicLegalDocument } from '../legalDocuments'
+import { agreementText } from '../typography'
 import { MarkdownBody } from '../markdown'
 
 export function LegalDocumentPage() {
@@ -40,7 +41,7 @@ export function LegalDocumentPage() {
 
       <main className="legal-document-main">
         <h1>{t(`legalDocuments.tabs.${LEGAL_DOCUMENT_I18N[doc.key]}`)}</h1>
-        <div className="agreement-text legal-document-body">
+        <div className={`${agreementText} legal-document-body`}>
           {doc.text ? <MarkdownBody text={doc.text} /> : t('agreement.empty')}
         </div>
         <div className="legal-document-actions">
