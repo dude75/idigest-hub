@@ -1707,6 +1707,24 @@ th { color: var(--hub-muted); font-weight: 550; }
   padding: 0.75rem;
   overflow-x: auto;
   scrollbar-gutter: stable;
+  font-family: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.75;
+}
+.summary-body .summary-md {
+  font-size: inherit;
+  line-height: inherit;
+}
+.summary-body .summary-md h1 { font-size: 1.35em; }
+.summary-body .summary-md h2 { font-size: 1.2em; }
+.summary-body .summary-md h3 { font-size: 1.08em; }
+.summary-body .summary-md strong { font-weight: 650; }
+.summary-body .utterance-text {
+  font-size: inherit;
+  line-height: inherit;
+}
+.summary-body .speaker {
+  font-size: inherit;
 }
 .summary-body.transcript-utterances-show-tone .utterance-meta {
   min-height: 1.35rem;
