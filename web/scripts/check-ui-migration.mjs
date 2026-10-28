@@ -181,8 +181,8 @@ const indexCss = await readFile(path.join(SRC, 'index.css'), 'utf8')
 if (indexCss.includes('calc(14px * 1.05)')) {
   issues.push('index.css :root must use 16px Typeset base, not calc(14px * 1.05)')
 }
-if (!indexCss.includes('--hub-content-scale: 1.2')) {
-  issues.push('index.css :root must define --hub-content-scale: 1.2 for app content width')
+if (!indexCss.includes('--hub-content-scale: 1.1')) {
+  issues.push('index.css :root must define --hub-content-scale: 1.1 for app content width')
 }
 if (!indexCss.includes('max-width: var(--hub-page-max)')) {
   issues.push('index.css .page must use max-width: var(--hub-page-max)')

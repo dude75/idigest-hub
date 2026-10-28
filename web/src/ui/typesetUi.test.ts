@@ -52,7 +52,7 @@ describe('Typeset UI contract', () => {
 
   it('uses scaled hub content column on .page', async () => {
     const indexCss = await readWeb('src/index.css')
-    expect(indexCss).toContain('--hub-content-scale: 1.2')
+    expect(indexCss).toContain('--hub-content-scale: 1.1')
     expect(indexCss).toContain('--hub-page-max: calc(67.5rem * var(--hub-content-scale))')
     expect(indexCss).toContain('--hub-shell-max: var(--hub-page-max)')
     expect(indexCss).toMatch(/\.page\s*\{[^}]*max-width:\s*var\(--hub-page-max\)/)
