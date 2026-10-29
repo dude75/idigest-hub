@@ -25,7 +25,7 @@ import { canAdminResetMemberMfa } from '../mfa'
 import { randomPassword } from '../util/password'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { appMutedText, appSettingsStack } from '../components/app/appTypography'
+import { appMutedText, appSettingsStack, publicLinkActionsRow } from '../components/app/appTypography'
 import { Card } from '@/components/ui/card'
 import {
   AdminDataTable,
@@ -789,7 +789,7 @@ export function OrgPage() {
               onChange={(e) => setEmail(e.target.value)}
             />
             <AppField label={t('common.password')} htmlFor="org-add-user-password">
-              <div className="public-link-actions-row">
+              <div className={publicLinkActionsRow}>
                 <AppUrlCopyRow value={password} id="org-add-user-password" />
                 <Button
                   type="button"

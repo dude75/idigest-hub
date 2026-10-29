@@ -8,7 +8,7 @@ import { ListSection } from './app/EntityUi'
 import type { SchemaOrgPublicLinkListResponse } from '../openapi'
 import type { OrgPublicLinkItem } from '../types'
 import { cn } from '@/lib/utils'
-import { appListRowTitle, appMetaDl, appMetaDlTerm, appMetaDlValue, appMutedText } from './app/appTypography'
+import { appListRowTitle, appMetaDl, appMetaDlTerm, appMetaDlValue, appMutedText, publicLinkActionsRow, publicLinkBadges, publicLinkHead, publicLinkRow } from './app/appTypography'
 import { fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { HubBadge } from './app/AdminUi'
@@ -33,8 +33,8 @@ function PublicLinkRow({
   const { t } = useTranslation()
 
   return (
-    <article className="public-link-row">
-      <div className="public-link-head">
+    <article className={publicLinkRow}>
+      <div className={publicLinkHead}>
         <Link
           to={`/app/summary/${link.summary_id}`}
           className={cn(
@@ -44,7 +44,7 @@ function PublicLinkRow({
         >
           {link.summary_title}
         </Link>
-        <div className="public-link-badges">
+        <div className={publicLinkBadges}>
           {link.active ? (
             <HubBadge tone="success">{t('publicLinks.statusActive')}</HubBadge>
           ) : (
@@ -73,7 +73,7 @@ function PublicLinkRow({
           </div>
         )}
       </dl>
-      <div className="public-link-actions-row">
+      <div className={publicLinkActionsRow}>
         {link.url ? (
           <AppUrlCopyRow value={link.url} />
         ) : (

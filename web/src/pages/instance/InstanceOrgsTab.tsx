@@ -11,6 +11,7 @@ import { OrgLedgerModal } from '../../components/OrgLedgerModal'
 import { InstanceOrgList } from './InstanceOrgList'
 import { StatCard, StatGrid } from '../../components/StatCard'
 import type { Org, OrgLedger, Tariff, User } from '../../types'
+import { publicLinkActionsRow } from '../../components/app/appTypography'
 import { defaultFilterRange } from '../../util/date'
 import { randomPassword } from '../../util/password'
 import { formatInteger, showError } from '../../util'
@@ -221,7 +222,7 @@ export function InstanceOrgsTab() {
             onChange={(e) => setOrgForm({ ...orgForm, admin_email: e.target.value })}
           />
           <AppField label={t('instance.orgAdminPassword')} htmlFor="instance-org-create-password">
-            <div className="public-link-actions-row">
+            <div className={publicLinkActionsRow}>
               <AppUrlCopyRow
                 value={orgForm.admin_password}
                 id="instance-org-create-password"
