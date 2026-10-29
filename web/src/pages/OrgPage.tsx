@@ -37,7 +37,10 @@ import {
   adminTableCellActions,
   adminTableCellBadges,
   adminTableCellPrimary,
+  adminTableCellRole,
   adminTableHeadActions,
+  adminTableHeadRole,
+  adminTableRoleSelectClass,
 } from '../components/app/AdminDataTable'
 import { AdminRowActions, HubBadge } from '../components/app/AdminUi'
 import { AppSelect } from '../components/app/AppSelect'
@@ -847,7 +850,7 @@ export function OrgPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t('common.email')}</TableHead>
-                <TableHead>{t('common.role')}</TableHead>
+                <TableHead className={adminTableHeadRole}>{t('common.role')}</TableHead>
                 <TableHead>{t('common.status')}</TableHead>
                 {admin ? <TableHead className={adminTableHeadActions}>{t('common.actions')}</TableHead> : null}
               </TableRow>
@@ -858,10 +861,10 @@ export function OrgPage() {
                   <TableCell className={adminTableCellPrimary}>
                     <OrgMemberCell user={u} />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className={adminTableCellRole}>
                     {admin ? (
                       <AppSelect
-                        className="h-8 min-w-[8rem]"
+                        className={adminTableRoleSelectClass}
                         value={u.role || 'org_member'}
                         onValueChange={(next) => void changeRole(u, next)}
                         options={[

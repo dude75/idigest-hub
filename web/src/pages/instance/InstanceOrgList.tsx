@@ -14,8 +14,11 @@ import {
   adminTableCellBadges,
   adminTableCellNum,
   adminTableCellPrimary,
+  adminTableCellRole,
   adminTableHeadActions,
   adminTableHeadNum,
+  adminTableHeadRole,
+  adminTableRoleSelectClass,
 } from '../../components/app/AdminDataTable'
 import { AdminMetaRow, AdminRowActions, HubBadge } from '../../components/app/AdminUi'
 import { AppHoverHint } from '../../components/app/AppHoverHint'
@@ -104,7 +107,7 @@ function OrgMembersTable({
       <TableHeader>
         <TableRow>
           <TableHead>{t('common.email')}</TableHead>
-          <TableHead>{t('common.role')}</TableHead>
+          <TableHead className={adminTableHeadRole}>{t('common.role')}</TableHead>
           <TableHead>{t('common.status')}</TableHead>
           <TableHead className={adminTableHeadActions}>{t('common.actions')}</TableHead>
         </TableRow>
@@ -115,11 +118,11 @@ function OrgMembersTable({
             <TableCell className={cn('max-w-[min(24rem,40vw)]', adminTableCellPrimary)}>
               <OrgMemberCell user={u} className="max-w-[min(24rem,40vw)]" />
             </TableCell>
-            <TableCell>
+            <TableCell className={adminTableCellRole}>
               {!u.is_instance_admin ? (
                 <AppSelect
                   id={`org-user-role-${u.id}`}
-                  className="h-8 min-w-[8.5rem]"
+                  className={adminTableRoleSelectClass}
                   value={u.role ?? 'org_member'}
                   onValueChange={(role) =>
                     void api(`/orgs/${org.id}/users/${u.id}`, {

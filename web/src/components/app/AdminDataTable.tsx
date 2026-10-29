@@ -40,10 +40,13 @@ export {
 
 export const adminTableHeadNum = 'text-right'
 export const adminTableHeadActions = 'w-[1%] text-right'
+export const adminTableHeadRole = 'w-[1%] whitespace-nowrap'
 export const adminTableCellPrimary = cn(appPrimaryText, 'whitespace-normal')
 export const adminTableCellMuted = cn(appMutedText, 'whitespace-normal')
 export const adminTableCellNum = cn('text-right', appNumericText)
 export const adminTableCellActions = 'w-[1%] text-right whitespace-nowrap'
+export const adminTableCellRole = 'w-[1%] whitespace-nowrap'
+export const adminTableRoleSelectClass = 'h-8 w-[7rem] max-w-[7rem]'
 export const adminTableCellBadges = cn('whitespace-normal min-w-[9rem] max-w-[16rem]')
 
 export const adminTruncateHintClass =
