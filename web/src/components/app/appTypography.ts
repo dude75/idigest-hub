@@ -134,9 +134,13 @@ export const appLandingCardBody = cn(appMuted, 'm-0 text-[0.92rem] leading-norma
 /** Empty states in stats tables and admin sections. */
 export const appStatsEmpty = cn(appMuted, 'm-0 px-2 py-6 text-center text-[0.9rem]')
 
-/** List row card chrome (replaces legacy `.item` / `.row`). */
+/** List row flex/padding (flush inside task-list-embedded / AdminTableCard). */
+export const listRowLayout = 'flex flex-wrap items-center gap-2 px-[0.85rem] py-[0.7rem]'
+
+/** Standalone bordered row — not for rows inside .task-list-embedded (avoids double radius with Card). */
 export const listRowChrome = cn(
-  'flex flex-wrap items-center gap-2 rounded-[var(--radius)] border border-[var(--line)] bg-card px-[0.85rem] py-[0.7rem]',
+  listRowLayout,
+  'rounded-[var(--radius)] border border-[var(--line)] bg-card',
 )
 
 /** Landing tariff quota footnotes under pricing cards. */

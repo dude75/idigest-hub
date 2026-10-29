@@ -189,7 +189,7 @@ for (const file of files) {
       !file.endsWith(`${path.sep}ListRow.tsx`) &&
       !file.includes('check-ui-migration')
     ) {
-      issues.push(`${rel(file)}:${i + 1}: legacy "item" list class — use ListRow / listRowChrome`)
+      issues.push(`${rel(file)}:${i + 1}: legacy "item" list class — use ListRow / listRowLayout`)
     }
     if (
       /className=["'][^"']*(?:^|\s)group(?:\s|$)/.test(line) &&
@@ -364,7 +364,11 @@ if (/\.ingest-studio-card\s*\{[^}]*background:/.test(indexCss)) {
   issues.push('ingest studio card chrome must use ingestStudioCardChrome token, not CSS background')
 }
 if (/\.item\s*\{/.test(indexCss)) {
-  issues.push('remove legacy .item rule — use listRowChrome on ListRow ([data-slot=list-row])')
+  issues.push('remove legacy .item rule — use ListRow with listRowLayout ([data-slot=list-row])')
+}
+const listRowTsx = await readFile(path.join(SRC, 'components/ListRow.tsx'), 'utf8')
+if (listRowTsx.includes('listRowChrome')) {
+  issues.push('ListRow must use listRowLayout on [data-slot=list-row] — listRowChrome doubles Card corner radius in embedded lists')
 }
 if (/\.group\s*\{/.test(indexCss)) {
   issues.push('rename legacy .group containers — use .library-source-group')

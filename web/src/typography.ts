@@ -59,6 +59,7 @@ export {
   appShareSectionHead,
   appTranscriptToneTitle,
   appTranscriptToneTitleInline,
+  listRowLayout,
   listRowChrome,
   appStatsEmpty,
   appToneEyebrow,
