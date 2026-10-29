@@ -5,7 +5,7 @@ import type { CallToneSummary, Transcript, Utterance } from '../types'
 import { toneEmotionLabel, toneLayerLabel } from '../toneLabels'
 import { HubBadge } from './app/AdminUi'
 import { cn } from '@/lib/utils'
-import { appMuted, appMutedText, appToneEyebrow } from './app/appTypography'
+import { appMuted, appMutedText, appTranscriptToneTitleInline, appToneEyebrow } from './app/appTypography'
 
 type ValenceKind = 'positive' | 'negative' | 'neutral' | 'unknown'
 
@@ -134,7 +134,7 @@ export function TranscriptToneSummaryCard({ item }: { item: Transcript }) {
   if (!summary) {
     return (
       <div className="transcript-tone-inline transcript-tone-metrics-row">
-        <span className="transcript-tone-head-title">{t('transcript.toneTitle')}</span>
+        <span className={appTranscriptToneTitleInline}>{t('transcript.toneTitle')}</span>
         <span className={appMutedText}>{t('transcript.toneUtterancesOnly')}</span>
         <ToneLayersBadges layers={layers} t={t} />
       </div>
@@ -143,7 +143,7 @@ export function TranscriptToneSummaryCard({ item }: { item: Transcript }) {
 
   return (
     <div className="transcript-tone-inline transcript-tone-metrics-row">
-      <span className="transcript-tone-head-title">{t('transcript.toneTitle')}</span>
+      <span className={cn(appTranscriptToneTitleInline, 'mr-[0.15rem]')}>{t('transcript.toneTitle')}</span>
       <ToneValenceStat label={t('transcript.toneOpening')} value={summary.opening_valence} t={t} />
       <ToneValenceStat label={t('transcript.toneClosing')} value={summary.closing_valence} t={t} />
       {summary.de_escalation != null ? (
