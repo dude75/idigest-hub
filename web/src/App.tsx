@@ -23,8 +23,6 @@ import { SetupPage } from './pages/SetupPage'
 import { SignupPage } from './pages/SignupPage'
 import { SkillCreatePage } from './pages/SkillCreatePage'
 import { SkillPage } from './pages/SkillPage'
-import { SecurityPage } from './pages/security/SecurityPage'
-import { StatsPage } from './pages/StatsPage'
 import { SummaryPage } from './pages/SummaryPage'
 import { TaskPage } from './pages/TaskPage'
 import { TasksPage } from './pages/TasksPage'
@@ -36,13 +34,41 @@ import { appMutedText } from './components/app/appTypography'
 const InstancePage = lazy(() =>
   import('./pages/instance/InstancePage').then((m) => ({ default: m.InstancePage })),
 )
+const StatsPage = lazy(() => import('./pages/StatsPage').then((m) => ({ default: m.StatsPage })))
+const SecurityPage = lazy(() =>
+  import('./pages/security/SecurityPage').then((m) => ({ default: m.SecurityPage })),
+)
 
-function LazyInstancePage() {
+function LazyRoute({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
   return (
     <Suspense fallback={<p className={cn('page', appMutedText)}>{t('common.loading')}</p>}>
-      <InstancePage />
+      {children}
     </Suspense>
+  )
+}
+
+function LazyInstancePage() {
+  return (
+    <LazyRoute>
+      <InstancePage />
+    </LazyRoute>
+  )
+}
+
+function LazyStatsPage() {
+  return (
+    <LazyRoute>
+      <StatsPage />
+    </LazyRoute>
+  )
+}
+
+function LazySecurityPage() {
+  return (
+    <LazyRoute>
+      <SecurityPage />
+    </LazyRoute>
   )
 }
 
@@ -98,10 +124,10 @@ export default function App() {
         <Route path="skill/:id" element={<SkillPage />} />
         <Route path="org" element={<OrgPage />} />
         <Route path="public-links" element={<Navigate to={libraryPath('links')} replace />} />
-        <Route path="stats" element={<StatsPage />} />
+        <Route path="stats" element={<LazyStatsPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="instance" element={<LazyInstancePage />} />
-        <Route path="security" element={<SecurityPage />} />
+        <Route path="security" element={<LazySecurityPage />} />
         <Route path="audit" element={<Navigate to="/app/security" replace />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="task/:id" element={<TaskPage />} />
