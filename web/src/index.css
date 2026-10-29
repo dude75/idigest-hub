@@ -250,10 +250,8 @@ h3 { font-size: 0.95rem; margin: 1rem 0 0.4rem; }
   transition: none;
 }
 /* Legacy layout helpers — prefer Tailwind flex/grid/gap in new TSX */
-.row { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
 .table-actions { text-align: right; vertical-align: top; white-space: nowrap; }
-.table-actions .row { display: inline-flex; justify-content: flex-end; }
-.stack { display: grid; gap: 0.65rem; } /* see comment on .row */
+.stack { display: grid; gap: 0.65rem; }
 .stack > [data-slot='button'] {
   justify-self: start;
   width: auto;
@@ -413,9 +411,6 @@ a.brand:hover,
 }
 .nav { display: flex; gap: 0.15rem; flex-wrap: wrap; }
 .nav a {
-  color: var(--muted-foreground);
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
   text-decoration: none;
 }
 .nav a,
@@ -423,13 +418,6 @@ a.brand:hover,
 .nav a.active,
 .nav a:focus-visible {
   text-decoration: none;
-}
-.nav a.active,
-.nav a:hover,
-.nav a[aria-current='page'] {
-  background: var(--card);
-  color: var(--ink);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 6%);
 }
 .lang { flex-shrink: 0; }
 
@@ -1370,7 +1358,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 }
 .stat-card .stat-proxy-up { color: var(--ok); }
 .stat-card .stat-proxy-down { color: var(--danger); }
-.stat-card .stat-proxy-na { color: var(--muted-foreground); }
 .inline-rename { align-items: center; gap: 0.5rem; margin: 0.25rem 0 0.5rem; }
 .inline-rename h1 { margin: 0; }
 .inline-rename-input { flex: 1; min-width: 0; font-size: 1.35rem; font-weight: 650; padding: 0.25rem 0.5rem; }
@@ -1900,7 +1887,7 @@ th { color: var(--muted-foreground); font-weight: 550; }
 }
 .share-panel.stack { gap: 0.45rem; }
 .share-panel-meta { margin: 0; line-height: 1.35; }
-.share-form-row.row {
+.share-form-row {
   flex-wrap: nowrap;
   align-items: flex-end;
   gap: 0.55rem 0.75rem;
@@ -1971,7 +1958,7 @@ th { color: var(--muted-foreground); font-weight: 550; }
   background: #fef2f2;
 }
 @media (max-width: 520px) {
-  .share-form-row.row { flex-wrap: wrap; }
+  .share-form-row { flex-wrap: wrap; }
 }
 .share-member-list {
   display: flex;
@@ -3205,7 +3192,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 }
 .org-member-cell-name {
   font-size: 0.82rem;
-  color: var(--muted-foreground);
 }
 
 .profile-settings-grid {

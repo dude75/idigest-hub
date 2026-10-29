@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { appMuted } from '@/components/app/appTypography'
 
 export type StatTone =
   | 'default'
@@ -40,12 +41,12 @@ export function StatCard({
   tone = 'default',
   valueClassName,
 }: StatCardProps) {
-  const valueClass = [
+  const valueClass = cn(
     valueClassName,
-    tone.startsWith('proxy-') ? `stat-proxy-${tone.slice(6)}` : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
+    tone === 'proxy-up' && 'stat-proxy-up',
+    tone === 'proxy-down' && 'stat-proxy-down',
+    tone === 'proxy-na' && appMuted,
+  )
 
   const card = (
     <Card

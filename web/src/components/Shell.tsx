@@ -6,6 +6,7 @@ import { LIBRARY_DEFAULT } from '../routes'
 import { showError, WalletLabel } from '../util'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { appChromeNavLink } from '@/components/app/appTypography'
 import { AppBrand } from './AppBrand'
 import { GlobalMicRecordAccess } from './GlobalMicRecordAccess'
 import { MeTelegramProvider } from '../context/meTelegram'
@@ -58,43 +59,68 @@ export function Shell() {
         <AppBrand />
         <nav className="nav">
           {member && (
-            <NavLink to="/app/ingest" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            <NavLink
+              to="/app/ingest"
+              className={({ isActive }) => cn(appChromeNavLink, isActive && 'active')}
+            >
               {t('nav.ingest')}
             </NavLink>
           )}
           {member && (
-            <NavLink to={LIBRARY_DEFAULT} className={() => (libraryActive ? 'active' : undefined)} end>
+            <NavLink
+              to={LIBRARY_DEFAULT}
+              className={() => cn(appChromeNavLink, libraryActive && 'active')}
+              end
+            >
               {t('nav.library')}
             </NavLink>
           )}
           {member && (
-            <NavLink to="/app/org" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            <NavLink
+              to="/app/org"
+              className={({ isActive }) => cn(appChromeNavLink, isActive && 'active')}
+            >
               {t('nav.org')}
             </NavLink>
           )}
           {orgAdmin && (
-            <NavLink to="/app/stats" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            <NavLink
+              to="/app/stats"
+              className={({ isActive }) => cn(appChromeNavLink, isActive && 'active')}
+            >
               {t('nav.stats')}
             </NavLink>
           )}
-          <NavLink to="/app/tasks" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+          <NavLink
+            to="/app/tasks"
+            className={({ isActive }) => cn(appChromeNavLink, isActive && 'active')}
+          >
             {t('nav.tasks')}
           </NavLink>
           {instance && (
-            <NavLink to="/app/instance" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+            <NavLink
+              to="/app/instance"
+              className={({ isActive }) => cn(appChromeNavLink, isActive && 'active')}
+            >
               {t('nav.instance')}
             </NavLink>
           )}
           {instance && (
-            <NavLink to="/app/security" className={() => (securityActive ? 'active' : undefined)}>
+            <NavLink
+              to="/app/security"
+              className={() => cn(appChromeNavLink, securityActive && 'active')}
+            >
               {t('nav.security')}
             </NavLink>
           )}
-          <NavLink to="/app/profile" className={({ isActive }) => (isActive ? 'active' : undefined)}>
+          <NavLink
+            to="/app/profile"
+            className={({ isActive }) => cn(appChromeNavLink, isActive && 'active')}
+          >
             {t('nav.profile')}
           </NavLink>
         </nav>
-        <div className="right row">
+        <div className="right flex flex-wrap items-center gap-2">
           <WalletLabel unlimited={me?.org?.unlimited} balance={me?.org?.balance} />
           <GitHubLink />
           <LanguageSwitcher />

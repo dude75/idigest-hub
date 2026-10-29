@@ -15,7 +15,7 @@ export function AuthPageShell({ children, appPage }: Props) {
     <div className="auth-layout">
       <header className="auth-topbar topbar">
         <AppBrand />
-        <div className="right row">
+        <div className="right flex flex-wrap items-center gap-2">
           <BackToLandingLink />
           <GitHubLink />
           <LanguageSwitcher />

@@ -111,15 +111,16 @@ for (const file of files) {
       )
     }
     if (
-      file.includes(`${path.sep}pages${path.sep}`) &&
       stackClass &&
       /(?:^|\s)row(?:\s|$)/.test(stackClass[1]) &&
       !stackClass[1].includes('check-row') &&
       !stackClass[1].includes('share-picker-row') &&
-      !stackClass[1].includes('AppCheckboxRow')
+      !stackClass[1].includes('AppCheckboxRow') &&
+      !stackClass[1].includes('flex-row') &&
+      !file.includes('check-ui-migration')
     ) {
       issues.push(
-        `${rel(file)}:${i + 1}: legacy "row" layout in pages — use flex flex-wrap items-center gap-2`,
+        `${rel(file)}:${i + 1}: legacy "row" layout — use flex flex-wrap items-center gap-2`,
       )
     }
     if (
@@ -334,6 +335,9 @@ if (/\.admin-lead\s*\{[^}]*color:\s*var\(--muted-foreground\)/.test(indexCss)) {
 }
 if (/\.share-field-label\s*\{[^}]*font-size:/.test(indexCss)) {
   issues.push('remove legacy .share-field-label typography — use appFieldCaption')
+}
+if (/\.row\s*\{/.test(indexCss)) {
+  issues.push('remove legacy .row rule from index.css — use Tailwind flex utilities')
 }
 if (/\.item\s*\{/.test(indexCss)) {
   issues.push('remove legacy .item rule — use listRowChrome on ListRow ([data-slot=list-row])')

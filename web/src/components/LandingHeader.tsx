@@ -8,8 +8,7 @@ import { LanguageSwitcher } from './LanguageSwitcher'
 import { resolveAuthContinuationPath } from '../routes'
 import type { SchemaTariffListResponse } from '../openapi'
 import type { Tariff } from '../types'
-import { cn } from '@/lib/utils'
-import { appMuted } from './app/appTypography'
+import { appChromeNavLink } from './app/appTypography'
 import { ButtonLink } from '@/components/ui/button-link'
 
 export function LandingHeader() {
@@ -24,7 +23,7 @@ export function LandingHeader() {
       .catch(() => setTariffs([]))
   }, [])
 
-  const landingNavLink = cn(appMuted, 'transition-colors hover:text-foreground')
+  const landingNavLink = appChromeNavLink
 
   return (
     <header className="landing-topbar topbar">

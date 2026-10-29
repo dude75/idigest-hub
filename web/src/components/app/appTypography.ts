@@ -141,3 +141,11 @@ export const listRowChrome = cn(
 
 /** Landing tariff quota footnotes under pricing cards. */
 export const appPricingQuotaNote = cn(appMutedText, 'm-0 mt-[0.45rem] text-[0.82rem] leading-snug')
+
+/** App shell / auth topbar nav links (inactive state). */
+export const appChromeNavLink = cn(
+  appMuted,
+  'rounded-md px-2 py-1 text-[0.9rem] no-underline',
+  'hover:bg-card hover:text-foreground hover:shadow-sm',
+  '[&.active]:bg-card [&.active]:text-foreground [&.active]:shadow-sm',
+)

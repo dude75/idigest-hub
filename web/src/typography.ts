@@ -8,6 +8,7 @@ export const agreementText = 'agreement-text'
 export {
   appAdminLead,
   appChartEyebrow,
+  appChromeNavLink,
   appDurationCompactClass,
   appDurationHumanClass,
   appEntityMetaRow,

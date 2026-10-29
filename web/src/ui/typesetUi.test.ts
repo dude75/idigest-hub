@@ -89,6 +89,7 @@ describe('Typeset UI contract', () => {
     expect(tokens).toContain('export const appPrimaryText')
     expect(listRow).toContain('listRowChrome')
     expect(listRow).toContain('appListRowTitle')
+    expect(await readWeb('src/index.css')).not.toContain('.row {')
     expect(await readWeb('src/index.css')).not.toContain('.item {')
     expect(await readWeb('src/index.css')).not.toContain('.group {')
     expect(await readWeb('src/index.css')).not.toContain('public-link-meta-item')
