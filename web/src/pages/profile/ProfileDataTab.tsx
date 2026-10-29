@@ -10,7 +10,7 @@ import { AppCheckboxRow, AppInputField } from '../../components/app/AppFormContr
 import { AppUrlCopyRow } from '../../components/app/AppUrlCopyRow'
 import { useProfilePage } from './ProfilePageContext'
 import { cn } from '@/lib/utils'
-import { appMutedText, appStatsEmpty, appFieldCaption } from '../../components/app/appTypography'
+import { appFieldCaption, appMutedText, appProfileSecretTitle, appStatsEmpty } from '../../components/app/appTypography'
 
 export function ProfileDataTab() {
   const {
@@ -157,14 +157,14 @@ export function ProfileDataTab() {
 
             {secret && (
               <div className="profile-secret-card">
-                <p className="profile-secret-title">{t('profile.secretOnce')}</p>
+                <p className={appProfileSecretTitle}>{t('profile.secretOnce')}</p>
                 <AppUrlCopyRow value={secret} className="profile-secret-copy-row" />
               </div>
             )}
 
             {tokenTotpOpen && (
               <div className="profile-secret-card flex flex-col gap-3">
-                <p className="profile-secret-title">{t('mfa.tokenStepUp')}</p>
+                <p className={appProfileSecretTitle}>{t('mfa.tokenStepUp')}</p>
                 <AppInputField
                   label={t('mfa.code')}
                   htmlFor="profile-token-totp"

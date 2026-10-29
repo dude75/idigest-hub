@@ -31,12 +31,6 @@ const ALLOW_RAW_SUBMIT_BUTTON = new Set([
 /** Legacy `.badge` in className — use HubBadge. */
 const MAX_LEGACY_BADGE = 0
 
-/** Intentional `.stack` (share panel grid, stats filters). */
-const ALLOW_STACK_CLASS = new Set([
-  path.join(SRC, 'components/ShareDialog.tsx'),
-  path.join(SRC, 'components/StatsFiltersPanel.tsx'),
-])
-
 /** Copy control — only inside AppUrlCopyRow. */
 const ALLOW_PUBLIC_LINK_COPY = new Set([path.join(SRC, 'components/app/AppUrlCopyRow.tsx')])
 

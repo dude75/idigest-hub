@@ -1855,12 +1855,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 }
 .share-dialog-title { margin: 0; font-size: 1.15rem; flex-shrink: 0; }
 .share-section { display: flex; flex-direction: column; gap: 0.35rem; }
-.share-section-head {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ink);
-}
 .share-panel {
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -3365,7 +3359,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   border-radius: var(--radius);
   background: #eff6ff;
 }
-.profile-secret-title { margin: 0 0 0.55rem; font-size: 0.9rem; color: #1e3a5f; }
 .profile-secret-row {
   display: flex;
   gap: 0.5rem;

@@ -18,7 +18,7 @@ import { AppSelect } from './app/AppSelect'
 import { FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { AppUrlCopyRow } from './app/AppUrlCopyRow'
-import { appFieldCaption, appMutedText, appSharePanelStack } from './app/appTypography'
+import { appFieldCaption, appMutedText, appProfileSecretTitle, appSharePanelStack, appShareSectionHead } from './app/appTypography'
 import { compareUsersByDisplayName, userPickerLabel } from '../userDisplay'
 
 type Props = {
@@ -197,7 +197,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
         <div ref={contentRef} className="share-dialog-content flex min-h-0 flex-1 flex-col gap-4">
       {showPublic && (
         <section className="share-section shrink-0">
-          <h3 className="share-section-head">{t('share.publicLink')}</h3>
+          <h3 className={appShareSectionHead}>{t('share.publicLink')}</h3>
           {!me?.org?.public_base_url_set ? (
             <p className={cn(appFieldCaption, 'share-panel-meta')}>{t('share.publicUrlMissing')}</p>
           ) : !me?.org?.allow_public_links ? (
@@ -284,7 +284,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
       )}
 
       <section className="share-section shrink-0">
-        <h3 className="share-section-head">{t('share.current')}</h3>
+        <h3 className={appShareSectionHead}>{t('share.current')}</h3>
         <div className="share-panel">
           {shares.length === 0 ? (
             <p className={cn(appFieldCaption, 'share-panel-meta')}>{t('share.none')}</p>
@@ -308,7 +308,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
 
       {available.length > 0 && (
         <section className="share-section share-section-picker">
-          <h3 className="share-section-head">{t('share.addMore')}</h3>
+          <h3 className={appShareSectionHead}>{t('share.addMore')}</h3>
           <div className="share-panel share-picker-panel flex flex-col gap-3">
             <p className={cn(appFieldCaption, 'share-panel-meta')}>{t('share.pick')}</p>
             <div className="share-picker-list">
