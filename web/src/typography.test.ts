@@ -4,10 +4,12 @@ import {
   appAdminLead,
   appEntityTitle,
   appFieldCaption,
+  appLandingLead,
   appMetricLabel,
   appMuted,
   appMutedText,
   appPrimaryText,
+  appToneEyebrow,
   hubReadingSurface,
   summaryBody,
 } from './typography'
@@ -28,5 +30,9 @@ describe('typography class tokens', () => {
     expect(appEntityTitle).toContain('font-semibold')
     expect(appFieldCaption).toContain('text-xs')
     expect(appMetricLabel).toContain('font-medium')
+    expect(appLandingLead).toContain('text-[1.08rem]')
+    expect(appLandingLead).toContain('text-muted-foreground')
+    expect(appToneEyebrow).toContain('uppercase')
+    expect(appToneEyebrow).toContain('text-xs')
   })
 })

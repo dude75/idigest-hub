@@ -98,3 +98,12 @@ export const appFieldCaption = 'text-xs font-normal text-muted-foreground'
 
 /** Compact metric / stat labels (profile header, etc.). */
 export const appMetricLabel = cn(appFieldCaption, 'font-medium')
+
+/** Marketing hero lead (slightly larger than appAdminLead). */
+export const appLandingLead = cn(
+  appMuted,
+  'm-0 mb-6 max-w-[34rem] text-[1.08rem] leading-[1.55]',
+)
+
+/** Uppercase eyebrows in tone analytics chips. */
+export const appToneEyebrow = cn(appFieldCaption, 'font-semibold uppercase tracking-wide')

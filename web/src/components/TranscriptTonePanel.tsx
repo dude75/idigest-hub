@@ -5,7 +5,7 @@ import type { CallToneSummary, Transcript, Utterance } from '../types'
 import { toneEmotionLabel, toneLayerLabel } from '../toneLabels'
 import { HubBadge } from './app/AdminUi'
 import { cn } from '@/lib/utils'
-import { appMutedText } from './app/appTypography'
+import { appMutedText, appToneEyebrow } from './app/appTypography'
 
 type ValenceKind = 'positive' | 'negative' | 'neutral' | 'unknown'
 
@@ -43,7 +43,7 @@ function ToneValenceStat({
   const valueLabel = formatValence(value, t)
   return (
     <div className={`transcript-tone-stat transcript-tone-stat-${kind}`}>
-      <span className="transcript-tone-stat-label">{label}</span>
+      <span className={cn(appToneEyebrow, 'transcript-tone-stat-label')}>{label}</span>
       <HubBadge tone={valenceBadgeTone(kind)} className="transcript-tone-stat-chip">
         {valueLabel}
       </HubBadge>
@@ -106,7 +106,7 @@ function ToneLayersBadges({ layers, t }: { layers: string[]; t: TFunction }) {
   if (layers.length === 0) return null
   return (
     <div className="transcript-tone-layers">
-      <span className="transcript-tone-layers-label">{t('transcript.toneSources')}</span>
+      <span className={appToneEyebrow}>{t('transcript.toneSources')}</span>
       <span className="transcript-tone-layers-badges">
         {layers.map((layer) => (
           <HubBadge key={layer} tone="muted" className="transcript-tone-layer-chip">
@@ -148,7 +148,7 @@ export function TranscriptToneSummaryCard({ item }: { item: Transcript }) {
       <ToneValenceStat label={t('transcript.toneClosing')} value={summary.closing_valence} t={t} />
       {summary.de_escalation != null ? (
         <div className="transcript-tone-stat transcript-tone-stat-neutral">
-          <span className="transcript-tone-stat-label transcript-tone-stat-label-wrap">
+          <span className={cn(appToneEyebrow, 'transcript-tone-stat-label transcript-tone-stat-label-wrap')}>
             {t('transcript.toneDeEscalationShort')}
           </span>
           <HubBadge tone={summary.de_escalation ? 'success' : 'muted'}>

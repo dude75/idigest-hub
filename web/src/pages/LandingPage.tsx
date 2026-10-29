@@ -12,7 +12,7 @@ import type { SchemaTariffListResponse } from '../openapi'
 import type { Tariff } from '../types'
 import { ButtonLink } from '@/components/ui/button-link'
 import { cn } from '@/lib/utils'
-import { appAdminLead, appMutedText } from '../components/app/appTypography'
+import { appAdminLead, appLandingLead, appMutedText } from '../components/app/appTypography'
 
 const FEATURE_KEYS = ['transcription', 'summaries', 'library', 'orgs', 'billing', 'sso'] as const
 const AUDIENCE_KEYS = ['it', 'managers', 'research', 'content'] as const
@@ -47,7 +47,7 @@ export function LandingPage() {
           <div className="landing-hero-copy">
             <p className="landing-eyebrow">{t('landing.eyebrow')}</p>
             <h1>{t('landing.headline')}</h1>
-            <p className="landing-lead">{t('landing.lead')}</p>
+            <p className={appLandingLead}>{t('landing.lead')}</p>
             <div className="landing-cta">
               {me ? (
                 <ButtonLink to={enterAppPath!} size="lg" className="px-[1.1rem] py-[0.55rem] text-[0.95rem]">

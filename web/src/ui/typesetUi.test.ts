@@ -92,6 +92,8 @@ describe('Typeset UI contract', () => {
     expect(await readWeb('src/index.css')).not.toContain('.item a.title')
     expect(await readWeb('src/index.css')).not.toContain('.entity-title')
     expect(await readWeb('src/index.css')).not.toContain('.stats-chart-title')
+    expect(await readWeb('src/index.css')).not.toContain('.org-ledger-modal')
+    expect(await readWeb('src/index.css')).not.toContain('.landing-lead')
     expect(await readWeb('src/index.css')).not.toMatch(/\.muted\s*\{/)
     expect(await readWeb('src/index.css')).toMatch(/--hub-muted:\s*var\(--muted-foreground\)/)
   })

@@ -14,6 +14,7 @@ export {
   appEntityTitle,
   appFieldCaption,
   appGroupTitle,
+  appLandingLead,
   appListRowMeta,
   appListRowTitle,
   appMetricLabel,
@@ -27,4 +28,5 @@ export {
   appPipelineStepLabel,
   appPrimaryText,
   appProfileSectionLead,
+  appToneEyebrow,
 } from '@/components/app/appTypography'
