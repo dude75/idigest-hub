@@ -190,6 +190,35 @@ export const appIngestFootAction = 'text-sm font-medium'
 /** Share panel surface (uses --share-panel-bg on :root). */
 export const appSharePanelSurface = 'bg-[var(--share-panel-bg)]'
 
+/** Ingest studio card shell (class `ingest-studio-card` kept for descendant CSS hooks). */
+export const ingestStudioCardChrome = cn(
+  'ingest-studio-card flex min-h-full flex-col gap-0 rounded-2xl border border-[var(--line)] bg-card px-[1.35rem] pb-[1.35rem] pt-5 shadow-sm',
+)
+
+export const ingestStudioCardLinkAccent = cn(
+  'ingest-studio-card-link border-[color-mix(in_oklch,var(--hub-accent)_28%,var(--line))]',
+  'shadow-[0_0_0_1px_color-mix(in_oklch,var(--hub-accent)_10%,transparent)]',
+)
+
+/** Public / org link list rows (keep `public-link-row` for embedded task-list borders). */
+export const publicLinkRow = cn('public-link-row flex flex-col gap-[0.45rem]')
+export const publicLinkHead = 'public-link-head flex min-w-0 items-start justify-between gap-3'
+export const publicLinkBadges = 'public-link-badges flex shrink-0 flex-wrap justify-end gap-[0.3rem]'
+export const publicLinkActionsRow = 'public-link-actions-row flex min-w-0 items-center gap-2'
+
+/** Landing pricing card typography. */
+export const appLandingPricingName = 'm-0 mb-[0.2rem] text-[1.15rem] tracking-tight text-foreground'
+export const appLandingPricingQuotaMain =
+  'flex items-center gap-[0.45rem] text-[1.05rem] font-bold leading-snug text-foreground'
+export const appLandingPopularBadge =
+  'absolute top-[-0.65rem] left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-[var(--landing-popular-accent)] px-3 py-[0.2rem] text-[0.72rem] font-bold tracking-wide text-white'
+
+/** Worker impact monospace value chips. */
+export const appImpactPairMono = cn(
+  appNumericText,
+  'worker-impact-pair rounded border border-[var(--line)] bg-card px-1.5 py-[0.15rem] font-mono text-[0.78rem] whitespace-nowrap',
+)
+
 /** Worker/tariff impact modal note rows. */
 export const appImpactNote = cn(appMutedText, 'text-[0.82rem]')
 

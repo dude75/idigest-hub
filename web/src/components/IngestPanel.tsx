@@ -14,7 +14,7 @@ import { libraryPath } from '../routes'
 import { Button } from '@/components/ui/button'
 import { AppSubmitButton } from './app/AdminUi'
 import { AppHoverHint } from './app/AppHoverHint'
-import { appFieldCaption, appIngestFootAction, appPanelTitle, appPipelineStepLabel } from './app/appTypography'
+import { appFieldCaption, appIngestFootAction, appPanelTitle, ingestStudioCardChrome, ingestStudioCardLinkAccent } from './app/appTypography'
 import { IngestExtraTagsMultiSelect } from './IngestExtraTagsMultiSelect'
 import { IngestPipelinePanel } from './IngestPipelinePanel'
 import { IngestStudioIconHit } from './IngestStudioIconHit'
@@ -366,7 +366,11 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
           <div className={cn('ingest-studio-grid', !ingestEnabled && 'ingest-studio-grid-no-link')}>
             {ingestEnabled ? (
               <section
-                className="ingest-studio-card ingest-studio-card-ingest ingest-studio-card-link"
+                className={cn(
+                  ingestStudioCardChrome,
+                  ingestStudioCardLinkAccent,
+                  'ingest-studio-card-ingest',
+                )}
                 aria-labelledby="ingest-from-link-title"
               >
                 <div className="ingest-studio-card-head">
@@ -447,7 +451,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
               </section>
             ) : null}
             <section
-              className="ingest-studio-card ingest-studio-card-ingest ingest-studio-card-file"
+              className={cn(ingestStudioCardChrome, 'ingest-studio-card-ingest')}
               aria-labelledby="ingest-from-file-title"
             >
               <div className="ingest-studio-card-head">
@@ -495,7 +499,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
               </div>
             </section>
             <section
-              className="ingest-studio-card ingest-studio-card-ingest ingest-studio-card-mic"
+              className={cn(ingestStudioCardChrome, 'ingest-studio-card-ingest')}
               aria-labelledby="ingest-from-mic-title"
             >
               <div className="ingest-studio-card-head">
@@ -541,8 +545,11 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
               </div>
             </section>
           </div>
-          <section className="ingest-studio-card ingest-studio-card-pipeline" aria-labelledby="ingest-pipeline-title">
-            <h2 id="ingest-pipeline-title" className={cn(appPipelineStepLabel, 'ingest-studio-pipeline-heading font-semibold')}>
+          <section
+            className={cn(ingestStudioCardChrome, 'ingest-studio-card-pipeline')}
+            aria-labelledby="ingest-pipeline-title"
+          >
+            <h2 id="ingest-pipeline-title" className={cn(appPanelTitle, 'ingest-studio-pipeline-heading')}>
               {t('ingest.pipelineSection')}
             </h2>
             <IngestPipelinePanel className="ingest-studio-pipeline" />
