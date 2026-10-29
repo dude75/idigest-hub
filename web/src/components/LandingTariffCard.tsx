@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { landingTariffSubtitleKey } from '../landingTariffLayout'
 import type { Tariff } from '../types'
 import { cn } from '@/lib/utils'
-import { appLandingPricingBtn, appMutedText, appPricingQuotaNote } from './app/appTypography'
+import { appLandingPricingBtn, appLandingPricingName, appLandingPricingQuotaMain, appLandingPopularBadge, appMutedText, appPricingQuotaNote } from './app/appTypography'
 import { formatBytes, formatDecimal, formatRate } from '../util'
 
 export { landingTariffSubtitleKey }
@@ -47,15 +47,15 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
       to={to}
       className={`landing-pricing-card${popular ? ' landing-pricing-card-popular' : ''}`}
     >
-      {popular && <span className="landing-pricing-popular">{t('landing.tariffPopular')}</span>}
+      {popular && <span className={appLandingPopularBadge}>{t('landing.tariffPopular')}</span>}
       <div className="landing-pricing-head">
-        <h3>{tariff.name}</h3>
+        <h3 className={appLandingPricingName}>{tariff.name}</h3>
         <p className={cn(appMutedText, 'landing-pricing-subtitle')}>{t(`landing.tariffSubtitle.${subtitleKey}`)}</p>
       </div>
       <div className="landing-pricing-quota">
         {tariff.unlimited ? (
           <>
-            <div className="landing-pricing-quota-main">
+            <div className={appLandingPricingQuotaMain}>
               <span className="landing-pricing-icon" aria-hidden="true">⚡</span>
               <span>{t('instance.unlimited')}</span>
             </div>
@@ -63,7 +63,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
           </>
         ) : minutes !== null && minutes > 0 ? (
           <>
-            <div className="landing-pricing-quota-main">
+            <div className={appLandingPricingQuotaMain}>
               <span className="landing-pricing-icon" aria-hidden="true">⚡</span>
               <span>{t('landing.tariffQuotaMinutes', { minutes })}</span>
             </div>
@@ -75,7 +75,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
           </>
         ) : credit > 0 ? (
           <>
-            <div className="landing-pricing-quota-main">
+            <div className={appLandingPricingQuotaMain}>
               <span className="landing-pricing-icon" aria-hidden="true">⚡</span>
               <span>{t('landing.tariffQuotaCredit', { amount: formatDecimal(tariff.signup_credit) })}</span>
             </div>
@@ -87,7 +87,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
           </>
         ) : (
           <>
-            <div className="landing-pricing-quota-main landing-pricing-quota-paygo">
+            <div className={cn(appLandingPricingQuotaMain, 'text-base')}>
               <span>{t('landing.tariffPayAsYouGo')}</span>
             </div>
             {hasOverage && (

@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { appLandingPricingBtn, appMutedText, appPricingQuotaNote } from './app/appTypography'
+import { appLandingPricingBtn, appLandingPricingName, appLandingPricingQuotaMain, appMutedText, appPricingQuotaNote } from './app/appTypography'
 import { GITHUB_REPO_URL } from './GitHubLink'
 
 const FEATURE_KEYS = [
@@ -21,11 +21,11 @@ export function LandingOpenSourceTariffCard() {
       className="landing-pricing-card landing-pricing-card-oss"
     >
       <div className="landing-pricing-head">
-        <h3>{t('landing.tariffOpenSourceName')}</h3>
+        <h3 className={appLandingPricingName}>{t('landing.tariffOpenSourceName')}</h3>
         <p className={cn(appMutedText, 'landing-pricing-subtitle')}>{t('landing.tariffOpenSourceSubtitle')}</p>
       </div>
       <div className="landing-pricing-quota">
-        <div className="landing-pricing-quota-main">
+        <div className={appLandingPricingQuotaMain}>
           <span className="landing-pricing-icon" aria-hidden="true">
             ⚡
           </span>
