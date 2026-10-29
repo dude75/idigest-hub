@@ -4,6 +4,7 @@ import {
   appAdminLead,
   appEntityTitle,
   appFieldCaption,
+  appImpactNote,
   appImpactRowLabel,
   appImpactTagMuted,
   appLandingLead,
@@ -11,6 +12,8 @@ import {
   appMuted,
   appMutedText,
   appPrimaryText,
+  appProfileSecretTitle,
+  appShareSectionHead,
   appToneEyebrow,
   hubReadingSurface,
   summaryBody,
@@ -38,5 +41,8 @@ describe('typography class tokens', () => {
     expect(appToneEyebrow).toContain('text-xs')
     expect(appImpactRowLabel).toContain('text-[0.8rem]')
     expect(appImpactTagMuted).toContain('text-[0.72rem]')
+    expect(appImpactNote).toContain('text-[0.82rem]')
+    expect(appProfileSecretTitle).toContain('font-semibold')
+    expect(appShareSectionHead).toContain('text-[0.9rem]')
   })
 })
