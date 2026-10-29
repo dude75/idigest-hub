@@ -12,7 +12,7 @@ import type { SchemaTariffListResponse } from '../openapi'
 import type { Tariff } from '../types'
 import { ButtonLink } from '@/components/ui/button-link'
 import { cn } from '@/lib/utils'
-import { appAdminLead, appLandingLead, appMutedText } from '../components/app/appTypography'
+import { appAdminLead, appLandingEyebrow, appLandingLead, appLandingTrustCaption, appMutedText } from '../components/app/appTypography'
 
 const FEATURE_KEYS = ['transcription', 'summaries', 'library', 'orgs', 'billing', 'sso'] as const
 const AUDIENCE_KEYS = ['it', 'managers', 'research', 'content'] as const
@@ -45,7 +45,7 @@ export function LandingPage() {
       <section className="landing-hero">
         <div className="landing-hero-inner">
           <div className="landing-hero-copy">
-            <p className="landing-eyebrow">{t('landing.eyebrow')}</p>
+            <p className={appLandingEyebrow}>{t('landing.eyebrow')}</p>
             <h1>{t('landing.headline')}</h1>
             <p className={appLandingLead}>{t('landing.lead')}</p>
             <div className="landing-cta">
@@ -91,7 +91,7 @@ export function LandingPage() {
       </section>
 
       <section className="landing-trust">
-        <p className="landing-trust-label">{t('landing.trustTitle')}</p>
+        <p className={appLandingTrustCaption}>{t('landing.trustTitle')}</p>
         <ul className="landing-trust-list">
           {(['onPrem', 'sso', 'multiTenant', 'workers'] as const).map((key) => (
             <li key={key}>{t(`landing.trust.${key}`)}</li>

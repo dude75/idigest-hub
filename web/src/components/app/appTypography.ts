@@ -105,5 +105,13 @@ export const appLandingLead = cn(
   'm-0 mb-6 max-w-[34rem] text-[1.08rem] leading-[1.55]',
 )
 
+/** Hero kicker above the headline (accent uppercase). */
+export const appLandingEyebrow = cn(
+  'm-0 mb-[0.65rem] text-[0.82rem] font-semibold uppercase tracking-wide text-[var(--hub-accent)]',
+)
+
+/** Trust band section title. */
+export const appLandingTrustCaption = cn(appMuted, 'm-0 mb-[0.85rem] text-[0.85rem]')
+
 /** Uppercase eyebrows in tone analytics chips. */
 export const appToneEyebrow = cn(appFieldCaption, 'font-semibold uppercase tracking-wide')
