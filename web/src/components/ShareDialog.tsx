@@ -18,7 +18,7 @@ import { AppSelect } from './app/AppSelect'
 import { FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { AppUrlCopyRow } from './app/AppUrlCopyRow'
-import { appFieldCaption, appMutedText, appSharePanelStack, appShareSectionHead } from './app/appTypography'
+import { appFieldCaption, appMutedText, appSharePanelStack, appSharePanelSurface, appShareSectionHead } from './app/appTypography'
 import { compareUsersByDisplayName, userPickerLabel } from '../userDisplay'
 
 type Props = {
@@ -203,7 +203,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
           ) : !me?.org?.allow_public_links ? (
             <p className={cn(appFieldCaption, 'share-panel-meta')}>{t('share.publicLinksDisabled')}</p>
           ) : publicLink && publicLink.url ? (
-            <div className={cn('share-panel', appSharePanelStack)}>
+            <div className={cn('share-panel', appSharePanelSurface, appSharePanelStack)}>
               <AppUrlCopyRow value={publicLink.url} className="share-public-url-row" />
               {(publicLink.pin_required || publicLink.expires_at) && (
                 <p className={cn(appFieldCaption, 'share-panel-meta')}>
@@ -226,7 +226,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
               </Button>
             </div>
           ) : (
-            <div className={cn('share-panel', appSharePanelStack)}>
+            <div className={cn('share-panel', appSharePanelSurface, appSharePanelStack)}>
               <div className="share-form-row flex flex-wrap items-end gap-2">
                 <div className="share-field">
                   <FieldLabel htmlFor="share-expiry" className={appFieldCaption}>

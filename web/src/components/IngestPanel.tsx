@@ -14,7 +14,7 @@ import { libraryPath } from '../routes'
 import { Button } from '@/components/ui/button'
 import { AppSubmitButton } from './app/AdminUi'
 import { AppHoverHint } from './app/AppHoverHint'
-import { appFieldCaption, appPanelTitle, appPipelineStepLabel } from './app/appTypography'
+import { appFieldCaption, appIngestFootAction, appPanelTitle, appPipelineStepLabel } from './app/appTypography'
 import { IngestExtraTagsMultiSelect } from './IngestExtraTagsMultiSelect'
 import { IngestPipelinePanel } from './IngestPipelinePanel'
 import { IngestStudioIconHit } from './IngestStudioIconHit'
@@ -436,7 +436,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                     />
                   </div>
                   <AppSubmitButton
-                    className="ingest-studio-foot-action w-full"
+                    className={cn('ingest-studio-foot-action w-full', appIngestFootAction)}
                     ready={!ingestSubmitDisabled}
                     busy={busy}
                     onClick={tryIngestFromUrl}
@@ -485,7 +485,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                   <Button
                     type="button"
                     variant="outline"
-                    className="ingest-studio-foot-action ingest-studio-file-btn w-full"
+                    className={cn('ingest-studio-foot-action ingest-studio-file-btn w-full', appIngestFootAction)}
                     disabled={busy}
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -531,7 +531,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="ingest-studio-foot-action ingest-studio-mic-btn w-full"
+                  className={cn('ingest-studio-foot-action ingest-studio-mic-btn w-full', appIngestFootAction)}
                   disabled={busy}
                   onClick={() => setRecordOpen(true)}
                 >
