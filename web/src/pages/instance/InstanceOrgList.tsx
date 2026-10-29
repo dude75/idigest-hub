@@ -28,7 +28,7 @@ import { formatDecimal, formatInteger, showError } from '../../util'
 import { canAdminResetMemberMfa } from '../../mfa'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { appMuted, appMutedText } from '../../components/app/appTypography'
+import { appDetailSubheading, appMuted, appMutedText } from '../../components/app/appTypography'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -293,7 +293,7 @@ function OrgDetailPanel({
       </div>
       <div className="instance-org-detail-users">
         <div className="instance-org-detail-users-head">
-          <h4 className="instance-org-detail-users-title">
+          <h4 className={appDetailSubheading}>
             {t('instance.users')}
             <span className={cn(appMuted, 'font-normal')}> · {formatInteger(memberCount)}</span>
           </h4>
