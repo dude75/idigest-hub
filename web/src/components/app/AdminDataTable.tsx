@@ -10,6 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
+import { appMutedText, appNumericText, appPrimaryText } from './appTypography'
 
 /** shadcn-style admin tables (instance tariffs, workers, …). */
 export function AdminDataTable({
@@ -39,9 +40,9 @@ export {
 
 export const adminTableHeadNum = 'text-right'
 export const adminTableHeadActions = 'w-[1%] text-right'
-export const adminTableCellPrimary = 'font-medium whitespace-normal'
-export const adminTableCellMuted = 'text-muted-foreground whitespace-normal'
-export const adminTableCellNum = 'text-right tabular-nums'
+export const adminTableCellPrimary = cn(appPrimaryText, 'whitespace-normal')
+export const adminTableCellMuted = cn(appMutedText, 'whitespace-normal')
+export const adminTableCellNum = cn('text-right', appNumericText)
 export const adminTableCellActions = 'w-[1%] text-right whitespace-nowrap'
 export const adminTableCellBadges = cn('whitespace-normal min-w-[9rem] max-w-[16rem]')
 

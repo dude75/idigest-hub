@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { StatCard, StatGrid } from './StatCard'
-import { formatDecimal, formatInteger, fmtMediaTime } from '../util'
+import { AppDuration } from './app/AppDuration'
+import { formatDecimal, formatInteger } from '../util'
 
 type Props = {
   tasksTranscribe: number
@@ -42,7 +43,7 @@ export function StatsSummaryGrid({
       <StatCard
         label={t('stats.statAudio')}
         title={t(`${tooltipPrefix}.transcribedAudio`)}
-        value={fmtMediaTime(audioSec)}
+        value={<AppDuration sec={audioSec} variant="compact" className="inherit" />}
         tone="audio"
       />
       <StatCard

@@ -133,6 +133,21 @@ for (const file of files) {
     if (line.includes('stats-table') && !file.includes('check-ui-migration')) {
       issues.push(`${rel(file)}:${i + 1}: legacy stats-table — use AdminDataTable (shadcn Table)`)
     }
+    if (/<Link\b[^>]*className=["']title\b/.test(line)) {
+      issues.push(
+        `${rel(file)}:${i + 1}: legacy Link class "title" — use appListRowTitle from appTypography`,
+      )
+    }
+    if (/className=["'][^"']*\bitem-meta\b/.test(line) && !file.endsWith(`${path.sep}ListRow.tsx`)) {
+      issues.push(
+        `${rel(file)}:${i + 1}: legacy "item-meta" — use appListRowMeta via ListRow or appTypography`,
+      )
+    }
+    if (/fmtMediaTime\(/.test(line) && !file.includes('AppDuration.tsx') && !file.includes('util.tsx') && !file.includes('StatsDaysView.tsx') && !file.includes('utteranceMedia.ts') && !file.includes('AudioPlayer.tsx') && !file.includes('MicrophoneRecordModal.tsx')) {
+      issues.push(
+        `${rel(file)}:${i + 1}: use AppDuration for UI durations — fmtMediaTime is for compact/chart/player helpers`,
+      )
+    }
     if (/type=["']date["']/.test(line)) {
       issues.push(`${rel(file)}:${i + 1}: native type="date" — use AppDateField (shadcn Calendar)`)
     }
@@ -217,10 +232,24 @@ if (/font-family:\s*ui-monospace/.test(indexCss)) {
 if (indexCss.includes('.summary-md')) {
   issues.push('remove legacy .summary-md — use Typeset + hub-reading-surface')
 }
+if (indexCss.includes('.item a.title')) {
+  issues.push('remove legacy .item a.title — use appListRowTitle in ListRow')
+}
+if (indexCss.includes('.item-meta')) {
+  issues.push('remove legacy .item-meta — use appListRowMeta in ListRow')
+}
 if (
   !/\.hub-reading-surface,\s*\n\s*\.summary-body,\s*\n\s*\.agreement-text/.test(indexCss)
 ) {
   issues.push('index.css must unify reading typography on hub-reading-surface, summary-body, agreement-text')
+}
+const typesetCss = await readFile(path.join(SRC, 'typeset.css'), 'utf8')
+if (
+  !/\.typeset :where\(\.hub-reading-surface, \.summary-body, \.agreement-text\) :where\(ul\)/.test(
+    typesetCss,
+  )
+) {
+  issues.push('typeset.css must scope ul/ol/li prose to reading surfaces only')
 }
 const authShell = await readFile(path.join(import.meta.dirname, '../public/auth-shell.css'), 'utf8')
 const hubAccent = indexCss.match(/--hub-accent:\s*([^;]+);/)?.[1]?.trim()

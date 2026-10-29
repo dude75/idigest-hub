@@ -1384,32 +1384,7 @@ a.app-tab-link:hover {
 .badge.err { background: #fef2f2; color: var(--danger); }
 a.badge.badge-link { text-decoration: none; }
 a.badge.badge-link:hover { text-decoration: none; filter: brightness(0.95); }
-.item-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-  margin-top: 0.35rem;
-  font-size: 0.8125rem;
-  line-height: 1.4;
-  color: var(--hub-muted);
-}
-.item-meta a:not([data-slot='button']) {
-  color: var(--hub-muted);
-  font-weight: 500;
-}
-.item-meta a:not([data-slot='button']):hover {
-  color: var(--ink);
-  text-decoration: underline;
-}
-.item a.title {
-  font-weight: 600;
-  color: var(--ink);
-  font-size: 0.9375rem;
-}
-.item a.title:hover {
-  color: var(--hub-accent);
-}
+/* List row meta/titles: appTypography.ts (ListRow). */
 .group-highlight {
   outline: 2px solid var(--hub-accent);
   outline-offset: 2px;
@@ -1513,7 +1488,7 @@ th { color: var(--hub-muted); font-weight: 550; }
   border-radius: var(--radius);
   padding: 0.7rem 0.85rem;
 }
-.group-title { font-weight: 600; }
+.group-title { font-size: 1rem; font-weight: 500; }
 .group .item { background: var(--bg); }
 .fold > summary {
   cursor: pointer;

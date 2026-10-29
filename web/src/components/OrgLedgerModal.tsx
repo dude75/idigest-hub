@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
 import { Modal } from './Modal'
 import type { Org, OrgLedger, OrgLedgerEntry } from '../types'
-import { formatDecimal, formatInteger, fmtDate, fmtMediaTime, WalletLabel } from '../util'
+import { AppDuration } from './app/AppDuration'
+import { formatDecimal, formatInteger, fmtDate, WalletLabel } from '../util'
 import { StatCard, StatGrid } from './StatCard'
 import { StatsFiltersPanel } from './StatsFiltersPanel'
 import {
@@ -165,7 +166,11 @@ export function OrgLedgerModal({
                             '—'
                           )}
                           {entry.audio_sec != null ? (
-                            <div className="text-xs">{fmtMediaTime(entry.audio_sec)}</div>
+                            <AppDuration
+                              sec={entry.audio_sec}
+                              variant="human"
+                              className="block text-xs"
+                            />
                           ) : null}
                           {entry.summary_chars != null && entry.summary_chars > 0 ? (
                             <div className="text-xs">

@@ -7,6 +7,8 @@ import { AppListPagination } from './app/AppListPagination'
 import { ListSection } from './app/EntityUi'
 import type { SchemaOrgPublicLinkListResponse } from '../openapi'
 import type { OrgPublicLinkItem } from '../types'
+import { cn } from '@/lib/utils'
+import { appListRowTitle } from './app/appTypography'
 import { fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { HubBadge } from './app/AdminUi'
@@ -33,7 +35,13 @@ function PublicLinkRow({
   return (
     <article className="public-link-row">
       <div className="public-link-head">
-        <Link to={`/app/summary/${link.summary_id}`} className="public-link-title">
+        <Link
+          to={`/app/summary/${link.summary_id}`}
+          className={cn(
+            appListRowTitle,
+            'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap',
+          )}
+        >
           {link.summary_title}
         </Link>
         <div className="public-link-badges">

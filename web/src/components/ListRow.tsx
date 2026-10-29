@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHoverHint } from '@/components/app/AppHoverHint'
+import { appListRowMeta, appListRowTitle } from '@/components/app/appTypography'
+import { cn } from '@/lib/utils'
 
 type Props = {
   to?: string
@@ -33,12 +35,13 @@ function TitleNode({
   className?: string
 }) {
   const hover = titleHoverContent(title, hint)
+  const titleClass = cn(appListRowTitle, className)
   const inner = to ? (
-    <Link className={className ?? 'title'} to={to}>
+    <Link className={titleClass} to={to}>
       {title}
     </Link>
   ) : (
-    <span className={className ?? 'title'}>{title}</span>
+    <span className={titleClass}>{title}</span>
   )
   if (!hover) {
     return inner
@@ -49,18 +52,18 @@ function TitleNode({
 export function ListRow({ to, title, hint, meta, belowMeta, trailing, compact }: Props) {
   if (compact && to) {
     return (
-      <div className="item row">
-        <TitleNode to={to} title={title} hint={hint} className="title grow" />
+      <div data-slot="list-row" className="item row">
+        <TitleNode to={to} title={title} hint={hint} className="min-w-0 grow" />
         {trailing}
       </div>
     )
   }
 
   return (
-    <div className="item row gap-3">
+    <div data-slot="list-row" className="item row gap-3">
       <div className="min-w-0 grow">
         <TitleNode to={to} title={title} hint={hint} />
-        {meta && <div className="muted item-meta">{meta}</div>}
+        {meta ? <div className={appListRowMeta}>{meta}</div> : null}
         {belowMeta}
       </div>
       {trailing}

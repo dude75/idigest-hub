@@ -74,4 +74,29 @@ describe('Typeset UI contract', () => {
     const pkg = await readWeb('package.json')
     expect(pkg).toContain('@fontsource-variable/geist-mono')
   })
+
+  it('scopes typeset list styles to reading surfaces only', async () => {
+    const typesetCss = await readWeb('src/typeset.css')
+    expect(typesetCss).toMatch(
+      /\.typeset :where\(\.hub-reading-surface, \.summary-body, \.agreement-text\) :where\(ul\)/,
+    )
+  })
+
+  it('shares list row typography with admin tables via appTypography', async () => {
+    const listRow = await readWeb('src/components/ListRow.tsx')
+    const adminTable = await readWeb('src/components/app/AdminDataTable.tsx')
+    const tokens = await readWeb('src/components/app/appTypography.ts')
+    expect(tokens).toContain('export const appPrimaryText')
+    expect(listRow).toContain('appListRowTitle')
+    expect(adminTable).toContain('appPrimaryText')
+    expect(await readWeb('src/index.css')).not.toContain('.item a.title')
+  })
+
+  it('routes UI durations through AppDuration', async () => {
+    const ledger = await readWeb('src/components/OrgLedgerModal.tsx')
+    const statsGrid = await readWeb('src/components/StatsSummaryGrid.tsx')
+    expect(ledger).toContain('AppDuration')
+    expect(statsGrid).toContain('AppDuration')
+    expect(await readWeb('src/components/app/AppDuration.tsx')).toContain('formatAudioTime')
+  })
 })

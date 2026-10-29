@@ -13,6 +13,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { OrgStatsDay } from '../types'
+import { AppDuration } from './app/AppDuration'
 import { formatDecimal, formatInteger, fmtMediaTime } from '../util'
 import { AppStackCard } from './AdminSection'
 import {
@@ -207,7 +208,9 @@ export function StatsDaysView({
                 <TableCell className="tabular-nums">{day.date}</TableCell>
                 <TableCell className={adminTableCellNum}>{formatInteger(day.tasks_transcribe_success)}</TableCell>
                 <TableCell className={adminTableCellNum}>{formatInteger(day.tasks_summarize_success)}</TableCell>
-                <TableCell className={adminTableCellNum}>{fmtMediaTime(day.audio_transcribed_sec)}</TableCell>
+                <TableCell className={adminTableCellNum}>
+                  <AppDuration sec={day.audio_transcribed_sec} variant="compact" />
+                </TableCell>
                 <TableCell className={adminTableCellNum}>{formatInteger(day.summary_chars)}</TableCell>
                 <TableCell className={adminTableCellNum}>{formatDecimal(day.amount)}</TableCell>
               </TableRow>
