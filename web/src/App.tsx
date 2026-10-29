@@ -10,12 +10,10 @@ import { Enroll2faPage } from './pages/Enroll2faPage'
 import { Verify2faPage } from './pages/Verify2faPage'
 import { ForgotPage } from './pages/ForgotPage'
 import { IngestPage } from './pages/IngestPage'
-import { LibraryPage } from './pages/LibraryPage'
 import { LandingPage } from './pages/LandingPage'
 import { LegalDocumentPage } from './pages/LegalDocumentPage'
 import { LoginPage } from './pages/LoginPage'
 import { SsoLoginPage } from './pages/SsoLoginPage'
-import { OrgPage } from './pages/OrgPage'
 import { ProfilePage } from './pages/ProfilePage'
 import { PublicSummaryPage } from './pages/PublicSummaryPage'
 import { ResetPage } from './pages/ResetPage'
@@ -38,6 +36,8 @@ const StatsPage = lazy(() => import('./pages/StatsPage').then((m) => ({ default:
 const SecurityPage = lazy(() =>
   import('./pages/security/SecurityPage').then((m) => ({ default: m.SecurityPage })),
 )
+const LibraryPage = lazy(() => import('./pages/LibraryPage').then((m) => ({ default: m.LibraryPage })))
+const OrgPage = lazy(() => import('./pages/OrgPage').then((m) => ({ default: m.OrgPage })))
 
 function LazyRoute({ children }: { children: ReactNode }) {
   const { t } = useTranslation()
@@ -68,6 +68,22 @@ function LazySecurityPage() {
   return (
     <LazyRoute>
       <SecurityPage />
+    </LazyRoute>
+  )
+}
+
+function LazyLibraryPage() {
+  return (
+    <LazyRoute>
+      <LibraryPage />
+    </LazyRoute>
+  )
+}
+
+function LazyOrgPage() {
+  return (
+    <LazyRoute>
+      <OrgPage />
     </LazyRoute>
   )
 }
@@ -114,7 +130,7 @@ export default function App() {
       >
         <Route index element={<AppHomeRedirect />} />
         <Route path="library" element={<Navigate to={LIBRARY_DEFAULT} replace />} />
-        <Route path="library/:tab" element={<LibraryPage />} />
+        <Route path="library/:tab" element={<LazyLibraryPage />} />
         <Route path="ingest" element={<IngestPage />} />
         <Route path="audio/:id" element={<AudioPage />} />
         <Route path="transcript/:id" element={<TranscriptPage />} />
@@ -122,7 +138,7 @@ export default function App() {
         <Route path="skills" element={<Navigate to={libraryPath('skills')} replace />} />
         <Route path="skill/new" element={<SkillCreatePage />} />
         <Route path="skill/:id" element={<SkillPage />} />
-        <Route path="org" element={<OrgPage />} />
+        <Route path="org" element={<LazyOrgPage />} />
         <Route path="public-links" element={<Navigate to={libraryPath('links')} replace />} />
         <Route path="stats" element={<LazyStatsPage />} />
         <Route path="profile" element={<ProfilePage />} />
