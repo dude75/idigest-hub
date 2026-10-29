@@ -336,6 +336,18 @@ if (/\.row\s*\{/.test(indexCss)) {
 if (/\.stack\s*\{/.test(indexCss)) {
   issues.push('remove legacy .stack rule from index.css — use appFormStack from appTypography')
 }
+if (/\.grow\s*\{/.test(indexCss)) {
+  issues.push('remove legacy .grow rule from index.css — use Tailwind grow utility')
+}
+if (/\.share-panel\s*\{[^}]*#f8fafc/.test(indexCss)) {
+  issues.push('share-panel must use --share-panel-bg / appSharePanelSurface, not #f8fafc')
+}
+if (/\.landing-pricing-btn\s*\{[^}]*font-size:/.test(indexCss)) {
+  issues.push('landing-pricing-btn typography — use appLandingPricingBtn from appTypography')
+}
+if (!indexCss.includes('--share-panel-bg:')) {
+  issues.push('index.css :root must define --share-panel-bg for share panels')
+}
 if (/\.item\s*\{/.test(indexCss)) {
   issues.push('remove legacy .item rule — use listRowChrome on ListRow ([data-slot=list-row])')
 }
@@ -384,6 +396,9 @@ if (!oauthPages.includes('auth-shell.js')) {
 }
 if (!authShell.includes('.hub-select-trigger')) {
   issues.push('auth-shell.css must define .hub-select-* popup select styles')
+}
+if (!authShell.includes('--muted-foreground:')) {
+  issues.push('auth-shell.css :root must define --muted-foreground aligned with SPA')
 }
 if (!/\.muted\s*\{[^}]*font-size:\s*0\.875rem/.test(authShell)) {
   issues.push('auth-shell.css .muted must use 0.875rem (appMutedText) for OAuth copy')

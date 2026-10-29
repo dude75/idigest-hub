@@ -6,7 +6,7 @@ import type { Tariff, TariffDeleteImpact, TariffRemediationPayload } from '../..
 import { showError, truncateLabel } from '../../util'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { appFieldCaption, appMutedText } from '../../components/app/appTypography'
+import { appFieldCaption, appImpactRow, appMutedText } from '../../components/app/appTypography'
 import { AppCheckboxRow, AppSelectField } from '../../components/app/AppFormControls'
 
 type Props = {
@@ -138,7 +138,7 @@ export function TariffImpactModal({ tariff, onClose, onConfirm }: Props) {
                 {(impact.affected_orgs ?? []).length ? (
                   <ul className="worker-impact-list">
                     {(impact.affected_orgs ?? []).map((org) => (
-                      <li key={org.id} className="worker-impact-row">
+                      <li key={org.id} className={cn('worker-impact-row', appImpactRow)}>
                         <span className="worker-impact-org-name">{truncateLabel(org.name, 48)}</span>
                       </li>
                     ))}

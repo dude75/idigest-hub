@@ -178,6 +178,18 @@ export const appTranscriptToneTitleInline = 'text-[0.8125rem] font-semibold text
 export const appTranscriptToneTitle =
   'm-0 text-[0.9375rem] font-semibold leading-snug text-foreground'
 
+/** Worker/tariff impact modal row copy size. */
+export const appImpactRow = 'text-[0.84rem]'
+
+/** Landing pricing card CTA typography (layout/colors stay in landing CSS). */
+export const appLandingPricingBtn = 'text-[0.92rem] font-semibold'
+
+/** Ingest studio foot primary actions. */
+export const appIngestFootAction = 'text-sm font-medium'
+
+/** Share panel surface (uses --share-panel-bg on :root). */
+export const appSharePanelSurface = 'bg-[var(--share-panel-bg)]'
+
 /** Worker/tariff impact modal note rows. */
 export const appImpactNote = cn(appMutedText, 'text-[0.82rem]')
 

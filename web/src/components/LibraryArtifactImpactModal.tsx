@@ -6,7 +6,7 @@ import type { LibraryArtifactDeleteImpact } from '../types'
 import { formatInteger, showError, truncateLabel } from '../util'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { appFieldCaption } from './app/appTypography'
+import { appFieldCaption, appImpactRow } from './app/appTypography'
 
 type Props = {
   objectType: 'audio' | 'transcript' | 'summary'
@@ -96,7 +96,7 @@ export function LibraryArtifactImpactModal({
       closeOnBackdrop={!busy && !loading}
       wide
       title={t('library.artifactDeleteTitle', { title: truncateLabel(title, 64) })}
-      panelClassName="worker-impact-modal max-h-[min(92vh,880px)] overflow-y-auto sm:max-w-3xl"
+      panelClassName="worker-impact-modal max-h-[min(9                    <li key={row.id} className={cn('worker-impact-row', appImpactRow)}>vh,880px)] overflow-y-auto sm:max-w-3xl"
       footer={
         <>
           <Button type="button" variant="outline" disabled={busy || loading} autoFocus onClick={onClose}>
@@ -126,7 +126,7 @@ export function LibraryArtifactImpactModal({
                 </div>
                 <ul className="worker-impact-list">
                   {impact.shared_with!.map((row) => (
-                    <li key={row.email} className="worker-impact-row">
+                    <li key={row.email} className={cn('worker-impact-row', appImpactRow)}>
                       {row.display_name || row.email}
                     </li>
                   ))}
@@ -149,7 +149,7 @@ export function LibraryArtifactImpactModal({
                 </div>
                 <ul className="worker-impact-list">
                   {impact.transcripts!.map((row) => (
-                    <li key={row.id} className="worker-impact-row">
+                    <li key={row.id} className={cn('worker-impact-row', appImpactRow)}>
                       {truncateLabel(row.title, 80)}
                     </li>
                   ))}
@@ -164,7 +164,7 @@ export function LibraryArtifactImpactModal({
                 </div>
                 <ul className="worker-impact-list">
                   {impact.summaries!.map((row) => (
-                    <li key={row.id} className="worker-impact-row">
+                    <li key={row.id} className={cn('worker-impact-row', appImpactRow)}>
                       {truncateLabel(row.title, 80)}
                     </li>
                   ))}
@@ -178,14 +178,14 @@ export function LibraryArtifactImpactModal({
                 </div>
                 <ul className="worker-impact-list">
                   {(impact.active_tasks?.queued ?? 0) > 0 ? (
-                    <li className="worker-impact-row warn">
+                    <li className={cn('worker-impact-row warn', appImpactRow)}>
                       {t('library.artifactImpactTasksQueued', {
                         count: formatInteger(impact.active_tasks!.queued),
                       })}
                     </li>
                   ) : null}
                   {(impact.active_tasks?.running ?? 0) > 0 ? (
-                    <li className="worker-impact-row warn">
+                    <li className={cn('worker-impact-row warn', appImpactRow)}>
                       {t('library.artifactImpactTasksRunning', {
                         count: formatInteger(impact.active_tasks!.running),
                       })}
