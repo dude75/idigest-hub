@@ -14,7 +14,7 @@ import type {
 import { formatInteger, showError, truncateLabel } from '../../util'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { appFieldCaption, appImpactRowLabel, appImpactTagMuted, appMutedText } from '../../components/app/appTypography'
+import { appFieldCaption, appImpactNote, appImpactRowLabel, appImpactTagMuted, appMutedText } from '../../components/app/appTypography'
 import { AppHoverHint } from '../../components/app/AppHoverHint'
 import { AppCheckboxRow, AppSelectField } from '../../components/app/AppFormControls'
 import { AdminMetaRow, HubBadge } from '../../components/app/AdminUi'
@@ -271,16 +271,28 @@ function UnavailableRow({
     )
   }
   if (item.kind === 'last_transcribe') {
-    return <li className="worker-impact-row worker-impact-note">{t('instance.workerImpactLastTranscribeWorker')}</li>
+    return (
+      <li className={cn('worker-impact-row worker-impact-note', appImpactNote)}>
+        {t('instance.workerImpactLastTranscribeWorker')}
+      </li>
+    )
   }
   if (item.kind === 'last_summarize') {
-    return <li className="worker-impact-row worker-impact-note warn">{t('instance.workerImpactLastSummarizeWorker')}</li>
+    return (
+      <li className={cn('worker-impact-row worker-impact-note warn', appImpactNote)}>
+        {t('instance.workerImpactLastSummarizeWorker')}
+      </li>
+    )
   }
   if (item.kind === 'capture_losing_jitsi') {
-    return <li className="worker-impact-row worker-impact-note warn">{t('instance.workerImpactCaptureLosingJitsi')}</li>
+    return (
+      <li className={cn('worker-impact-row worker-impact-note warn', appImpactNote)}>
+        {t('instance.workerImpactCaptureLosingJitsi')}
+      </li>
+    )
   }
   return (
-    <li className={cn('worker-impact-row worker-impact-note', appMutedText)}>
+    <li className={cn('worker-impact-row worker-impact-note', appImpactNote)}>
       {t('instance.workerImpactSummarizeRemaining', { count: formatInteger(item.count) })}
     </li>
   )
@@ -341,7 +353,7 @@ function InUseRow({
   }
   if (item.kind === 'capture_tasks') {
     return (
-      <li className="worker-impact-row worker-impact-note">
+      <li className={cn('worker-impact-row worker-impact-note', appImpactNote)}>
         {t('instance.workerImpactCaptureTasks', { count: formatInteger(item.total) })}
       </li>
     )
