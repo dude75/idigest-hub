@@ -11,6 +11,7 @@ import { hubReadingSurface, summaryBody } from '../typography'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Card, CardContent } from '@/components/ui/card'
 import { AppInputField } from '../components/app/AppFormControls'
+import { appMutedText } from '../components/app/appTypography'
 import { Link2Off } from 'lucide-react'
 
 type PublicSummary = {
@@ -111,7 +112,7 @@ export function PublicSummaryPage() {
         {data?.pin_required && (
           <form className="flex flex-col gap-3" onSubmit={(e) => void unlock(e)}>
             <h1>{t('publicSummary.pinTitle')}</h1>
-            <p className="muted">{t('publicSummary.pinHint')}</p>
+            <p className={appMutedText}>{t('publicSummary.pinHint')}</p>
             <AppInputField
               label="PIN"
               htmlFor="public-summary-pin"

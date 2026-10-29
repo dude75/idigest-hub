@@ -24,6 +24,8 @@ import { formatDecimal, formatInteger, showError, WalletLabel } from '../util'
 import { canAdminResetMemberMfa } from '../mfa'
 import { randomPassword } from '../util/password'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '../components/app/appTypography'
 import { Card } from '@/components/ui/card'
 import {
   AdminDataTable,
@@ -455,7 +457,7 @@ export function OrgPage() {
               />
             )}
             {admin && ssoBlocksMfa && (
-              <p className="muted">{t('org.mfaRequiredSsoHint')}</p>
+              <p className={appMutedText}>{t('org.mfaRequiredSsoHint')}</p>
             )}
             {admin && (
               <AppCheckboxRow
@@ -466,10 +468,10 @@ export function OrgPage() {
               />
             )}
             {admin && !allowPublicLinks && (
-              <p className="muted">{t('org.allowPublicLinksHint')}</p>
+              <p className={appMutedText}>{t('org.allowPublicLinksHint')}</p>
             )}
             {admin && (
-              <p className="muted">
+              <p className={appMutedText}>
                 <Link to={libraryPath('links')}>{t('publicLinks.manage')}</Link>
               </p>
             )}
@@ -521,7 +523,7 @@ export function OrgPage() {
                     {currentTariff.archived ? <HubBadge tone="pending">{t('instance.archived')}</HubBadge> : null}
                   </div>
                   <TariffDetails tariff={currentTariff} />
-                  <p className="muted">{t('org.tariffLegacy')}</p>
+                  <p className={appMutedText}>{t('org.tariffLegacy')}</p>
                 </>
               )}
               {admin && tariffs.length > 0 && (
@@ -572,10 +574,10 @@ export function OrgPage() {
               </summary>
               <div className="flex flex-col gap-3 fold-body">
                 {!captureAllowed ? (
-                  <p className="muted">{t('org.captureDisabledHint')}</p>
+                  <p className={appMutedText}>{t('org.captureDisabledHint')}</p>
                 ) : (
                   <>
-                    <p className="muted">{t('org.captureJitsiHint')}</p>
+                    <p className={appMutedText}>{t('org.captureJitsiHint')}</p>
                     <div className="flex flex-col gap-3">
                       <AppInputField
                         label={t('org.captureBotDisplayName')}
@@ -629,11 +631,11 @@ export function OrgPage() {
                         </TableBody>
                       </AdminDataTable>
                     ) : (
-                      <p className="muted">{t('common.empty')}</p>
+                      <p className={appMutedText}>{t('common.empty')}</p>
                     )}
                     <div className="flex flex-col gap-3">
                       {captureEditingId ? (
-                        <p className="muted">{t('org.captureEditHost')}</p>
+                        <p className={appMutedText}>{t('org.captureEditHost')}</p>
                       ) : null}
                       <AppInputField
                         label={t('org.captureHost')}
@@ -712,13 +714,13 @@ export function OrgPage() {
                 />
               </summary>
               <div className="sso-card flex flex-col gap-3 fold-body">
-                <p className="muted sso-lead">{t('sso.settingsLead')}</p>
+                <p className={cn(appMutedText, 'sso-lead')}>{t('sso.settingsLead')}</p>
                 {sso && (
                   <>
                     <div className="sso-ref">
                       <AppUrlCopyRow label={t('sso.orgId')} value={sso.org_id} />
                     </div>
-                    <p className="muted sso-lead">{t('sso.orgIdHint')}</p>
+                    <p className={cn(appMutedText, 'sso-lead')}>{t('sso.orgIdHint')}</p>
                     {sso.public_base_url_set && sso.login_url && sso.callback_url ? (
                       <div className="sso-ref">
                         <AppUrlCopyRow label={t('sso.callbackUrl')} value={sso.callback_url} />

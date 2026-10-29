@@ -6,13 +6,15 @@ import { AuthPageShell } from '../components/AuthPageShell'
 import { MfaSetupPanel } from '../components/MfaSetupPanel'
 import { resolveAuthBlockPath, resolveAuthContinuationPath } from '../routes'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '@/components/app/appTypography'
 
 export function Enroll2faPage() {
   const { t } = useTranslation()
   const { ready, me, refresh, logout } = useAuth()
   const nav = useNavigate()
 
-  if (!ready) return <p className="page muted">{t('common.loading')}</p>
+  if (!ready) return <p className={cn('page', appMutedText)}>{t('common.loading')}</p>
   if (!me) return <Navigate to="/login" replace />
 
   const block = resolveAuthBlockPath(me)

@@ -9,6 +9,8 @@ import type { SchemaPublicLegalDocumentDetailResponse } from '../openapi'
 import { LEGAL_DOCUMENT_I18N, legalDocKeyFromSlug, type PublicLegalDocument } from '../legalDocuments'
 import { agreementText } from '../typography'
 import { MarkdownBody } from '../markdown'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '../components/app/appTypography'
 
 export function LegalDocumentPage() {
   const { slug } = useParams<{ slug: string }>()
@@ -30,10 +32,10 @@ export function LegalDocumentPage() {
       .catch(() => setMissing(true))
   }, [key, i18n.language])
 
-  if (!ready) return <p className="page muted">{t('common.loading')}</p>
+  if (!ready) return <p className={cn('page', appMutedText)}>{t('common.loading')}</p>
   if (!bootstrapDone) return <Navigate to="/setup" replace />
   if (!key || missing) return <Navigate to="/" replace />
-  if (!doc) return <p className="page muted">{t('common.loading')}</p>
+  if (!doc) return <p className={cn('page', appMutedText)}>{t('common.loading')}</p>
 
   return (
     <div className="landing legal-document-page">

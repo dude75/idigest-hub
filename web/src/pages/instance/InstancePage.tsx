@@ -5,6 +5,7 @@ import { isInstanceAdmin, useAuth } from '../../auth'
 import { LIBRARY_DEFAULT } from '../../routes'
 import { INSTANCE_TABS, resolveInstanceTab, type InstanceTab } from './constants'
 import { Tabs } from '../../components/Tabs'
+import { appMutedText } from '../../components/app/appTypography'
 
 const InstanceStatsTab = lazy(() =>
   import('./InstanceStatsTab').then((m) => ({ default: m.InstanceStatsTab })),
@@ -71,7 +72,7 @@ export function InstancePage() {
   return (
     <div className="instance-admin">
       <Tabs items={tabItems} ariaLabel={t('instance.title')} />
-      <Suspense fallback={<p className="muted">{t('common.loading')}</p>}>
+      <Suspense fallback={<p className={appMutedText}>{t('common.loading')}</p>}>
         <InstanceTabContent tab={tab} />
       </Suspense>
     </div>

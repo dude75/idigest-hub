@@ -11,6 +11,8 @@ import { LandingTariffGrid } from '../components/LandingTariffGrid'
 import type { SchemaTariffListResponse } from '../openapi'
 import type { Tariff } from '../types'
 import { ButtonLink } from '@/components/ui/button-link'
+import { cn } from '@/lib/utils'
+import { appAdminLead, appMutedText } from '../components/app/appTypography'
 
 const FEATURE_KEYS = ['transcription', 'summaries', 'library', 'orgs', 'billing', 'sso'] as const
 const AUDIENCE_KEYS = ['it', 'managers', 'research', 'content'] as const
@@ -31,7 +33,7 @@ export function LandingPage() {
       .catch(() => setTariffs([]))
   }, [])
 
-  if (!ready) return <p className="page muted">{t('common.loading')}</p>
+  if (!ready) return <p className={cn('page', appMutedText)}>{t('common.loading')}</p>
   if (!bootstrapDone) return <Navigate to="/setup" replace />
 
   const enterAppPath = me ? resolveAuthContinuationPath(me) : null
@@ -100,7 +102,7 @@ export function LandingPage() {
       <section className="landing-section" id="how">
         <div className="landing-section-head">
           <h2>{t('landing.howTitle')}</h2>
-          <p className="muted">{t('landing.howLead')}</p>
+          <p className={appAdminLead}>{t('landing.howLead')}</p>
         </div>
         <ol className="landing-steps-grid">
           {([1, 2, 3] as const).map((n) => (
@@ -116,7 +118,7 @@ export function LandingPage() {
       <section className="landing-section landing-section-alt" id="features">
         <div className="landing-section-head">
           <h2>{t('landing.featuresTitle')}</h2>
-          <p className="muted">{t('landing.featuresLead')}</p>
+          <p className={appAdminLead}>{t('landing.featuresLead')}</p>
         </div>
         <div className="landing-features-grid">
           {FEATURE_KEYS.map((key) => (
@@ -131,7 +133,7 @@ export function LandingPage() {
       <section className="landing-section">
         <div className="landing-section-head">
           <h2>{t('landing.audienceTitle')}</h2>
-          <p className="muted">{t('landing.audienceLead')}</p>
+          <p className={appAdminLead}>{t('landing.audienceLead')}</p>
         </div>
         <div className="landing-audience-grid">
           {AUDIENCE_KEYS.map((key) => (
@@ -146,7 +148,7 @@ export function LandingPage() {
       <section className="landing-section landing-section-alt landing-pricing" id="pricing">
         <div className="landing-section-head landing-section-head-center">
           <h2>{t('landing.tariffsTitle')}</h2>
-          <p className="muted">{t('landing.tariffsLead')}</p>
+          <p className={appAdminLead}>{t('landing.tariffsLead')}</p>
         </div>
         <LandingTariffGrid tariffs={sortedTariffs} popularTariffId={popularTariffId} />
       </section>
@@ -154,7 +156,7 @@ export function LandingPage() {
       <section className="landing-section" id="faq">
         <div className="landing-section-head landing-section-head-full">
           <h2>{t('landing.faqTitle')}</h2>
-          <p className="muted">{t('landing.faqLead')}</p>
+          <p className={appAdminLead}>{t('landing.faqLead')}</p>
         </div>
         <div className="landing-faq">
           {Array.from({ length: FAQ_COUNT }, (_, i) => i + 1).map((n) => (

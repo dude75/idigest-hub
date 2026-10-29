@@ -12,6 +12,8 @@ import { showError } from '../util'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '@/components/app/appTypography'
 
 export function Verify2faPage() {
   const { t } = useTranslation()
@@ -23,7 +25,7 @@ export function Verify2faPage() {
   const [useRecovery, setUseRecovery] = useState(false)
   const [busy, setBusy] = useState(false)
 
-  if (!ready) return <p className="page muted">{t('common.loading')}</p>
+  if (!ready) return <p className={cn('page', appMutedText)}>{t('common.loading')}</p>
   if (!bootstrapDone) return <Navigate to="/setup" replace />
   if (me) return <Navigate to={resolveAuthContinuationPath(me)} replace />
   if (!challengeId) return <Navigate to="/login" replace />

@@ -10,6 +10,8 @@ import { Segmented } from '../../components/Segmented'
 import { agreementText } from '../../typography'
 import { MarkdownBody } from '../../markdown'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '../../components/app/appTypography'
 import { AppTabs, TabsTrigger } from '../../components/Tabs'
 import { ButtonLink } from '@/components/ui/button-link'
 import { AppCheckboxRow } from '../../components/app/AppFormControls'
@@ -89,12 +91,12 @@ function AgreementEditorPair({
       </AppField>
       </div>
       <div className="agreement-editor-field">
-        <span className="muted">{t('instance.userAgreementPreview')}</span>
+        <span className={appMutedText}>{t('instance.userAgreementPreview')}</span>
         <div className={`${agreementText} agreement-preview`} style={paneStyle}>
           {preview.trim() ? (
             <MarkdownBody text={preview} />
           ) : (
-            <p className="muted agreement-preview-empty">{t('agreement.empty')}</p>
+            <p className={cn(appMutedText, 'agreement-preview-empty')}>{t('agreement.empty')}</p>
           )}
         </div>
       </div>
@@ -260,7 +262,7 @@ export function InstanceLegalDocumentsTab() {
   if (loading) {
     return (
       <AdminPage>
-        <p className="muted">{t('common.loading')}</p>
+        <p className={appMutedText}>{t('common.loading')}</p>
       </AdminPage>
     )
   }

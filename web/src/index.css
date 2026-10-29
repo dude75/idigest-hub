@@ -1730,7 +1730,7 @@ th { color: var(--hub-muted); font-weight: 550; }
 .worker-impact-modal .modal-actions,
 .agreement-modal .modal-actions { margin-top: 0; }
 .agreement-head h2 { margin: 0; font-size: 1.15rem; line-height: 1.3; }
-.agreement-lead { margin: 0.35rem 0 0; font-size: 0.88rem; line-height: 1.4; }
+.agreement-lead { margin: 0.35rem 0 0; line-height: 1.4; }
 .profile-agreement-text {
   max-height: 24rem;
   min-height: 8rem;
@@ -3883,7 +3883,7 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 
 .sso-card { display: grid; gap: 0.55rem; }
 .sso-card .sso-title { margin: 0; font-size: 1.05rem; }
-.sso-card .sso-lead { margin: 0; font-size: 0.82rem; line-height: 1.35; }
+.sso-card .sso-lead { margin: 0; line-height: 1.35; }
 .sso-ref {
   border: 1px solid var(--line);
   border-radius: 6px;

@@ -10,6 +10,8 @@ import { type LegalDocumentKey } from '../legalDocuments'
 import { resolveAuthBlockPath, resolveAuthContinuationPath } from '../routes'
 import { showError } from '../util'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appAdminLead, appMutedText } from '../components/app/appTypography'
 
 export function AcceptAgreementPage() {
   const { t } = useTranslation()
@@ -23,7 +25,7 @@ export function AcceptAgreementPage() {
     [me?.legal_documents],
   )
 
-  if (!ready) return <p className="page muted">{t('common.loading')}</p>
+  if (!ready) return <p className={cn('page', appMutedText)}>{t('common.loading')}</p>
   if (!me) return <Navigate to="/login" replace />
 
   const block = resolveAuthBlockPath(me)
@@ -62,12 +64,12 @@ export function AcceptAgreementPage() {
       >
         <header className="agreement-head">
           <h2>{t('agreement.title')}</h2>
-          <p className="muted agreement-lead">{t('agreement.lead')}</p>
+          <p className={cn(appAdminLead, 'agreement-lead')}>{t('agreement.lead')}</p>
         </header>
 
         <div className="modal-body">
           {pendingDocs.length === 0 ? (
-            <p className="muted">{t('agreement.empty')}</p>
+            <p className={appMutedText}>{t('agreement.empty')}</p>
           ) : (
             <LegalDocumentAcceptance
               documents={pendingDocs}

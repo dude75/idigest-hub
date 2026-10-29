@@ -11,6 +11,8 @@ import { showError } from '../util'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '@/components/app/appTypography'
 
 export function ChangePasswordPage() {
   const { t } = useTranslation()
@@ -21,7 +23,7 @@ export function ChangePasswordPage() {
   const [busy, setBusy] = useState(false)
   const forced = Boolean(me?.must_change_password)
 
-  if (!ready) return <p className="page muted">{t('common.loading')}</p>
+  if (!ready) return <p className={cn('page', appMutedText)}>{t('common.loading')}</p>
   if (!me) return <Navigate to="/login" replace />
 
   const block = resolveAuthBlockPath(me)
