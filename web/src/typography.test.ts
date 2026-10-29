@@ -4,6 +4,8 @@ import {
   appAdminLead,
   appEntityTitle,
   appFieldCaption,
+  appImpactRowLabel,
+  appImpactTagMuted,
   appLandingLead,
   appMetricLabel,
   appMuted,
@@ -34,5 +36,7 @@ describe('typography class tokens', () => {
     expect(appLandingLead).toContain('text-muted-foreground')
     expect(appToneEyebrow).toContain('uppercase')
     expect(appToneEyebrow).toContain('text-xs')
+    expect(appImpactRowLabel).toContain('text-[0.8rem]')
+    expect(appImpactTagMuted).toContain('text-[0.72rem]')
   })
 })

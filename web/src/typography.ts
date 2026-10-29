@@ -14,6 +14,8 @@ export {
   appEntityTitle,
   appFieldCaption,
   appGroupTitle,
+  appImpactRowLabel,
+  appImpactTagMuted,
   appLandingEyebrow,
   appLandingLead,
   appLandingTrustCaption,

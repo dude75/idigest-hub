@@ -118,7 +118,7 @@ export function TariffImpactModal({ tariff, onClose, onConfirm }: Props) {
     >
       <div className="flex flex-col gap-4">
         {loading ? (
-          <div className="worker-impact-banner loading" aria-busy="true">
+          <div className={cn('worker-impact-banner loading', appMutedText)} aria-busy="true">
             <p>{t('instance.workerImpactLoading')}</p>
           </div>
         ) : null}

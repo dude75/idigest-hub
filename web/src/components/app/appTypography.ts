@@ -115,3 +115,9 @@ export const appLandingTrustCaption = cn(appMuted, 'm-0 mb-[0.85rem] text-[0.85r
 
 /** Uppercase eyebrows in tone analytics chips. */
 export const appToneEyebrow = cn(appFieldCaption, 'font-semibold uppercase tracking-wide')
+
+/** Secondary row labels in worker/tariff impact modals. */
+export const appImpactRowLabel = cn(appMuted, 'text-[0.8rem] whitespace-nowrap')
+
+/** Muted count chips (queued / running / idle). */
+export const appImpactTagMuted = cn(appMuted, 'text-[0.72rem] leading-[1.2]')

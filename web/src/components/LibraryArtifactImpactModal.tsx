@@ -5,6 +5,8 @@ import { Modal } from './Modal'
 import type { LibraryArtifactDeleteImpact } from '../types'
 import { formatInteger, showError, truncateLabel } from '../util'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appFieldCaption } from './app/appTypography'
 
 type Props = {
   objectType: 'audio' | 'transcript' | 'summary'
@@ -135,7 +137,7 @@ export function LibraryArtifactImpactModal({
               <section className="worker-impact-section">
                 <div className="worker-impact-section-head">
                   <h3>{t('library.artifactImpactPublicLink')}</h3>
-                  <p className="worker-impact-section-hint">{t('library.artifactImpactPublicLinkHint')}</p>
+                  <p className={cn(appFieldCaption, 'worker-impact-section-hint')}>{t('library.artifactImpactPublicLinkHint')}</p>
                 </div>
               </section>
             ) : null}
@@ -143,7 +145,7 @@ export function LibraryArtifactImpactModal({
               <section className="worker-impact-section">
                 <div className="worker-impact-section-head">
                   <h3>{t('library.artifactImpactTranscripts')}</h3>
-                  <p className="worker-impact-section-hint">{t('library.artifactImpactTranscriptsHint')}</p>
+                  <p className={cn(appFieldCaption, 'worker-impact-section-hint')}>{t('library.artifactImpactTranscriptsHint')}</p>
                 </div>
                 <ul className="worker-impact-list">
                   {impact.transcripts!.map((row) => (
@@ -158,7 +160,7 @@ export function LibraryArtifactImpactModal({
               <section className="worker-impact-section">
                 <div className="worker-impact-section-head">
                   <h3>{t('library.artifactImpactSummaries')}</h3>
-                  <p className="worker-impact-section-hint">{t('library.artifactImpactSummariesHint')}</p>
+                  <p className={cn(appFieldCaption, 'worker-impact-section-hint')}>{t('library.artifactImpactSummariesHint')}</p>
                 </div>
                 <ul className="worker-impact-list">
                   {impact.summaries!.map((row) => (

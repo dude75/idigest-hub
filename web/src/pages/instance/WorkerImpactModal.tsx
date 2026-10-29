@@ -14,7 +14,7 @@ import type {
 import { formatInteger, showError, truncateLabel } from '../../util'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { appFieldCaption, appMutedText } from '../../components/app/appTypography'
+import { appFieldCaption, appImpactRowLabel, appImpactTagMuted, appMutedText } from '../../components/app/appTypography'
 import { AppHoverHint } from '../../components/app/AppHoverHint'
 import { AppCheckboxRow, AppSelectField } from '../../components/app/AppFormControls'
 import { AdminMetaRow, HubBadge } from '../../components/app/AdminUi'
@@ -217,7 +217,7 @@ function UsageCounts({
   t: (key: string, opts?: Record<string, unknown>) => string
 }) {
   if (users === 0 && tasks === 0) {
-    return <span className="worker-impact-tag idle">{t('instance.workerImpactIdle')}</span>
+    return <span className={cn('worker-impact-tag idle', appImpactTagMuted)}>{t('instance.workerImpactIdle')}</span>
   }
   return (
     <span className="worker-impact-counts">
@@ -249,7 +249,7 @@ function UnavailableRow({
   if (item.kind === 'defaults') {
     return (
       <li className="worker-impact-row">
-        <span className="worker-impact-label">{t('instance.workerImpactDefaultsLabel')}</span>
+        <span className={appImpactRowLabel}>{t('instance.workerImpactDefaultsLabel')}</span>
         <ModelPairChip pair={item.pair} t={t} />
       </li>
     )
@@ -265,7 +265,7 @@ function UnavailableRow({
   if (item.kind === 'summarize_defaults') {
     return (
       <li className="worker-impact-row">
-        <span className="worker-impact-label">{t('instance.workerImpactDefaultsLabel')}</span>
+        <span className={appImpactRowLabel}>{t('instance.workerImpactDefaultsLabel')}</span>
         <code className="worker-impact-pair">{item.model || '—'}</code>
       </li>
     )
@@ -312,7 +312,7 @@ function InUseRow({
   if (item.kind === 'defaults') {
     return (
       <li className="worker-impact-row">
-        <span className="worker-impact-label">{t('instance.workerImpactDefaultsLabel')}</span>
+        <span className={appImpactRowLabel}>{t('instance.workerImpactDefaultsLabel')}</span>
         <ModelPairChip pair={item.pair} t={t} />
       </li>
     )
@@ -320,7 +320,7 @@ function InUseRow({
   if (item.kind === 'summarize_defaults') {
     return (
       <li className="worker-impact-row">
-        <span className="worker-impact-label">{t('instance.workerImpactDefaultsLabel')}</span>
+        <span className={appImpactRowLabel}>{t('instance.workerImpactDefaultsLabel')}</span>
         <code className="worker-impact-pair">{item.model || '—'}</code>
       </li>
     )
@@ -349,14 +349,14 @@ function InUseRow({
   if (item.kind === 'summarize_tasks') {
     return (
       <li className="worker-impact-row">
-        <span className="worker-impact-label">{t('instance.summarize')}</span>
+        <span className={appImpactRowLabel}>{t('instance.summarize')}</span>
         <span className="worker-impact-counts">
           <span className="worker-impact-tag">{t('instance.workerImpactTasksTag', { count: item.total })}</span>
           {item.queued > 0 ? (
-            <span className="worker-impact-tag subtle">{t('instance.workerImpactQueuedTag', { count: item.queued })}</span>
+            <span className={cn('worker-impact-tag subtle', appImpactTagMuted)}>{t('instance.workerImpactQueuedTag', { count: item.queued })}</span>
           ) : null}
           {item.running > 0 ? (
-            <span className="worker-impact-tag subtle">{t('instance.workerImpactRunningTag', { count: item.running })}</span>
+            <span className={cn('worker-impact-tag subtle', appImpactTagMuted)}>{t('instance.workerImpactRunningTag', { count: item.running })}</span>
           ) : null}
         </span>
       </li>
@@ -368,10 +368,10 @@ function InUseRow({
       <span className="worker-impact-counts">
         <span className="worker-impact-tag">{t('instance.workerImpactTasksTag', { count: item.total })}</span>
         {item.queued > 0 ? (
-          <span className="worker-impact-tag subtle">{t('instance.workerImpactQueuedTag', { count: item.queued })}</span>
+          <span className={cn('worker-impact-tag subtle', appImpactTagMuted)}>{t('instance.workerImpactQueuedTag', { count: item.queued })}</span>
         ) : null}
         {item.running > 0 ? (
-          <span className="worker-impact-tag subtle">{t('instance.workerImpactRunningTag', { count: item.running })}</span>
+          <span className={cn('worker-impact-tag subtle', appImpactTagMuted)}>{t('instance.workerImpactRunningTag', { count: item.running })}</span>
         ) : null}
       </span>
     </li>
@@ -561,7 +561,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
     >
       <div className="flex flex-col gap-4">
       {loading ? (
-        <div className="worker-impact-banner loading" aria-busy="true">
+        <div className={cn('worker-impact-banner loading', appMutedText)} aria-busy="true">
           <p>{t('instance.workerImpactLoading')}</p>
         </div>
       ) : null}

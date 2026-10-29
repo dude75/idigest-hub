@@ -1750,7 +1750,7 @@ th { color: var(--muted-foreground); font-weight: 550; }
 .worker-impact-banner p { margin: 0; }
 .worker-impact-banner.ok { background: #ecfdf3; border-color: #abefc6; color: #067647; }
 .worker-impact-banner.warn { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
-.worker-impact-banner.loading { background: #f8fafc; color: var(--hub-muted); }
+.worker-impact-banner.loading { background: #f8fafc; }
 .worker-impact-sections { display: grid; gap: 0.65rem; }
 .worker-impact-section {
   border: 1px solid var(--line);
@@ -1822,11 +1822,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   white-space: nowrap;
   font-weight: 500;
 }
-.worker-impact-label {
-  color: var(--hub-muted);
-  font-size: 0.8rem;
-  white-space: nowrap;
-}
 .worker-impact-counts {
   display: flex;
   flex-wrap: wrap;
@@ -1842,8 +1837,8 @@ th { color: var(--muted-foreground); font-weight: 550; }
   color: #3730a3;
   white-space: nowrap;
 }
-.worker-impact-tag.subtle { background: #f1f5f9; color: var(--hub-muted); }
-.worker-impact-tag.idle { background: #f1f5f9; color: var(--hub-muted); }
+.worker-impact-tag.subtle { background: #f1f5f9; }
+.worker-impact-tag.idle { background: #f1f5f9; }
 .worker-impact-empty {
   margin: 0;
   font-size: 0.8rem;
@@ -2560,8 +2555,6 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
   display: flex;
   gap: 0.35rem;
   padding: 0.55rem 0.85rem 0;
-  font-size: 0.78rem;
-  color: var(--hub-muted);
 }
 .landing-preview-tabs span {
   padding: 0.25rem 0.55rem;
