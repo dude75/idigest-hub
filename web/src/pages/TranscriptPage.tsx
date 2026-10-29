@@ -16,6 +16,7 @@ import {
   saveSummarizeSkillIds,
 } from '../pipeline'
 import { libraryPath } from '../routes'
+import { skillScopeLabel } from '../skillScope'
 import type { SchemaSkillListResponse, SchemaSkillPublicResponse } from '../openapi'
 import type { Summary, Task, Transcript } from '../types'
 import { UserTagsEditor } from '../components/UserTagsEditor'

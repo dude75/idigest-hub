@@ -22,6 +22,8 @@ import {
   EntityPageLoading,
 } from '../components/app/EntityUi'
 import { appEntityMetaRow } from '../components/app/appTypography'
+
+function skillPath(skill: SchemaSkillPublicResponse): string {
   if (skill.scope === 'base') return `/skills/base/${skill.id}`
   if (skill.scope === 'org') return `/org/skills/${skill.id}`
   return `/skills/self/${skill.id}`
