@@ -140,7 +140,7 @@ export function ListSection({
           </div>
         ) : null}
         {isEmpty && empty ? (
-          <p className="stats-empty px-6 py-10 text-center text-sm text-muted-foreground">{empty}</p>
+          <p className={cn(appMutedText, 'stats-empty px-6 py-10 text-center')}>{empty}</p>
         ) : (
           <div className="list task-list-embedded">{children}</div>
         )}

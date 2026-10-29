@@ -143,6 +143,16 @@ for (const file of files) {
         `${rel(file)}:${i + 1}: legacy "muted" class — use appMutedText / appMuted from appTypography`,
       )
     }
+    if (
+      !file.includes(`${path.sep}ui${path.sep}`) &&
+      !file.endsWith('appTypography.ts') &&
+      line.includes('text-sm text-muted-foreground') &&
+      !file.includes('check-ui-migration')
+    ) {
+      issues.push(
+        `${rel(file)}:${i + 1}: use appMutedText from appTypography instead of inline text-sm text-muted-foreground`,
+      )
+    }
     for (const legacyClass of [
       'entity-title',
       'stats-chart-title',
@@ -274,6 +284,9 @@ if (indexCss.includes('.stats-chart-title')) {
 }
 if (indexCss.includes('.public-link-title')) {
   issues.push('remove legacy .public-link-title — use appListRowTitle')
+}
+if (/\.muted\s*\{/.test(indexCss)) {
+  issues.push('remove legacy .muted rule from index.css — use appTypography tokens')
 }
 if (/\.admin-lead\s*\{[^}]*color:\s*var\(--hub-muted\)/.test(indexCss)) {
   issues.push('remove legacy .admin-lead typography — use appAdminLead / appProfileSectionLead')

@@ -262,11 +262,6 @@ h3 { font-size: 0.95rem; margin: 1rem 0 0.4rem; }
   width: auto;
   max-width: 100%;
 }
-.stack > label + .muted {
-  margin-top: -0.45rem;
-  font-size: 0.82rem;
-  line-height: 1.35;
-}
 .grow { flex: 1; }
 .entity-toolbar { margin: 0.5rem 0; }
 .entity-hint { margin: 0; }
@@ -330,7 +325,6 @@ button:not([data-slot='button']):not([data-slot='tabs-trigger']):not([data-slot=
   background: transparent;
 }
 
-.muted { color: var(--hub-muted); }
 .err { color: var(--danger); font-size: 0.9rem; }
 .import-error-meta { margin: 0; }
 .task-row-error { margin-top: 0.25rem; }

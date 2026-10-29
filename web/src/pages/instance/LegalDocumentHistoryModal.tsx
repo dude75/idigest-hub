@@ -19,6 +19,7 @@ import type { LegalDocumentVersionDetail, LegalDocumentVersionSummary } from '..
 import { formatDateTime } from '../../util/datetimeFormat'
 import { showError } from '../../util'
 import { Button } from '@/components/ui/button'
+import { appMutedText } from '../../components/app/appTypography'
 import {
   AdminDataTable,
   TableBody,
@@ -121,7 +122,7 @@ export function LegalDocumentHistoryModal({ documentKey, onClose }: Props) {
           {detailText.trim() ? (
             <MarkdownBody text={detailText} />
           ) : (
-            <p className="text-sm text-muted-foreground">{t('agreement.empty')}</p>
+            <p className={appMutedText}>{t('agreement.empty')}</p>
           )}
         </div>
       </Modal>
@@ -131,9 +132,9 @@ export function LegalDocumentHistoryModal({ documentKey, onClose }: Props) {
   return (
     <Modal wide onClose={onClose} title={listTitle}>
       {loading ? (
-        <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+        <p className={appMutedText}>{t('common.loading')}</p>
       ) : items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t('instance.legalDocumentHistoryEmpty')}</p>
+        <p className={appMutedText}>{t('instance.legalDocumentHistoryEmpty')}</p>
       ) : (
         <AdminDataTable>
           <TableHeader>

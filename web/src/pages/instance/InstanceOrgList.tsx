@@ -27,6 +27,8 @@ import type { Org, Tariff, User } from '../../types'
 import { formatDecimal, formatInteger, showError } from '../../util'
 import { canAdminResetMemberMfa } from '../../mfa'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appMuted } from '../../components/app/appTypography'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +37,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
-import { cn } from '@/lib/utils'
 import { OrgMemberCell } from '../../components/UserIdentityCell'
 import { compareUsersByDisplayName, memberMatchesQuery } from '../../userDisplay'
 
@@ -60,7 +61,7 @@ function OrgWalletCell({ org }: { org: Org }) {
   if (org.unlimited) {
     return <HubBadge tone="success">{t('instance.unlimited')}</HubBadge>
   }
-  if (org.balance == null) return <span className="text-muted-foreground">—</span>
+  if (org.balance == null) return <span className={appMuted}>—</span>
   return <span className="font-medium tabular-nums">{formatDecimal(org.balance)}</span>
 }
 
@@ -294,7 +295,7 @@ function OrgDetailPanel({
         <div className="instance-org-detail-users-head">
           <h4 className="instance-org-detail-users-title">
             {t('instance.users')}
-            <span className="text-muted-foreground font-normal"> · {formatInteger(memberCount)}</span>
+            <span className={cn(appMuted, 'font-normal')}> · {formatInteger(memberCount)}</span>
           </h4>
         </div>
         <OrgMembersTable
@@ -361,7 +362,7 @@ export function InstanceOrgList({
                   }
                 }}
               >
-                <TableCell className="align-middle text-muted-foreground" aria-hidden>
+                <TableCell className={cn('align-middle', appMuted)} aria-hidden>
                   <ChevronDown
                     className={cn('instance-org-expand size-4 transition-transform', expanded && 'rotate-180')}
                   />

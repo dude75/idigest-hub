@@ -70,7 +70,7 @@ export function appPipelineStepLabelClass(
   }
 }
 
-/** Legacy `.muted` — secondary text at inherited size. */
+/** Secondary text at inherited size (Tailwind token, not legacy `.muted` CSS). */
 export const appMuted = 'text-muted-foreground'
 
 /** Section / card lead copy under titles. */

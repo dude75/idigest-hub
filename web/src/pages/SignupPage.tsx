@@ -15,6 +15,7 @@ import type { Tariff } from '../types'
 import { showError } from '../util'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Input } from '@/components/ui/input'
+import { appMutedText } from '../components/app/appTypography'
 
 export function SignupPage() {
   const { t, i18n } = useTranslation()
@@ -92,9 +93,9 @@ export function SignupPage() {
       <AuthCard title={t('auth.signup')}>
         <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
           {formLoading ? (
-            <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+            <p className={appMutedText}>{t('common.loading')}</p>
           ) : tariffs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{t('auth.noSignup')}</p>
+            <p className={appMutedText}>{t('auth.noSignup')}</p>
           ) : (
             <>
               <AuthField label={t('common.email')} htmlFor="signup-email">

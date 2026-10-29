@@ -200,7 +200,7 @@ export function TranscriptPage() {
   const utteranceActions = (
     <div className="transcript-utterance-actions flex flex-wrap items-center justify-end gap-2">
       {!openText ? (
-        <span className="text-sm text-muted-foreground">{t('transcript.collapsed', { n: (item?.utterances || []).length })}</span>
+        <span className={appMutedText}>{t('transcript.collapsed', { n: (item?.utterances || []).length })}</span>
       ) : null}
       {openText && item?.has_tone_analytics ? (
         <AppCheckboxRow

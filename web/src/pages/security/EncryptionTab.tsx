@@ -22,6 +22,7 @@ import type { EncryptionJob } from '../../types'
 import { formatInteger, fmtAge, fmtDate, showError } from '../../util'
 import { canStartCryptoReencrypt, isCryptoReencryptJobRunning } from '../../security/cryptoReencrypt'
 import { Button } from '@/components/ui/button'
+import { appMutedText } from '../../components/app/appTypography'
 
 function dekStatusBadge(status: string, t: (key: string, opts?: { defaultValue?: string }) => string): string {
   return t(`encryption.statusValue.${status}`, { defaultValue: status })
@@ -148,7 +149,7 @@ export function EncryptionTab() {
 
       <AdminFormCard title={t('encryption.title')} lead={t('encryption.lead')}>
         {deks && deks.hub_secret_prev_configured ? (
-          <p className="text-sm text-muted-foreground">{t('encryption.hubSecretPrevHint')}</p>
+          <p className={appMutedText}>{t('encryption.hubSecretPrevHint')}</p>
         ) : null}
         {deks && deks.deks_pending_rewrap > 0 ? (
           <p className="text-sm text-destructive">{t('encryption.rewrapPending', { count: deks.deks_pending_rewrap })}</p>
@@ -170,7 +171,7 @@ export function EncryptionTab() {
 
       {job ? (
         <AdminFormCard title={t('encryption.jobTitle')}>
-          <p className="text-sm text-muted-foreground">
+          <p className={appMutedText}>
             {t('encryption.jobStarted')}: {fmtDate(job.started_at ?? job.created_at)}
             {job.completed_at ? (
               <>
@@ -191,7 +192,7 @@ export function EncryptionTab() {
             >
               {dekStatusBadge(job.status, t)}
             </HubBadge>
-            <span className="text-sm text-muted-foreground">{progressLabel(job)}</span>
+            <span className={appMutedText}>{progressLabel(job)}</span>
           </AdminMetaRow>
           {job.error ? <p className="text-sm text-destructive">{job.error}</p> : null}
           {jobRunning ? (

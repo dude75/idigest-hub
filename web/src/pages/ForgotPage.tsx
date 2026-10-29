@@ -9,6 +9,7 @@ import { AuthPageShell } from '../components/AuthPageShell'
 import { showError } from '../util'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Input } from '@/components/ui/input'
+import { appMutedText } from '../components/app/appTypography'
 
 const RESET_COOLDOWN_SEC = 900
 
@@ -60,7 +61,7 @@ export function ForgotPage() {
         <form className="space-y-4" onSubmit={(e) => void onSubmit(e)}>
           {ok && <p className="ok text-sm">{t('auth.sent')}</p>}
           {cooldown > 0 && (
-            <p className="text-sm text-muted-foreground">
+            <p className={appMutedText}>
               {t('auth.resetCooldown', { minutes: cooldownMinutes(cooldown) })}
             </p>
           )}

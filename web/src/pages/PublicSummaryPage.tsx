@@ -11,6 +11,7 @@ import { hubReadingSurface, summaryBody } from '../typography'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Card, CardContent } from '@/components/ui/card'
 import { AppInputField } from '../components/app/AppFormControls'
+import { cn } from '@/lib/utils'
 import { appMutedText } from '../components/app/appTypography'
 import { Link2Off } from 'lucide-react'
 
@@ -78,7 +79,7 @@ export function PublicSummaryPage() {
     return (
       <AuthPageShell>
         <Card className="public-summary-card w-full max-w-sm">
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+          <CardContent className={cn('py-8 text-center', appMutedText)}>
             {t('common.loading')}
           </CardContent>
         </Card>

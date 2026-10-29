@@ -1,6 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { appMutedText } from '../../components/app/appTypography'
 import { userDisplayName, userInitials } from '../../userDisplay'
 import { useProfilePage } from './ProfilePageContext'
 
@@ -58,7 +59,7 @@ export function ProfileHeader() {
             <h1 className="min-w-0 break-all text-xl font-semibold leading-snug tracking-tight">
               {displayName}
             </h1>
-            {emailLine ? <p className="break-all text-sm text-muted-foreground">{emailLine}</p> : null}
+            {emailLine ? <p className={cn(appMutedText, 'break-all')}>{emailLine}</p> : null}
           </div>
         </div>
 

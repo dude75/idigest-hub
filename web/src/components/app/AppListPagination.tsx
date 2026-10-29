@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { appMutedText } from './appTypography'
 import { AdminTablePager } from './AdminDataTable'
 import {
   LIST_PAGE_SIZE_OPTIONS,
@@ -87,7 +88,7 @@ export function AppListPagination({
               />
             </PaginationItem>
             <PaginationItem>
-              <span className="px-2 text-sm text-muted-foreground tabular-nums">
+              <span className={cn(appMutedText, 'px-2 tabular-nums')}>
                 {t('task.pageRange', { from, to, total })}
               </span>
             </PaginationItem>

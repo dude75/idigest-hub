@@ -233,7 +233,7 @@ export function ProfileDataTab() {
                     <Button
                       type="button"
                       variant="link"
-                      className="h-auto px-0 text-sm text-muted-foreground"
+                      className={cn(appMutedText, 'h-auto px-0')}
                       onClick={() => setShowRevokedTokens((open) => !open)}
                     >
                       {showRevokedTokens

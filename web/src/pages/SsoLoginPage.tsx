@@ -8,6 +8,7 @@ import { AuthPageShell } from '../components/AuthPageShell'
 import { resolveAuthContinuationPath } from '../routes'
 import { errorText, showError } from '../util'
 import { Button } from '@/components/ui/button'
+import { appMutedText } from '../components/app/appTypography'
 
 type SsoInfo = {
   org_id: string
@@ -48,7 +49,7 @@ export function SsoLoginPage() {
       <AuthCard title={t('sso.title')}>
         <div className="space-y-4">
           {authError && <p className="err text-sm">{errorText(new ApiError(authError, ''), t)}</p>}
-          {loading && <p className="text-sm text-muted-foreground">{t('common.loading')}</p>}
+          {loading && <p className={appMutedText}>{t('common.loading')}</p>}
           {!loading && info && (
             <>
               <p>{info.org_name}</p>

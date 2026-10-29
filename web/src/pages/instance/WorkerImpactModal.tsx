@@ -533,7 +533,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
       description={
         <AdminMetaRow className="pt-1">
           <HubBadge tone="muted">{t(`task.type.${workerType}`, { defaultValue: workerType })}</HubBadge>
-          <span className="text-sm text-muted-foreground">{worker.base_url}</span>
+          <span className={appMutedText}>{worker.base_url}</span>
         </AdminMetaRow>
       }
       panelClassName="worker-impact-modal max-h-[min(92vh,880px)] overflow-y-auto sm:max-w-3xl"

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 import { Modal } from './Modal'
 import type { Org, OrgLedger, OrgLedgerEntry } from '../types'
 import { AppDuration } from './app/AppDuration'
@@ -17,6 +18,7 @@ import {
   adminTableHeadNum,
 } from './app/AdminDataTable'
 import { AdminMetaRow, HubBadge } from './app/AdminUi'
+import { appFieldCaption, appMutedText } from './app/appTypography'
 
 type Props = {
   org: Org
@@ -78,7 +80,7 @@ export function OrgLedgerModal({
         <AdminMetaRow className="pt-1">
           <HubBadge tone="muted">{org.tariff.name}</HubBadge>
           {org.unlimited ? <HubBadge tone="success">{t('instance.unlimited')}</HubBadge> : null}
-          <span className="text-sm text-muted-foreground">
+          <span className={appMutedText}>
             {t('instance.users')} · {formatInteger((org.members || []).length)}
           </span>
           <WalletLabel unlimited={org.unlimited} balance={org.balance} />
@@ -100,7 +102,7 @@ export function OrgLedgerModal({
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!ledger ? (
-          <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
+          <p className={appMutedText}>{t('common.loading')}</p>
         ) : (
           <div className="flex flex-col gap-4">
             <StatGrid>
@@ -128,7 +130,7 @@ export function OrgLedgerModal({
             <div>
               <h3 className="mb-3 text-sm font-medium">{t('instance.ledger')}</h3>
               {ledger.items.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('common.empty')}</p>
+                <p className={appMutedText}>{t('common.empty')}</p>
               ) : (
                 <AdminDataTable>
                   <TableHeader>
@@ -147,7 +149,7 @@ export function OrgLedgerModal({
                         <TableCell className="whitespace-normal">
                           <HubBadge tone={entryTone(entry)}>{typeLabel(entry)}</HubBadge>
                           {entry.unlimited_skip ? (
-                            <span className="mt-1 block text-xs text-muted-foreground">
+                            <span className={cn(appFieldCaption, 'mt-1 block')}>
                               {t('instance.ledgerUnlimitedSkip')}
                             </span>
                           ) : null}
@@ -181,7 +183,7 @@ export function OrgLedgerModal({
                         <TableCell className={adminTableCellNum}>
                           <span className={amountClass(entry.amount)}>{formatDecimal(entry.amount)}</span>
                           {entry.unlimited_skip && entry.usage_amount ? (
-                            <div className="text-xs text-muted-foreground">{formatDecimal(entry.usage_amount)}</div>
+                            <div className={appFieldCaption}>{formatDecimal(entry.usage_amount)}</div>
                           ) : null}
                         </TableCell>
                       </TableRow>
