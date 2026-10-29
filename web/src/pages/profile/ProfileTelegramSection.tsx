@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { showError } from '../../util'
 import { formatDateTime } from '../../util/datetimeFormat'
 import { AppUrlCopyRow } from '../../components/app/AppUrlCopyRow'
+import { appMutedText } from '../../components/app/appTypography'
 import { PROFILE_TELEGRAM_SECTION_ID } from '../../shell/constants'
 import { ProfileSection } from './ProfileSection'
 import { useProfileHashScroll } from './useProfileHashScroll'
@@ -111,9 +112,9 @@ export function ProfileTelegramSection() {
     >
       {!status ? null : (
         <>
-          {!status.bot_enabled ? <p className="muted text-sm">{t('profile.telegramBotDisabled')}</p> : null}
+          {!status.bot_enabled ? <p className={appMutedText}>{t('profile.telegramBotDisabled')}</p> : null}
           {status.bot_enabled && !botUsername ? (
-            <p className="muted text-sm">{t('profile.telegramBotUsernamePending')}</p>
+            <p className={appMutedText}>{t('profile.telegramBotUsernamePending')}</p>
           ) : null}
           {botUsername && botUrl ? (
             <p className="text-sm">
@@ -127,7 +128,7 @@ export function ProfileTelegramSection() {
             <div className="flex flex-col gap-2">
               <p className="ok text-sm">{t('profile.telegramLinked')}</p>
               {status.linked_at ? (
-                <p className="muted text-sm">
+                <p className={appMutedText}>
                   {t('profile.telegramLinkedAt')} {formatWhen(status.linked_at)}
                 </p>
               ) : null}
@@ -152,7 +153,7 @@ export function ProfileTelegramSection() {
                   ) : null}
                   <p className="font-medium">{t('profile.telegramCodeLabel')}</p>
                   <AppUrlCopyRow value={link.start_command} className="public-link-url-row-compact" />
-                  <p className="muted">
+                  <p className={appMutedText}>
                     {t('profile.telegramCodeExpires')} {formatWhen(link.expires_at)}
                   </p>
                 </div>

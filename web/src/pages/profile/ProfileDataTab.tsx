@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { AppCheckboxRow, AppInputField } from '../../components/app/AppFormControls'
 import { AppUrlCopyRow } from '../../components/app/AppUrlCopyRow'
 import { useProfilePage } from './ProfilePageContext'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '../../components/app/appTypography'
 
 export function ProfileDataTab() {
   const {
@@ -146,7 +148,7 @@ export function ProfileDataTab() {
         <Card className="admin-form-card profile-tokens-card h-full">
           <ProfileCardHeader title={t('profile.tokens')} lead={t('profile.tokensLead')} />
           <CardContent className="flex flex-col gap-3">
-            <p className="muted profile-mcp-hint text-sm">{t('profile.mcpOAuthHint')}</p>
+            <p className={cn(appMutedText, 'profile-mcp-hint')}>{t('profile.mcpOAuthHint')}</p>
             {!apiAllowed && (
               <div className="profile-alert" role="status">
                 {t('profile.apiDisabled')}
@@ -277,7 +279,7 @@ export function ProfileDataTab() {
             )}
 
             {activeTokens.length > 0 && (
-              <p className="muted profile-token-count text-sm">
+              <p className={cn(appMutedText, 'profile-token-count')}>
                 {t('profile.tokenCount', { count: activeTokens.length })}
               </p>
             )}

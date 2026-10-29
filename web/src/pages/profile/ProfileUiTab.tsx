@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/ui/card'
+import { appMutedText } from '@/components/app/appTypography'
 import { ProfileCardHeader } from './ProfileCardHeader'
 import { useProfilePage } from './ProfilePageContext'
 import { ProfileShellPrefsSection } from './ProfileShellPrefsSection'
@@ -13,7 +14,7 @@ export function ProfileUiTab() {
         {me?.org ? (
           <ProfileShellPrefsSection />
         ) : (
-          <p className="muted text-sm">{t('profile.tabUiOrgRequired')}</p>
+          <p className={appMutedText}>{t('profile.tabUiOrgRequired')}</p>
         )}
       </CardContent>
     </Card>

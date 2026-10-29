@@ -8,6 +8,7 @@ import { TIMEZONE_OPTIONS } from '../../util/timezones'
 import { useProfilePage } from './ProfilePageContext'
 import { ProfileSection, ProfileSectionDivider } from './ProfileSection'
 import { ProfileTelegramSection } from './ProfileTelegramSection'
+import { appMutedText } from '../../components/app/appTypography'
 
 export function ProfileGeneralTab() {
   const {
@@ -152,7 +153,7 @@ export function ProfileGeneralTab() {
               ]}
             />
           </div>
-          <p className="muted text-sm">{t('profile.dateTimePreview', { sample: dateTimePreview })}</p>
+          <p className={appMutedText}>{t('profile.dateTimePreview', { sample: dateTimePreview })}</p>
         </ProfileSection>
       </CardContent>
     </Card>

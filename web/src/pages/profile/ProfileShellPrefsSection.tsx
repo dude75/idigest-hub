@@ -5,6 +5,7 @@ import { useAuth } from '../../auth'
 import { useMeTelegram } from '../../context/meTelegram'
 import { AppCheckboxRow } from '../../components/app/AppFormControls'
 import { showError } from '../../util'
+import { appMutedText } from '../../components/app/appTypography'
 
 export function ProfileShellPrefsSection() {
   const { t } = useTranslation()
@@ -40,7 +41,7 @@ export function ProfileShellPrefsSection() {
         disabled={busy}
         onCheckedChange={(checked) => void patchShellPrefs({ shell_show_mic: checked })}
       />
-      <p className="muted text-sm">{t('profile.shellShowMicHint')}</p>
+      <p className={appMutedText}>{t('profile.shellShowMicHint')}</p>
       {telegramPrefsReady ? (
         <>
           <AppCheckboxRow
@@ -50,7 +51,7 @@ export function ProfileShellPrefsSection() {
             disabled={busy || telegramLinkLocked}
             onCheckedChange={(checked) => void patchShellPrefs({ shell_show_telegram_link: checked })}
           />
-          <p className="muted text-sm">
+          <p className={appMutedText}>
             {telegramLinkLocked
               ? t('profile.shellShowTelegramLinkLinkedHint')
               : t('profile.shellShowTelegramLinkHint')}

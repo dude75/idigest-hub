@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { AppInputField, AppSelectField } from '../../components/app/AppFormControls'
 import { userPickerLabel } from '../../userDisplay'
 import { useProfilePage } from './ProfilePageContext'
+import { appMutedText } from '../../components/app/appTypography'
 
 export function ProfileDeleteModal() {
   const {
@@ -38,7 +39,7 @@ export function ProfileDeleteModal() {
       {deletePreview.will_delete_org && <p className="err">{t('profile.deleteAccountWillDeleteOrg')}</p>}
       {deletePreview.requires_successor && (
         <>
-          <p className="muted">{t('profile.deleteAccountSuccessorHint')}</p>
+          <p className={appMutedText}>{t('profile.deleteAccountSuccessorHint')}</p>
           <AppSelectField
             label={t('profile.deleteAccountSuccessor')}
             htmlFor="profile-delete-successor"

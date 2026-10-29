@@ -9,6 +9,7 @@ import {
 import { resolveEffectiveSummarizeModel } from '../../summarizeModels'
 import { useProfilePage } from './ProfilePageContext'
 import { ProfileSection, ProfileSectionDivider } from './ProfileSection'
+import { appMutedText } from '../../components/app/appTypography'
 
 export function ProfileModelsTab() {
   const {
@@ -123,13 +124,13 @@ export function ProfileModelsTab() {
                     setToneAnalyticsLocal(checked)
                   }}
                 />
-                <p className="muted text-sm">
+                <p className={appMutedText}>
                   {tariffAllowsTone ? t('profile.toneAnalyticsHint') : t('profile.toneTariffLocked')}
                 </p>
               </div>
             ) : null}
             {(me.transcribe_models.asr_models.length > 0 || me.transcribe_models.diarization_models.length > 0) && (
-              <p className="muted text-sm">
+              <p className={appMutedText}>
                 {t('profile.transcribePreview', {
                   asr: resolveEffectiveAsr(asrModel, me.transcribe_prefs),
                   diarization:
@@ -170,7 +171,7 @@ export function ProfileModelsTab() {
                   ...me.summarize_models.summarize_models.map((modelId) => ({ value: modelId, label: modelId })),
                 ]}
               />
-              <p className="muted text-sm">
+              <p className={appMutedText}>
                 {t('profile.summarizePreview', {
                   model:
                     resolveEffectiveSummarizeModel(summarizeModel, me.summarize_prefs) ||
@@ -204,8 +205,8 @@ export function ProfileModelsTab() {
                   setCaptureBotNameLocal(e.target.value)
                 }}
               />
-              <p className="muted text-sm">{t('org.captureBotDisplayNameHint')}</p>
-              <p className="muted text-sm">{t('profile.captureBotPreview', { name: captureBotEffective })}</p>
+              <p className={appMutedText}>{t('org.captureBotDisplayNameHint')}</p>
+              <p className={appMutedText}>{t('profile.captureBotPreview', { name: captureBotEffective })}</p>
             </ProfileSection>
           </>
         )}

@@ -6,6 +6,7 @@ import { AppInputField } from '../../components/app/AppFormControls'
 import { MfaSetupPanel } from '../../components/MfaSetupPanel'
 import { useProfilePage } from './ProfilePageContext'
 import { ProfileSection, ProfileSectionDivider } from './ProfileSection'
+import { appMutedText } from '../../components/app/appTypography'
 
 export function ProfileSecurityTab() {
   const {
@@ -38,7 +39,7 @@ export function ProfileSecurityTab() {
           {me.mfa_enabled ? (
             <form className="flex flex-col gap-3" onSubmit={(e) => void disableMfa(e)}>
               <p className="ok">{t('mfa.enabled')}</p>
-              {me.mfa_required && <p className="muted text-sm">{t('mfa.requiredByOrg')}</p>}
+              {me.mfa_required && <p className={appMutedText}>{t('mfa.requiredByOrg')}</p>}
               {!me.mfa_required && (
                 <>
                   <AppInputField
