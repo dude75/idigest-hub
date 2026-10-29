@@ -14,6 +14,7 @@ import {
 } from 'recharts'
 import type { OrgStatsDay } from '../types'
 import { AppDuration } from './app/AppDuration'
+import { appChartEyebrow } from './app/appTypography'
 import { formatDecimal, formatInteger, fmtMediaTime } from '../util'
 import { AppStackCard } from './AdminSection'
 import {
@@ -59,7 +60,7 @@ function StatsDaysCharts({
   return (
     <div className="stats-charts">
       <div className={chartClass('transcribe')}>
-        <h3 className="stats-chart-title">{t('stats.chartTasks')}</h3>
+        <h3 className={appChartEyebrow}>{t('stats.chartTasks')}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={days} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
@@ -74,7 +75,7 @@ function StatsDaysCharts({
       </div>
 
       <div className={chartClass('audio')}>
-        <h3 className="stats-chart-title">{t('stats.statAudio')}</h3>
+        <h3 className={appChartEyebrow}>{t('stats.statAudio')}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={days} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
@@ -97,7 +98,7 @@ function StatsDaysCharts({
       </div>
 
       <div className={chartClass('chars')}>
-        <h3 className="stats-chart-title">{t('stats.statChars')}</h3>
+        <h3 className={appChartEyebrow}>{t('stats.statChars')}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={days} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
@@ -120,7 +121,7 @@ function StatsDaysCharts({
       </div>
 
       <div className={chartClass('amount')}>
-        <h3 className="stats-chart-title">{t(amountLabelKey)}</h3>
+        <h3 className={appChartEyebrow}>{t(amountLabelKey)}</h3>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={days} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />

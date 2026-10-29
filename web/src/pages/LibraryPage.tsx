@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import type { SchemaOrgUserListResponse, SchemaUserTagListResponse } from '../openapi'
 import { isInstanceAdmin, isOrgAdmin, useAuth } from '../auth'
-import { isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, libraryPath, type LibraryTab } from '../routes'
+import { libraryPath, isLibraryTab, LIBRARY_DEFAULT, LIBRARY_FIRST_TAB, LIBRARY_TABS, type LibraryTab } from '../routes'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { AppCheckboxRow, AppInputField, AppSelectField } from '../components/app/AppFormControls'
 import { AppListPagination } from '../components/app/AppListPagination'
@@ -18,6 +19,7 @@ import type { Audio, Summary, Transcript, User } from '../types'
 import { AppStackCard } from '../components/AdminSection'
 import { ListSection } from '../components/app/EntityUi'
 import { ListRow } from '../components/ListRow'
+import { appGroupTitle } from '../components/app/appTypography'
 import { Tabs } from '../components/Tabs'
 import { LibraryLinksTab } from '../components/LibraryLinksTab'
 import { LibrarySkillsTab } from '../components/LibrarySkillsTab'
@@ -315,7 +317,7 @@ export function LibraryPage() {
             <>
               {pagedTranscriptGroups.map((g) => (
                 <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
-                  <div className="group-title">
+                  <div className={cn('group-title', appGroupTitle)}>
                     {g.sourceId ? (
                       <Link to={`/app/audio/${g.sourceId}`}>
                         {g.items[0]?.source_filename || t('transcript.sourceAudio', { id: g.sourceId.slice(0, 8) })}
@@ -386,7 +388,7 @@ export function LibraryPage() {
             <>
               {pagedSummaryGroups.map((g) => (
                 <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
-                  <div className="group-title">
+                  <div className={cn('group-title', appGroupTitle)}>
                     {g.sourceId ? (
                       <Link to={`/app/transcript/${g.sourceId}`}>
                         {g.items[0]?.source_transcript_title ||

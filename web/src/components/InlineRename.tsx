@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
+import { appEntityTitle } from '@/components/app/appTypography'
+import { cn } from '@/lib/utils'
 import { AdminFormActions, AppSubmitButton } from './app/AdminUi'
 
 type Props = {
@@ -79,7 +81,7 @@ export function InlineRename({ value, canEdit, busy, onSave }: Props) {
 
   return (
     <div className="row inline-rename">
-      <h1 className="grow">{value}</h1>
+      <h1 className={cn(appEntityTitle, 'mb-0 grow')}>{value}</h1>
       {canEdit && (
         <Button type="button" className="inline-rename-btn" disabled={busy} onClick={() => setEditing(true)}>
           {t('common.rename')}

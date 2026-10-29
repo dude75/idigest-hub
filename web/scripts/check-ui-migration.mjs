@@ -138,6 +138,26 @@ for (const file of files) {
         `${rel(file)}:${i + 1}: legacy Link class "title" — use appListRowTitle from appTypography`,
       )
     }
+    for (const legacyClass of [
+      'entity-title',
+      'stats-chart-title',
+      'ingest-studio-card-title',
+      'public-link-title',
+    ]) {
+      if (line.includes(legacyClass) && !file.includes('check-ui-migration')) {
+        issues.push(
+          `${rel(file)}:${i + 1}: legacy "${legacyClass}" — use appTypography tokens or EntityPageTitle`,
+        )
+      }
+    }
+    if (
+      /\bpublic-link-meta\b(?!-item)/.test(line) &&
+      !file.includes('check-ui-migration')
+    ) {
+      issues.push(
+        `${rel(file)}:${i + 1}: legacy "public-link-meta" — use appMetaDl from appTypography`,
+      )
+    }
     if (/className=["'][^"']*\bitem-meta\b/.test(line) && !file.endsWith(`${path.sep}ListRow.tsx`)) {
       issues.push(
         `${rel(file)}:${i + 1}: legacy "item-meta" — use appListRowMeta via ListRow or appTypography`,
@@ -237,6 +257,15 @@ if (indexCss.includes('.item a.title')) {
 }
 if (indexCss.includes('.item-meta')) {
   issues.push('remove legacy .item-meta — use appListRowMeta in ListRow')
+}
+if (indexCss.includes('.entity-title')) {
+  issues.push('remove legacy .entity-title — use EntityPageTitle / appEntityTitle')
+}
+if (indexCss.includes('.stats-chart-title')) {
+  issues.push('remove legacy .stats-chart-title — use appChartEyebrow')
+}
+if (indexCss.includes('.public-link-title')) {
+  issues.push('remove legacy .public-link-title — use appListRowTitle')
 }
 if (
   !/\.hub-reading-surface,\s*\n\s*\.summary-body,\s*\n\s*\.agreement-text/.test(indexCss)

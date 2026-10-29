@@ -14,6 +14,7 @@ import { libraryPath } from '../routes'
 import { Button } from '@/components/ui/button'
 import { AppSubmitButton } from './app/AdminUi'
 import { AppHoverHint } from './app/AppHoverHint'
+import { appPanelTitle } from './app/appTypography'
 import { IngestExtraTagsMultiSelect } from './IngestExtraTagsMultiSelect'
 import { IngestPipelinePanel } from './IngestPipelinePanel'
 import { IngestStudioIconHit } from './IngestStudioIconHit'
@@ -373,7 +374,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                     <Link2 className="size-5" strokeWidth={1.75} />
                   </span>
                   <div>
-                    <h2 id="ingest-from-link-title" className="ingest-studio-card-title">
+                    <h2 id="ingest-from-link-title" className={appPanelTitle}>
                       {t('ingest.fromLink')}
                     </h2>
                     <p className="ingest-studio-card-hint">{t('ingest.fromLinkHint')}</p>
@@ -454,7 +455,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                   <Upload className="size-5" strokeWidth={1.75} />
                 </span>
                 <div>
-                  <h2 id="ingest-from-file-title" className="ingest-studio-card-title">
+                  <h2 id="ingest-from-file-title" className={appPanelTitle}>
                     {t('ingest.fromFile')}
                   </h2>
                   <p className="ingest-studio-card-hint">{t('ingest.fromFileHint')}</p>
@@ -502,7 +503,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                   <MicIcon className="size-5" strokeWidth={1.75} />
                 </span>
                 <div>
-                  <h2 id="ingest-from-mic-title" className="ingest-studio-card-title">
+                  <h2 id="ingest-from-mic-title" className={appPanelTitle}>
                     {t('ingest.fromMic')}
                   </h2>
                   <p className="ingest-studio-card-hint">{t('ingest.fromMicHint')}</p>

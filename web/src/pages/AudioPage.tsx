@@ -8,12 +8,7 @@ import { LibraryArtifactImpactModal } from '../components/LibraryArtifactImpactM
 import { EntityHint, EntityToolbar } from '../components/EntityToolbar'
 import { ListRow } from '../components/ListRow'
 import { ShareDialog } from '../components/ShareDialog'
-import {
-  EntityDetailCard,
-  EntityPage,
-  EntityPageLoading,
-  ListSection,
-} from '../components/app/EntityUi'
+import { EntityDetailCard, EntityPage, EntityPageLoading, EntityPageTitle, ListSection } from '../components/app/EntityUi'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import { pipelineNavState } from '../pipeline'
 import { requestTone, toneAnalyticsLabelKey } from '../toneAnalytics'
@@ -111,7 +106,7 @@ export function AudioPage() {
 
   return (
     <EntityPage backTo={libraryPath('audio')}>
-      <h1 className="entity-title">{item?.filename || t('audio.title')}</h1>
+      <EntityPageTitle>{item?.filename || t('audio.title')}</EntityPageTitle>
       {item && (
         <>
           <EntityDetailCard>

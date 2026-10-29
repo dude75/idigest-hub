@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { hubReadingSurface, summaryBody } from '@/typography'
 import { renderWithRouter } from '@/test/render'
-import { EntityBodyCard, EntityPage, EntityPageLoading } from './EntityUi'
+import { EntityBodyCard, EntityPage, EntityPageLoading, EntityPageTitle } from './EntityUi'
 
 afterEach(() => {
   cleanup()
@@ -12,7 +12,7 @@ describe('EntityPage', () => {
   it('renders back link in layout without JS offset sync', async () => {
     await renderWithRouter(
       <EntityPage backTo="/app/library/summaries">
-        <h1 className="entity-title">Title</h1>
+        <EntityPageTitle>Title</EntityPageTitle>
         <div className="entity-detail-card">Content</div>
       </EntityPage>,
     )
@@ -21,6 +21,7 @@ describe('EntityPage', () => {
     expect(layout).toBeTruthy()
     expect(layout?.getAttribute('style')).toBeNull()
     expect(document.querySelector('.entity-page-main')).toHaveClass('entity-page-main')
+    expect(screen.getByRole('heading', { level: 1 })).toHaveClass('text-[1.35rem]')
     expect(screen.getByRole('link', { name: 'Back' })).toHaveClass('entity-back')
   })
 })

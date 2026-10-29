@@ -8,7 +8,7 @@ import { ListSection } from './app/EntityUi'
 import type { SchemaOrgPublicLinkListResponse } from '../openapi'
 import type { OrgPublicLinkItem } from '../types'
 import { cn } from '@/lib/utils'
-import { appListRowTitle } from './app/appTypography'
+import { appListRowTitle, appMetaDl, appMetaDlTerm, appMetaDlValue } from './app/appTypography'
 import { fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { HubBadge } from './app/AdminUi'
@@ -53,19 +53,23 @@ function PublicLinkRow({
           {link.pin_required ? <HubBadge tone="muted">{t('publicLinks.pin')}</HubBadge> : null}
         </div>
       </div>
-      <dl className="public-link-meta">
+      <dl className={appMetaDl}>
         <div className="public-link-meta-item">
-          <dt>{t('publicLinks.created')}</dt>
-          <dd>{fmtDate(link.created_at)}</dd>
+          <dt className={appMetaDlTerm}>{t('publicLinks.created')}</dt>
+          <dd className={appMetaDlValue}>{fmtDate(link.created_at)}</dd>
         </div>
         <div className="public-link-meta-item">
-          <dt>{t('share.expiry')}</dt>
-          <dd>{link.expires_at ? fmtDate(link.expires_at) : t('share.expiry_never')}</dd>
+          <dt className={appMetaDlTerm}>{t('share.expiry')}</dt>
+          <dd className={appMetaDlValue}>
+            {link.expires_at ? fmtDate(link.expires_at) : t('share.expiry_never')}
+          </dd>
         </div>
         {admin && (
           <div className="public-link-meta-item">
-            <dt>{t('org.publicLinksOwner')}</dt>
-            <dd className="public-link-owner-email">{link.owner_display_name || link.owner_email}</dd>
+            <dt className={appMetaDlTerm}>{t('org.publicLinksOwner')}</dt>
+            <dd className={cn(appMetaDlValue, 'max-w-[14rem] truncate')}>
+              {link.owner_display_name || link.owner_email}
+            </dd>
           </div>
         )}
       </dl>

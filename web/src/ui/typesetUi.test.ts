@@ -90,6 +90,8 @@ describe('Typeset UI contract', () => {
     expect(listRow).toContain('appListRowTitle')
     expect(adminTable).toContain('appPrimaryText')
     expect(await readWeb('src/index.css')).not.toContain('.item a.title')
+    expect(await readWeb('src/index.css')).not.toContain('.entity-title')
+    expect(await readWeb('src/index.css')).not.toContain('.stats-chart-title')
   })
 
   it('routes UI durations through AppDuration', async () => {

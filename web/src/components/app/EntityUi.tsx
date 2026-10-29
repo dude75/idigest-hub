@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ButtonLink } from '@/components/ui/button-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { appEntityTitle } from '@/components/app/appTypography'
 import { hubReadingSurface } from '@/typography'
 import { AdminTableCard } from '../AdminSection'
 
@@ -62,6 +63,16 @@ export function EntityBackLink({ to, 'aria-label': ariaLabel }: { to: string; 'a
       <ArrowLeft className="size-4" aria-hidden />
     </ButtonLink>
   )
+}
+
+export function EntityPageTitle({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return <h1 className={cn(appEntityTitle, className)}>{children}</h1>
 }
 
 export function EntityDetailCard({ children, className }: { children: ReactNode; className?: string }) {

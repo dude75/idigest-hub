@@ -6,11 +6,19 @@ export const summaryBody = 'summary-body'
 export const agreementText = 'agreement-text'
 
 export {
+  appChartEyebrow,
   appDurationCompactClass,
   appDurationHumanClass,
+  appEntityTitle,
+  appGroupTitle,
   appListRowMeta,
   appListRowTitle,
+  appMetaDl,
+  appMetaDlTerm,
+  appMetaDlValue,
   appMutedText,
   appNumericText,
+  appPanelTitle,
+  appPipelineStepLabel,
   appPrimaryText,
 } from '@/components/app/appTypography'

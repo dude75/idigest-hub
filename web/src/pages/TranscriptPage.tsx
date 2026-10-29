@@ -33,7 +33,7 @@ import {
 } from '../components/TranscriptTonePanel'
 import { HubBadge } from '../components/app/AdminUi'
 import { summaryBody } from '../typography'
-import { skillScopeLabel } from '../skillScope'
+import { appPanelTitle } from '../components/app/appTypography'
 import { AppCursorHint } from '../components/app/AppCursorHint'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import {
@@ -41,6 +41,7 @@ import {
   EntityDetailCard,
   EntityPage,
   EntityPageLoading,
+  EntityPageTitle,
 } from '../components/app/EntityUi'
 
 function skillNamesForSummary(summary: Summary, skills: SchemaSkillPublicResponse[]): string {
@@ -249,7 +250,7 @@ export function TranscriptPage() {
           onSave={renameTitle}
         />
       ) : (
-        <h1>{t('transcript.title')}</h1>
+        <EntityPageTitle>{t('transcript.title')}</EntityPageTitle>
       )}
       {item && (
         <>
@@ -380,7 +381,7 @@ export function TranscriptPage() {
           </EntityBodyCard>
           <Card className="transcript-summaries">
             <CardHeader className="pb-3">
-              <CardTitle className="transcript-summaries-title text-base">{t('transcript.summaries')}</CardTitle>
+              <CardTitle className={cn(appPanelTitle, 'text-base')}>{t('transcript.summaries')}</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
             <details className="fold library-pipeline transcript-summaries-skills">

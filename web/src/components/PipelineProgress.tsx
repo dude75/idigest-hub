@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { loadPipelineRun, pipelineForProgress, type IngestPipeline } from '../pipeline'
 import { isTaskProcessingOnWorker, isTaskWaitingOnWorkers } from '../taskStage'
 import type { Task } from '../types'
+import { appPipelineStepLabelClass } from '@/components/app/appTypography'
 
 export type PipelineStepId = 'import' | 'capture' | 'transcribe' | 'summarize'
 
@@ -100,7 +101,7 @@ export function PipelineProgress({ task }: { task: Task | null }) {
             className={`pipeline-step pipeline-step-${status}${i < steps.length - 1 ? ' pipeline-step-has-next' : ''}`}
           >
             <span className="pipeline-step-marker" aria-hidden="true" />
-            <span className="pipeline-step-label">{t(step.labelKey)}</span>
+            <span className={appPipelineStepLabelClass(status)}>{t(step.labelKey)}</span>
           </li>
         )
       })}

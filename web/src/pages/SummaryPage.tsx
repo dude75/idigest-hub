@@ -22,6 +22,7 @@ import {
   EntityDetailCard,
   EntityPage,
   EntityPageLoading,
+  EntityPageTitle,
 } from '../components/app/EntityUi'
 
 export function SummaryPage() {
@@ -131,7 +132,7 @@ export function SummaryPage() {
           onSave={renameTitle}
         />
       ) : (
-        <h1>{t('summary.title')}</h1>
+        <EntityPageTitle>{t('summary.title')}</EntityPageTitle>
       )}
       {item && (
         <>
