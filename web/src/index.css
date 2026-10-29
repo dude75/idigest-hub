@@ -2675,8 +2675,6 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 }
 .landing-step-card p {
   margin: 0;
-  font-size: 0.92rem;
-  color: var(--hub-muted);
   line-height: 1.5;
 }
 .landing-features-grid,
@@ -2705,8 +2703,6 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 .landing-feature-card p,
 .landing-audience-card p {
   margin: 0;
-  font-size: 0.92rem;
-  color: var(--hub-muted);
   line-height: 1.5;
 }
 .landing-section-head-center {
@@ -2920,8 +2916,6 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
 .landing-faq-item[open] summary::after { content: "−"; }
 .landing-faq-item p {
   margin: 0 0 0.85rem;
-  color: var(--hub-muted);
-  font-size: 0.92rem;
   line-height: 1.55;
 }
 .landing-footer {
@@ -3239,13 +3233,6 @@ button.icon-btn:hover { color: var(--ink); background: #eef2f7; }
   margin: 0;
 }
 .stats-days-head h2 { margin: 0; font-size: 0.95rem; }
-.stats-empty {
-  margin: 0;
-  padding: 1.5rem 0.5rem;
-  text-align: center;
-  color: var(--hub-muted);
-  font-size: 0.9rem;
-}
 
 .admin-table-card [data-slot='table'] tbody tr[data-editing='true'] {
   background: color-mix(in oklch, var(--primary) 8%, transparent);

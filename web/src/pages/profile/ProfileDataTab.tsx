@@ -10,7 +10,7 @@ import { AppCheckboxRow, AppInputField } from '../../components/app/AppFormContr
 import { AppUrlCopyRow } from '../../components/app/AppUrlCopyRow'
 import { useProfilePage } from './ProfilePageContext'
 import { cn } from '@/lib/utils'
-import { appMutedText } from '../../components/app/appTypography'
+import { appMutedText, appStatsEmpty } from '../../components/app/appTypography'
 
 export function ProfileDataTab() {
   const {
@@ -225,7 +225,7 @@ export function ProfileDataTab() {
             </div>
 
             {tokens.length === 0 ? (
-              <p className="stats-empty">{t('profile.noTokens')}</p>
+              <p className={appStatsEmpty}>{t('profile.noTokens')}</p>
             ) : (
               <>
                 {revokedTokens.length > 0 ? (
@@ -243,7 +243,7 @@ export function ProfileDataTab() {
                   </div>
                 ) : null}
                 {visibleTokens.length === 0 ? (
-                  <p className="stats-empty">{t('profile.noActiveTokens')}</p>
+                  <p className={appStatsEmpty}>{t('profile.noActiveTokens')}</p>
                 ) : (
               <ul className="profile-token-list">
                 {visibleTokens.map((tok) => (

@@ -121,3 +121,9 @@ export const appImpactRowLabel = cn(appMuted, 'text-[0.8rem] whitespace-nowrap')
 
 /** Muted count chips (queued / running / idle). */
 export const appImpactTagMuted = cn(appMuted, 'text-[0.72rem] leading-[1.2]')
+
+/** Landing step / feature / FAQ body copy. */
+export const appLandingCardBody = cn(appMuted, 'm-0 text-[0.92rem] leading-normal')
+
+/** Empty states in stats tables and admin sections. */
+export const appStatsEmpty = cn(appMuted, 'm-0 px-2 py-6 text-center text-[0.9rem]')

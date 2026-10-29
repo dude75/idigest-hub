@@ -34,7 +34,7 @@ import {
 } from '../components/TranscriptTonePanel'
 import { HubBadge } from '../components/app/AdminUi'
 import { summaryBody } from '../typography'
-import { appEntityMetaRow, appMutedText, appPanelTitle } from '../components/app/appTypography'
+import { appEntityMetaRow, appMutedText, appPanelTitle, appStatsEmpty } from '../components/app/appTypography'
 import { AppCursorHint } from '../components/app/AppCursorHint'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import {
@@ -428,7 +428,7 @@ export function TranscriptPage() {
             <div className="transcript-summaries-results border-t pt-3">
               <h3 className="mb-2 text-sm font-medium">{t('transcript.summariesCount', { count: (item.summaries || []).length })}</h3>
               {(item.summaries || []).length === 0 ? (
-                <p className="stats-empty py-4">{t('common.empty')}</p>
+                <p className={cn(appStatsEmpty, 'py-4')}>{t('common.empty')}</p>
               ) : (
                 <div className="list task-list-embedded transcript-summaries-list -mx-4 sm:mx-0">
                   {(item.summaries || []).map((s) => (

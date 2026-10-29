@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ButtonLink } from '@/components/ui/button-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { appEntityTitle, appMutedText } from '@/components/app/appTypography'
+import { appEntityTitle, appMutedText, appStatsEmpty } from '@/components/app/appTypography'
 import { hubReadingSurface } from '@/typography'
 import { AdminTableCard } from '../AdminSection'
 
@@ -140,7 +140,7 @@ export function ListSection({
           </div>
         ) : null}
         {isEmpty && empty ? (
-          <p className={cn(appMutedText, 'stats-empty px-6 py-10 text-center')}>{empty}</p>
+          <p className={cn(appStatsEmpty, 'px-6 py-10')}>{empty}</p>
         ) : (
           <div className="list task-list-embedded">{children}</div>
         )}

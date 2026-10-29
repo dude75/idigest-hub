@@ -14,7 +14,7 @@ import {
 } from 'recharts'
 import type { OrgStatsDay } from '../types'
 import { AppDuration } from './app/AppDuration'
-import { appChartEyebrow } from './app/appTypography'
+import { appChartEyebrow, appStatsEmpty } from './app/appTypography'
 import { formatDecimal, formatInteger, fmtMediaTime } from '../util'
 import { AppStackCard } from './AdminSection'
 import {
@@ -180,7 +180,7 @@ export function StatsDaysView({
       }
     >
       {days.length === 0 ? (
-        <p className="stats-empty">{t('common.empty')}</p>
+        <p className={appStatsEmpty}>{t('common.empty')}</p>
       ) : view === 'table' ? (
         <AdminDataTable>
           <TableHeader>

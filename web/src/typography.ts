@@ -18,6 +18,7 @@ export {
   appImpactTagMuted,
   appLandingEyebrow,
   appLandingLead,
+  appLandingCardBody,
   appLandingTrustCaption,
   appListRowMeta,
   appListRowTitle,
@@ -32,5 +33,6 @@ export {
   appPipelineStepLabel,
   appPrimaryText,
   appProfileSectionLead,
+  appStatsEmpty,
   appToneEyebrow,
 } from '@/components/app/appTypography'

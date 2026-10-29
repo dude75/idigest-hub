@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { appAdminLead } from './app/appTypography'
+import { appAdminLead, appStatsEmpty } from './app/appTypography'
 import { SettingsFoldSummary } from './app/SettingsFoldSummary'
 
 export function AdminPage({ children }: { children: ReactNode }) {
@@ -150,7 +150,7 @@ export function AdminTableCard({
         )}
       >
         {isEmpty && empty ? (
-          <p className={cn('stats-empty', tableLayout && 'px-6 py-8')}>{empty}</p>
+          <p className={cn(appStatsEmpty, tableLayout && 'px-6 py-8')}>{empty}</p>
         ) : (
           children
         )}

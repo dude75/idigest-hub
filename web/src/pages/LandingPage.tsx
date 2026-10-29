@@ -12,7 +12,7 @@ import type { SchemaTariffListResponse } from '../openapi'
 import type { Tariff } from '../types'
 import { ButtonLink } from '@/components/ui/button-link'
 import { cn } from '@/lib/utils'
-import { appAdminLead, appLandingEyebrow, appLandingLead, appLandingTrustCaption, appMuted, appMutedText } from '../components/app/appTypography'
+import { appAdminLead, appLandingCardBody, appLandingEyebrow, appLandingLead, appLandingTrustCaption, appMuted, appMutedText } from '../components/app/appTypography'
 
 const FEATURE_KEYS = ['transcription', 'summaries', 'library', 'orgs', 'billing', 'sso'] as const
 const AUDIENCE_KEYS = ['it', 'managers', 'research', 'content'] as const
@@ -109,7 +109,7 @@ export function LandingPage() {
             <li key={n} className="landing-step-card">
               <span className="landing-step-num">{n}</span>
               <h3>{t(`landing.step${n}Title`)}</h3>
-              <p>{t(`landing.step${n}Desc`)}</p>
+              <p className={appLandingCardBody}>{t(`landing.step${n}Desc`)}</p>
             </li>
           ))}
         </ol>
@@ -124,7 +124,7 @@ export function LandingPage() {
           {FEATURE_KEYS.map((key) => (
             <article key={key} className="landing-feature-card">
               <h3>{t(`landing.features.${key}.title`)}</h3>
-              <p>{t(`landing.features.${key}.desc`)}</p>
+              <p className={appLandingCardBody}>{t(`landing.features.${key}.desc`)}</p>
             </article>
           ))}
         </div>
@@ -139,7 +139,7 @@ export function LandingPage() {
           {AUDIENCE_KEYS.map((key) => (
             <article key={key} className="landing-audience-card">
               <h3>{t(`landing.audiences.${key}.title`)}</h3>
-              <p>{t(`landing.audiences.${key}.desc`)}</p>
+              <p className={appLandingCardBody}>{t(`landing.audiences.${key}.desc`)}</p>
             </article>
           ))}
         </div>
@@ -162,7 +162,7 @@ export function LandingPage() {
           {Array.from({ length: FAQ_COUNT }, (_, i) => i + 1).map((n) => (
             <details key={n} className="landing-faq-item">
               <summary>{t(`landing.faq${n}q`)}</summary>
-              <p>{t(`landing.faq${n}a`)}</p>
+              <p className={cn(appLandingCardBody, 'mb-[0.85rem] leading-[1.55]')}>{t(`landing.faq${n}a`)}</p>
             </details>
           ))}
         </div>
