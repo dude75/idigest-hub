@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { AppCheckboxRow } from './app/AppFormControls'
 import { HubBadge } from './app/AdminUi'
 import { skillScopeLabel } from '../skillScope'
-import { appMutedText } from './app/appTypography'
+import { appFieldCaption, appMutedText } from './app/appTypography'
 
 function pipelineSummaryKey(pipeline: IngestPipeline): string {
   if (!pipeline.transcribe) return 'library.pipeline.summaryOff'
@@ -77,7 +77,7 @@ export function IngestPipelinePanel({ className, defaultOpen }: IngestPipelinePa
         ) : null}
         {pipeline.transcribe && (
           <div className="library-pipeline-skills">
-            <div className="library-pipeline-skills-label">{t('library.pipeline.summarizeSkills')}</div>
+            <div className={cn(appFieldCaption, 'library-pipeline-skills-label')}>{t('library.pipeline.summarizeSkills')}</div>
             {skills.length === 0 && <p className={appMutedText}>{t('common.empty')}</p>}
             {skills.map((s) => (
               <AppCheckboxRow

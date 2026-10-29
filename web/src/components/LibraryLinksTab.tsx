@@ -54,18 +54,18 @@ function PublicLinkRow({
         </div>
       </div>
       <dl className={appMetaDl}>
-        <div className="public-link-meta-item">
+        <div className="flex min-w-0 items-baseline gap-1.5">
           <dt className={appMetaDlTerm}>{t('publicLinks.created')}</dt>
           <dd className={appMetaDlValue}>{fmtDate(link.created_at)}</dd>
         </div>
-        <div className="public-link-meta-item">
+        <div className="flex min-w-0 items-baseline gap-1.5">
           <dt className={appMetaDlTerm}>{t('share.expiry')}</dt>
           <dd className={appMetaDlValue}>
             {link.expires_at ? fmtDate(link.expires_at) : t('share.expiry_never')}
           </dd>
         </div>
         {admin && (
-          <div className="public-link-meta-item">
+          <div className="flex min-w-0 items-baseline gap-1.5">
             <dt className={appMetaDlTerm}>{t('org.publicLinksOwner')}</dt>
             <dd className={cn(appMetaDlValue, 'max-w-[14rem] truncate')}>
               {link.owner_display_name || link.owner_email}

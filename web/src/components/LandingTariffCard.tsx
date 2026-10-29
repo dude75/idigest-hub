@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { landingTariffSubtitleKey } from '../landingTariffLayout'
 import type { Tariff } from '../types'
 import { cn } from '@/lib/utils'
-import { appMutedText } from './app/appTypography'
+import { appMutedText, appPricingQuotaNote } from './app/appTypography'
 import { formatBytes, formatDecimal, formatRate } from '../util'
 
 export { landingTariffSubtitleKey }
@@ -59,7 +59,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
               <span className="landing-pricing-icon" aria-hidden="true">⚡</span>
               <span>{t('instance.unlimited')}</span>
             </div>
-            <p className="landing-pricing-quota-note">{t('landing.tariffUnlimitedNote')}</p>
+            <p className={appPricingQuotaNote}>{t('landing.tariffUnlimitedNote')}</p>
           </>
         ) : minutes !== null && minutes > 0 ? (
           <>
@@ -68,7 +68,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
               <span>{t('landing.tariffQuotaMinutes', { minutes })}</span>
             </div>
             {hasOverage && (
-              <p className="landing-pricing-quota-note">
+              <p className={appPricingQuotaNote}>
                 {t('landing.tariffOverageAudio', { price: formatRate(tariff.price_per_audio_sec) })}
               </p>
             )}
@@ -80,7 +80,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
               <span>{t('landing.tariffQuotaCredit', { amount: formatDecimal(tariff.signup_credit) })}</span>
             </div>
             {hasOverage && (
-              <p className="landing-pricing-quota-note">
+              <p className={appPricingQuotaNote}>
                 {t('landing.tariffOverageAudio', { price: formatRate(tariff.price_per_audio_sec) })}
               </p>
             )}
@@ -91,7 +91,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
               <span>{t('landing.tariffPayAsYouGo')}</span>
             </div>
             {hasOverage && (
-              <p className="landing-pricing-quota-note">
+              <p className={appPricingQuotaNote}>
                 {t('landing.priceAudio', { price: formatRate(tariff.price_per_audio_sec) })}
               </p>
             )}

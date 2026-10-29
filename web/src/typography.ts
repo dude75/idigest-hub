@@ -33,6 +33,8 @@ export {
   appPipelineStepLabel,
   appPrimaryText,
   appProfileSectionLead,
+  appPricingQuotaNote,
+  listRowChrome,
   appStatsEmpty,
   appToneEyebrow,
 } from '@/components/app/appTypography'

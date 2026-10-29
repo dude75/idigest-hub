@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { appMutedText } from './app/appTypography'
+import { appMutedText, appPricingQuotaNote } from './app/appTypography'
 import { GITHUB_REPO_URL } from './GitHubLink'
 
 const FEATURE_KEYS = [
@@ -31,7 +31,7 @@ export function LandingOpenSourceTariffCard() {
           </span>
           <span>{t('landing.tariffOpenSourceQuota')}</span>
         </div>
-        <p className="landing-pricing-quota-note">{t('landing.tariffOpenSourceQuotaNote')}</p>
+        <p className={appPricingQuotaNote}>{t('landing.tariffOpenSourceQuotaNote')}</p>
       </div>
       <ul className="landing-pricing-features">
         {FEATURE_KEYS.map((key) => (

@@ -28,7 +28,7 @@ import { formatDecimal, formatInteger, showError } from '../../util'
 import { canAdminResetMemberMfa } from '../../mfa'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { appMuted } from '../../components/app/appTypography'
+import { appMuted, appMutedText } from '../../components/app/appTypography'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,7 +87,7 @@ function OrgMembersTable({
   }, [members, memberSearch])
 
   if (members.length === 0) {
-    return <p className="instance-org-empty-members">{t('common.empty')}</p>
+    return <p className={cn(appMutedText, 'instance-org-empty-members py-2 text-[0.8rem]')}>{t('common.empty')}</p>
   }
 
   return (

@@ -269,7 +269,7 @@ h3 { font-size: 0.95rem; margin: 1rem 0 0.4rem; }
 .entity-actions .entity-toolbar { margin: 0; }
 .entity-actions + .summary-body,
 .entity-actions + .stack,
-.entity-actions + .item {
+.entity-actions + [data-slot='list-row'] {
   margin-top: 1.25rem;
 }
 .form-section,
@@ -637,19 +637,19 @@ a.brand:hover,
   display: flex;
   align-items: flex-end;
 }
-.library-list-embedded .task-list-embedded .item {
+.library-list-embedded .task-list-embedded [data-slot='list-row'] {
   padding: 0.85rem 1rem;
 }
 @media (min-width: 640px) {
-  .library-list-embedded .task-list-embedded .item {
+  .library-list-embedded .task-list-embedded [data-slot='list-row'] {
     padding-inline: 1.5rem;
   }
 }
-.library-list-embedded .task-list-embedded .group {
+.library-list-embedded .task-list-embedded .library-source-group {
   padding-inline: 1rem;
 }
 @media (min-width: 640px) {
-  .library-list-embedded .task-list-embedded .group {
+  .library-list-embedded .task-list-embedded .library-source-group {
     padding-inline: 1.5rem;
   }
 }
@@ -1119,7 +1119,6 @@ a.brand:hover,
   gap: 0.2rem;
 }
 .library-pipeline-skills-label {
-  font-size: 0.85rem;
   margin-bottom: 0.15rem;
 }
 .library-pipeline-skill {
@@ -1345,12 +1344,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 .pager { margin-top: 0.65rem; }
 .filters { margin: 0 0 1rem; }
 .filters label { min-width: 14rem; flex: 1; max-width: 22rem; }
-.item {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 0.7rem 0.85rem;
-}
 .stat-block { margin: 0 0 1rem; }
 .stat-grid {
   display: grid;
@@ -1382,7 +1375,7 @@ th { color: var(--muted-foreground); font-weight: 550; }
 .inline-rename h1 { margin: 0; }
 .inline-rename-input { flex: 1; min-width: 0; font-size: 1.35rem; font-weight: 650; padding: 0.25rem 0.5rem; }
 .inline-rename-btn { font-size: 0.85rem; }
-.group {
+.library-source-group {
   display: grid;
   gap: 0.4rem;
   background: var(--card);
@@ -1390,7 +1383,7 @@ th { color: var(--muted-foreground); font-weight: 550; }
   border-radius: var(--radius);
   padding: 0.7rem 0.85rem;
 }
-.group .item { background: var(--bg); }
+.library-source-group [data-slot='list-row'] { background: var(--bg); }
 .fold > summary {
   cursor: pointer;
   user-select: none;
@@ -1557,7 +1550,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 .transcript-tone-stat-num {
   font-family: var(--font-mono);
   font-size: 0.72rem;
-  color: var(--muted-foreground);
 }
 .app-cursor-hint {
   position: fixed;
@@ -2035,12 +2027,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   gap: 0.3rem;
   flex-shrink: 0;
 }
-.public-link-meta-item {
-  display: flex;
-  gap: 0.35rem;
-  align-items: baseline;
-  min-width: 0;
-}
 .public-link-actions-row {
   display: flex;
   align-items: center;
@@ -2132,40 +2118,40 @@ th { color: var(--muted-foreground); font-weight: 550; }
 .admin-table-card .task-list-embedded {
   gap: 0;
 }
-.admin-table-card .task-list-embedded .item {
+.admin-table-card .task-list-embedded [data-slot='list-row'] {
   border: none;
   border-radius: 0;
   border-top: 1px solid var(--line);
   background: transparent;
   padding: 0.75rem 1rem;
 }
-.admin-table-card .task-list-embedded .item:first-child {
+.admin-table-card .task-list-embedded [data-slot='list-row']:first-child {
   border-top: none;
 }
-.admin-table-card .task-list-embedded .group {
+.admin-table-card .task-list-embedded .library-source-group {
   border: none;
   border-radius: 0;
   border-top: 1px solid var(--line);
   background: transparent;
   padding: 0.75rem 1rem 0.5rem;
 }
-.admin-table-card .task-list-embedded .group:first-child {
+.admin-table-card .task-list-embedded .library-source-group:first-child {
   border-top: none;
 }
-.admin-table-card .task-list-embedded .group .item {
+.admin-table-card .task-list-embedded .library-source-group [data-slot='list-row'] {
   border: none;
   border-radius: var(--radius);
   margin-top: 0.35rem;
   background: var(--bg);
 }
-.transcript-summaries .task-list-embedded .item {
+.transcript-summaries .task-list-embedded [data-slot='list-row'] {
   border: none;
   border-radius: 0;
   border-top: 1px solid var(--line);
   background: transparent;
   padding: 0.75rem 1rem;
 }
-.transcript-summaries .task-list-embedded .item:first-child {
+.transcript-summaries .task-list-embedded [data-slot='list-row']:first-child {
   border-top: none;
 }
 .library-page > .admin-section-card,
@@ -2294,8 +2280,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 .instance-org-empty-members {
   margin: 0;
   padding: 0.5rem 0;
-  font-size: 0.8rem;
-  color: var(--muted-foreground);
 }
 .instance-org-users-table {
   font-size: 0.8rem;
@@ -2794,11 +2778,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 }
 .landing-pricing-quota-paygo { font-size: 1rem; }
 .landing-pricing-icon { font-size: 1.1rem; line-height: 1; }
-.landing-pricing-quota-note {
-  margin: 0.45rem 0 0;
-  font-size: 0.82rem;
-  color: var(--muted-foreground);
-}
 .landing-pricing-features {
   margin: 0 0 1.15rem;
   padding: 0;
@@ -3138,25 +3117,12 @@ th { color: var(--muted-foreground); font-weight: 550; }
   gap: 0.35rem;
 }
 .tariff-price-line { margin-top: 0.2rem; font-size: 0.82rem; }
-.tariff-rates-line {
-  font-size: inherit;
-  color: var(--muted-foreground);
-}
 .admin-table-card [data-slot='table'] .table-actions [data-slot='button'] {
   flex-shrink: 0;
 }
 .wallet-label strong { font-variant-numeric: tabular-nums; }
 
 .worker-health-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 0.15rem; }
-.audit-action-badge { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.audit-payload {
-  max-width: 18rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.82rem;
-}
-.audit-payload code { font-size: inherit; }
 
 .encryption-dek-active,
 .encryption-job-completed { background: #ecfdf5; color: #067647; }
@@ -3584,12 +3550,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 }
 .org-fold-summary-inner {
   width: 100%;
-}
-.org-fold-summary-meta .row {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
 }
 
 .sso-card { display: grid; gap: 0.55rem; }

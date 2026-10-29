@@ -5,7 +5,7 @@ import type { CallToneSummary, Transcript, Utterance } from '../types'
 import { toneEmotionLabel, toneLayerLabel } from '../toneLabels'
 import { HubBadge } from './app/AdminUi'
 import { cn } from '@/lib/utils'
-import { appMutedText, appToneEyebrow } from './app/appTypography'
+import { appMuted, appMutedText, appToneEyebrow } from './app/appTypography'
 
 type ValenceKind = 'positive' | 'negative' | 'neutral' | 'unknown'
 
@@ -48,7 +48,7 @@ function ToneValenceStat({
         {valueLabel}
       </HubBadge>
       {value != null && !Number.isNaN(value) ? (
-        <span className="transcript-tone-stat-num">
+        <span className={cn(appMuted, 'transcript-tone-stat-num text-[0.72rem] tabular-nums')}>
           {value > 0 ? '+' : ''}
           {value.toFixed(2)}
         </span>
