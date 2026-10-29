@@ -104,10 +104,10 @@ for (const file of files) {
     if (
       stackClass &&
       /(?:^|\s)stack(?:\s|$)/.test(stackClass[1]) &&
-      !ALLOW_STACK_CLASS.has(file)
+      !stackClass[1].includes('shell-global-mic-stack')
     ) {
       issues.push(
-        `${rel(file)}:${i + 1}: legacy "stack" layout — use flex flex-col gap-3 (Tailwind)`,
+        `${rel(file)}:${i + 1}: legacy "stack" layout — use appFormStack / appSharePanelStack from appTypography`,
       )
     }
     if (
@@ -338,6 +338,9 @@ if (/\.share-field-label\s*\{[^}]*font-size:/.test(indexCss)) {
 }
 if (/\.row\s*\{/.test(indexCss)) {
   issues.push('remove legacy .row rule from index.css — use Tailwind flex utilities')
+}
+if (/\.stack\s*\{/.test(indexCss)) {
+  issues.push('remove legacy .stack rule from index.css — use appFormStack from appTypography')
 }
 if (/\.item\s*\{/.test(indexCss)) {
   issues.push('remove legacy .item rule — use listRowChrome on ListRow ([data-slot=list-row])')

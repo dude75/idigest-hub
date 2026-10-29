@@ -25,7 +25,7 @@ import { canAdminResetMemberMfa } from '../mfa'
 import { randomPassword } from '../util/password'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { appMutedText } from '../components/app/appTypography'
+import { appMutedText, appSettingsStack } from '../components/app/appTypography'
 import { Card } from '@/components/ui/card'
 import {
   AdminDataTable,
@@ -429,7 +429,7 @@ export function OrgPage() {
               tone="amount"
             />
           </StatGrid>
-          <div className="org-settings-stack">
+          <div className={appSettingsStack}>
           <AdminFormCard title={t('org.profile')}>
             <AppInputField
               label={t('common.name')}

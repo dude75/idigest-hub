@@ -186,18 +186,6 @@ h3 { font-size: 0.95rem; margin: 1rem 0 0.4rem; }
   color: var(--ink);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
-.auth-panel-stack {
-  display: grid;
-}
-.auth-panel-stack > .auth-panel {
-  grid-area: 1 / 1;
-  min-width: 0;
-}
-.auth-panel-stack > .auth-panel-hidden {
-  visibility: hidden;
-  pointer-events: none;
-  user-select: none;
-}
 
 /* Login email/SSO: native radios + CSS — no React re-render on switch */
 .login-mode-input {
@@ -251,12 +239,6 @@ h3 { font-size: 0.95rem; margin: 1rem 0 0.4rem; }
 }
 /* Legacy layout helpers — prefer Tailwind flex/grid/gap in new TSX */
 .table-actions { text-align: right; vertical-align: top; white-space: nowrap; }
-.stack { display: grid; gap: 0.65rem; }
-.stack > [data-slot='button'] {
-  justify-self: start;
-  width: auto;
-  max-width: 100%;
-}
 .grow { flex: 1; }
 .entity-toolbar { margin: 0.5rem 0; }
 .entity-hint { margin: 0; }
@@ -1885,7 +1867,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   padding: 0.55rem 0.65rem;
   background: #f8fafc;
 }
-.share-panel.stack { gap: 0.45rem; }
 .share-panel-meta { margin: 0; line-height: 1.35; }
 .share-form-row {
   flex-wrap: nowrap;
@@ -1939,10 +1920,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 .share-panel-action {
   padding: 0.3rem 0.65rem;
   font-size: 0.82rem;
-}
-.share-panel.stack > .share-panel-action-block[data-slot='button'] {
-  justify-self: stretch;
-  width: 100%;
 }
 .share-panel .share-public-url-row,
 .share-panel .public-link-url-row {
@@ -3481,12 +3458,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   right: 1rem;
 }
 
-.org-settings-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-.org-settings-heading { margin: 0; font-size: 1rem; }
 .org-settings-folds .org-fold-section {
   border-top: 1px solid var(--line);
 }

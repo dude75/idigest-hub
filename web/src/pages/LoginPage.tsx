@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { storeMfaChallengeId } from '../mfa'
 import { resolveAuthContinuationPath } from '../routes'
 import { showError } from '../util'
+import { appAuthPanelStack } from '../components/app/appTypography'
 
 const SSO_ORG_ID_KEY = 'lastSsoOrgId'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -121,7 +122,7 @@ export function LoginPage() {
               </label>
             </div>
 
-            <div className="auth-panel-stack login-mode-panels">
+            <div className={appAuthPanelStack}>
               <form
                 ref={emailPanelRef}
                 className="auth-panel login-panel-email flex flex-col gap-4"

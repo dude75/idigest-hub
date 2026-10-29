@@ -142,6 +142,45 @@ export const listRowChrome = cn(
 /** Landing tariff quota footnotes under pricing cards. */
 export const appPricingQuotaNote = cn(appMutedText, 'm-0 mt-[0.45rem] text-[0.82rem] leading-snug')
 
+/** Vertical form stacks (replaces legacy `.stack` in CSS). */
+export const appFormStack =
+  'grid gap-[0.65rem] [&>[data-slot=button]]:justify-self-start [&>[data-slot=button]]:w-auto [&>[data-slot=button]]:max-w-full'
+
+/** Share panel inner grid — tighter gap, full-width action buttons. */
+export const appSharePanelStack = cn(
+  appFormStack,
+  'gap-[0.45rem] [&>.share-panel-action-block[data-slot=button]]:justify-self-stretch [&>.share-panel-action-block[data-slot=button]]:w-full',
+)
+
+/** Org / instance settings sections (keeps `org-settings-stack` for admin-page spacing). */
+export const appSettingsStack = 'org-settings-stack flex flex-col gap-4'
+
+/** Login email/SSO panels occupy the same grid cell. */
+export const appAuthPanelStack = cn(
+  'grid login-mode-panels',
+  '[&>.auth-panel]:col-start-1 [&>.auth-panel]:row-start-1 [&>.auth-panel]:min-w-0',
+  '[&>.auth-panel[aria-hidden=true]]:invisible [&>.auth-panel[aria-hidden=true]]:pointer-events-none [&>.auth-panel[aria-hidden=true]]:select-none',
+)
+
+/** Share dialog section headings. */
+export const appShareSectionHead = 'm-0 text-[0.9rem] font-semibold text-foreground'
+
+/** Profile backup / MFA one-time secret headings. */
+export const appProfileSecretTitle = 'm-0 mb-[0.55rem] text-[0.9rem] font-semibold leading-snug text-foreground'
+
+/** Instance org detail subheadings (users table, etc.). */
+export const appDetailSubheading = 'm-0 text-[0.8rem] font-semibold text-foreground'
+
+/** Transcript tone summary title (inline metrics row). */
+export const appTranscriptToneTitleInline = 'text-[0.8125rem] font-semibold text-foreground'
+
+/** Transcript tone block title (full card header). */
+export const appTranscriptToneTitle =
+  'm-0 text-[0.9375rem] font-semibold leading-snug text-foreground'
+
+/** Worker/tariff impact modal note rows. */
+export const appImpactNote = cn(appMutedText, 'text-[0.82rem]')
+
 /** App shell / auth topbar nav links (inactive state). */
 export const appChromeNavLink = cn(
   appMuted,

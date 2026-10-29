@@ -12,7 +12,7 @@ import { showError } from '../../util'
 import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../../util/timezones'
 import { Button } from '@/components/ui/button'
-import { appMutedText } from '../../components/app/appTypography'
+import { appMutedText, appSettingsStack } from '../../components/app/appTypography'
 import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
 import { jsonDirty } from '../../util'
 import { Card, CardContent } from '@/components/ui/card'
@@ -266,7 +266,7 @@ export function InstanceSettingsTab() {
 
   return (
     <AdminPage>
-      <div className="org-settings-stack">
+      <div className={appSettingsStack}>
       <Card className="org-settings-folds gap-0 overflow-hidden py-0">
       <details className="fold org-fold-section">
         <summary className="org-fold-summary">

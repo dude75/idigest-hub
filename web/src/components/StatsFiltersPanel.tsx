@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
 import { AppStackCard } from './AdminSection'
 import { AppDateField, AppSelectField } from './app/AppFormControls'
 import { allOption } from './app/selectOptions'
 import { userPickerLabel } from '../userDisplay'
 import { DatePresetBar } from './DatePresetBar'
+import { appFormStack } from './app/appTypography'
 
 type UserOption = { id: string; email: string }
 type OrgOption = { id: string; name: string }
@@ -103,7 +105,7 @@ export function StatsFiltersPanel({
   )
 
   if (embedded) {
-    return <section className="stack stats-filters-embedded">{fields}</section>
+    return <section className={cn(appFormStack, 'stats-filters-embedded')}>{fields}</section>
   }
 
   return <AppStackCard title={t('stats.filters')}>{fields}</AppStackCard>
