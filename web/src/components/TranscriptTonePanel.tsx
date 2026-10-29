@@ -4,6 +4,8 @@ import type { TFunction } from 'i18next'
 import type { CallToneSummary, Transcript, Utterance } from '../types'
 import { toneEmotionLabel, toneLayerLabel } from '../toneLabels'
 import { HubBadge } from './app/AdminUi'
+import { cn } from '@/lib/utils'
+import { appMutedText } from './app/appTypography'
 
 type ValenceKind = 'positive' | 'negative' | 'neutral' | 'unknown'
 
@@ -126,14 +128,14 @@ export function TranscriptToneSummaryCard({ item }: { item: Transcript }) {
   if (!item.has_tone_analytics) return null
 
   if (!hasData) {
-    return <p className="transcript-tone-inline muted text-sm">{t('transcript.toneUnavailable')}</p>
+    return <p className={cn('transcript-tone-inline', appMutedText)}>{t('transcript.toneUnavailable')}</p>
   }
 
   if (!summary) {
     return (
       <div className="transcript-tone-inline transcript-tone-metrics-row">
         <span className="transcript-tone-head-title">{t('transcript.toneTitle')}</span>
-        <span className="muted text-sm">{t('transcript.toneUtterancesOnly')}</span>
+        <span className={appMutedText}>{t('transcript.toneUtterancesOnly')}</span>
         <ToneLayersBadges layers={layers} t={t} />
       </div>
     )

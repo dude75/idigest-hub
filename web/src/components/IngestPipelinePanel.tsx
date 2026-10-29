@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 import { AppCheckboxRow } from './app/AppFormControls'
 import { HubBadge } from './app/AdminUi'
 import { skillScopeLabel } from '../skillScope'
+import { appMutedText } from './app/appTypography'
 
 function pipelineSummaryKey(pipeline: IngestPipeline): string {
   if (!pipeline.transcribe) return 'library.pipeline.summaryOff'
@@ -72,12 +73,12 @@ export function IngestPipelinePanel({ className, defaultOpen }: IngestPipelinePa
           onCheckedChange={setTranscribe}
         />
         {pipeline.transcribe ? (
-          <p className="muted library-pipeline-tone">{t(toneAnalyticsLabelKey(me))}</p>
+          <p className={cn(appMutedText, 'library-pipeline-tone')}>{t(toneAnalyticsLabelKey(me))}</p>
         ) : null}
         {pipeline.transcribe && (
           <div className="library-pipeline-skills">
             <div className="library-pipeline-skills-label">{t('library.pipeline.summarizeSkills')}</div>
-            {skills.length === 0 && <p className="muted">{t('common.empty')}</p>}
+            {skills.length === 0 && <p className={appMutedText}>{t('common.empty')}</p>}
             {skills.map((s) => (
               <AppCheckboxRow
                 key={s.id}

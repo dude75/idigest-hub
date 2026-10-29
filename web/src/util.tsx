@@ -7,6 +7,7 @@ import { HubBadge, HubBadgeLink } from './components/app/AdminUi'
 import { Badge } from '@/components/ui/badge'
 import { userTagBadgeClassName } from './components/userTagBadgeStyles'
 import { cn } from '@/lib/utils'
+import { appMuted } from './components/app/appTypography'
 import { formatAge, formatDateTime } from './util/datetimeFormat'
 import type { Audio, ShareBadgeFields, Task, Transcript, UserTag } from './types'
 
@@ -240,7 +241,7 @@ export function UserTagBadges({ tags, max = 3 }: { tags?: UserTag[]; max?: numbe
           <span className="truncate">{tag.name}</span>
         </Badge>
       ))}
-      {rest > 0 ? <span className="muted text-xs">+{rest}</span> : null}
+      {rest > 0 ? <span className={cn(appMuted, 'text-xs')}>+{rest}</span> : null}
     </span>
   )
 }

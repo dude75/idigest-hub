@@ -138,6 +138,11 @@ for (const file of files) {
         `${rel(file)}:${i + 1}: legacy Link class "title" — use appListRowTitle from appTypography`,
       )
     }
+    if (/className=["'][^"']*(?:^|\s)muted(?:\s|$)/.test(line) && !file.includes('check-ui-migration')) {
+      issues.push(
+        `${rel(file)}:${i + 1}: legacy "muted" class — use appMutedText / appMuted from appTypography`,
+      )
+    }
     for (const legacyClass of [
       'entity-title',
       'stats-chart-title',

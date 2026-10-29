@@ -280,7 +280,7 @@ function UnavailableRow({
     return <li className="worker-impact-row worker-impact-note warn">{t('instance.workerImpactCaptureLosingJitsi')}</li>
   }
   return (
-    <li className="worker-impact-row worker-impact-note muted">
+    <li className={cn('worker-impact-row worker-impact-note', appMutedText)}>
       {t('instance.workerImpactSummarizeRemaining', { count: formatInteger(item.count) })}
     </li>
   )

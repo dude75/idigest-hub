@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Modal } from './Modal'
 import { ConfirmDialog } from './ConfirmDialog'
+import { appMutedText } from './app/appTypography'
 
 type Props = {
   onClose: () => void
@@ -103,9 +104,9 @@ export function TagManageDialog({ onClose, onUpdated }: Props) {
       >
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
           {loading ? (
-            <p className="muted">{t('common.loading')}</p>
+            <p className={appMutedText}>{t('common.loading')}</p>
           ) : items.length === 0 ? (
-            <p className="muted">{t('library.noTagsYet')}</p>
+            <p className={appMutedText}>{t('library.noTagsYet')}</p>
           ) : (
             <ul className="tag-manage-list">
               {items.map((tag) => (
@@ -138,7 +139,7 @@ export function TagManageDialog({ onClose, onUpdated }: Props) {
                   ) : (
                     <>
                       <span className="tag-manage-name">{tag.name}</span>
-                      <span className="muted text-sm">{t('library.tagUsage', { count: tag.usage_count ?? 0 })}</span>
+                      <span className={appMutedText}>{t('library.tagUsage', { count: tag.usage_count ?? 0 })}</span>
                       <span className="tag-manage-actions">
                         <Button
                           type="button"

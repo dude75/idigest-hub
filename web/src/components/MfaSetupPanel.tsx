@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { AppSubmitButton } from './app/AdminUi'
 import { AppUrlCopyRow } from './app/AppUrlCopyRow'
+import { appMutedText } from './app/appTypography'
 
 type QRCodeProps = SVGProps<SVGSVGElement> & {
   value: string
@@ -93,7 +94,7 @@ export function MfaSetupPanel({ onComplete }: Props) {
   if (recoveryCodes) {
     return (
       <div className="flex flex-col gap-3">
-        <p className="muted">{t('mfa.recoverySave')}</p>
+        <p className={appMutedText}>{t('mfa.recoverySave')}</p>
         <ul className="mfa-recovery-list">
           {recoveryCodes.map((item) => (
             <li key={item}>
@@ -117,7 +118,7 @@ export function MfaSetupPanel({ onComplete }: Props) {
   if (secret) {
     return (
       <form className="flex flex-col gap-3" onSubmit={(e) => void confirmSetup(e)}>
-        <p className="muted">{t('mfa.setupHint')}</p>
+        <p className={appMutedText}>{t('mfa.setupHint')}</p>
         {otpauthUri && (
           <div className="mfa-qr-block">
             <QRCode
@@ -130,7 +131,7 @@ export function MfaSetupPanel({ onComplete }: Props) {
           </div>
         )}
         <details className="mfa-secret-block">
-          <summary className="muted">{t('mfa.manualEntry')}</summary>
+          <summary className={appMutedText}>{t('mfa.manualEntry')}</summary>
           <AppUrlCopyRow value={secret} />
         </details>
         <AuthField label={t('mfa.code')} htmlFor="mfa-setup-code">

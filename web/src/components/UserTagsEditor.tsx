@@ -13,6 +13,8 @@ import { AppSelect } from './app/AppSelect'
 import { UserTagChipAssigned } from './UserTagChip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
+import { appMutedText } from './app/appTypography'
 
 type Props = {
   objectType: LibraryObjectType
@@ -126,7 +128,7 @@ export function UserTagsEditor({ objectType, objectId, tags, onChange }: Props) 
   return (
     <div className="user-tags-editor">
       <div className="user-tags-row">
-        <span className="user-tags-label muted text-sm">{t('library.myTags')}</span>
+        <span className={cn('user-tags-label', appMutedText)}>{t('library.myTags')}</span>
         {pickOptions.length > 0 ? (
           <AppSelect
             className="user-tags-pick [&_[data-slot=select-trigger]]:shadow-none [&_[data-slot=select-trigger]]:focus-visible:ring-0 [&_[data-slot=select-trigger]]:focus-visible:border-input"

@@ -8,6 +8,8 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination'
+import { cn } from '@/lib/utils'
+import { appMutedText } from './app/appTypography'
 import {
   LandingTariffCard,
   landingTariffSubtitleKey,
@@ -62,7 +64,7 @@ export function LandingTariffGrid({ tariffs, popularTariffId }: Props) {
                 />
               </PaginationItem>
               <PaginationItem>
-                <span className="landing-pricing-page muted px-2 tabular-nums" aria-live="polite">
+                <span className={cn('landing-pricing-page', appMutedText, 'px-2 tabular-nums')} aria-live="polite">
                   {t('landing.tariffPage', { current: page + 1, total: pageCount })}
                 </span>
               </PaginationItem>

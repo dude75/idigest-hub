@@ -30,6 +30,8 @@ import { TaskPage } from './pages/TaskPage'
 import { TasksPage } from './pages/TasksPage'
 import { TranscriptPage } from './pages/TranscriptPage'
 import { libraryPath, resolveAuthBlockPath, resolveHomePath, LIBRARY_DEFAULT } from './routes'
+import { cn } from '@/lib/utils'
+import { appMutedText } from './components/app/appTypography'
 
 const InstancePage = lazy(() =>
   import('./pages/instance/InstancePage').then((m) => ({ default: m.InstancePage })),
@@ -38,7 +40,7 @@ const InstancePage = lazy(() =>
 function LazyInstancePage() {
   const { t } = useTranslation()
   return (
-    <Suspense fallback={<p className="page muted">{t('common.loading')}</p>}>
+    <Suspense fallback={<p className={cn('page', appMutedText)}>{t('common.loading')}</p>}>
       <InstancePage />
     </Suspense>
   )
@@ -52,7 +54,7 @@ function AppHomeRedirect() {
 function Gate({ children }: { children: ReactNode }) {
   const { ready, bootstrapDone, me } = useAuth()
   const { t } = useTranslation()
-  if (!ready) return <p className="page muted">{t('common.loading')}</p>
+  if (!ready) return <p className={cn('page', appMutedText)}>{t('common.loading')}</p>
   if (!bootstrapDone) return <Navigate to="/setup" replace />
   if (!me) return <Navigate to="/login" replace />
   const block = resolveAuthBlockPath(me)

@@ -14,6 +14,7 @@ import { UserTagChipAssigned } from './UserTagChip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { appMutedText } from './app/appTypography'
 
 type CatalogItem = NonNullable<SchemaUserTagListResponse['items']>[number]
 
@@ -122,7 +123,7 @@ export function IngestExtraTagsMultiSelect({ catalog, selected, disabled, classN
         >
           <div className="user-tags-editor">
             <div className="user-tags-row">
-              <span className="user-tags-label muted text-sm">{t('library.myTags')}</span>
+              <span className={cn('user-tags-label', appMutedText)}>{t('library.myTags')}</span>
               {pickOptions.length > 0 ? (
                 <AppSelect
                   className="user-tags-pick [&_[data-slot=select-trigger]]:shadow-none [&_[data-slot=select-trigger]]:focus-visible:ring-0 [&_[data-slot=select-trigger]]:focus-visible:border-input"
@@ -169,7 +170,7 @@ export function IngestExtraTagsMultiSelect({ catalog, selected, disabled, classN
               ))}
             </div>
             {catalog.length === 0 && draftSelected.length === 0 ? (
-              <p className="muted m-0 text-sm">{t('library.noTagsYet')}</p>
+              <p className={cn(appMutedText, 'm-0')}>{t('library.noTagsYet')}</p>
             ) : null}
           </div>
         </Modal>

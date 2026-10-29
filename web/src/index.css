@@ -269,7 +269,7 @@ h3 { font-size: 0.95rem; margin: 1rem 0 0.4rem; }
 }
 .grow { flex: 1; }
 .entity-toolbar { margin: 0.5rem 0; }
-.entity-hint { margin: 0; font-size: 0.82rem; }
+.entity-hint { margin: 0; }
 .entity-actions {
   display: grid;
   gap: 0.5rem;
