@@ -18,5 +18,20 @@ export default defineConfig(({ mode }) => {
         '/api': `http://127.0.0.1:${hubPort}`,
       },
     },
+    build: {
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              { name: 'recharts', test: /\/node_modules\/recharts\// },
+              {
+                name: 'markdown',
+                test: /\/node_modules\/(react-markdown|remark-|mdast-|micromark|unist-|vfile)/,
+              },
+            ],
+          },
+        },
+      },
+    },
   }
 })
