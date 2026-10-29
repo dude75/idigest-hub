@@ -33,7 +33,7 @@ import {
 } from '../components/TranscriptTonePanel'
 import { HubBadge } from '../components/app/AdminUi'
 import { summaryBody } from '../typography'
-import { appPanelTitle } from '../components/app/appTypography'
+import { appEntityMetaRow, appMutedText, appPanelTitle } from '../components/app/appTypography'
 import { AppCursorHint } from '../components/app/AppCursorHint'
 import { AppHoverHint } from '../components/app/AppHoverHint'
 import {
@@ -255,8 +255,8 @@ export function TranscriptPage() {
       {item && (
         <>
           <EntityDetailCard>
-              <div className="entity-meta-row flex flex-wrap items-center gap-2">
-                <span className="muted">{fmtDate(item.created_at)}</span>
+              <div className={appEntityMetaRow}>
+                <span>{fmtDate(item.created_at)}</span>
                 {item.source_audio_id ? (
                   <Link to={`/app/audio/${item.source_audio_id}`}>
                     {item.source_filename || t('transcript.sourceAudio', { id: item.source_audio_id.slice(0, 8) })}
@@ -305,7 +305,7 @@ export function TranscriptPage() {
                   showToneOnUtterances && item.has_tone_analytics && 'transcript-utterances-show-tone',
                 )}
               >
-                {(item.utterances || []).length === 0 ? <p className="muted">{t('common.empty')}</p> : null}
+                {(item.utterances || []).length === 0 ? <p className={appMutedText}>{t('common.empty')}</p> : null}
                 {(item.utterances || []).map((u, i) => {
                   const start = utteranceStart(u)
                   const seekable = Boolean(seekOnClick && item.source_audio_id && start != null)
@@ -398,7 +398,7 @@ export function TranscriptPage() {
                 </span>
               </summary>
               <div className="fold-body library-pipeline-body">
-                {skills.length === 0 && <p className="muted">{t('common.empty')}</p>}
+                {skills.length === 0 && <p className={appMutedText}>{t('common.empty')}</p>}
                 {skills.map((s) => (
                   <AppCheckboxRow
                     key={s.id}

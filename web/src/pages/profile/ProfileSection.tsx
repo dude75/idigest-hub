@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { FieldLegend, FieldSet } from '@/components/ui/field'
 import { Separator } from '@/components/ui/separator'
 import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
+import { cn } from '@/lib/utils'
+import { appProfileSectionLead } from '@/components/app/appTypography'
 
 type ProfileSectionProps = {
   title: string
@@ -45,7 +47,7 @@ export function ProfileSection({
         >
           {title}
         </FieldLegend>
-        {description ? <p className="profile-section-lead admin-lead">{description}</p> : null}
+        {description ? <p className={cn('profile-section-lead', appProfileSectionLead)}>{description}</p> : null}
       </div>
       <div className="flex flex-col gap-3">{children}</div>
       {showSave ? (

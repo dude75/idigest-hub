@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { appAdminLead } from './app/appTypography'
 import { SettingsFoldSummary } from './app/SettingsFoldSummary'
 
 export function AdminPage({ children }: { children: ReactNode }) {
@@ -26,7 +27,7 @@ export function AppStackCard({
       {title ? (
         <CardHeader className="pb-0">
           <CardTitle className="text-base">{title}</CardTitle>
-          {lead ? <CardDescription>{lead}</CardDescription> : null}
+          {lead ? <CardDescription className={appAdminLead}>{lead}</CardDescription> : null}
         </CardHeader>
       ) : null}
       <CardContent className={cn('flex flex-col gap-2', !title && 'pt-6', contentClassName)}>
@@ -102,7 +103,7 @@ export function AdminFormCard({ title, lead, className, children }: AdminFormCar
     <Card className={cn('admin-form-card', className)}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
-        {lead ? <CardDescription className="admin-lead">{lead}</CardDescription> : null}
+          {lead ? <CardDescription className={appAdminLead}>{lead}</CardDescription> : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">{children}</CardContent>
     </Card>
@@ -137,7 +138,7 @@ export function AdminTableCard({
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 space-y-0">
           <div className="min-w-0 space-y-1.5">
             {title ? <CardTitle>{title}</CardTitle> : null}
-            {lead ? <CardDescription className="admin-lead">{lead}</CardDescription> : null}
+              {lead ? <CardDescription className={appAdminLead}>{lead}</CardDescription> : null}
           </div>
           {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
         </CardHeader>

@@ -8,7 +8,7 @@ import { ListSection } from './app/EntityUi'
 import type { SchemaOrgPublicLinkListResponse } from '../openapi'
 import type { OrgPublicLinkItem } from '../types'
 import { cn } from '@/lib/utils'
-import { appListRowTitle, appMetaDl, appMetaDlTerm, appMetaDlValue } from './app/appTypography'
+import { appListRowTitle, appMetaDl, appMetaDlTerm, appMetaDlValue, appMutedText } from './app/appTypography'
 import { fmtDate, showError } from '../util'
 import { Button } from '@/components/ui/button'
 import { HubBadge } from './app/AdminUi'
@@ -77,7 +77,7 @@ function PublicLinkRow({
         {link.url ? (
           <AppUrlCopyRow value={link.url} />
         ) : (
-          <p className="muted public-link-url-missing">—</p>
+          <p className={cn(appMutedText, 'public-link-url-missing')}>—</p>
         )}
         <Button
           type="button"
@@ -137,8 +137,8 @@ export function LibraryLinksTab() {
 
   return (
     <>
-      {policyOff ? <p className="muted admin-notice">{t('publicLinks.policyOff')}</p> : null}
-      {urlMissing ? <p className="muted admin-notice">{t('share.publicUrlMissing')}</p> : null}
+      {policyOff ? <p className={cn(appMutedText, 'admin-notice')}>{t('publicLinks.policyOff')}</p> : null}
+      {urlMissing ? <p className={cn(appMutedText, 'admin-notice')}>{t('share.publicUrlMissing')}</p> : null}
       <ListSection
         title={admin ? t('publicLinks.titleAdmin') : t('publicLinks.title')}
         lead={admin ? t('publicLinks.leadAdmin') : t('publicLinks.lead')}

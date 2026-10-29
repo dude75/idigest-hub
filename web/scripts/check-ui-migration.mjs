@@ -143,6 +143,9 @@ for (const file of files) {
       'stats-chart-title',
       'ingest-studio-card-title',
       'public-link-title',
+      'entity-meta-row',
+      'admin-lead',
+      'share-field-label',
     ]) {
       if (line.includes(legacyClass) && !file.includes('check-ui-migration')) {
         issues.push(
@@ -266,6 +269,12 @@ if (indexCss.includes('.stats-chart-title')) {
 }
 if (indexCss.includes('.public-link-title')) {
   issues.push('remove legacy .public-link-title — use appListRowTitle')
+}
+if (/\.admin-lead\s*\{[^}]*color:\s*var\(--hub-muted\)/.test(indexCss)) {
+  issues.push('remove legacy .admin-lead typography — use appAdminLead / appProfileSectionLead')
+}
+if (/\.share-field-label\s*\{[^}]*font-size:/.test(indexCss)) {
+  issues.push('remove legacy .share-field-label typography — use appFieldCaption')
 }
 if (
   !/\.hub-reading-surface,\s*\n\s*\.summary-body,\s*\n\s*\.agreement-text/.test(indexCss)

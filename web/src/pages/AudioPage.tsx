@@ -18,6 +18,8 @@ import { UserTagsEditor } from '../components/UserTagsEditor'
 import { ShareBadges, TranscriptDerivedBadges, fmtDate, showError } from '../util'
 import { ownerListLabel } from '../userDisplay'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appEntityMetaRow, appMutedText } from '../components/app/appTypography'
 
 function httpSourceUrl(value: string | null | undefined): string | null {
   if (!value) return null
@@ -111,15 +113,15 @@ export function AudioPage() {
         <>
           <EntityDetailCard>
             {sourceUrl && (
-              <p className="muted audio-source-url">
+              <p className={cn(appMutedText, 'audio-source-url')}>
                 {t('audio.sourceUrl')}:{' '}
                 <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
                   {sourceUrl}
                 </a>
               </p>
             )}
-            <div className="entity-meta-row flex flex-wrap items-center gap-2">
-              <span className="muted">{fmtDate(item.created_at)}</span>
+            <div className={appEntityMetaRow}>
+              <span>{fmtDate(item.created_at)}</span>
               <ShareBadges item={item} />
             </div>
             <UserTagsEditor
@@ -140,10 +142,10 @@ export function AudioPage() {
                   <Button type="button" disabled={busy} onClick={() => void transcribe()}>
                     {transcripts.length > 0 ? t('audio.transcribeAgain') : t('audio.transcribe')}
                   </Button>
-                  <span className="muted text-sm">{t(toneAnalyticsLabelKey(me))}</span>
+                  <span className={appMutedText}>{t(toneAnalyticsLabelKey(me))}</span>
                 </>
               ) : (
-                <span className="muted">{t('audio.noFile')}</span>
+                <span className={appMutedText}>{t('audio.noFile')}</span>
               )}
               {mine ? <Button type="button" variant="outline" onClick={() => setShare(true)}>{t('common.share')}</Button> : null}
               <AppHoverHint content={t('library.hideHint')}>

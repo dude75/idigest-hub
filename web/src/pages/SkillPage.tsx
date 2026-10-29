@@ -21,8 +21,7 @@ import {
   EntityPage,
   EntityPageLoading,
 } from '../components/app/EntityUi'
-
-function skillPath(skill: SchemaSkillPublicResponse): string {
+import { appEntityMetaRow } from '../components/app/appTypography'
   if (skill.scope === 'base') return `/skills/base/${skill.id}`
   if (skill.scope === 'org') return `/org/skills/${skill.id}`
   return `/skills/self/${skill.id}`
@@ -156,9 +155,9 @@ export function SkillPage() {
       {item && (
         <>
           <EntityDetailCard>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className={appEntityMetaRow}>
             <HubBadge tone="muted">{item.catalog || item.scope}</HubBadge>
-            <span className="muted">{fmtDate(item.created_at)}</span>
+            <span>{fmtDate(item.created_at)}</span>
           </div>
           <EntityToolbar>
             <Button

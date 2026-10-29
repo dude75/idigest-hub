@@ -69,3 +69,29 @@ export function appPipelineStepLabelClass(
       return appPipelineStepLabel
   }
 }
+
+/** Legacy `.muted` — secondary text at inherited size. */
+export const appMuted = 'text-muted-foreground'
+
+/** Section / card lead copy under titles. */
+export const appAdminLead = cn(appMutedText, 'm-0 text-base')
+
+/** Profile section description beside heading. */
+export const appProfileSectionLead = cn(
+  appMutedText,
+  'm-0 min-w-0 flex-[1_1_12rem] leading-snug',
+)
+
+/** Entity detail meta (date, source links, badges). */
+export const appEntityMetaRow = cn(
+  'flex flex-wrap items-center gap-2',
+  appMutedText,
+  '[&_a:not([data-slot=button])]:font-medium',
+  '[&_a:not([data-slot=button])]:text-muted-foreground',
+  '[&_a:not([data-slot=button])]:underline-offset-4',
+  '[&_a:not([data-slot=button])]:hover:text-foreground',
+  '[&_a:not([data-slot=button])]:hover:underline',
+)
+
+/** Small captions on share / form labels. */
+export const appFieldCaption = 'text-xs font-normal text-muted-foreground'

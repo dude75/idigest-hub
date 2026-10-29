@@ -18,6 +18,7 @@ import { AppSelect } from './app/AppSelect'
 import { FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { AppUrlCopyRow } from './app/AppUrlCopyRow'
+import { appFieldCaption, appMutedText } from './app/appTypography'
 import { compareUsersByDisplayName, userPickerLabel } from '../userDisplay'
 
 type Props = {
@@ -228,7 +229,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
             <div className="share-panel stack">
               <div className="share-form-row row">
                 <div className="share-field">
-                  <FieldLabel htmlFor="share-expiry" className="share-field-label font-normal">
+                  <FieldLabel htmlFor="share-expiry" className={appFieldCaption}>
                     {t('share.expiry')}
                   </FieldLabel>
                   <AppSelect
@@ -252,7 +253,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
                 {usePin ? (
                   <div className="share-pin-wrap">
                     <div className="share-field share-pin-field">
-                      <FieldLabel htmlFor="share-pin" className="share-field-label font-normal">
+                      <FieldLabel htmlFor="share-pin" className={appFieldCaption}>
                         PIN
                       </FieldLabel>
                       <Input
@@ -265,7 +266,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
                         onChange={(e) => setPin(e.target.value)}
                       />
                     </div>
-                    <span className="muted share-pin-hint">{t('share.pinLengthHint')}</span>
+                    <span className={cn(appMutedText, 'share-pin-hint')}>{t('share.pinLengthHint')}</span>
                   </div>
                 ) : null}
               </div>

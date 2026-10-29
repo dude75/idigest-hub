@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { ButtonLink } from '@/components/ui/button-link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
-import { appEntityTitle } from '@/components/app/appTypography'
+import { appEntityTitle, appMutedText } from '@/components/app/appTypography'
 import { hubReadingSurface } from '@/typography'
 import { AdminTableCard } from '../AdminSection'
 
@@ -26,7 +26,7 @@ export function EntityPageLoading({ backTo, className }: EntityPageLoadingProps)
     <EntityPage backTo={backTo} className={className}>
       <div className="entity-page-skeleton-title" aria-hidden />
       <EntityDetailCard>
-        <p className="muted" aria-live="polite">
+        <p className={appMutedText} aria-live="polite">
           {t('common.loading')}
         </p>
       </EntityDetailCard>
