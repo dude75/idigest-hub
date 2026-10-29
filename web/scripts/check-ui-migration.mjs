@@ -306,6 +306,9 @@ if (indexCss.includes('.public-link-title')) {
 if (/\.muted\s*\{/.test(indexCss)) {
   issues.push('remove legacy .muted rule from index.css — use appTypography tokens')
 }
+if (!/--hub-muted:\s*var\(--muted-foreground\)/.test(indexCss)) {
+  issues.push('index.css --hub-muted must alias --muted-foreground for unified secondary text')
+}
 if (/\.admin-lead\s*\{[^}]*color:\s*var\(--hub-muted\)/.test(indexCss)) {
   issues.push('remove legacy .admin-lead typography — use appAdminLead / appProfileSectionLead')
 }

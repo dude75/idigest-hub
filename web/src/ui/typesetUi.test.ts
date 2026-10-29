@@ -93,6 +93,7 @@ describe('Typeset UI contract', () => {
     expect(await readWeb('src/index.css')).not.toContain('.entity-title')
     expect(await readWeb('src/index.css')).not.toContain('.stats-chart-title')
     expect(await readWeb('src/index.css')).not.toMatch(/\.muted\s*\{/)
+    expect(await readWeb('src/index.css')).toMatch(/--hub-muted:\s*var\(--muted-foreground\)/)
   })
 
   it('routes UI durations through AppDuration', async () => {
