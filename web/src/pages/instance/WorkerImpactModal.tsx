@@ -14,7 +14,7 @@ import type {
 import { formatInteger, showError, truncateLabel } from '../../util'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { appFieldCaption, appImpactNote, appImpactRow, appImpactRowLabel, appImpactTagMuted, appMutedText } from '../../components/app/appTypography'
+import { appFieldCaption, appImpactNote, appImpactPairMono, appImpactRow, appImpactRowLabel, appImpactTagMuted, appMutedText } from '../../components/app/appTypography'
 import { AppHoverHint } from '../../components/app/AppHoverHint'
 import { AppCheckboxRow, AppSelectField } from '../../components/app/AppFormControls'
 import { AdminMetaRow, HubBadge } from '../../components/app/AdminUi'
@@ -198,7 +198,7 @@ function ModelPairChip({
   t: (key: string, opts?: Record<string, unknown>) => string
 }) {
   return (
-    <code className="worker-impact-pair">
+    <code className={appImpactPairMono}>
       {t('instance.workerImpactModelPair', {
         asr: pair.asr,
         diarization: pair.diarization || t('instance.diarizationOff'),
@@ -257,7 +257,7 @@ function UnavailableRow({
   if (item.kind === 'summarize_model') {
     return (
       <li className={cn('worker-impact-row', appImpactRow)}>
-        <code className="worker-impact-pair">{item.model}</code>
+        <code className={appImpactPairMono}>{item.model}</code>
         <UsageCounts users={item.users} tasks={item.tasks} t={t} />
       </li>
     )
@@ -266,7 +266,7 @@ function UnavailableRow({
     return (
       <li className={cn('worker-impact-row', appImpactRow)}>
         <span className={appImpactRowLabel}>{t('instance.workerImpactDefaultsLabel')}</span>
-        <code className="worker-impact-pair">{item.model || '—'}</code>
+        <code className={appImpactPairMono}>{item.model || '—'}</code>
       </li>
     )
   }
@@ -317,7 +317,7 @@ function InUseRow({
     return (
       <li className={cn('worker-impact-row', appImpactRow)}>
         <span className="worker-impact-email">{item.display_name || item.email}</span>
-        <code className="worker-impact-pair">{item.model || '—'}</code>
+        <code className={appImpactPairMono}>{item.model || '—'}</code>
       </li>
     )
   }
@@ -333,7 +333,7 @@ function InUseRow({
     return (
       <li className={cn('worker-impact-row', appImpactRow)}>
         <span className={appImpactRowLabel}>{t('instance.workerImpactDefaultsLabel')}</span>
-        <code className="worker-impact-pair">{item.model || '—'}</code>
+        <code className={appImpactPairMono}>{item.model || '—'}</code>
       </li>
     )
   }
@@ -345,7 +345,7 @@ function InUseRow({
           <span className="worker-impact-capture-map cursor-help">
             <span className="worker-impact-org-name">{truncateLabel(item.orgName, 24)}</span>
             <span className={cn(appMutedText, 'worker-impact-capture-sep')}> · </span>
-            <code className="worker-impact-pair">{item.host}</code>
+            <code className={appImpactPairMono}>{item.host}</code>
           </span>
         </AppHoverHint>
       </li>
