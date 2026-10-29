@@ -872,6 +872,7 @@
     "workersHealthy": "Здоровы",
     "workersUnhealthy": "С проблемами",
     "workerCreate": "Новый воркер",
+    "workerDisabledHint": "Воркер выключен",
     "workerEdit": "Редактирование воркера",
     "workersList": "Список воркеров",
     "workerHealthOk": "OK",

@@ -872,6 +872,7 @@
     "workersHealthy": "Healthy",
     "workersUnhealthy": "Unhealthy",
     "workerCreate": "New worker",
+    "workerDisabledHint": "Worker is disabled",
     "workerEdit": "Edit worker",
     "workersList": "Worker list",
     "workerHealthOk": "OK",

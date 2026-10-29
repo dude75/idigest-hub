@@ -27,6 +27,7 @@ import { formatInteger, showError } from '../../util'
 import { emptyWorker } from './constants'
 import { normalizeCaptureCapacitySummary, typeHubWorkerCapacity, workerCapacityCell } from './workerCapacity'
 import { WorkerImpactModal } from './WorkerImpactModal'
+import { AppHoverHint } from '../../components/app/AppHoverHint'
 import { Button } from '@/components/ui/button'
 import { appMutedText } from '../../components/app/appTypography'
 import { AdminRowActions } from '../../components/app/AdminUi'
@@ -535,7 +536,6 @@ export function InstanceWorkersTab() {
                 <TableHead>{t('instance.type')}</TableHead>
                 <TableHead>{t('instance.workerModels')}</TableHead>
                 <TableHead className={adminTableHeadNum}>{t('instance.weight')}</TableHead>
-                <TableHead>{t('instance.enabled')}</TableHead>
                 <TableHead>{t('instance.health')}</TableHead>
                 <AdminTableHeadHint className={adminTableHeadNum} hint={t('instance.workerCapacityColumnHint')}>
                   {t('instance.workerCapacityColumn')}
@@ -546,7 +546,15 @@ export function InstanceWorkersTab() {
             <TableBody>
               {workers.map((w) => (
                 <TableRow key={w.id}>
-                  <TableCell className={adminTableCellPrimary}>{w.name || w.base_url}</TableCell>
+                  <TableCell className={w.enabled ? adminTableCellPrimary : adminTableCellMuted}>
+                    {w.enabled ? (
+                      w.name || w.base_url
+                    ) : (
+                      <AppHoverHint content={t('instance.workerDisabledHint')}>
+                        <span className="cursor-help">{w.name || w.base_url}</span>
+                      </AppHoverHint>
+                    )}
+                  </TableCell>
                   <TableCell>{t(`task.type.${w.type}`, { defaultValue: w.type })}</TableCell>
                   <TableCell className={adminTableCellMuted}>
                     {w.type === 'transcribe'
@@ -561,7 +569,6 @@ export function InstanceWorkersTab() {
                           : '—'}
                   </TableCell>
                   <TableCell className={adminTableCellNum}>{formatInteger(w.weight)}</TableCell>
-                  <TableCell>{w.enabled ? t('common.yes') : t('common.no')}</TableCell>
                   <TableCell>
                     <WorkerHealthBadge worker={w} />
                   </TableCell>
