@@ -39,8 +39,8 @@
   --typeset-size: 16px;
   --typeset-leading: 1.75;
   --typeset-flow: 1em;
-  /* Main content column (+10% vs legacy 1080px / 72rem shells). */
-  --hub-content-scale: 1.1;
+  /* Main content column (legacy 1080px / 72rem shells; scale 1 = baseline). */
+  --hub-content-scale: 1;
   --hub-page-max: calc(67.5rem * var(--hub-content-scale));
   --hub-shell-max: var(--hub-page-max);
   --hub-pricing-shell-max: var(--hub-page-max);
