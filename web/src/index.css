@@ -1425,10 +1425,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 .transcript-tone-inline {
   margin: 0;
 }
-.transcript-tone-inline .transcript-tone-head-title {
-  font-size: 0.8125rem;
-  font-weight: 600;
-}
 .transcript-tone-inline .transcript-tone-stat {
   padding: 0.18rem 0.35rem;
   font-size: 0.75rem;
@@ -1454,12 +1450,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   gap: 0.35rem 0.65rem;
   margin-bottom: 0.45rem;
 }
-.transcript-tone-head-title {
-  margin: 0;
-  font-size: 0.9375rem;
-  font-weight: 650;
-  line-height: 1.25;
-}
 .transcript-tone-layers {
   display: flex;
   flex-wrap: wrap;
@@ -1482,9 +1472,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem 0.5rem;
-}
-.transcript-tone-metrics-row .transcript-tone-head-title {
-  margin-right: 0.15rem;
 }
 .transcript-tone-metrics-row .transcript-tone-layers {
   margin-left: auto;
@@ -1727,7 +1714,7 @@ th { color: var(--muted-foreground); font-weight: 550; }
 }
 .worker-impact-row:last-child { border-bottom: 0; padding-bottom: 0; }
 .worker-impact-row.warn { color: #9a3412; font-weight: 600; }
-.worker-impact-note { justify-content: flex-start; font-size: 0.82rem; }
+.worker-impact-note { justify-content: flex-start; }
 .worker-impact-pair {
   font-family: var(--font-mono);
   font-size: 0.78rem;
@@ -1872,7 +1859,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   flex-direction: column;
   gap: 0.2rem;
   margin: 0;
-  font-size: 0.82rem;
   flex: 0 0 auto;
   width: auto;
 }
@@ -1881,7 +1867,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   min-width: 6.75rem;
   height: auto;
   padding: 0.28rem 0.45rem;
-  font-size: 0.82rem;
 }
 .share-panel .share-pin-field {
   flex: 0 0 auto;
@@ -1893,7 +1878,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
   max-width: 4.75rem;
   height: auto;
   padding: 0.28rem 0.45rem;
-  font-size: 0.82rem;
 }
 .share-pin-wrap {
   display: flex;
@@ -1905,15 +1889,13 @@ th { color: var(--muted-foreground); font-weight: 550; }
 }
 .share-pin-hint {
   flex-shrink: 0;
-  font-size: 0.76rem;
   line-height: 1.2;
   padding-bottom: 0.32rem;
   white-space: nowrap;
 }
-.share-pin-toggle { font-size: 0.82rem; margin: 0; align-self: flex-end; padding-bottom: 0.28rem; flex-shrink: 0; }
+.share-pin-toggle { margin: 0; align-self: flex-end; padding-bottom: 0.28rem; flex-shrink: 0; }
 .share-panel-action {
   padding: 0.3rem 0.65rem;
-  font-size: 0.82rem;
 }
 .share-panel .share-public-url-row,
 .share-panel .public-link-url-row {
@@ -2229,11 +2211,6 @@ th { color: var(--muted-foreground); font-weight: 550; }
 }
 .instance-org-detail-users-head {
   margin-bottom: 0.4rem;
-}
-.instance-org-detail-users-title {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 600;
 }
 .instance-org-empty-members {
   margin: 0;

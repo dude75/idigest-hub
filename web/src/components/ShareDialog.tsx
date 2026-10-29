@@ -18,7 +18,7 @@ import { AppSelect } from './app/AppSelect'
 import { FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { AppUrlCopyRow } from './app/AppUrlCopyRow'
-import { appFieldCaption, appMutedText, appProfileSecretTitle, appSharePanelStack, appShareSectionHead } from './app/appTypography'
+import { appFieldCaption, appMutedText, appSharePanelStack, appShareSectionHead } from './app/appTypography'
 import { compareUsersByDisplayName, userPickerLabel } from '../userDisplay'
 
 type Props = {
@@ -218,7 +218,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
               <Button
                 type="button"
                 variant="outline"
-                className="share-panel-action share-panel-action-block share-revoke-public"
+                className="share-panel-action share-panel-action-block share-revoke-public text-[0.82rem]"
                 disabled={publicBusy}
                 onClick={() => void revokePublicLink()}
               >
@@ -266,13 +266,13 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
                         onChange={(e) => setPin(e.target.value)}
                       />
                     </div>
-                    <span className={cn(appMutedText, 'share-pin-hint')}>{t('share.pinLengthHint')}</span>
+                    <span className={cn(appMutedText, 'share-pin-hint text-[0.76rem]')}>{t('share.pinLengthHint')}</span>
                   </div>
                 ) : null}
               </div>
               <Button
                 type="button"
-                className="share-panel-action share-panel-action-block"
+                className="share-panel-action share-panel-action-block text-[0.82rem]"
                 disabled={publicBusy || (usePin && pin.trim().length < 4)}
                 onClick={() => void createPublicLink()}
               >
