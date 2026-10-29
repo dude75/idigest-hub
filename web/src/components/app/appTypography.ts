@@ -95,3 +95,6 @@ export const appEntityMetaRow = cn(
 
 /** Small captions on share / form labels. */
 export const appFieldCaption = 'text-xs font-normal text-muted-foreground'
+
+/** Compact metric / stat labels (profile header, etc.). */
+export const appMetricLabel = cn(appFieldCaption, 'font-medium')

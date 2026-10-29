@@ -14,7 +14,7 @@ import { UserTagChipAssigned } from './UserTagChip'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { appMutedText } from './app/appTypography'
+import { appMuted, appMutedText, appNumericText } from './app/appTypography'
 
 type CatalogItem = NonNullable<SchemaUserTagListResponse['items']>[number]
 
@@ -107,7 +107,7 @@ export function IngestExtraTagsMultiSelect({ catalog, selected, disabled, classN
       >
         <span className="truncate">{t('library.ingestExtraTags')}</span>
         {selected.length > 0 ? (
-          <span className="text-muted-foreground tabular-nums">({selected.length})</span>
+          <span className={cn(appMuted, appNumericText, 'text-sm')}>({selected.length})</span>
         ) : null}
       </Button>
       {open ? (

@@ -16,6 +16,7 @@ export {
   appGroupTitle,
   appListRowMeta,
   appListRowTitle,
+  appMetricLabel,
   appMetaDl,
   appMetaDlTerm,
   appMetaDlValue,

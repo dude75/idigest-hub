@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
-import { appMutedText } from '../../components/app/appTypography'
+import { appMetricLabel, appMuted, appMutedText } from '../../components/app/appTypography'
 import { userDisplayName, userInitials } from '../../userDisplay'
 import { useProfilePage } from './ProfilePageContext'
 
@@ -18,13 +18,13 @@ function ProfileMetric({
 }) {
   return (
     <div className="min-w-0 flex flex-col gap-1">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span className={appMetricLabel}>{label}</span>
       <span
         className={cn(
           'truncate text-sm font-semibold leading-tight',
           tone === 'ok' && 'text-[var(--ok)]',
           tone === 'danger' && 'text-destructive',
-          tone === 'muted' && 'text-muted-foreground',
+          tone === 'muted' && appMuted,
         )}
       >
         {value}

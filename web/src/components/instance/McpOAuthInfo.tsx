@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { FieldDescription } from '@/components/ui/field'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '../app/appTypography'
 
 type Props = {
   publicBaseUrl: string | null | undefined
@@ -16,7 +18,7 @@ export function McpOAuthInfo({ publicBaseUrl }: Props) {
       <p className="m-0 font-medium text-foreground">{t('instance.mcpOAuthSection')}</p>
       <FieldDescription className="mt-1">{t('instance.mcpOAuthLead')}</FieldDescription>
       {mcpUrl ? (
-        <ul className="mt-2 space-y-1 pl-4 text-muted-foreground">
+        <ul className={cn(appMutedText, 'mt-2 list-disc space-y-1 pl-4')}>
           <li>
             <span className="text-foreground">{t('instance.mcpResourceUrl')}:</span>{' '}
             <code className="text-xs">{mcpUrl}</code>

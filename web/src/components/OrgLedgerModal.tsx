@@ -18,7 +18,7 @@ import {
   adminTableHeadNum,
 } from './app/AdminDataTable'
 import { AdminMetaRow, HubBadge } from './app/AdminUi'
-import { appFieldCaption, appMutedText } from './app/appTypography'
+import { appFieldCaption, appMuted, appMutedText } from './app/appTypography'
 
 type Props = {
   org: Org
@@ -38,7 +38,7 @@ function amountClass(value: string): string {
   const n = Number(value)
   if (n > 0) return 'text-emerald-700 dark:text-emerald-400'
   if (n < 0) return 'text-destructive'
-  return 'text-muted-foreground'
+  return appMuted
 }
 
 function entryTone(entry: OrgLedgerEntry): 'primary' | 'success' | 'muted' {
