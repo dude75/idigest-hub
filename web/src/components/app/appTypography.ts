@@ -41,7 +41,8 @@ export const appEntityTitle =
   'mb-4 text-[1.35rem] font-semibold leading-tight tracking-tight text-foreground'
 
 /** Ingest studio / nested panel headings. */
-export const appPanelTitle = 'mb-1 text-[1.05rem] font-semibold leading-snug text-foreground'
+export const appPanelTitle =
+  'mt-0 mb-1 text-[1.05rem] font-semibold leading-snug text-foreground'
 
 /** Stats chart section eyebrows. */
 export const appChartEyebrow =
