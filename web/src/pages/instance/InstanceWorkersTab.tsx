@@ -28,6 +28,7 @@ import { emptyWorker } from './constants'
 import { normalizeCaptureCapacitySummary, typeHubWorkerCapacity, workerCapacityCell } from './workerCapacity'
 import { WorkerImpactModal } from './WorkerImpactModal'
 import { Button } from '@/components/ui/button'
+import { appMutedText } from '../../components/app/appTypography'
 import { AdminRowActions } from '../../components/app/AdminUi'
 import { AppCheckboxRow, AppInputField, AppSelectField } from '../../components/app/AppFormControls'
 
@@ -409,10 +410,10 @@ export function InstanceWorkersTab() {
             {probeOk ? <p className="ok">{t('instance.workerProbeOk')}</p> : null}
             {probe && wform.type === 'transcribe' ? (
               <div className="flex flex-col gap-3">
-                <p className="muted">{t('instance.workerModelsHint')}</p>
+                <p className={appMutedText}>{t('instance.workerModelsHint')}</p>
                 <fieldset className="flex flex-col gap-3">
                   <legend>{t('instance.asr')}</legend>
-                  {probeAsr.length === 0 ? <p className="muted">{t('instance.workerModelsEmpty')}</p> : null}
+                  {probeAsr.length === 0 ? <p className={appMutedText}>{t('instance.workerModelsEmpty')}</p> : null}
                   {probeAsr.map((item) => (
                     <AppCheckboxRow
                       key={item.id}
@@ -421,7 +422,7 @@ export function InstanceWorkersTab() {
                       label={
                         <span className="grow">
                           <strong>{item.id}</strong>
-                          <span className="muted"> — {item.status}</span>
+                          <span className={appMutedText}> — {item.status}</span>
                         </span>
                       }
                       checked={wform.asr_models.includes(item.id)}
@@ -431,7 +432,7 @@ export function InstanceWorkersTab() {
                 </fieldset>
                 <fieldset className="flex flex-col gap-3">
                   <legend>{t('instance.diarization')}</legend>
-                  {probeDiar.length === 0 ? <p className="muted">{t('instance.workerModelsEmpty')}</p> : null}
+                  {probeDiar.length === 0 ? <p className={appMutedText}>{t('instance.workerModelsEmpty')}</p> : null}
                   {probeDiar.map((item) => (
                     <AppCheckboxRow
                       key={item.id}
@@ -440,7 +441,7 @@ export function InstanceWorkersTab() {
                       label={
                         <span className="grow">
                           <strong>{item.id}</strong>
-                          <span className="muted"> — {item.status}</span>
+                          <span className={appMutedText}> — {item.status}</span>
                         </span>
                       }
                       checked={wform.diarization_models.includes(item.id)}
@@ -459,7 +460,7 @@ export function InstanceWorkersTab() {
             </Button>
             {probeOk ? <p className="ok">{t('instance.workerProbeOk')}</p> : null}
             {probe?.summarize_model ? (
-              <p className="muted">
+              <p className={appMutedText}>
                 {t('instance.summarizeModelLabel')}: <strong>{probe.summarize_model}</strong>
               </p>
             ) : null}
@@ -473,10 +474,10 @@ export function InstanceWorkersTab() {
             {probeOk ? <p className="ok">{t('instance.workerProbeOk')}</p> : null}
             {probe && wform.type === 'capture' ? (
               <div className="flex flex-col gap-3">
-                <p className="muted">{t('instance.captureConnectorsHint')}</p>
+                <p className={appMutedText}>{t('instance.captureConnectorsHint')}</p>
                 <fieldset className="flex flex-col gap-3">
                   <legend>{t('instance.captureConnectors')}</legend>
-                  {allProbeConnectors.length === 0 ? <p className="muted">{t('instance.workerModelsEmpty')}</p> : null}
+                  {allProbeConnectors.length === 0 ? <p className={appMutedText}>{t('instance.workerModelsEmpty')}</p> : null}
                   {allProbeConnectors.map((item) => {
                     const selectable = item.status === LOADED_CONNECTOR_STATUS
                     return (
@@ -487,7 +488,7 @@ export function InstanceWorkersTab() {
                         label={
                           <span className="grow">
                             <strong>{item.label?.trim() || item.id}</strong>
-                            <span className="muted"> — {item.status}</span>
+                            <span className={appMutedText}> — {item.status}</span>
                           </span>
                         }
                         checked={wform.capture_connectors.includes(item.id)}

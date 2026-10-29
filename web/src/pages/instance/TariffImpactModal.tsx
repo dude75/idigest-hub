@@ -5,6 +5,8 @@ import { Modal } from '../../components/Modal'
 import type { Tariff, TariffDeleteImpact, TariffRemediationPayload } from '../../types'
 import { showError, truncateLabel } from '../../util'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appFieldCaption, appMutedText } from '../../components/app/appTypography'
 import { AppCheckboxRow, AppSelectField } from '../../components/app/AppFormControls'
 
 type Props = {
@@ -131,7 +133,7 @@ export function TariffImpactModal({ tariff, onClose, onConfirm }: Props) {
               <section className="worker-impact-section">
                 <div className="worker-impact-section-head">
                   <h3>{t('instance.tariffImpactOrgsTitle')}</h3>
-                  <p className="muted worker-impact-section-hint">{t('instance.tariffImpactOrgsHint')}</p>
+                  <p className={cn(appFieldCaption, 'worker-impact-section-hint')}>{t('instance.tariffImpactOrgsHint')}</p>
                 </div>
                 {(impact.affected_orgs ?? []).length ? (
                   <ul className="worker-impact-list">
@@ -142,7 +144,7 @@ export function TariffImpactModal({ tariff, onClose, onConfirm }: Props) {
                     ))}
                   </ul>
                 ) : (
-                  <p className="muted worker-impact-empty">{t('instance.tariffImpactOrgsEmpty')}</p>
+                  <p className={cn(appMutedText, 'worker-impact-empty')}>{t('instance.tariffImpactOrgsEmpty')}</p>
                 )}
               </section>
             ) : null}
@@ -151,7 +153,7 @@ export function TariffImpactModal({ tariff, onClose, onConfirm }: Props) {
               <section className="worker-impact-remediation">
                 <div className="worker-impact-section-head">
                   <h3>{t('instance.tariffImpactRemediationTitle')}</h3>
-                  <p className="muted worker-impact-section-hint">{t('instance.tariffImpactRemediationHint')}</p>
+                  <p className={cn(appFieldCaption, 'worker-impact-section-hint')}>{t('instance.tariffImpactRemediationHint')}</p>
                 </div>
                 <AppCheckboxRow
                   id="tariff-impact-remediation-apply"

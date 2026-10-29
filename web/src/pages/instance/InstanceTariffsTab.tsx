@@ -31,6 +31,7 @@ import { AdminFormActions, AdminMetaRow, AdminRowActions, AppSubmitButton, HubBa
 import { jsonDirty } from '../../util'
 import { AppCheckboxRow, AppInputField } from '../../components/app/AppFormControls'
 import { cn } from '@/lib/utils'
+import { appMutedText } from '../../components/app/appTypography'
 
 function formToPreviewTariff(tform: typeof emptyTariff, id: string, archived: boolean): Tariff {
   return {
@@ -243,7 +244,7 @@ export function InstanceTariffsTab() {
               onCheckedChange={(checked) => setTform({ ...tform, available_on_signup: checked })}
             />
             {editingArchived ? (
-              <p className="muted">{t('instance.tariffSignupArchivedHint')}</p>
+              <p className={appMutedText}>{t('instance.tariffSignupArchivedHint')}</p>
             ) : null}
             <AppInputField
               label={t('instance.priceAudio')}
@@ -301,7 +302,7 @@ export function InstanceTariffsTab() {
               onChange={(e) => setTform({ ...tform, max_upload_bytes: Number(e.target.value) })}
             />
             <div>
-              <p className="muted">{t('instance.tariffPreview')}</p>
+              <p className={appMutedText}>{t('instance.tariffPreview')}</p>
               <TariffDetails tariff={previewTariff} />
             </div>
             <AdminFormActions>

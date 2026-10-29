@@ -12,6 +12,7 @@ import { showError } from '../../util'
 import { DATE_TIME_FORMATS } from '../../util/datetimeFormat'
 import { TIMEZONE_OPTIONS } from '../../util/timezones'
 import { Button } from '@/components/ui/button'
+import { appMutedText } from '../../components/app/appTypography'
 import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
 import { jsonDirty } from '../../util'
 import { Card, CardContent } from '@/components/ui/card'
@@ -315,7 +316,7 @@ export function InstanceSettingsTab() {
           <SettingsFoldSummary title={t('instance.serviceModelsTitle')} />
         </summary>
         <div className="flex flex-col gap-3 fold-body">
-          <p className="muted">{t('instance.serviceModelsHint')}</p>
+          <p className={appMutedText}>{t('instance.serviceModelsHint')}</p>
           <AppSelectField
             label={t('instance.asr')}
             htmlFor="instance-asr"
@@ -477,7 +478,7 @@ export function InstanceSettingsTab() {
               })
             }
           />
-          <p className="muted">{t('instance.outboundProxyHint')}</p>
+          <p className={appMutedText}>{t('instance.outboundProxyHint')}</p>
         </div>
       </details>
       <details className="fold org-fold-section">
@@ -498,7 +499,7 @@ export function InstanceSettingsTab() {
             disabled={!settings.import_enabled || !settings.outbound_proxy_enabled || !proxyUrlReady}
             onCheckedChange={(checked) => setSettings({ ...settings, download_proxy_enabled: checked })}
           />
-          <p className="muted">{t('instance.importUseProxyHint')}</p>
+          <p className={appMutedText}>{t('instance.importUseProxyHint')}</p>
           <AppInputField
             label={t('instance.downloadCookiesPath')}
             htmlFor="instance-download-cookies-path"
@@ -545,7 +546,7 @@ export function InstanceSettingsTab() {
             }
             description={t('instance.importMaxConcurrentHint')}
           />
-          <p className="muted">{t('instance.importPlatformsHint')}</p>
+          <p className={appMutedText}>{t('instance.importPlatformsHint')}</p>
           <div className="flex flex-col gap-3">
             {settings.import_platforms.map((platform) => (
               <AppCheckboxRow
@@ -555,7 +556,7 @@ export function InstanceSettingsTab() {
                 label={
                   <span className="grow">
                     <strong>{platform.label}</strong>
-                    <span className="muted"> — {platform.domains.join(', ')}</span>
+                    <span className={appMutedText}> — {platform.domains.join(', ')}</span>
                   </span>
                 }
                 checked={platform.enabled}
@@ -617,7 +618,7 @@ export function InstanceSettingsTab() {
             disabled={!settings.outbound_proxy_enabled || !proxyUrlReady}
             onCheckedChange={(checked) => setSettings({ ...settings, telegram_use_proxy: checked })}
           />
-          <p className="muted">{t('instance.telegramUseProxyHint')}</p>
+          <p className={appMutedText}>{t('instance.telegramUseProxyHint')}</p>
           <AppCheckboxRow
             id="instance-telegram-use-webhook"
             label={t('instance.telegramUseWebhook')}
@@ -625,7 +626,7 @@ export function InstanceSettingsTab() {
             disabled={!settings.public_base_url?.trim()}
             onCheckedChange={(checked) => setSettings({ ...settings, telegram_use_webhook: checked })}
           />
-          <p className="muted">{t('instance.telegramUseWebhookHint')}</p>
+          <p className={appMutedText}>{t('instance.telegramUseWebhookHint')}</p>
           <AppInputField
             label={t('instance.telegramBotToken')}
             htmlFor="instance-telegram-bot-token"
@@ -654,7 +655,7 @@ export function InstanceSettingsTab() {
               ? t('instance.telegramTestingConnection')
               : t('instance.telegramTestConnection')}
           </Button>
-          <p className="muted">{t('instance.telegramPublicUrlHint')}</p>
+          <p className={appMutedText}>{t('instance.telegramPublicUrlHint')}</p>
           <h4 className="text-sm font-medium">{t('instance.telegramCommandsTitle')}</h4>
           <table className="admin-data-table w-full text-sm">
             <thead>
@@ -681,7 +682,7 @@ export function InstanceSettingsTab() {
                   <td>
                     <code>{t(`instance.telegramCommands.${key}.command`)}</code>
                   </td>
-                  <td className="muted">{t(`instance.telegramCommands.${key}.description`)}</td>
+                  <td className={appMutedText}>{t(`instance.telegramCommands.${key}.description`)}</td>
                 </tr>
               ))}
             </tbody>
@@ -699,10 +700,10 @@ export function InstanceSettingsTab() {
             checked={settings.capture_enabled}
             onCheckedChange={(checked) => setSettings({ ...settings, capture_enabled: checked })}
           />
-          <p className="muted">{t('instance.captureConnectorsHint')}</p>
+          <p className={appMutedText}>{t('instance.captureConnectorsHint')}</p>
           <div className="flex flex-col gap-3">
             {settings.capture_connectors.length === 0 ? (
-              <p className="muted">{t('instance.captureConnectorsEmpty')}</p>
+              <p className={appMutedText}>{t('instance.captureConnectorsEmpty')}</p>
             ) : null}
             {settings.capture_connectors.map((connector) => (
               <AppCheckboxRow
@@ -713,7 +714,7 @@ export function InstanceSettingsTab() {
                   <span className="grow">
                     <strong>{connector.label}</strong>
                     {connector.status && connector.status !== 'loaded' ? (
-                      <span className="muted"> — {connector.status}</span>
+                      <span className={appMutedText}> — {connector.status}</span>
                     ) : null}
                   </span>
                 }
@@ -760,7 +761,7 @@ export function InstanceSettingsTab() {
           <SettingsFoldSummary title={t('instance.rateLimitTitle')} />
         </summary>
         <div className="flex flex-col gap-3 fold-body">
-          <p className="muted">{t('instance.rateLimitHint')}</p>
+          <p className={appMutedText}>{t('instance.rateLimitHint')}</p>
           <AppCheckboxRow
             id="instance-rate-limit-enabled"
             label={t('instance.rateLimitEnabled')}
@@ -800,7 +801,7 @@ export function InstanceSettingsTab() {
             <AppInputField label={t('instance.rateLimitTasksPerUserMin')} htmlFor="instance-rate_limit_api_tasks_user" type="number" min={0} value={settings.rate_limit_api_tasks_user} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_user: Number(e.target.value) })} />
             <AppInputField label={t('instance.rateLimitTasksPerIpMin')} htmlFor="instance-rate_limit_api_tasks_ip" type="number" min={0} value={settings.rate_limit_api_tasks_ip} onChange={(e) => setSettings({ ...settings, rate_limit_api_tasks_ip: Number(e.target.value) })} />
             <McpOAuthInfo publicBaseUrl={settings.public_base_url} />
-            <p className="muted">{t('instance.rateLimitMcpHint')}</p>
+            <p className={appMutedText}>{t('instance.rateLimitMcpHint')}</p>
             <AppInputField label={t('instance.rateLimitMcpPollPerUserMin')} htmlFor="instance-rate_limit_mcp_poll_user" type="number" min={0} value={settings.rate_limit_mcp_poll_user} onChange={(e) => setSettings({ ...settings, rate_limit_mcp_poll_user: Number(e.target.value) })} />
           </fieldset>
           <fieldset className="flex flex-col gap-3" disabled={!settings.rate_limit_enabled}>

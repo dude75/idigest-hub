@@ -13,6 +13,8 @@ import type {
 } from '../../types'
 import { formatInteger, showError, truncateLabel } from '../../util'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appFieldCaption, appMutedText } from '../../components/app/appTypography'
 import { AppHoverHint } from '../../components/app/AppHoverHint'
 import { AppCheckboxRow, AppSelectField } from '../../components/app/AppFormControls'
 import { AdminMetaRow, HubBadge } from '../../components/app/AdminUi'
@@ -330,7 +332,7 @@ function InUseRow({
         <AppHoverHint content={full}>
           <span className="worker-impact-capture-map cursor-help">
             <span className="worker-impact-org-name">{truncateLabel(item.orgName, 24)}</span>
-            <span className="muted worker-impact-capture-sep"> · </span>
+            <span className={cn(appMutedText, 'worker-impact-capture-sep')}> · </span>
             <code className="worker-impact-pair">{item.host}</code>
           </span>
         </AppHoverHint>
@@ -392,12 +394,12 @@ function ImpactSection({
     <section className="worker-impact-section">
       <div className="worker-impact-section-head">
         <h3>{title}</h3>
-        {hint ? <p className="muted worker-impact-section-hint">{hint}</p> : null}
+        {hint ? <p className={cn(appFieldCaption, 'worker-impact-section-hint')}>{hint}</p> : null}
       </div>
       {hasContent ? (
         <ul className="worker-impact-list">{children}</ul>
       ) : empty ? (
-        <p className="muted worker-impact-empty">{empty}</p>
+        <p className={cn(appMutedText, 'worker-impact-empty')}>{empty}</p>
       ) : null}
     </section>
   )
@@ -604,7 +606,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
             <section className="worker-impact-remediation">
               <div className="worker-impact-section-head">
                 <h3>{t('instance.workerImpactRemediationTitle')}</h3>
-                <p className="muted worker-impact-section-hint">{t('instance.workerImpactRemediationHint')}</p>
+                <p className={cn(appFieldCaption, 'worker-impact-section-hint')}>{t('instance.workerImpactRemediationHint')}</p>
               </div>
               <AppCheckboxRow
                 id="worker-impact-remediation-apply-transcribe"
@@ -637,7 +639,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
             <section className="worker-impact-remediation">
               <div className="worker-impact-section-head">
                 <h3>{t('instance.workerImpactSummarizeRemediationTitle')}</h3>
-                <p className="muted worker-impact-section-hint">{t('instance.workerImpactSummarizeRemediationHint')}</p>
+                <p className={cn(appFieldCaption, 'worker-impact-section-hint')}>{t('instance.workerImpactSummarizeRemediationHint')}</p>
               </div>
               <AppCheckboxRow
                 id="worker-impact-remediation-apply-summarize"
@@ -669,7 +671,7 @@ export function WorkerImpactModal({ mode, worker, changeBody, onClose, onConfirm
             <section className="worker-impact-remediation">
               <div className="worker-impact-section-head">
                 <h3>{t('instance.workerImpactCaptureRemediationTitle')}</h3>
-                <p className="muted worker-impact-section-hint">{t('instance.workerImpactCaptureRemediationHint')}</p>
+                <p className={cn(appFieldCaption, 'worker-impact-section-hint')}>{t('instance.workerImpactCaptureRemediationHint')}</p>
               </div>
               <AppCheckboxRow
                 id="worker-impact-remediation-apply-capture"

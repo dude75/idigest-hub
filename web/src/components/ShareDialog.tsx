@@ -199,14 +199,14 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
         <section className="share-section shrink-0">
           <h3 className="share-section-head">{t('share.publicLink')}</h3>
           {!me?.org?.public_base_url_set ? (
-            <p className="muted share-panel-meta">{t('share.publicUrlMissing')}</p>
+            <p className={cn(appFieldCaption, 'share-panel-meta')}>{t('share.publicUrlMissing')}</p>
           ) : !me?.org?.allow_public_links ? (
-            <p className="muted share-panel-meta">{t('share.publicLinksDisabled')}</p>
+            <p className={cn(appFieldCaption, 'share-panel-meta')}>{t('share.publicLinksDisabled')}</p>
           ) : publicLink && publicLink.url ? (
             <div className="share-panel stack">
               <AppUrlCopyRow value={publicLink.url} className="share-public-url-row" />
               {(publicLink.pin_required || publicLink.expires_at) && (
-                <p className="muted share-panel-meta">
+                <p className={cn(appFieldCaption, 'share-panel-meta')}>
                   {[
                     publicLink.pin_required ? t('share.pinSeparate') : null,
                     publicLink.expires_at
@@ -287,7 +287,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
         <h3 className="share-section-head">{t('share.current')}</h3>
         <div className="share-panel">
           {shares.length === 0 ? (
-            <p className="muted share-panel-meta">{t('share.none')}</p>
+            <p className={cn(appFieldCaption, 'share-panel-meta')}>{t('share.none')}</p>
           ) : (
             <div className="share-member-list">
               {shares.map((s) => (
@@ -310,7 +310,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
         <section className="share-section share-section-picker">
           <h3 className="share-section-head">{t('share.addMore')}</h3>
           <div className="share-panel share-picker-panel flex flex-col gap-3">
-            <p className="muted share-panel-meta">{t('share.pick')}</p>
+            <p className={cn(appFieldCaption, 'share-panel-meta')}>{t('share.pick')}</p>
             <div className="share-picker-list">
               {available.map((u) => (
                 <AppCheckboxRow

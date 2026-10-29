@@ -1830,7 +1830,6 @@ th { color: var(--hub-muted); font-weight: 550; }
 }
 .worker-impact-section-hint {
   margin: 0.2rem 0 0;
-  font-size: 0.76rem;
   line-height: 1.35;
 }
 .worker-impact-list {
@@ -1998,7 +1997,7 @@ th { color: var(--hub-muted); font-weight: 550; }
   background: #f8fafc;
 }
 .share-panel.stack { gap: 0.45rem; }
-.share-panel-meta { margin: 0; font-size: 0.76rem; line-height: 1.35; }
+.share-panel-meta { margin: 0; line-height: 1.35; }
 .share-form-row.row {
   flex-wrap: nowrap;
   align-items: flex-end;
