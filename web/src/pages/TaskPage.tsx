@@ -124,7 +124,7 @@ export function TaskPage() {
               <p className={cn(appMutedText, 'import-error-meta')}>{t('task.youtubeClientsTried', { clients: clientsTried })}</p>
             ) : null}
             {detail ? (
-              <details className="import-error-detail">
+              <details className={cn(appMutedText, 'import-error-detail text-[0.85rem]')}>
                 <summary>{t('task.errorDetail')}</summary>
                 <pre>{detail}</pre>
               </details>

@@ -62,7 +62,7 @@ export function IngestPipelinePanel({ className, defaultOpen }: IngestPipelinePa
       <summary>
         {t('library.pipeline.title')}
         {' · '}
-        <span className="library-pipeline-summary">{t(summaryKey, summaryArgs)}</span>
+        <span className={cn(appMutedText, 'library-pipeline-summary')}>{t(summaryKey, summaryArgs)}</span>
       </summary>
       <div className="fold-body library-pipeline-body">
         <AppCheckboxRow

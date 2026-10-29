@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { AppHoverHint } from '@/components/app/AppHoverHint'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { appFieldCaption } from '@/components/app/appTypography'
 
 type Props = {
   value: string
@@ -82,7 +83,7 @@ export function AppUrlCopyRow({
   if (label) {
     return (
       <div className={cn('sso-url-row', className)}>
-        <span className="sso-url-label">{label}</span>
+        <span className={cn(appFieldCaption, 'sso-url-label whitespace-nowrap')}>{label}</span>
         <UrlCodeValue value={value} display={display} id={id} className="sso-url-value" />
         <CopyButton text={value} disabled={disabled} />
       </div>

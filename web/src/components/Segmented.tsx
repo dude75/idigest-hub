@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { appMuted } from './app/appTypography'
 
 type SegmentedVariant = 'segment' | 'pill' | 'outline'
 
@@ -58,7 +59,7 @@ export function Segmented<T extends string>({
           role={variant === 'segment' ? 'tab' : 'radio'}
           aria-selected={variant === 'segment' ? value === opt.value : undefined}
           aria-checked={variant === 'outline' ? value === opt.value : undefined}
-          className={cn(value === opt.value && 'active')}
+          className={cn(value === opt.value && 'active', value !== opt.value && appMuted)}
           onClick={() => onChange(opt.value)}
         >
           {opt.label}

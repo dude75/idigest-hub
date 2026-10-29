@@ -1,5 +1,11 @@
 import { cn } from '@/lib/utils'
 
+/**
+ * App chrome typography (Tailwind). Prefer these over inline `text-muted-foreground`
+ * or legacy CSS `.muted` — see `npm run check:ui` and `typography.test.ts`.
+ * OAuth server HTML uses `auth-shell.css` `.muted` instead (not this module).
+ */
+
 /** Primary line in admin tables and list rows (16px / medium). */
 export const appPrimaryText = 'text-base font-medium text-foreground'
 

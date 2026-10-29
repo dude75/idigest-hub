@@ -2,6 +2,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import { Pause, Play, Volume2, VolumeX } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
+import { appMuted } from './app/appTypography'
 
 export type AudioPlayerHandle = {
   seekTo: (seconds: number) => void
@@ -132,7 +133,7 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, Props>(function AudioPl
       >
         {playing ? <Pause className="size-[18px]" fill="currentColor" aria-hidden /> : <Play className="size-[18px]" fill="currentColor" aria-hidden />}
       </button>
-      <span className="audio-player__time">{clock}</span>
+      <span className={cn(appMuted, 'audio-player__time')}>{clock}</span>
       <input
         className="audio-player__scrub"
         type="range"
@@ -152,7 +153,7 @@ export const AudioPlayer = forwardRef<AudioPlayerHandle, Props>(function AudioPl
       />
       <button
         type="button"
-        className="audio-player__mute"
+        className={cn(appMuted, 'audio-player__mute')}
         aria-label={muted ? t('audio.playerUnmute') : t('audio.playerMute')}
         aria-pressed={muted}
         onClick={toggleMute}

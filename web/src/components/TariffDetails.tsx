@@ -1,12 +1,14 @@
 import { useTranslation } from 'react-i18next'
 import type { Tariff } from '../types'
+import { cn } from '@/lib/utils'
+import { appMutedText } from './app/appTypography'
 import { formatBytes, formatRate } from '../util'
 
 export function TariffDetails({ tariff }: { tariff: Tariff }) {
   const { t } = useTranslation()
 
   return (
-    <ul className="tariff-points">
+    <ul className={cn(appMutedText, 'tariff-points')}>
       <li>{t('landing.priceAudio', { price: formatRate(tariff.price_per_audio_sec) })}</li>
       <li>{t('landing.priceChars', { price: formatRate(tariff.price_per_1k_summary_chars) })}</li>
       <li>

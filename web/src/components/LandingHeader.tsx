@@ -8,6 +8,8 @@ import { LanguageSwitcher } from './LanguageSwitcher'
 import { resolveAuthContinuationPath } from '../routes'
 import type { SchemaTariffListResponse } from '../openapi'
 import type { Tariff } from '../types'
+import { cn } from '@/lib/utils'
+import { appMuted } from './app/appTypography'
 import { ButtonLink } from '@/components/ui/button-link'
 
 export function LandingHeader() {
@@ -22,14 +24,20 @@ export function LandingHeader() {
       .catch(() => setTariffs([]))
   }, [])
 
+  const landingNavLink = cn(appMuted, 'transition-colors hover:text-foreground')
+
   return (
     <header className="landing-topbar topbar">
       <AppBrand />
       <nav className="landing-nav" aria-label="Landing">
-        <a href="/#how">{t('landing.navHow')}</a>
-        <a href="/#features">{t('landing.navFeatures')}</a>
-        {tariffs.length > 0 && <a href="/#pricing">{t('landing.navPricing')}</a>}
-        <a href="/#faq">{t('landing.navFaq')}</a>
+        <a href="/#how" className={landingNavLink}>{t('landing.navHow')}</a>
+        <a href="/#features" className={landingNavLink}>{t('landing.navFeatures')}</a>
+        {tariffs.length > 0 && (
+          <a href="/#pricing" className={landingNavLink}>
+            {t('landing.navPricing')}
+          </a>
+        )}
+        <a href="/#faq" className={landingNavLink}>{t('landing.navFaq')}</a>
       </nav>
       <div className="right row">
         <GitHubLink />

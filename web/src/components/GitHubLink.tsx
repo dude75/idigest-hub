@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next'
+import { cn } from '@/lib/utils'
+import { appMuted } from './app/appTypography'
 
 export const GITHUB_REPO_URL = 'https://github.com/dude75/idigest-hub'
 
@@ -24,7 +26,7 @@ export function GitHubLink({ variant = 'icon', className }: Props) {
       href={GITHUB_REPO_URL}
       target="_blank"
       rel="noopener noreferrer"
-      className={`github-link github-link-${variant}${className ? ` ${className}` : ''}`}
+      className={cn('github-link', `github-link-${variant}`, appMuted, className)}
       aria-label={variant === 'icon' ? label : undefined}
     >
       <GitHubIcon />

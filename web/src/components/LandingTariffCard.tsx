@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { landingTariffSubtitleKey } from '../landingTariffLayout'
 import type { Tariff } from '../types'
+import { cn } from '@/lib/utils'
+import { appMutedText } from './app/appTypography'
 import { formatBytes, formatDecimal, formatRate } from '../util'
 
 export { landingTariffSubtitleKey }
@@ -48,7 +50,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
       {popular && <span className="landing-pricing-popular">{t('landing.tariffPopular')}</span>}
       <div className="landing-pricing-head">
         <h3>{tariff.name}</h3>
-        <p className="landing-pricing-subtitle">{t(`landing.tariffSubtitle.${subtitleKey}`)}</p>
+        <p className={cn(appMutedText, 'landing-pricing-subtitle')}>{t(`landing.tariffSubtitle.${subtitleKey}`)}</p>
       </div>
       <div className="landing-pricing-quota">
         {tariff.unlimited ? (

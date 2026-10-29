@@ -10,7 +10,7 @@ import { AppCheckboxRow, AppInputField } from '../../components/app/AppFormContr
 import { AppUrlCopyRow } from '../../components/app/AppUrlCopyRow'
 import { useProfilePage } from './ProfilePageContext'
 import { cn } from '@/lib/utils'
-import { appMutedText, appStatsEmpty } from '../../components/app/appTypography'
+import { appMutedText, appStatsEmpty, appFieldCaption } from '../../components/app/appTypography'
 
 export function ProfileDataTab() {
   const {
@@ -64,7 +64,7 @@ export function ProfileDataTab() {
             <CardContent className="flex flex-1 flex-col gap-3">
               <div className="profile-backup-body">
                 <div className="profile-backup-group">
-                  <span className="profile-backup-label">{t('profile.backupInclude')}</span>
+                  <span className={cn(appFieldCaption, 'profile-backup-label')}>{t('profile.backupInclude')}</span>
                   <div className="profile-backup-checks flex flex-col gap-1">
                     <AppCheckboxRow
                       id="profile-backup-transcripts"
@@ -87,7 +87,7 @@ export function ProfileDataTab() {
                   </div>
                 </div>
                 <div className="profile-backup-group">
-                  <span className="profile-backup-label" id="profile-backup-format-label">
+                  <span className={cn(appFieldCaption, 'profile-backup-label')} id="profile-backup-format-label">
                     {t('profile.backupFormat')}
                   </span>
                   <RadioGroup
@@ -111,7 +111,7 @@ export function ProfileDataTab() {
                   </RadioGroup>
                 </div>
               </div>
-              <p className="profile-backup-restore-hint">{t('profile.restoreBackupHint')}</p>
+              <p className={cn(appMutedText, 'profile-backup-restore-hint')}>{t('profile.restoreBackupHint')}</p>
             </CardContent>
             <CardFooter className="profile-backup-footer flex flex-wrap items-center gap-2 border-t-0 bg-transparent pt-0">
               <Button
@@ -250,7 +250,7 @@ export function ProfileDataTab() {
                   <li key={tok.id} className={`profile-token-item${tok.revoked ? ' is-revoked' : ''}`}>
                     <div className="profile-token-main">
                       <div className="profile-token-name">{tok.name}</div>
-                      <div className="profile-token-meta">
+                      <div className={cn(appMutedText, 'profile-token-meta')}>
                         <span className="profile-token-prefix">{tok.prefix}</span>
                         <span className="profile-token-date">{fmtDate(tok.created_at)}</span>
                       </div>

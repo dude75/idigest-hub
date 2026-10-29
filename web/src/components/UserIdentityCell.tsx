@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { appMutedText } from './app/appTypography'
 import { userDisplayName, userHasDistinctDisplayName, type UserLabelSource } from '../userDisplay'
 
 type Props = {
@@ -16,7 +17,7 @@ export function OrgMemberCell({ user, className }: Props) {
   return (
     <div className={cn('org-member-cell', className)}>
       <div className="org-member-cell-email min-w-0 break-all">{email}</div>
-      <div className="org-member-cell-name min-w-0 break-all">{userDisplayName(user)}</div>
+      <div className={cn(appMutedText, 'org-member-cell-name min-w-0 break-all')}>{userDisplayName(user)}</div>
     </div>
   )
 }

@@ -389,7 +389,7 @@ export function TranscriptPage() {
               <summary>
                 {t('transcript.skills')}
                 {' · '}
-                <span className="library-pipeline-summary">
+                <span className={cn(appMutedText, 'library-pipeline-summary')}>
                   {skillsSummaryKey === 'transcript.skillsNone'
                     ? t(skillsSummaryKey)
                     : t(skillsSummaryKey, {

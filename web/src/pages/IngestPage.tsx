@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useAuth } from '../auth'
 import { AdminPage } from '../components/AdminSection'
 import { IngestPanel } from '../components/IngestPanel'
+import { appAdminLead } from '../components/app/appTypography'
 
 export function IngestPage() {
   const { t } = useTranslation()
@@ -17,7 +18,7 @@ export function IngestPage() {
     <AdminPage>
       <div className="ingest-page">
         <header className="ingest-page-hero">
-          <p className="ingest-page-lead">{t('ingest.lead')}</p>
+          <p className={appAdminLead}>{t('ingest.lead')}</p>
         </header>
         <IngestPanel layout="studio" />
       </div>

@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import type { SchemaPublicLegalDocumentsResponse } from '../openapi'
 import { LEGAL_DOCUMENT_I18N, legalDocPath, type PublicLegalDocument } from '../legalDocuments'
+import { cn } from '@/lib/utils'
+import { appMutedText } from './app/appTypography'
 import { MarkdownBody } from '../markdown'
 
 export function LandingFooter() {
@@ -30,7 +32,11 @@ export function LandingFooter() {
       {docs.length > 0 ? (
         <nav className="landing-footer-links" aria-label={t('landing.footerLegal')}>
           {docs.map((doc) => (
-            <Link key={doc.key} to={legalDocPath(doc.key)}>
+            <Link
+              key={doc.key}
+              to={legalDocPath(doc.key)}
+              className={cn(appMutedText, 'transition-colors hover:text-foreground')}
+            >
               {t(`legalDocuments.tabs.${LEGAL_DOCUMENT_I18N[doc.key]}`)}
             </Link>
           ))}

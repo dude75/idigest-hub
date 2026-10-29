@@ -364,7 +364,7 @@ export function InstanceOrgList({
               >
                 <TableCell className={cn('align-middle', appMuted)} aria-hidden>
                   <ChevronDown
-                    className={cn('instance-org-expand size-4 transition-transform', expanded && 'rotate-180')}
+                    className={cn(appMuted, 'instance-org-expand size-4 transition-transform', expanded && 'rotate-180')}
                   />
                 </TableCell>
                 <TableCell className={adminTableCellPrimary}>

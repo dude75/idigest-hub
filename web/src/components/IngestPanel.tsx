@@ -14,7 +14,7 @@ import { libraryPath } from '../routes'
 import { Button } from '@/components/ui/button'
 import { AppSubmitButton } from './app/AdminUi'
 import { AppHoverHint } from './app/AppHoverHint'
-import { appPanelTitle } from './app/appTypography'
+import { appFieldCaption, appPanelTitle, appPipelineStepLabel } from './app/appTypography'
 import { IngestExtraTagsMultiSelect } from './IngestExtraTagsMultiSelect'
 import { IngestPipelinePanel } from './IngestPipelinePanel'
 import { IngestStudioIconHit } from './IngestStudioIconHit'
@@ -299,7 +299,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
 
   const progressBlock = uploadProgress ? (
     <div className="upload-progress library-ingest-progress ingest-studio-progress" role="status" aria-live="polite">
-      <div className="upload-progress-label">
+      <div className={cn(appFieldCaption, 'upload-progress-label')}>
         {uploadProgress.phase === 'processing'
           ? uploadProgress.video
             ? t('library.uploadExtractingAudio', { name: uploadProgress.name })
@@ -377,7 +377,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                     <h2 id="ingest-from-link-title" className={appPanelTitle}>
                       {t('ingest.fromLink')}
                     </h2>
-                    <p className="ingest-studio-card-hint">{t('ingest.fromLinkHint')}</p>
+                    <p className={cn(appFieldCaption, 'ingest-studio-card-hint')}>{t('ingest.fromLinkHint')}</p>
                   </div>
                 </div>
                 <div className="ingest-studio-card-body ingest-studio-card-body-grow ingest-studio-card-ingest-body">
@@ -458,7 +458,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                   <h2 id="ingest-from-file-title" className={appPanelTitle}>
                     {t('ingest.fromFile')}
                   </h2>
-                  <p className="ingest-studio-card-hint">{t('ingest.fromFileHint')}</p>
+                  <p className={cn(appFieldCaption, 'ingest-studio-card-hint')}>{t('ingest.fromFileHint')}</p>
                 </div>
               </div>
               <div className="ingest-studio-card-body ingest-studio-card-body-grow ingest-studio-card-ingest-body">
@@ -506,7 +506,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
                   <h2 id="ingest-from-mic-title" className={appPanelTitle}>
                     {t('ingest.fromMic')}
                   </h2>
-                  <p className="ingest-studio-card-hint">{t('ingest.fromMicHint')}</p>
+                  <p className={cn(appFieldCaption, 'ingest-studio-card-hint')}>{t('ingest.fromMicHint')}</p>
                 </div>
               </div>
               <div className="ingest-studio-card-body ingest-studio-card-body-grow ingest-studio-card-ingest-body">
@@ -542,7 +542,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
             </section>
           </div>
           <section className="ingest-studio-card ingest-studio-card-pipeline" aria-labelledby="ingest-pipeline-title">
-            <h2 id="ingest-pipeline-title" className="ingest-studio-pipeline-heading">
+            <h2 id="ingest-pipeline-title" className={cn(appPipelineStepLabel, 'ingest-studio-pipeline-heading font-semibold')}>
               {t('ingest.pipelineSection')}
             </h2>
             <IngestPipelinePanel className="ingest-studio-pipeline" />
