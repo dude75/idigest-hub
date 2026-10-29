@@ -348,6 +348,21 @@ if (/\.landing-pricing-btn\s*\{[^}]*font-size:/.test(indexCss)) {
 if (!indexCss.includes('--share-panel-bg:')) {
   issues.push('index.css :root must define --share-panel-bg for share panels')
 }
+if (!indexCss.includes('--landing-popular-accent:')) {
+  issues.push('index.css :root must define --landing-popular-accent for pricing cards')
+}
+if (/\.btn\s*\{/.test(indexCss)) {
+  issues.push('remove legacy .btn class rules from index.css — SPA uses shadcn Button; OAuth uses auth-shell.css')
+}
+if (/\.landing-pricing-popular\s*\{/.test(indexCss)) {
+  issues.push('remove .landing-pricing-popular — use appLandingPopularBadge')
+}
+if (/\.worker-impact-pair\s*\{/.test(indexCss)) {
+  issues.push('remove .worker-impact-pair typography — use appImpactPairMono')
+}
+if (/\.ingest-studio-card\s*\{[^}]*background:/.test(indexCss)) {
+  issues.push('ingest studio card chrome must use ingestStudioCardChrome token, not CSS background')
+}
 if (/\.item\s*\{/.test(indexCss)) {
   issues.push('remove legacy .item rule — use listRowChrome on ListRow ([data-slot=list-row])')
 }
