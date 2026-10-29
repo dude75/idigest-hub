@@ -7,7 +7,6 @@ import { AdminFormActions, AppSubmitButton } from '../../components/app/AdminUi'
 import { jsonDirty } from '../../util'
 import {
   AdminDataTable,
-  AdminTableHeadHint,
   TableBody,
   TableCell,
   TableHead,
@@ -537,9 +536,7 @@ export function InstanceWorkersTab() {
                 <TableHead>{t('instance.workerModels')}</TableHead>
                 <TableHead className={adminTableHeadNum}>{t('instance.weight')}</TableHead>
                 <TableHead>{t('instance.health')}</TableHead>
-                <AdminTableHeadHint className={adminTableHeadNum} hint={t('instance.workerCapacityColumnHint')}>
-                  {t('instance.workerCapacityColumn')}
-                </AdminTableHeadHint>
+                <TableHead className={adminTableHeadNum}>{t('instance.workerCapacityColumn')}</TableHead>
                 <TableHead className={adminTableHeadActions} />
               </TableRow>
             </TableHeader>
