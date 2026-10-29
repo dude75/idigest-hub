@@ -29,6 +29,7 @@
   --ring: oklch(0.708 0 0);
   --primary: oklch(0.58 0.11 252);
   --primary-foreground: #ffffff;
+  --muted-foreground: oklch(0.556 0 0);
   --accent: var(--primary);
   --accent-ink: var(--primary-foreground);
   --danger: #b42318;
@@ -262,7 +263,7 @@ label {
   gap: 0.35rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--ink);
+  color: var(--muted-foreground);
 }
 input {
   width: 100%;
@@ -276,7 +277,7 @@ input {
   transition: none;
 }
 input::placeholder {
-  color: var(--muted);
+  color: var(--muted-foreground);
 }
 input:focus-visible {
   outline: none;
