@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { landingTariffSubtitleKey } from '../landingTariffLayout'
 import type { Tariff } from '../types'
 import { cn } from '@/lib/utils'
-import { appMutedText, appPricingQuotaNote } from './app/appTypography'
+import { appLandingPricingBtn, appMutedText, appPricingQuotaNote } from './app/appTypography'
 import { formatBytes, formatDecimal, formatRate } from '../util'
 
 export { landingTariffSubtitleKey }
@@ -106,7 +106,7 @@ export function LandingTariffCard({ tariff, popular, subtitleKey, to }: Props) {
           </li>
         ))}
       </ul>
-      <span className={`landing-pricing-btn${popular ? ' landing-pricing-btn-popular' : ''}`}>
+      <span className={cn(appLandingPricingBtn, 'landing-pricing-btn', popular && 'landing-pricing-btn-popular')}>
         {t('landing.tariffChoose')}
       </span>
     </Link>
