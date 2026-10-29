@@ -18,6 +18,8 @@ import {
 } from '../taskStage'
 import { fmtDate, showError, taskErrorDetailBrief, taskErrorMessage, taskIsRetriable } from '../util'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '../components/app/appTypography'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { AppSelectField } from '../components/app/AppFormControls'
 import {
@@ -165,13 +167,13 @@ export function TasksPage() {
             <div className="task-row-error">
               <p className="err">{taskErrorMessage(task, t)}</p>
               {taskErrorDetailBrief(task) && (
-                <p className="muted import-error-meta">{taskErrorDetailBrief(task)}</p>
+                <p className={cn(appMutedText, 'import-error-meta')}>{taskErrorDetailBrief(task)}</p>
               )}
             </div>
           ) : isTaskMissingWorkerForModels(task) ? (
             <p className="err task-row-hint">{t('task.workerStage.noMatchingWorkerShort')}</p>
           ) : isTaskWaitingOnWorkers(task) ? (
-            <p className="muted task-row-hint">{t('task.workerStage.waitHintShort')}</p>
+            <p className={cn(appMutedText, 'task-row-hint')}>{t('task.workerStage.waitHintShort')}</p>
           ) : undefined
         }
         trailing={

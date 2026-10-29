@@ -19,7 +19,7 @@ import type { Audio, Summary, Transcript, User } from '../types'
 import { AppStackCard } from '../components/AdminSection'
 import { ListSection } from '../components/app/EntityUi'
 import { ListRow } from '../components/ListRow'
-import { appGroupTitle } from '../components/app/appTypography'
+import { appGroupTitle, appMutedText } from '../components/app/appTypography'
 import { Tabs } from '../components/Tabs'
 import { LibraryLinksTab } from '../components/LibraryLinksTab'
 import { LibrarySkillsTab } from '../components/LibrarySkillsTab'
@@ -323,7 +323,7 @@ export function LibraryPage() {
                         {g.items[0]?.source_filename || t('transcript.sourceAudio', { id: g.sourceId.slice(0, 8) })}
                       </Link>
                     ) : (
-                      <span className="muted">{t('transcript.noSource')}</span>
+                      <span className={appMutedText}>{t('transcript.noSource')}</span>
                     )}
                   </div>
                   {g.items.map((tr) => (
@@ -395,7 +395,7 @@ export function LibraryPage() {
                           t('summary.sourceTranscript', { id: g.sourceId.slice(0, 8) })}
                       </Link>
                     ) : (
-                      <span className="muted">{t('summary.noSource')}</span>
+                      <span className={appMutedText}>{t('summary.noSource')}</span>
                     )}
                   </div>
                   {g.items.map((s) => (

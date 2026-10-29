@@ -8,6 +8,8 @@ import { isOrgAdmin, useAuth } from '../auth'
 import { EntityDetailCard, EntityPage } from '../components/app/EntityUi'
 import { AppSubmitButton } from '@/components/app/AdminUi'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import { appMutedText } from '@/components/app/appTypography'
 import { CardHeader, CardTitle } from '@/components/ui/card'
 import { endPipelineRun, initialTaskFromNav, type PipelineNavState } from '../pipeline'
 import {
@@ -99,7 +101,7 @@ export function TaskPage() {
           <CardTitle className="text-lg leading-snug">{taskHeading()}</CardTitle>
         </CardHeader>
         {task && isTaskWaitingOnWorkers(task) && cancelReady ? (
-          <p className="muted task-wait-hint">{t('task.workerStage.waitHint')}</p>
+          <p className={cn(appMutedText, 'task-wait-hint')}>{t('task.workerStage.waitHint')}</p>
         ) : null}
         {task && isTaskMissingWorkerForModels(task) ? (
           <p className="err task-wait-hint">
@@ -113,13 +115,13 @@ export function TaskPage() {
           </p>
         ) : null}
         {task?.type === 'import' && typeof task.meta?.platform === 'string' ? (
-          <p className="muted">{task.meta.platform}</p>
+          <p className={appMutedText}>{task.meta.platform}</p>
         ) : null}
         {task?.error ? (
           <div className="flex flex-col gap-2">
             <p className="err">{message}</p>
             {clientsTried ? (
-              <p className="muted import-error-meta">{t('task.youtubeClientsTried', { clients: clientsTried })}</p>
+              <p className={cn(appMutedText, 'import-error-meta')}>{t('task.youtubeClientsTried', { clients: clientsTried })}</p>
             ) : null}
             {detail ? (
               <details className="import-error-detail">
