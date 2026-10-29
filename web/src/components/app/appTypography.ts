@@ -196,7 +196,7 @@ export const appSharePanelSurface = 'bg-[var(--share-panel-bg)]'
 
 /** Ingest studio card shell (class `ingest-studio-card` kept for descendant CSS hooks). */
 export const ingestStudioCardChrome = cn(
-  'ingest-studio-card flex min-h-full flex-col gap-0 rounded-2xl border border-[var(--line)] bg-card px-[1.35rem] pb-[1.35rem] pt-5 shadow-sm',
+  'ingest-studio-card flex flex-col gap-0 rounded-2xl border border-[var(--line)] bg-card px-[1.35rem] pb-[1.35rem] pt-5 shadow-sm',
 )
 
 export const ingestStudioCardLinkAccent = cn(
