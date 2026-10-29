@@ -206,6 +206,7 @@ select {
   display: grid;
   gap: 0.65rem;
 }
+/* Secondary copy on OAuth/MCP pages — 0.875rem matches appMutedText in the SPA. */
 .muted {
   color: var(--muted);
   margin: 0;

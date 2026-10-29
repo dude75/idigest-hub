@@ -98,7 +98,7 @@ describe('Typeset UI contract', () => {
     expect(await readWeb('src/index.css')).not.toContain('.landing-trust-label')
     expect(await readWeb('src/index.css')).not.toContain('.stats-empty')
     expect(await readWeb('src/index.css')).not.toMatch(/\.muted\s*\{/)
-    expect(await readWeb('src/index.css')).toMatch(/--hub-muted:\s*var\(--muted-foreground\)/)
+    expect(await readWeb('src/index.css')).not.toMatch(/hub-muted/)
   })
 
   it('routes UI durations through AppDuration', async () => {
