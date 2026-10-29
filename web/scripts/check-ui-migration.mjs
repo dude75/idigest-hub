@@ -186,6 +186,26 @@ for (const file of files) {
         )
       }
     }
+    if (line.includes('public-link-meta-item') && !file.includes('check-ui-migration')) {
+      issues.push(`${rel(file)}:${i + 1}: use appMetaDl layout — not class "public-link-meta-item"`)
+    }
+    if (
+      /className=["'][^"']*(?:^|\s)item(?:\s|$)/.test(line) &&
+      !file.endsWith(`${path.sep}ListRow.tsx`) &&
+      !file.includes('check-ui-migration')
+    ) {
+      issues.push(`${rel(file)}:${i + 1}: legacy "item" list class — use ListRow / listRowChrome`)
+    }
+    if (
+      /className=["'][^"']*(?:^|\s)group(?:\s|$)/.test(line) &&
+      !file.includes('check-ui-migration') &&
+      !line.includes('RadioGroup') &&
+      !line.includes('group/tabs') &&
+      !line.includes('group-data') &&
+      !line.includes('group-has-')
+    ) {
+      issues.push(`${rel(file)}:${i + 1}: legacy "group" container — use library-source-group or Tailwind`)
+    }
     if (
       /\bpublic-link-meta\b(?!-item)/.test(line) &&
       !file.includes('check-ui-migration')
@@ -314,6 +334,18 @@ if (/\.admin-lead\s*\{[^}]*color:\s*var\(--muted-foreground\)/.test(indexCss)) {
 }
 if (/\.share-field-label\s*\{[^}]*font-size:/.test(indexCss)) {
   issues.push('remove legacy .share-field-label typography — use appFieldCaption')
+}
+if (/\.item\s*\{/.test(indexCss)) {
+  issues.push('remove legacy .item rule — use listRowChrome on ListRow ([data-slot=list-row])')
+}
+if (/\.group\s*\{/.test(indexCss)) {
+  issues.push('rename legacy .group containers — use .library-source-group')
+}
+if (indexCss.includes('.public-link-meta-item')) {
+  issues.push('remove .public-link-meta-item — use flex wrappers + appMetaDl')
+}
+if (indexCss.includes('.tariff-rates-line') || indexCss.includes('.audit-payload')) {
+  issues.push('remove dead tariff-rates / audit-payload CSS')
 }
 if (
   !/\.hub-reading-surface,\s*\n\s*\.summary-body,\s*\n\s*\.agreement-text/.test(indexCss)

@@ -78,7 +78,7 @@ export function AdminFoldCard({
   return (
     <Card className={cn('admin-fold-card', className)}>
       <details
-        className="group"
+        className="admin-fold-details"
         open={open}
         onToggle={(e) => onToggle?.(e.currentTarget.open)}
       >

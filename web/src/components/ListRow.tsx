@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { AppHoverHint } from '@/components/app/AppHoverHint'
-import { appListRowMeta, appListRowTitle } from '@/components/app/appTypography'
+import { appListRowMeta, appListRowTitle, listRowChrome } from '@/components/app/appTypography'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -52,7 +52,7 @@ function TitleNode({
 export function ListRow({ to, title, hint, meta, belowMeta, trailing, compact }: Props) {
   if (compact && to) {
     return (
-      <div data-slot="list-row" className="item row">
+      <div data-slot="list-row" className={listRowChrome}>
         <TitleNode to={to} title={title} hint={hint} className="min-w-0 grow" />
         {trailing}
       </div>
@@ -60,7 +60,7 @@ export function ListRow({ to, title, hint, meta, belowMeta, trailing, compact }:
   }
 
   return (
-    <div data-slot="list-row" className="item row gap-3">
+    <div data-slot="list-row" className={cn(listRowChrome, 'gap-3')}>
       <div className="min-w-0 grow">
         <TitleNode to={to} title={title} hint={hint} />
         {meta ? <div className={appListRowMeta}>{meta}</div> : null}

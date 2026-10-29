@@ -44,7 +44,7 @@ export function InlineRename({ value, canEdit, busy, onSave }: Props) {
 
   if (editing) {
     return (
-      <div className="row inline-rename">
+      <div className="inline-rename flex flex-wrap items-center gap-2">
         <input
           ref={inputRef}
           className="inline-rename-input"
@@ -80,7 +80,7 @@ export function InlineRename({ value, canEdit, busy, onSave }: Props) {
   }
 
   return (
-    <div className="row inline-rename">
+    <div className="inline-rename flex flex-wrap items-center gap-2">
       <h1 className={cn(appEntityTitle, 'mb-0 grow')}>{value}</h1>
       {canEdit && (
         <Button type="button" className="inline-rename-btn" disabled={busy} onClick={() => setEditing(true)}>

@@ -227,7 +227,7 @@ export function ShareDialog({ objectType, objectId, canManagePublicLink, onClose
             </div>
           ) : (
             <div className="share-panel stack">
-              <div className="share-form-row row">
+              <div className="share-form-row flex flex-wrap items-end gap-2">
                 <div className="share-field">
                   <FieldLabel htmlFor="share-expiry" className={appFieldCaption}>
                     {t('share.expiry')}

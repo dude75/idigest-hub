@@ -235,7 +235,7 @@ export function UserTagBadges({ tags, max = 3 }: { tags?: UserTag[]; max?: numbe
   const shown = tags.slice(0, max)
   const rest = tags.length - shown.length
   return (
-    <span className="row user-tag-badges">
+    <span className="user-tag-badges inline-flex flex-wrap items-center gap-2">
       {shown.map((tag) => (
         <Badge key={tag.id} variant="outline" className={cn('h-5 max-w-[10rem]', userTagBadgeClassName)}>
           <span className="truncate">{tag.name}</span>
@@ -264,7 +264,7 @@ export function ShareBadges({
   const edited = item.edited
   if (!incoming && !outgoingShared && !outgoingYou && !hidden && !edited) return null
   return (
-    <span className="row">
+    <span className="inline-flex flex-wrap items-center gap-2">
       {incoming ? <HubBadge tone="warning">{t('library.sharedBy', { who: item.shared_by })}</HubBadge> : null}
       {outgoingShared ? (
         <HubBadge tone="success">{t('library.sharedWith', { who: sharedWith })}</HubBadge>

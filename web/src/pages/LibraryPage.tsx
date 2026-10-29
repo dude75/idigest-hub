@@ -316,7 +316,7 @@ export function LibraryPage() {
           {tab === 'transcripts' && groupListBySource && (
             <>
               {pagedTranscriptGroups.map((g) => (
-                <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
+                <section className="library-source-group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
                   <div className={cn('group-title', appGroupTitle)}>
                     {g.sourceId ? (
                       <Link to={`/app/audio/${g.sourceId}`}>
@@ -387,7 +387,7 @@ export function LibraryPage() {
           {tab === 'summaries' && groupListBySource && (
             <>
               {pagedSummaryGroups.map((g) => (
-                <section className="group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
+                <section className="library-source-group" key={g.key} id={g.sourceId ? `source-${g.sourceId}` : undefined}>
                   <div className={cn('group-title', appGroupTitle)}>
                     {g.sourceId ? (
                       <Link to={`/app/transcript/${g.sourceId}`}>

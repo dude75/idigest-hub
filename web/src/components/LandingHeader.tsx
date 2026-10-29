@@ -39,7 +39,7 @@ export function LandingHeader() {
         )}
         <a href="/#faq" className={landingNavLink}>{t('landing.navFaq')}</a>
       </nav>
-      <div className="right row">
+      <div className="right flex flex-wrap items-center gap-2">
         <GitHubLink />
         <LanguageSwitcher />
         {me ? (

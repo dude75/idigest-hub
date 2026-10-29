@@ -63,7 +63,7 @@ export function LegalDocumentAcceptance({ documents, checked, onCheckedChange, d
               {viewing.text ? <MarkdownBody text={viewing.text} /> : t('agreement.empty')}
             </div>
           </div>
-          <div className="row modal-actions agreement-actions">
+          <div className="modal-actions agreement-actions flex flex-wrap items-center justify-end gap-2">
             <Button type="button" onClick={() => setViewKey(null)}>
               {t('common.close')}
             </Button>
