@@ -209,7 +209,7 @@ select {
 .muted {
   color: var(--muted);
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.875rem; /* match appMutedText (text-sm) in SPA */
 }
 .lead {
   margin: 0 0 0.75rem;

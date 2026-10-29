@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { AppSubmitButton } from './app/AdminUi'
 import { cn } from '@/lib/utils'
+import { appMuted } from './app/appTypography'
 import {
   detachMediaRecorder,
   listAudioInputDevices,
@@ -380,7 +381,7 @@ export function MicrophoneRecordModal({ onClose, onSave, busy }: Props) {
                 !statusLabel && 'invisible',
                 recording && 'text-red-600 dark:text-red-400',
                 paused && 'text-amber-700 dark:text-amber-400',
-                (starting || switchingDevice) && 'text-muted-foreground',
+                (starting || switchingDevice) && appMuted,
               )}
             >
               <span
@@ -404,7 +405,7 @@ export function MicrophoneRecordModal({ onClose, onSave, busy }: Props) {
                 htmlFor="record-mic-select"
                 className="flex shrink-0 cursor-default items-center p-0 font-normal"
               >
-                <Mic className="size-5 text-muted-foreground" aria-hidden />
+                <Mic className={cn('size-5', appMuted)} aria-hidden />
                 <span className="sr-only">{t('library.recordMicLabel')}</span>
               </Label>
               <AppSelect

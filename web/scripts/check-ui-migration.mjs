@@ -15,6 +15,12 @@ const ALLOW_UI_TABS = new Set([
   path.join(SRC, 'components/ui/tabs.tsx'),
 ])
 
+/** Tailwind data-variant or HubBadge tone map — not ad-hoc chrome copy. */
+const ALLOW_TEXT_MUTED_FG = new Set([
+  path.join(SRC, 'components/app/AdminUi.tsx'),
+  path.join(SRC, 'components/app/AppDateField.tsx'),
+])
+
 /** Modal confirm — not a settings save row. */
 const ALLOW_RAW_SUBMIT_BUTTON = new Set([
   path.join(SRC, 'pages/instance/WorkerImpactModal.tsx'),
@@ -151,6 +157,18 @@ for (const file of files) {
     ) {
       issues.push(
         `${rel(file)}:${i + 1}: use appMutedText from appTypography instead of inline text-sm text-muted-foreground`,
+      )
+    }
+    if (
+      !file.includes(`${path.sep}ui${path.sep}`) &&
+      !file.endsWith('appTypography.ts') &&
+      !ALLOW_TEXT_MUTED_FG.has(file) &&
+      line.includes('text-muted-foreground') &&
+      !line.includes('data-[empty=true') &&
+      !file.includes('check-ui-migration')
+    ) {
+      issues.push(
+        `${rel(file)}:${i + 1}: use appMuted / appMutedText from appTypography instead of inline text-muted-foreground`,
       )
     }
     for (const legacyClass of [
@@ -330,6 +348,9 @@ if (!oauthPages.includes('auth-shell.js')) {
 }
 if (!authShell.includes('.hub-select-trigger')) {
   issues.push('auth-shell.css must define .hub-select-* popup select styles')
+}
+if (!/\.muted\s*\{[^}]*font-size:\s*0\.875rem/.test(authShell)) {
+  issues.push('auth-shell.css .muted must use 0.875rem (appMutedText) for OAuth copy')
 }
 try {
   await access(path.join(import.meta.dirname, '../public/auth-shell.js'))

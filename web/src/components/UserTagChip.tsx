@@ -2,6 +2,7 @@ import { XIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { userTagBadgeClassName } from './userTagBadgeStyles'
+import { appMuted } from './app/appTypography'
 
 type AssignedProps = {
   name: string
@@ -23,7 +24,8 @@ export function UserTagChipAssigned({ name, disabled, removeLabel, onRemove }: A
         aria-label={removeLabel}
         className={cn(
           'inline-flex shrink-0 items-center justify-center rounded-sm border-0 bg-transparent p-0',
-          'text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50',
+          appMuted,
+          'hover:text-foreground disabled:pointer-events-none disabled:opacity-50',
         )}
         onClick={(e) => {
           e.preventDefault()

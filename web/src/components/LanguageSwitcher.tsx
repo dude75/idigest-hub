@@ -4,6 +4,7 @@ import { LOCALES } from '../i18n'
 import type { Locale } from '../types'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { appMuted } from '@/components/app/appTypography'
 
 export function LanguageSwitcher() {
   const { i18n, t } = useTranslation()
@@ -22,7 +23,7 @@ export function LanguageSwitcher() {
             type="button"
             variant={active ? 'default' : 'ghost'}
             size="xs"
-            className={cn('min-w-[2.1rem] px-2 font-semibold tracking-wide', !active && 'text-muted-foreground')}
+            className={cn('min-w-[2.1rem] px-2 font-semibold tracking-wide', !active && appMuted)}
             aria-pressed={active}
             onClick={() => void setLocale(lng as Locale)}
           >

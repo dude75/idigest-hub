@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { appMuted } from '@/components/app/appTypography'
 
 type Props = {
   title: ReactNode
@@ -19,7 +20,7 @@ export function SettingsFoldSummary({ title, meta, className }: Props) {
         <div className="org-fold-summary-meta flex min-w-0 flex-wrap items-center gap-1.5">{meta}</div>
       ) : null}
       <ChevronDown
-        className="org-fold-chevron ml-auto size-4 shrink-0 text-muted-foreground transition-transform duration-200"
+        className={cn('org-fold-chevron ml-auto size-4 shrink-0 transition-transform duration-200', appMuted)}
         aria-hidden
       />
     </div>
