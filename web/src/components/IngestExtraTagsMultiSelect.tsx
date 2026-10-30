@@ -11,6 +11,7 @@ import { showError } from '../util'
 import { AppSelect } from './app/AppSelect'
 import { Modal } from './Modal'
 import { UserTagChipAssigned } from './UserTagChip'
+import { userTagsInputClassName } from './UserTagsEditor'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
@@ -138,7 +139,7 @@ export function IngestExtraTagsMultiSelect({ catalog, selected, disabled, classN
                 />
               ) : null}
               <Input
-                className="user-tags-input shadow-none focus-visible:border-input focus-visible:ring-0"
+                className={userTagsInputClassName}
                 value={draft}
                 placeholder={t('library.addTagPlaceholder')}
                 aria-label={t('library.addTagPlaceholder')}
@@ -152,7 +153,7 @@ export function IngestExtraTagsMultiSelect({ catalog, selected, disabled, classN
               />
               <Button
                 type="button"
-                size="default"
+                size="sm"
                 variant="outline"
                 className="user-tags-add shrink-0"
                 disabled={!draft.trim()}

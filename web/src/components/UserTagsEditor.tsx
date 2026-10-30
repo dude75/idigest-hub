@@ -23,6 +23,9 @@ type Props = {
   onChange: (tags: SchemaUserTagBrief[]) => void
 }
 
+export const userTagsInputClassName =
+  'user-tags-input h-7 min-h-7 py-0 text-sm bg-background dark:bg-input/30 shadow-none focus-visible:border-input focus-visible:ring-0'
+
 export function UserTagsEditor({ objectType, objectId, tags, onChange }: Props) {
   const { t } = useTranslation()
   const [draft, setDraft] = useState('')
@@ -144,7 +147,7 @@ export function UserTagsEditor({ objectType, objectId, tags, onChange }: Props) 
           />
         ) : null}
         <Input
-          className="user-tags-input shadow-none focus-visible:border-input focus-visible:ring-0"
+          className={userTagsInputClassName}
           value={draft}
           disabled={busy}
           placeholder={t('library.addTagPlaceholder')}

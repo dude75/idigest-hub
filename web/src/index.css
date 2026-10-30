@@ -470,7 +470,7 @@ a.brand:hover,
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
-  min-height: 2rem;
+  min-height: 1.75rem;
   white-space: nowrap;
 }
 .user-tags-pick {
@@ -481,7 +481,6 @@ a.brand:hover,
 .user-tags-pick [data-slot='select-trigger'] {
   width: 8.25rem;
   max-width: 8.25rem;
-  height: 2rem;
   box-shadow: none;
   background: var(--background);
 }
@@ -497,7 +496,6 @@ a.brand:hover,
   width: 7.5rem !important;
   max-width: 7.5rem;
   flex: 0 0 auto;
-  height: 2rem;
   box-shadow: none;
   background: var(--background) !important;
 }
@@ -510,7 +508,6 @@ a.brand:hover,
   outline: none;
 }
 .user-tags-add {
-  height: 2rem;
   white-space: nowrap;
   flex: 0 0 auto;
 }
