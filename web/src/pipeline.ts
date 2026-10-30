@@ -23,7 +23,9 @@ function readSkillIds(raw: Partial<IngestPipeline & { skill_ids?: string[] }>): 
 
 export function normalizePipeline(next: IngestPipeline): IngestPipeline {
   if (!next.transcribe) return { transcribe: false, skillIds: [] }
-  const skillIds = readSkillIds(next).filter((id): id is string => typeof id === 'string' && id.length > 0)
+  const skillIds = readSkillIds(next)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0)
+    .slice(0, 1)
   return { transcribe: true, skillIds }
 }
 
@@ -51,7 +53,9 @@ export function loadSummarizeSkillIds(): string[] {
     if (raw) {
       const parsed = JSON.parse(raw) as unknown
       if (Array.isArray(parsed)) {
-        return parsed.filter((id): id is string => typeof id === 'string' && id.length > 0)
+        return parsed
+          .filter((id): id is string => typeof id === 'string' && id.length > 0)
+          .slice(0, 1)
       }
     }
   } catch {
@@ -63,7 +67,7 @@ export function loadSummarizeSkillIds(): string[] {
 export function saveSummarizeSkillIds(skillIds: string[]): void {
   localStorage.setItem(
     SUMMARIZE_SKILLS_KEY,
-    JSON.stringify(skillIds.filter((id) => id.length > 0)),
+    JSON.stringify(skillIds.filter((id) => id.length > 0).slice(0, 1)),
   )
 }
 
@@ -81,7 +85,7 @@ export function beginPipelineRun(pipeline: IngestPipeline = loadPipeline()): Ing
 export function beginSummarizePipelineRun(skillIds: string[]): IngestPipeline {
   const run: IngestPipeline = {
     transcribe: false,
-    skillIds: skillIds.filter((id) => id.length > 0),
+    skillIds: skillIds.filter((id) => id.length > 0).slice(0, 1),
   }
   sessionStorage.setItem(RUN_KEY, JSON.stringify(run))
   return run
@@ -94,7 +98,9 @@ export function loadPipelineRun(): IngestPipeline | null {
     const parsed = JSON.parse(raw) as Partial<IngestPipeline & { skill_ids?: string[] }>
     return {
       transcribe: parsed.transcribe === true,
-      skillIds: readSkillIds(parsed).filter((id): id is string => typeof id === 'string' && id.length > 0),
+      skillIds: readSkillIds(parsed)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0)
+        .slice(0, 1),
     }
   } catch {
     return null

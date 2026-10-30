@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { api } from '../api'
 import { useAuth } from '../auth'
@@ -8,8 +8,7 @@ import type { SchemaSkillListResponse } from '../openapi'
 import { showError } from '../util'
 import { cn } from '@/lib/utils'
 import { AppCheckboxRow } from './app/AppFormControls'
-import { HubBadge } from './app/AdminUi'
-import { skillScopeLabel } from '../skillScope'
+import { SummarizeSkillRadioGroup } from './SummarizeSkillRadioGroup'
 import { appFieldCaption, appMutedText } from './app/appTypography'
 
 function pipelineSummaryKey(pipeline: IngestPipeline): string {
@@ -45,17 +44,19 @@ export function IngestPipelinePanel({ className, defaultOpen }: IngestPipelinePa
     update({ transcribe, skillIds: transcribe ? pipeline.skillIds : [] })
   }
 
-  function toggleSkill(skillId: string, checked: boolean) {
-    const skillIds = checked
-      ? [...pipeline.skillIds, skillId]
-      : pipeline.skillIds.filter((id) => id !== skillId)
-    update({ ...pipeline, skillIds })
+  function setSkillId(skillId: string | null) {
+    update({ ...pipeline, skillIds: skillId ? [skillId] : [] })
   }
 
   const summaryKey = pipelineSummaryKey(pipeline)
-  const summaryArgs = summaryKey === 'library.pipeline.summaryFull'
-    ? { count: pipeline.skillIds.length }
-    : undefined
+  const selectedSkill = useMemo(
+    () => skills.find((s) => s.id === pipeline.skillIds[0]),
+    [skills, pipeline.skillIds],
+  )
+  const summaryArgs =
+    summaryKey === 'library.pipeline.summaryFull' && selectedSkill
+      ? { name: selectedSkill.name }
+      : undefined
 
   return (
     <details className={cn('fold library-pipeline', className)} open={defaultOpen || undefined}>
@@ -77,25 +78,24 @@ export function IngestPipelinePanel({ className, defaultOpen }: IngestPipelinePa
         ) : null}
         {pipeline.transcribe && (
           <div className="library-pipeline-skills">
-            <div className={cn(appFieldCaption, 'library-pipeline-skills-label')}>{t('library.pipeline.summarizeSkills')}</div>
+            <div
+              className={cn(appFieldCaption, 'library-pipeline-skills-label')}
+              id="library-pipeline-skills-label"
+            >
+              {t('library.pipeline.summarizeSkills')}
+            </div>
             {skills.length === 0 && <p className={appMutedText}>{t('common.empty')}</p>}
-            {skills.map((s) => (
-              <AppCheckboxRow
-                key={s.id}
-                id={`library-pipeline-skill-${s.id}`}
-                className="library-pipeline-skill"
-                label={
-                  <>
-                    {s.name}{' '}
-                    <HubBadge tone="muted" className="align-middle">
-                      {skillScopeLabel(s.scope, s.catalog, t)}
-                    </HubBadge>
-                  </>
-                }
-                checked={pipeline.skillIds.includes(s.id)}
-                onCheckedChange={(checked) => toggleSkill(s.id, checked)}
+            {skills.length > 0 ? (
+              <SummarizeSkillRadioGroup
+                skills={skills}
+                value={pipeline.skillIds[0] ?? null}
+                onValueChange={setSkillId}
+                showNoneOption
+                idPrefix="library-pipeline-skill"
+                rowClassName="library-pipeline-skill"
+                aria-labelledby="library-pipeline-skills-label"
               />
-            ))}
+            ) : null}
           </div>
         )}
       </div>

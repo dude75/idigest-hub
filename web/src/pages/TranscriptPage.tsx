@@ -9,6 +9,7 @@ import { LibraryArtifactImpactModal } from '../components/LibraryArtifactImpactM
 import { EntityHint, EntityToolbar } from '../components/EntityToolbar'
 import { ListRow } from '../components/ListRow'
 import { ShareDialog } from '../components/ShareDialog'
+import { SummarizeSkillRadioGroup } from '../components/SummarizeSkillRadioGroup'
 import {
   beginSummarizePipelineRun,
   loadSummarizeSkillIds,
@@ -16,7 +17,6 @@ import {
   saveSummarizeSkillIds,
 } from '../pipeline'
 import { libraryPath } from '../routes'
-import { skillScopeLabel } from '../skillScope'
 import type { SchemaSkillListResponse, SchemaSkillPublicResponse } from '../openapi'
 import type { Summary, Task, Transcript } from '../types'
 import { UserTagsEditor } from '../components/UserTagsEditor'
@@ -32,7 +32,6 @@ import {
   utteranceValenceHint,
   utteranceValenceStripeClass,
 } from '../components/TranscriptTonePanel'
-import { HubBadge } from '../components/app/AdminUi'
 import { summaryBody } from '../typography'
 import { appEntityMetaRow, appMutedText, appPanelTitle, appStatsEmpty } from '../components/app/appTypography'
 import { AppCursorHint } from '../components/app/AppCursorHint'
@@ -54,10 +53,6 @@ function skillNamesForSummary(summary: Summary, skills: SchemaSkillPublicRespons
   return summary.display_title || summary.title || summary.id.slice(0, 8)
 }
 
-function pickedSkillIds(picked: Record<string, boolean>): string[] {
-  return Object.entries(picked).filter(([, v]) => v).map(([sid]) => sid)
-}
-
 export function TranscriptPage() {
   const { id } = useParams<{ id: string }>()
   const { t } = useTranslation()
@@ -65,7 +60,7 @@ export function TranscriptPage() {
   const nav = useNavigate()
   const [item, setItem] = useState<Transcript | null>(null)
   const [skills, setSkills] = useState<NonNullable<SchemaSkillListResponse['items']>>([])
-  const [picked, setPicked] = useState<Record<string, boolean>>({})
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null)
   const [loadFailed, setLoadFailed] = useState(false)
   const [share, setShare] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -85,10 +80,9 @@ export function TranscriptPage() {
   const mine = item?.owner_user_id === me?.user.id
   const canDelete = item && (mine || admin)
   const canRename = Boolean(mine || admin)
-  const selectedSkillIds = useMemo(() => pickedSkillIds(picked), [picked])
-  const selectedSkillNames = useMemo(
-    () => skills.filter((s) => picked[s.id]).map((s) => s.name),
-    [skills, picked],
+  const selectedSkill = useMemo(
+    () => skills.find((s) => s.id === selectedSkillId) ?? null,
+    [skills, selectedSkillId],
   )
 
   async function load() {
@@ -105,7 +99,7 @@ export function TranscriptPage() {
     setOpenText(false)
     setSeekOnClick(false)
     pickedInit.current = false
-    setPicked({})
+    setSelectedSkillId(null)
     load()
       .then(() => setLoadFailed(false))
       .catch((e) => {
@@ -117,32 +111,26 @@ export function TranscriptPage() {
   useEffect(() => {
     if (skills.length === 0 || pickedInit.current) return
     pickedInit.current = true
-    const saved = new Set(loadSummarizeSkillIds())
-    const initial: Record<string, boolean> = {}
-    for (const skill of skills) {
-      if (saved.has(skill.id)) initial[skill.id] = true
+    const saved = loadSummarizeSkillIds()[0]
+    if (saved && skills.some((s) => s.id === saved)) {
+      setSelectedSkillId(saved)
     }
-    setPicked(initial)
   }, [skills])
 
-  function toggleSkill(skillId: string, checked: boolean) {
-    setPicked((prev) => {
-      const next = { ...prev, [skillId]: checked }
-      saveSummarizeSkillIds(pickedSkillIds(next))
-      return next
-    })
+  function selectSkill(skillId: string | null) {
+    setSelectedSkillId(skillId)
+    saveSummarizeSkillIds(skillId ? [skillId] : [])
   }
 
   async function summarize() {
     if (!id) return
-    const skill_ids = selectedSkillIds
-    if (skill_ids.length === 0) return
+    if (!selectedSkillId) return
     setBusy(true)
     try {
-      const pipeline = beginSummarizePipelineRun(skill_ids)
+      const pipeline = beginSummarizePipelineRun([selectedSkillId])
       const task = await api<Task>('/tasks/summarize', {
         method: 'POST',
-        body: JSON.stringify({ transcript_id: id, skill_ids }),
+        body: JSON.stringify({ transcript_id: id, skill_ids: [selectedSkillId] }),
       })
       nav(`/app/task/${task.task_id}`, { state: pipelineNavState(pipeline, task) })
     } catch (e) {
@@ -191,9 +179,7 @@ export function TranscriptPage() {
     }
   }
 
-  const skillsSummaryKey = selectedSkillIds.length === 0
-    ? 'transcript.skillsNone'
-    : 'transcript.skillsPicked'
+  const skillsSummaryKey = selectedSkill ? 'transcript.skillPicked' : 'transcript.skillsNone'
 
   if (!item && !loadFailed) return <EntityPageLoading backTo={libraryPath('transcripts')} />
 
@@ -390,37 +376,26 @@ export function TranscriptPage() {
                 {t('transcript.skills')}
                 {' · '}
                 <span className={cn(appMutedText, 'library-pipeline-summary')}>
-                  {skillsSummaryKey === 'transcript.skillsNone'
-                    ? t(skillsSummaryKey)
-                    : t(skillsSummaryKey, {
-                        count: selectedSkillIds.length,
-                        names: selectedSkillNames.join(', '),
-                      })}
+                  {selectedSkill
+                    ? t(skillsSummaryKey, { name: selectedSkill.name })
+                    : t(skillsSummaryKey)}
                 </span>
               </summary>
               <div className="fold-body library-pipeline-body">
                 {skills.length === 0 && <p className={appMutedText}>{t('common.empty')}</p>}
-                {skills.map((s) => (
-                  <AppCheckboxRow
-                    key={s.id}
-                    id={`transcript-skill-${s.id}`}
-                    className="library-pipeline-skill"
-                    label={
-                      <>
-                        {s.name}{' '}
-                        <HubBadge tone="muted" className="align-middle">
-                          {skillScopeLabel(s.scope, s.catalog, t)}
-                        </HubBadge>
-                      </>
-                    }
-                    checked={Boolean(picked[s.id])}
-                    onCheckedChange={(checked) => toggleSkill(s.id, checked)}
+                {skills.length > 0 ? (
+                  <SummarizeSkillRadioGroup
+                    skills={skills}
+                    value={selectedSkillId}
+                    onValueChange={selectSkill}
+                    idPrefix="transcript-skill"
+                    rowClassName="library-pipeline-skill"
                   />
-                ))}
+                ) : null}
               </div>
             </details>
             <div className="transcript-summaries-actions">
-              <Button disabled={busy || selectedSkillIds.length === 0} onClick={() => void summarize()}
+              <Button disabled={busy || !selectedSkillId} onClick={() => void summarize()}
               >
                 {t('transcript.summarize')}
               </Button>

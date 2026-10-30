@@ -7,6 +7,7 @@ import {
   importRequest,
   initialTaskFromNav,
   loadPipelineRun,
+  normalizePipeline,
   pipelineForTask,
   pipelineNavState,
 } from './pipeline'
@@ -22,6 +23,13 @@ const sampleTask = (taskId: string): Task => ({
 })
 
 describe('importRequest', () => {
+  it('keeps at most one skill id in normalized pipeline', () => {
+    expect(normalizePipeline({ transcribe: true, skillIds: ['a', 'b'] })).toEqual({
+      transcribe: true,
+      skillIds: ['a'],
+    })
+  })
+
   it('includes transcribe flag when pipeline requests it', () => {
     expect(importRequest('https://example.com/v', { transcribe: true, skillIds: [] })).toEqual({
       url: 'https://example.com/v',
@@ -52,7 +60,7 @@ describe('beginSummarizePipelineRun', () => {
   })
 
   it('stores summarize-only pipeline in session', () => {
-    const run = beginSummarizePipelineRun(['skill-1', ''])
+    const run = beginSummarizePipelineRun(['skill-1', 'skill-2'])
     expect(run).toEqual({ transcribe: false, skillIds: ['skill-1'] })
     expect(loadPipelineRun()).toEqual(run)
   })
