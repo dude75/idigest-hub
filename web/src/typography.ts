@@ -33,7 +33,6 @@ export {
   appLandingPopularBadge,
   appLandingTrustCaption,
   ingestStudioCardChrome,
-  ingestStudioCardLinkAccent,
   publicLinkActionsRow,
   publicLinkBadges,
   publicLinkHead,

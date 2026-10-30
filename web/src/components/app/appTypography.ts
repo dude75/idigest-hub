@@ -200,11 +200,6 @@ export const ingestStudioCardChrome = cn(
   'ingest-studio-card flex flex-col gap-0 rounded-2xl border border-[var(--line)] bg-card px-[1.35rem] pb-[1.35rem] pt-5 shadow-sm',
 )
 
-export const ingestStudioCardLinkAccent = cn(
-  'ingest-studio-card-link border-[color-mix(in_oklch,var(--hub-accent)_28%,var(--line))]',
-  'shadow-[0_0_0_1px_color-mix(in_oklch,var(--hub-accent)_10%,transparent)]',
-)
-
 /** Public / org link list rows (keep `public-link-row` for embedded task-list borders). */
 export const publicLinkRow = cn('public-link-row flex flex-col gap-[0.45rem]')
 export const publicLinkHead = 'public-link-head flex min-w-0 items-start justify-between gap-3'

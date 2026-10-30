@@ -711,9 +711,6 @@ a.brand:hover,
 .ingest-studio-card {
   /* Card chrome from ingestStudioCardChrome; class retained for foot/tags selectors. */
 }
-.ingest-studio-card-link {
-  /* Accent from ingestStudioCardLinkAccent token on link card. */
-}
 .ingest-studio-card-foot .ingest-studio-card-tags {
   width: 100%;
   max-width: none;

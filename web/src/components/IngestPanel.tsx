@@ -14,7 +14,7 @@ import { libraryPath } from '../routes'
 import { Button } from '@/components/ui/button'
 import { AppSubmitButton } from './app/AdminUi'
 import { AppHoverHint } from './app/AppHoverHint'
-import { appFieldCaption, appIngestFootAction, appPanelTitle, ingestStudioCardChrome, ingestStudioCardLinkAccent } from './app/appTypography'
+import { appFieldCaption, appIngestFootAction, appPanelTitle, ingestStudioCardChrome } from './app/appTypography'
 import { IngestExtraTagsMultiSelect } from './IngestExtraTagsMultiSelect'
 import { IngestPipelinePanel } from './IngestPipelinePanel'
 import { IngestStudioIconHit } from './IngestStudioIconHit'
@@ -366,11 +366,7 @@ export function IngestPanel({ layout = 'toolbar' }: IngestPanelProps) {
           <div className={cn('ingest-studio-grid', !ingestEnabled && 'ingest-studio-grid-no-link')}>
             {ingestEnabled ? (
               <section
-                className={cn(
-                  ingestStudioCardChrome,
-                  ingestStudioCardLinkAccent,
-                  'ingest-studio-card-ingest',
-                )}
+                className={cn(ingestStudioCardChrome, 'ingest-studio-card-ingest')}
                 aria-labelledby="ingest-from-link-title"
               >
                 <div className="ingest-studio-card-head">
