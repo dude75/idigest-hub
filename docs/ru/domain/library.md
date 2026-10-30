@@ -118,6 +118,20 @@ POST /shares
 
 При успешных **transcribe** / **summarize** теги на новый transcript или summary копируются один раз с родителя (как и ручные). Редактирование по-прежнему через `PUT /object-tags` (полная замена на объекте).
 
+### Pipeline ingest (UI Library)
+
+На карточке ingest в **Library** — сворачиваемый **pipeline** (`localStorage` `idigest-ingest-pipeline`; логика в `web/src/pipeline.ts`):
+
+| Настройка | Эффект на import / capture |
+| --------- | -------------------------- |
+| Pipeline выкл. | только `POST /tasks/import` или `/tasks/capture` |
+| Включён **Transcribe** | `transcribe: true`; после появления audio hub ставит transcribe |
+| Выбран один skill (radio) | `skill_ids: ["…"]`, не больше одного id (`normalizePipeline`); summarize после transcribe |
+
+Выбор skill — **`SummarizeSkillRadioGroup`** (есть строка «только transcribe»). Тот же контрол на **Transcript** при ручном summarize. Отдельно `idigest-summarize-skills` хранит последний skill для transcript.
+
+После постановки задачи **Task** может продолжить цепочку по snapshot в session (`idigest-ingest-pipeline-run`). В HTTP API и MCP по-прежнему допустим массив `skill_ids[]`; в UI Library сознательно ограничение **одним** skill.
+
 При hard delete объекта снимаются tag links на этом объекте у всех пользователей. См. [Library API](../api/library.md#личные-теги-без-acl) и [MCP](../api/mcp.md#личные-теги).
 
 ## Публичные ссылки на summary

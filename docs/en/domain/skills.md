@@ -2,6 +2,8 @@
 
 **Skills** are prompt templates (name + markdown/text body) used when summarizing transcripts. The hub concatenates selected skills and sends them to the summarize worker as the `skill` parameter.
 
+The Library ingest pipeline and the transcript summarize panel pick **at most one** skill in the UI (radio list). `POST /tasks/summarize`, import/capture chaining, and MCP may still pass multiple `skill_ids[]`.
+
 ## Scopes
 
 | scope | Owner | Who can edit | Visibility |

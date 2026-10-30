@@ -70,8 +70,8 @@ Pattern: return synthetic success JSON from `post_transcribe` / `get_task`.
 
 ```bash
 cd web
-npm run check:ui   # TSX + index.css: legacy classes, submit patterns, HubBadge migration cap
-npm test           # vitest — mfa.test.ts (auth block paths), typography.test.ts (token exports)
+npm run check:ui   # TSX + index.css: legacy classes, submit patterns, HubBadge cap (rules in ui-migration-rules.mjs)
+npm test           # vitest — legacyUiGuard.test.ts, typesetUi.test.ts, typography.test.ts, mfa.test.ts, pipeline.test.ts
 ```
 
 ## CI considerations

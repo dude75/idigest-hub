@@ -118,6 +118,20 @@ On **Library**, the ingest row (video or meeting URL) has **Extra tags**: a moda
 
 On successful **transcribe** / **summarize**, tags on the new transcript or summary are copied once from the parent object (same rules as manual tags). You can still edit tags with `PUT /object-tags` (full replace on that object).
 
+### Ingest pipeline (Library UI)
+
+The ingest card on **Library** includes a collapsible **pipeline** (browser `localStorage` key `idigest-ingest-pipeline`; logic in `web/src/pipeline.ts`):
+
+| Setting | API effect on import / capture |
+| ------- | ------------------------------ |
+| Pipeline off | `POST /tasks/import` or `/tasks/capture` only |
+| **Transcribe** checked | Adds `transcribe: true`; hub enqueues transcribe after audio exists |
+| One summarize skill selected (radio list) | Adds `skill_ids: ["…"]` with **at most one** id (`normalizePipeline`); chains summarize after transcribe completes |
+
+The skill picker is **`SummarizeSkillRadioGroup`** (includes a “transcribe only” row). The same control is used on **Transcript** when starting summarize manually. Separate preference `idigest-summarize-skills` stores the last skill for transcript flows.
+
+After enqueue, the **Task** page can continue the chain using a session snapshot (`idigest-ingest-pipeline-run`). The HTTP API still accepts multiple `skill_ids[]` on `POST /tasks/summarize` and MCP; the Library UI intentionally limits selection to one skill.
+
 Hard delete removes tag links on that object for all users. See [Library API](../api/library.md#personal-tags-no-acl) and [MCP personal tags](../api/mcp.md#personal-tags).
 
 ## Public summary links

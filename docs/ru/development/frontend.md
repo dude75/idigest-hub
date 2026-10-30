@@ -14,7 +14,7 @@ React 19 + TypeScript + Vite. Source: `web/src/`. README пакета: [web/READ
 | Стили | Tailwind CSS v4 (`@tailwindcss/vite`) |
 | Уведомления | `sonner` (`showError` / toast в `util.tsx`) |
 
-Новые экраны собирайте из **shadcn-примитивов** и **App\***, без legacy global CSS (`.btn`, `.card`, произвольный `.stack`). Primary save/create — общий паттерн submit-кнопки; CI проверяет через `npm run check:ui` (`web/scripts/check-ui-migration.mjs`, в GitLab CI вместе с `npm test` и `npm run build`). Guard также падает, если в `web/src/index.css` снова появляются запрещённые legacy-правила (глобали SPA — Tailwind-токены и shadcn; OAuth HTML — отдельный `auth-shell.css`).
+Новые экраны собирайте из **shadcn-примитивов** и **App\***, без legacy global CSS (`.btn`, `.card`, произвольный `.stack`). Primary save/create — общий паттерн submit-кнопки; CI проверяет через `npm run check:ui` (`web/scripts/check-ui-migration.mjs`, правила в `web/scripts/ui-migration-rules.mjs`; в GitLab CI вместе с `npm test` и `npm run build`). Guard также падает, если в `web/src/index.css` снова появляются запрещённые legacy-правила (глобали SPA — Tailwind-токены и shadcn; OAuth HTML — отдельный `auth-shell.css`). Те же правила в Vitest: `web/src/ui/legacyUiGuard.test.ts`.
 
 ### Типографика и layout-токены
 
@@ -71,6 +71,8 @@ web/src/
     ├── TelegramIcon.tsx
     ├── AdminSection.tsx
     ├── MicrophoneRecordModal.tsx   # Запись с микрофона → POST /audios
+    ├── IngestPipelinePanel.tsx     # Карточка ingest: transcribe + один skill для summarize
+    ├── SummarizeSkillRadioGroup.tsx  # Выбор одного skill (pipeline Library, summarize на Transcript)
     ├── IngestExtraTagsMultiSelect.tsx  # Library URL ingest: модалка доп. тегов → user_tags на import/capture
     ├── ShareDialog.tsx, MfaSetupPanel.tsx, …
     └── …
@@ -166,6 +168,8 @@ npm run generate:api    # export_openapi.py + generate:api-types
 
 Import / capture по URL на **LibraryPage** передаёт опциональные **`user_tags`** через `importRequest` / `captureRequest` (`pipeline.ts`). Доп. теги редактируются в **`IngestExtraTagsMultiSelect`** (модалка: pick / add / chips как на карточках объектов). Выбор хранится в `localStorage` (`ingestExtraTags.ts`) до успешного import/capture.
 
+**Pipeline** (`IngestPipelinePanel`, `loadPipeline` / `normalizePipeline` в `pipeline.ts`): опциональный auto-transcribe и **один** skill для summarize (`SummarizeSkillRadioGroup`, есть строка «только transcribe»). Настройки — `idigest-ingest-pipeline`; summarize на transcript — `idigest-summarize-skills`. См. [Library — pipeline ingest](../domain/library.md#pipeline-ingest-ui-library).
+
 ## i18n
 
 Три UI locale: `en`, `ru`, `es`. Language switcher записывает preference через PATCH `/me` + i18next change.
@@ -182,7 +186,7 @@ npm run check:ui   # guard миграции UI (TSX + index.css, legacy-клас
 npm run generate:api   # обновить openapi.json + schema.gen.ts (после изменений API)
 ```
 
-Подробности `check:ui`: `web/scripts/check-ui-migration.mjs` (комментарий в начале файла). Vitest: стабильность токенов — `web/src/typography.test.ts`, auth helpers — `web/src/mfa.test.ts`.
+Подробности `check:ui`: `web/scripts/check-ui-migration.mjs` и общий `ui-migration-rules.mjs` (комментарии в начале файлов). Vitest: `legacyUiGuard.test.ts` (те же guard'ы, что CI), `typesetUi.test.ts` (контракт Geist/typeset в CSS), `typography.test.ts`, `mfa.test.ts`, `pipeline.test.ts` (тела import/capture и normalize pipeline).
 
 Assets попадают в `web/dist/assets/` — монтируются на `/assets` через FastAPI.
 

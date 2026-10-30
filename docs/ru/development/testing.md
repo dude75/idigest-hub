@@ -70,8 +70,8 @@ Tests патчат `app.services.workers` или dispatcher health, чтобы �
 
 ```bash
 cd web
-npm run check:ui   # TSX + index.css: legacy-классы, submit-паттерны, cap для HubBadge
-npm test           # vitest — mfa.test.ts (auth block paths), typography.test.ts (экспорт токенов)
+npm run check:ui   # TSX + index.css: legacy-классы, submit-паттерны, cap HubBadge (правила в ui-migration-rules.mjs)
+npm test           # vitest — legacyUiGuard.test.ts, typesetUi.test.ts, typography.test.ts, mfa.test.ts, pipeline.test.ts
 ```
 
 ## Заметки для CI

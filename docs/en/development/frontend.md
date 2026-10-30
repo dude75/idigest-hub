@@ -14,7 +14,7 @@ React 19 + TypeScript + Vite. Source: `web/src/`. Package README: [web/README.md
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) |
 | Notifications | `sonner` (`showError` / toasts in `util.tsx`) |
 
-New screens should compose **shadcn primitives** and **App\*** wrappers, not legacy global CSS (`.btn`, `.card`, ad-hoc `.stack`). Primary save/create actions use the shared submit button pattern enforced by `npm run check:ui` (`web/scripts/check-ui-migration.mjs`, runs in GitLab CI with `npm test` and `npm run build`). The guard also fails if forbidden legacy rules reappear in `web/src/index.css` (SPA globals should be Tailwind tokens and shadcn surfaces; OAuth HTML uses separate `auth-shell.css`).
+New screens should compose **shadcn primitives** and **App\*** wrappers, not legacy global CSS (`.btn`, `.card`, ad-hoc `.stack`). Primary save/create actions use the shared submit button pattern enforced by `npm run check:ui` (`web/scripts/check-ui-migration.mjs`, rules in `web/scripts/ui-migration-rules.mjs`; runs in GitLab CI with `npm test` and `npm run build`). The guard also fails if forbidden legacy rules reappear in `web/src/index.css` (SPA globals should be Tailwind tokens and shadcn surfaces; OAuth HTML uses separate `auth-shell.css`). Vitest reuses the same rules in `web/src/ui/legacyUiGuard.test.ts`.
 
 ### Typography and layout tokens
 
@@ -71,6 +71,8 @@ web/src/
     ├── TelegramIcon.tsx
     ├── AdminSection.tsx
     ├── MicrophoneRecordModal.tsx   # Library mic capture → POST /audios
+    ├── IngestPipelinePanel.tsx     # Library ingest card: transcribe + single-skill summarize prefs
+    ├── SummarizeSkillRadioGroup.tsx  # Single skill picker (Library pipeline, Transcript summarize)
     ├── IngestExtraTagsMultiSelect.tsx  # Library URL ingest: extra tags modal → user_tags on import/capture
     ├── ShareDialog.tsx, MfaSetupPanel.tsx, …
     └── …
@@ -166,6 +168,8 @@ For org members, **`GlobalMicRecordAccess`** renders fixed buttons under the top
 
 URL / meeting import on **LibraryPage** sends optional **`user_tags`** via `importRequest` / `captureRequest` (`pipeline.ts`). Extra tag names are edited in **`IngestExtraTagsMultiSelect`** (modal with the same pick / add / chip pattern as object tag editors). Last choice is stored in `localStorage` (`ingestExtraTags.ts`) until a successful import or capture clears it.
 
+**Pipeline** (`IngestPipelinePanel`, `loadPipeline` / `normalizePipeline` in `pipeline.ts`): optional auto-transcribe and **one** summarize skill (`SummarizeSkillRadioGroup`, including a transcribe-only row). Preferences persist in `idigest-ingest-pipeline`; transcript summarize reuses `idigest-summarize-skills`. See [Library — ingest pipeline](../domain/library.md#ingest-pipeline-library-ui).
+
 ## i18n
 
 Three UI locales: `en`, `ru`, `es`. Language switcher writes preference via PATCH `/me` + i18next change.
@@ -182,7 +186,7 @@ npm run check:ui   # TSX + index.css migration guard (legacy classes, submit pat
 npm run generate:api   # refresh openapi.json + schema.gen.ts (after backend API changes)
 ```
 
-`check:ui` details: `web/scripts/check-ui-migration.mjs` (see script header). Vitest covers token stability in `web/src/typography.test.ts` and auth helpers in `web/src/mfa.test.ts`.
+`check:ui` details: `web/scripts/check-ui-migration.mjs` and shared `ui-migration-rules.mjs` (see script headers). Vitest: `legacyUiGuard.test.ts` (same guards as CI), `typesetUi.test.ts` (Geist/typeset CSS contract), `typography.test.ts`, `mfa.test.ts`, `pipeline.test.ts` (import/capture request bodies and pipeline normalization).
 
 Assets emit to `web/dist/assets/` — mounted at `/assets` by FastAPI.
 

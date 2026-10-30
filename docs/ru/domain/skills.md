@@ -2,6 +2,8 @@
 
 **Skills** — шаблоны промптов (имя + markdown/text body), используемые при summarize transcript. Хаб конкатенирует выбранные навыки и отправляет их summarize-воркеру как параметр `skill`.
 
+Pipeline ingest на Library и панель summarize на Transcript в UI выбирают **не больше одного** skill (radio). `POST /tasks/summarize`, цепочка import/capture и MCP по-прежнему могут передавать несколько `skill_ids[]`.
+
 ## Области видимости (scopes)
 
 | scope | Владелец | Кто редактирует | Видимость |
