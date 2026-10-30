@@ -70,8 +70,8 @@ Tests патчат `app.services.workers` или dispatcher health, чтобы �
 
 ```bash
 cd web
-npm run check:ui   # guard миграции shadcn
-npm test           # vitest — включает web/src/mfa.test.ts (auth block paths)
+npm run check:ui   # TSX + index.css: legacy-классы, submit-паттерны, cap для HubBadge
+npm test           # vitest — mfa.test.ts (auth block paths), typography.test.ts (экспорт токенов)
 ```
 
 ## Заметки для CI

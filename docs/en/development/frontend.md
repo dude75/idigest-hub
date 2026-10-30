@@ -14,7 +14,25 @@ React 19 + TypeScript + Vite. Source: `web/src/`. Package README: [web/README.md
 | Styling | Tailwind CSS v4 (`@tailwindcss/vite`) |
 | Notifications | `sonner` (`showError` / toasts in `util.tsx`) |
 
-New screens should compose **shadcn primitives** and **App\*** wrappers, not legacy global CSS (`.btn`, `.card`, ad-hoc `.stack`). Primary save/create actions use the shared submit button pattern enforced by `npm run check:ui` (`web/scripts/check-ui-migration.mjs`, runs in GitLab CI with `npm test` and `npm run build`).
+New screens should compose **shadcn primitives** and **App\*** wrappers, not legacy global CSS (`.btn`, `.card`, ad-hoc `.stack`). Primary save/create actions use the shared submit button pattern enforced by `npm run check:ui` (`web/scripts/check-ui-migration.mjs`, runs in GitLab CI with `npm test` and `npm run build`). The guard also fails if forbidden legacy rules reappear in `web/src/index.css` (SPA globals should be Tailwind tokens and shadcn surfaces; OAuth HTML uses separate `auth-shell.css`).
+
+### Typography and layout tokens
+
+| Module | Role |
+| ------ | ---- |
+| `components/app/appTypography.ts` | Shared Tailwind class strings (`appListRowTitle`, `appFormStack`, `ingestStudioCardChrome`, …) |
+| `typography.ts` | Reading surfaces (`hub-reading-surface`, `summary-body`) and re-exports used by pages and `typography.test.ts` |
+| `components/ListRow.tsx` | Library / admin list rows (`listRowLayout`, meta via `appListRowMeta`) |
+| `components/EntityPageTitle.tsx` | Detail page headings |
+| `components/app/HubBadge.tsx` | Status chips (replaces legacy `.badge`) |
+
+Prefer importing tokens from `appTypography` / `typography` over new one-off `text-muted-foreground` or resurrecting removed global classes.
+
+### Code splitting
+
+`App.tsx` lazy-loads heavy routes with `React.lazy` + `Suspense` (`common.loading` fallback): **Instance**, **Library**, **Org**, **Stats**, and **Security**. Auth, setup, ingest detail, tasks, skills, and profile stay in the main chunk.
+
+`vite.config.ts` pulls **recharts** and **markdown** dependencies into named vendor chunks to keep the initial bundle smaller.
 
 ## Source tree (overview)
 
@@ -58,7 +76,7 @@ web/src/
     └── …
 ```
 
-`InstancePage` and heavy admin tabs are lazy-loaded to keep the main bundle smaller.
+`InstancePage` tabs and the routes above are lazy-loaded; see [Code splitting](#code-splitting).
 
 ## Routing
 
@@ -160,9 +178,11 @@ npm run dev        # HMR; proxy /api
 npm run build      # tsc + vite → dist/
 npm run lint       # oxlint
 npm run test       # vitest (e.g. auth route helpers)
-npm run check:ui   # migration guard script
+npm run check:ui   # TSX + index.css migration guard (legacy classes, submit patterns, badge cap)
 npm run generate:api   # refresh openapi.json + schema.gen.ts (after backend API changes)
 ```
+
+`check:ui` details: `web/scripts/check-ui-migration.mjs` (see script header). Vitest covers token stability in `web/src/typography.test.ts` and auth helpers in `web/src/mfa.test.ts`.
 
 Assets emit to `web/dist/assets/` — mounted at `/assets` by FastAPI.
 

@@ -110,6 +110,8 @@ The hub **sums** `workers.*` across enabled, dispatch-ready nodes of that type. 
 
 The **Capacity** column shows each node’s `health.workers` as `available / max` when the worker reports a pool. Transcribe and summarize nodes that omit `workers` fall back to healthy enabled nodes / all nodes of that type. Capture nodes that omit `workers` show `1` or `0` of `1` (dispatch-ready or not). Disabled capture nodes show `—`.
 
+**Instance → Workers UI:** the table lists name, health, type, models/connectors, and capacity. Disabled nodes use **muted** name styling; there is no separate **Enabled** column — toggle **Enabled** in the add/edit form. The capacity header has no tooltip (values follow the rules above).
+
 Type-specific checks still apply: transcribe — `engines`; summarize — `GET /ready` (200); capture — `connectors` (connector `loaded` for the task’s platform and the node’s selected subset).
 
 When `workers.available` is present on a node, new capture jobs on that node start only if `available > 0`; otherwise the hub uses the legacy rule (no second active capture on the same node).

@@ -12,7 +12,7 @@
 | **Dispatcher** | `app/services/dispatcher.py` | Background loop: health checks, dispatch, poll, billing on success |
 | **Database** | SQLite (default) or PostgreSQL | Orgs, users, tasks, encrypted artifacts metadata |
 | **File storage** | `app/services/storage.py` | Audio blobs: local disk (`STORAGE_BACKEND=local`) or S3-compatible object storage with SSE (`STORAGE_BACKEND=s3`) |
-| **Workers** | External processes | [itranscribe-worker](https://github.com/dude75/itranscribe-worker), [isummarize-worker](https://github.com/dude75/isummarize-worker) — registered by instance admin |
+| **Workers** | External processes | [itranscribe-worker](https://github.com/dude75/itranscribe-worker), [isummarize-worker](https://github.com/dude75/isummarize-worker), optional [icapture-worker](https://github.com/dude75/icapture-worker) — registered by instance admin |
 
 ```mermaid
 flowchart TB
@@ -32,6 +32,7 @@ flowchart TB
   subgraph workers [External workers]
     TW[itranscribe-worker]
     SW[isummarize-worker]
+    CW[icapture-worker]
   end
 
   Browser --> FastAPI
@@ -42,8 +43,10 @@ flowchart TB
   Dispatch --> DB
   Dispatch --> TW
   Dispatch --> SW
+  Dispatch --> CW
   TW -.->|results copied then DELETE| Dispatch
   SW -.->|results copied then DELETE| Dispatch
+  CW -.->|artifact copied then DELETE| Dispatch
 ```
 
 ## Design principles
@@ -72,7 +75,7 @@ On shutdown: cancel background tasks cleanly.
 Instance (single deployment)
 ├── instance_admin (one user, created at /setup)
 ├── InstanceSettings (SMTP, ASR models, rate limits, allow_new_orgs)
-├── WorkerNodes[] (transcribe | summarize)
+├── WorkerNodes[] (transcribe | summarize | capture)
 ├── Tariffs[]
 └── Organizations[]
     ├── org_admin / org_member users (one org per user)
@@ -90,6 +93,7 @@ Instance (single deployment)
 3. Worker completes → hub encrypts utterances → `Transcript` row → charges wallet → `DELETE` worker task
 4. User starts summarize → `POST /tasks/summarize` with `skill_ids` → dispatcher sends text + combined skills to summarize worker
 5. Success → encrypted `Summary` body → billing → worker task deleted
+6. (Optional) URL import or meeting capture → `POST /imports` or capture enqueue → [icapture-worker](https://github.com/dude75/icapture-worker) produces audio → same library / transcribe path as step 1
 
 See [request-flow.md](request-flow.md) for step-by-step sequences.
 

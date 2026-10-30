@@ -12,7 +12,7 @@
 | **Dispatcher** | `app/services/dispatcher.py` | Фоновый цикл: health checks, dispatch, poll, биллинг при успехе |
 | **Database** | SQLite (по умолчанию) или PostgreSQL | Организации, пользователи, задачи, метаданные зашифрованных артефактов |
 | **File storage** | `app/services/storage.py` | Audio: локальный диск (`STORAGE_BACKEND=local`) или S3-compatible object storage с SSE (`STORAGE_BACKEND=s3`) |
-| **Workers** | Внешние процессы | [itranscribe-worker](https://github.com/dude75/itranscribe-worker), [isummarize-worker](https://github.com/dude75/isummarize-worker) — регистрируются instance admin |
+| **Workers** | Внешние процессы | [itranscribe-worker](https://github.com/dude75/itranscribe-worker), [isummarize-worker](https://github.com/dude75/isummarize-worker), опционально [icapture-worker](https://github.com/dude75/icapture-worker) — регистрируются instance admin |
 
 ```mermaid
 flowchart TB
@@ -32,6 +32,7 @@ flowchart TB
   subgraph workers [Внешние воркеры]
     TW[itranscribe-worker]
     SW[isummarize-worker]
+    CW[icapture-worker]
   end
 
   Browser --> FastAPI
@@ -42,8 +43,10 @@ flowchart TB
   Dispatch --> DB
   Dispatch --> TW
   Dispatch --> SW
+  Dispatch --> CW
   TW -.->|результаты копируются, затем DELETE| Dispatch
   SW -.->|результаты копируются, затем DELETE| Dispatch
+  CW -.->|артефакт копируется, затем DELETE| Dispatch
 ```
 
 ## Принципы проектирования
@@ -72,7 +75,7 @@ flowchart TB
 Instance (одно развёртывание)
 ├── instance_admin (один пользователь, создаётся на /setup)
 ├── InstanceSettings (SMTP, ASR models, rate limits, allow_new_orgs)
-├── WorkerNodes[] (transcribe | summarize)
+├── WorkerNodes[] (transcribe | summarize | capture)
 ├── Tariffs[]
 └── Organizations[]
     ├── org_admin / org_member users (одна org на пользователя)
@@ -90,6 +93,7 @@ Instance (одно развёртывание)
 3. Воркер завершает работу → хаб шифрует utterances → строка `Transcript` → списание с кошелька → `DELETE` задачи на воркере
 4. Пользователь запускает summarize → `POST /tasks/summarize` с `skill_ids` → dispatcher отправляет текст + объединённые skills на summarize worker
 5. Успех → зашифрованное тело `Summary` → биллинг → задача на воркере удаляется
+6. (Опционально) import по URL или capture встречи → `POST /imports` или enqueue capture → [icapture-worker](https://github.com/dude75/icapture-worker) отдаёт аудио → дальше как в шаге 1 (библиотека / transcribe)
 
 Подробные последовательности — в [request-flow.md](request-flow.md).
 

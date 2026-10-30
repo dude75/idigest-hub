@@ -14,7 +14,25 @@ React 19 + TypeScript + Vite. Source: `web/src/`. README пакета: [web/READ
 | Стили | Tailwind CSS v4 (`@tailwindcss/vite`) |
 | Уведомления | `sonner` (`showError` / toast в `util.tsx`) |
 
-Новые экраны собирайте из **shadcn-примитивов** и **App\***, без legacy global CSS (`.btn`, `.card`, произвольный `.stack`). Primary save/create — общий паттерн submit-кнопки; CI проверяет через `npm run check:ui` (`web/scripts/check-ui-migration.mjs`, в GitLab CI вместе с `npm test` и `npm run build`).
+Новые экраны собирайте из **shadcn-примитивов** и **App\***, без legacy global CSS (`.btn`, `.card`, произвольный `.stack`). Primary save/create — общий паттерн submit-кнопки; CI проверяет через `npm run check:ui` (`web/scripts/check-ui-migration.mjs`, в GitLab CI вместе с `npm test` и `npm run build`). Guard также падает, если в `web/src/index.css` снова появляются запрещённые legacy-правила (глобали SPA — Tailwind-токены и shadcn; OAuth HTML — отдельный `auth-shell.css`).
+
+### Типографика и layout-токены
+
+| Модуль | Назначение |
+| ------ | ---------- |
+| `components/app/appTypography.ts` | Общие Tailwind-классы (`appListRowTitle`, `appFormStack`, `ingestStudioCardChrome`, …) |
+| `typography.ts` | Reading surfaces (`hub-reading-surface`, `summary-body`) и re-export для страниц и `typography.test.ts` |
+| `components/ListRow.tsx` | Строки списков library/admin (`listRowLayout`, meta через `appListRowMeta`) |
+| `components/EntityPageTitle.tsx` | Заголовки карточек объектов |
+| `components/app/HubBadge.tsx` | Статус-чипы (вместо legacy `.badge`) |
+
+Импортируйте токены из `appTypography` / `typography`, а не новые разовые `text-muted-foreground` и не удалённые global-классы.
+
+### Code splitting
+
+`App.tsx` подгружает тяжёлые маршруты через `React.lazy` + `Suspense` (fallback `common.loading`): **Instance**, **Library**, **Org**, **Stats**, **Security**. Auth, setup, ingest detail, tasks, skills и profile остаются в основном chunk.
+
+`vite.config.ts` выносит **recharts** и **markdown**-зависимости в именованные vendor chunks.
 
 ## Дерево исходников (обзор)
 
@@ -58,7 +76,7 @@ web/src/
     └── …
 ```
 
-`InstancePage` и тяжёлые admin-вкладки подгружаются lazy, чтобы не раздувать основной бандл.
+Вкладки `InstancePage` и маршруты выше — lazy; см. [Code splitting](#code-splitting).
 
 ## Routing
 
@@ -160,9 +178,11 @@ npm run dev        # HMR; proxy /api
 npm run build      # tsc + vite → dist/
 npm run lint       # oxlint
 npm run test       # vitest (например auth route helpers)
-npm run check:ui   # guard скрипт миграции UI
+npm run check:ui   # guard миграции UI (TSX + index.css, legacy-классы, submit-паттерны, cap badge)
 npm run generate:api   # обновить openapi.json + schema.gen.ts (после изменений API)
 ```
+
+Подробности `check:ui`: `web/scripts/check-ui-migration.mjs` (комментарий в начале файла). Vitest: стабильность токенов — `web/src/typography.test.ts`, auth helpers — `web/src/mfa.test.ts`.
 
 Assets попадают в `web/dist/assets/` — монтируются на `/assets` через FastAPI.
 
