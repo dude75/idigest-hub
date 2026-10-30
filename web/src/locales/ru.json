@@ -387,7 +387,7 @@
     "toneOpening": "Начало",
     "toneClosing": "Конец",
     "toneDeEscalation": "Напряжение снизилось к концу",
-    "toneDeEscalationShort": "Снижение напряжения",
+    "toneDeEscalationShort": "Деэскалация",
     "toneDeEscalationYes": "Да",
     "toneDeEscalationNo": "Нет",
     "toneUtterancesOnly": "Тон по репликам — ниже.",
